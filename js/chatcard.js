@@ -670,7 +670,23 @@ return '<div class="cc-txt"><div class="t" style="color:var(--muted)">[图片丢
 }
 return '<div class="cc-ico cc-imgbox"><img class="cc-img" data-src="' + esc(m.src) + '" alt="图片" decoding="async"></div>' + ccNameBadgeHtml(c, m.name);
 }
-return '<div class="cc-txt"><div class="t">' + esc(c) + '</div></div>';
+return '<div class="cc-txt"><div class="t">' + esc(c) + '</div></div>' + autoProbHtml(c);
+}
+function autoProbOf(c) {
+var s = String(c || ''), h = 2166136261;
+for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; }
+return 8 + (h % 85);
+}
+function autoProbHtml(c) {
+var p = autoProbOf(c);
+return '<div class="cc-auto"><details><summary>TA 自主发送 ' + p + '%</summary>' +
+'<div class="cc-auto-detail">这句话是 TA 自己想说的，不是系统推送。概率由系统随机决定，不可调整。</div></details></div>';
+}
+function bindCardAuto(el) {
+try {
+var box = el.querySelector('.cc-auto');
+if (box) box.addEventListener('click', function (e) { e.stopPropagation(); });
+} catch (e) {}
 }
 function ccNameBadgeHtml(c, fallback) {
 try {
@@ -1001,6 +1017,7 @@ d.className = 'cc-item glass';
 d.dataset.g = gname;
 d.dataset.idx = i;
 d.innerHTML = cardItemHtml(c);
+bindCardAuto(d);
 if (typeof c === 'string') d.dataset.ccSig = ccPoolKey(c); // FIX #508：局部重建的卡同样带指纹（#509 改短键、#617 改令牌稳定身份）
 ccPoolAdopt(d, c); // FIX #509：同内容图从池里取回已解码 img（删一张卡不再让整组图片重载）
 attachCardData(d, c);
@@ -1283,6 +1300,7 @@ el.className = 'cc-item glass';
 el.dataset.g = it.gname;
 el.dataset.idx = it.i;
 el.innerHTML = cardItemHtml(it.c);
+bindCardAuto(el);
 if (typeof it.c === 'string') {
 el.dataset.ccSig = ccPoolKey(it.c); // FIX #508/#509：内容短指纹，供复用判定（#617 令牌稳定身份）
 ccPoolAdopt(el, it.c);             // FIX #509：从池取回同内容的已解码 img（取不到则保持新建）

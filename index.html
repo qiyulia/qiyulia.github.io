@@ -11322,6 +11322,159 @@ to { opacity: 0; visibility: hidden; pointer-events: none; }
 .yl-intro-mark span { animation-duration: .01s; animation-delay: 0s; }
 .yl-intro-line, .yl-intro-sub { animation-duration: .01s; animation-delay: 0s; }
 }
+.yl-freq-card .poke-card-scroll { max-height:none; }
+.yl-freq-body { display:flex; flex-direction:column; align-items:center; padding:18px 8px 8px; }
+.yl-freq-pct { font-size:44px; font-weight:700; line-height:1; letter-spacing:1px; color:#2b3040; font-variant-numeric:tabular-nums; }
+.yl-freq-pct i { font-style:normal; font-size:16px; font-weight:600; margin-left:2px; color:#8a90a6; }
+.yl-freq-track {
+width:100%; height:16px; margin:16px 0 10px; border-radius:999px;
+background:rgba(120,130,160,.14); overflow:hidden; position:relative;
+}
+.yl-freq-track > span {
+display:block; height:100%; width:0%; border-radius:999px;
+background:linear-gradient(135deg, var(--grad-a) 0%, var(--grad-b) 58%, var(--grad-c) 100%);
+transition:width .45s cubic-bezier(.22,.61,.36,1);
+box-shadow:0 0 12px rgba(160,175,220,.45);
+}
+.yl-freq-status { font-size:13.5px; font-weight:600; color:#434a5e; margin-top:2px; }
+.yl-freq-meta { font-size:11.5px; color:#8a90a6; margin-top:5px; min-height:16px; }
+.yl-freq-hint { font-size:11px; color:#aeb3c2; margin-top:10px; }
+.yl-freq-refresh {
+margin-top:16px; padding:9px 22px; border-radius:999px; border:1px solid rgba(120,130,160,.28);
+background:transparent; color:#434a5e; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.yl-freq-refresh:active { transform:scale(.97); }
+.yl-cardmode-trash { color:#c45454 !important; }
+.yl-cardmode-trash[hidden] { display:none !important; }
+.chat-input.yl-cm-on {
+display:flex; align-items:center; justify-content:center; text-align:center;
+background:linear-gradient(135deg, rgba(169,193,238,.28), rgba(203,188,236,.28));
+border:1px dashed rgba(120,130,170,.45); border-radius:14px; cursor:pointer;
+font-weight:600; color:#3b4258; padding:8px 10px; min-height:38px;
+}
+.chat-input.yl-cm-on:empty::before { content:attr(data-cm-ph); color:#8b91a8; font-weight:500; font-size:12.5px; }
+.yl-cm-card .poke-card-scroll { max-height:44vh; }
+.yl-cm-search-row { padding:0 0 8px; }
+.yl-cm-search {
+width:100%; box-sizing:border-box; padding:9px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.1);
+background:rgba(255,255,255,.7); font-size:13px; font-family:inherit; outline:none;
+}
+.yl-cm-list { display:flex; flex-direction:column; gap:7px; }
+.yl-cm-item {
+width:100%; text-align:left; padding:10px 12px; border-radius:12px; border:1px solid rgba(0,0,0,.07);
+background:rgba(255,255,255,.78); font-size:13px; line-height:1.5; color:#2b3040; font-family:inherit;
+cursor:pointer; word-break:break-word;
+}
+.yl-cm-item:active { transform:scale(.985); background:rgba(203,188,236,.18); }
+.yl-cm-empty { padding:18px 6px; text-align:center; font-size:12.5px; color:#9aa0b2; }
+.cc-auto { flex:0 0 100%; width:100%; margin-top:6px; }
+.cc-auto > details { font-size:10.5px; color:#8b91a8; }
+.cc-auto summary {
+list-style:none; cursor:pointer; display:flex; align-items:center; gap:4px;
+padding:3px 0; -webkit-tap-highlight-color:transparent;
+}
+.cc-auto summary::-webkit-details-marker { display:none; }
+.cc-auto summary::before {
+content:'▸'; font-size:9px; color:#a8aec0; transition:transform .18s; display:inline-block;
+}
+.cc-auto details[open] summary::before { transform:rotate(90deg); }
+.cc-auto-detail {
+margin-top:3px; padding:6px 8px; border-radius:8px; background:rgba(120,130,160,.07);
+font-size:10.5px; line-height:1.6; color:#7c8298; word-break:break-word;
+}
+.cc-item:has(.cc-auto) { flex-wrap:wrap; }
+.card-list.cc-grid .cc-auto, .card-list.cc-grid6 .cc-auto, .card-list.cc-grid2 .cc-auto { display:none; }
+.yl-doodle-card { max-height:78%; }
+.yl-doodle-body { display:flex; flex-direction:column; gap:10px; min-height:0; }
+.yl-doodle-canvas-wrap {
+width:100%; height:44vh; min-height:220px; background:#fff; border-radius:16px;
+border:1px solid rgba(120,130,170,.22); box-shadow:inset 0 1px 3px rgba(60,70,100,.06);
+overflow:hidden; touch-action:none;
+}
+.yl-doodle-canvas-wrap canvas { display:block; width:100%; height:100%; touch-action:none; }
+.yl-doodle-tools { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+.yl-doodle-dot {
+width:26px; height:26px; border-radius:50%; border:2px solid #fff; cursor:pointer; padding:0;
+box-shadow:0 0 0 1px rgba(0,0,0,.14); transition:transform .15s;
+}
+.yl-doodle-dot.sel { transform:scale(1.18); box-shadow:0 0 0 2px rgba(90,105,150,.55); }
+.yl-doodle-acts { display:flex; gap:8px; }
+.yl-doodle-btn {
+flex:1; padding:10px 0; border-radius:13px; border:1px solid rgba(0,0,0,.1);
+background:rgba(255,255,255,.8); color:#3b4258; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.yl-doodle-btn.primary { border:none; background:linear-gradient(135deg, var(--grad-a), var(--grad-b)); color:#2b3040; }
+.yl-doodle-btn:active { transform:scale(.97); }
+.yl-doodle-bubble { position:relative; padding:0 !important; background:transparent !important; border:none !important; box-shadow:none !important; }
+.yl-doodle-wrap { position:relative; display:inline-block; border-radius:14px; overflow:hidden; background:#fff; line-height:0; }
+.yl-doodle-wrap img { display:block; max-width:min(230px,60vw); width:100%; height:auto; border-radius:14px; cursor:zoom-in; }
+.yl-doodle-marks { position:absolute; inset:0; pointer-events:none; }
+.yl-doodle-mark {
+position:absolute; transform:translate(-50%,-50%); font-size:26px; line-height:1;
+filter:drop-shadow(0 2px 3px rgba(0,0,0,.18)); animation:ylDmPop .28s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes ylDmPop { from { transform:translate(-50%,-50%) scale(.3); opacity:0; } to { transform:translate(-50%,-50%) scale(1); opacity:1; } }
+.yl-doodle-stick {
+position:absolute; right:6px; bottom:6px; z-index:2; padding:4px 9px; border-radius:999px; border:none;
+background:rgba(255,255,255,.92); color:#3b4258; font-size:11px; font-weight:600; cursor:pointer;
+box-shadow:0 2px 8px rgba(0,0,0,.14); font-family:inherit;
+}
+.yl-doodle-stick:active { transform:scale(.95); }
+.yl-sticker-pop {
+position:absolute; z-index:5; right:4px; bottom:34px; padding:8px; border-radius:14px;
+background:rgba(255,255,255,.98); box-shadow:0 8px 24px rgba(0,0,0,.2); display:grid;
+grid-template-columns:repeat(4,1fr); gap:5px;
+}
+.yl-sticker-pop button { width:34px; height:34px; border:none; background:transparent; font-size:22px; cursor:pointer; border-radius:9px; }
+.yl-sticker-pop button:active { background:rgba(0,0,0,.06); }
+.yl-dg-card { max-height:84%; }
+.yl-dg-body { max-height:none; display:flex; flex-direction:column; min-height:0; }
+.yl-dg-screen { display:flex; flex-direction:column; gap:10px; min-height:0; }
+.yl-dg-screen[hidden] { display:none; }
+.yl-dg-tip { font-size:12.5px; color:#8a90a6; text-align:center; }
+.yl-dg-word { text-align:center; font-size:34px; font-weight:700; letter-spacing:6px; color:#2b3040; padding:6px 0; }
+.yl-dg-link { align-self:center; border:none; background:transparent; color:#6f7898; font-size:12.5px; text-decoration:underline; cursor:pointer; font-family:inherit; }
+.yl-dg-time { display:flex; align-items:center; justify-content:center; gap:8px; font-size:12.5px; color:#5b6278; }
+.yl-dg-time select { padding:7px 10px; border-radius:10px; border:1px solid rgba(0,0,0,.12); background:#fff; font-size:12.5px; font-family:inherit; }
+.yl-dg-primary {
+width:100%; padding:11px 0; border-radius:13px; border:none; cursor:pointer; font-family:inherit;
+background:linear-gradient(135deg, var(--grad-a), var(--grad-b)); color:#2b3040; font-size:14px; font-weight:700;
+}
+.yl-dg-primary:active { transform:scale(.98); }
+.yl-dg-wordbar { text-align:center; font-size:12.5px; color:#6b7288; }
+.yl-dg-wordbar b { font-size:16px; color:#2b3040; letter-spacing:2px; }
+.yl-dg-canvas-wrap { width:100%; height:34vh; min-height:190px; background:#fff; border-radius:14px; border:1px solid rgba(120,130,170,.22); overflow:hidden; touch-action:none; }
+.yl-dg-canvas-wrap canvas { display:block; width:100%; height:100%; touch-action:none; }
+.yl-dg-colors { display:flex; gap:8px; flex-wrap:wrap; }
+.yl-dg-row { display:flex; gap:8px; }
+.yl-dg-desc { flex:1; padding:9px 12px; border-radius:11px; border:1px solid rgba(0,0,0,.1); font-size:13px; outline:none; font-family:inherit; min-width:0; }
+.yl-dg-mini { padding:0 14px; border-radius:11px; border:1px solid rgba(0,0,0,.1); background:#fff; color:#4a5168; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+.yl-dg-chat { border-top:1px solid rgba(0,0,0,.07); padding-top:8px; }
+.yl-dg-log { max-height:88px; overflow-y:auto; display:flex; flex-direction:column; gap:5px; margin-bottom:7px; }
+.yl-dg-log:empty { display:none; }
+.yl-dg-msg { font-size:11.5px; line-height:1.55; color:#5b6278; }
+.yl-dg-msg b { color:#2b3040; font-weight:700; margin-right:4px; }
+.yl-dg-msg.ta b { color:#7d6aa8; }
+.yl-dg-chat-row { display:flex; gap:7px; }
+.yl-dg-chat-row input { flex:1; padding:8px 11px; border-radius:10px; border:1px solid rgba(0,0,0,.1); font-size:12.5px; outline:none; font-family:inherit; min-width:0; }
+.yl-dg-chat-row button { padding:0 14px; border-radius:10px; border:none; background:rgba(120,130,160,.12); color:#3b4258; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+.yl-dg-options { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.yl-dg-opt { padding:14px 10px; border-radius:14px; border:1px solid rgba(0,0,0,.09); background:#fff; color:#2b3040; font-size:14px; font-weight:600; cursor:default; font-family:inherit; }
+.yl-dg-opt b { color:#7d6aa8; margin-right:5px; }
+.yl-dg-opt.sel { border-color:rgba(125,106,168,.5); background:rgba(203,188,236,.18); }
+.yl-dg-opt.right { border-color:rgba(110,170,130,.55); background:rgba(140,200,160,.18); }
+.yl-dg-opt.wrong { border-color:rgba(200,120,120,.4); background:rgba(220,150,150,.12); }
+.yl-dg-count { text-align:center; font-size:30px; font-weight:700; color:#6b7288; font-variant-numeric:tabular-nums; }
+.yl-dg-result-emoji { text-align:center; font-size:46px; line-height:1; margin:14px 0 8px; }
+.yl-dg-result-title { text-align:center; font-size:19px; font-weight:700; color:#2b3040; }
+.yl-dg-result-sub { text-align:center; font-size:12.5px; color:#7c8298; line-height:1.7; margin-top:6px; }
+.yl-dg-result-acts { display:flex; gap:9px; margin-top:16px; }
+.yl-dg-ghost { flex:1; padding:11px 0; border-radius:13px; border:1px solid rgba(0,0,0,.12); background:transparent; color:#5b6278; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+.yl-dg-result-acts .yl-dg-primary { flex:1; }
+@media (max-height:600px) {
+.yl-doodle-canvas-wrap { height:36vh; }
+.yl-dg-canvas-wrap { height:26vh; }
+}
 </style>
 </head>
 <body>
@@ -11595,6 +11748,11 @@ to { opacity: 0; visibility: hidden; pointer-events: none; }
 <!-- 本页动态注入 喝水/吃什么/存钱罐/番茄钟（p2-features.js，喝水排在本页静态图标之后） -->
 </div>
       </div><!-- /page-slide 第三页 -->
+
+      <!-- 第四页：心意市集 / 心意柜（v3.44.x：从第三页移出，单独成页） -->
+      <div class="page-slide fourth">
+        <div class="app-grid p4-grid" data-app="p4" data-desk-widget="p4apps"></div>
+      </div><!-- /page-slide 第四页 -->
       </div><!-- /desktop-pages -->
 
       <!-- 桌面小组件隐藏池：被移除/未添加的组件暂存于此（display:none）。
@@ -16142,6 +16300,10 @@ to { opacity: 0; visibility: hidden; pointer-events: none; }
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5l.01.01M15 9.5l.01.01"/></svg>
         </button>
         <div class="chat-input" id="chat-input" data-io="input" contenteditable="true" data-ph="说点什么…" spellcheck="false" role="textbox" aria-label="说点什么…"></div>
+        <!-- v3.44.x：字卡模式垃圾桶——只删除输入框里待发的字卡，不触发发送 -->
+        <button class="ch-input-btn yl-cardmode-trash" id="chat-cardmode-trash" title="删除字卡" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v5M14 11v5"/></svg>
+        </button>
         <button class="ch-input-btn" id="chat-img-btn" data-io="img" title="插入图片">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5-9 9"/></svg>
         </button>
@@ -17552,6 +17714,22 @@ to { opacity: 0; visibility: hidden; pointer-events: none; }
             <span class="mi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7"/><path d="M5.8 9.6V20h12.4V9.6"/><path d="M10 20v-5.4h4V20"/></svg></span>
             <span>房间</span>
           </button>
+          <button class="more-item" id="more-freq" data-mcat="tool" title="频率（观察链接能量稳不稳定）">
+            <span class="mi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2.4-6 3.2 12 2.6-8 1.8 4h4"/></svg></span>
+            <span>频率</span>
+          </button>
+          <button class="more-item" id="more-cardmode" data-mcat="tool" title="字卡模式（输入框变为放字卡发送）">
+            <span class="mi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 9.5h10M7 14h6"/></svg></span>
+            <span>字卡模式</span>
+          </button>
+          <button class="more-item" id="more-doodle" data-mcat="game" title="涂鸦（画完发给 TA）">
+            <span class="mi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 4.5l4 4L8 20H4v-4z"/><path d="M13 7l4 4"/><path d="M4 20h16"/></svg></span>
+            <span>涂鸦</span>
+          </button>
+          <button class="more-item" id="more-drawguess" data-mcat="game" title="你画我猜（画或描述，让 TA 猜词）">
+            <span class="mi-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.4 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></span>
+            <span>你画我猜</span>
+          </button>
         </div>
         <div class="more-grid" id="more-grid-ask" hidden>
           <button class="more-item" id="more-ask-now" title="让TA现在问一次（TA的询问）">
@@ -17591,6 +17769,105 @@ to { opacity: 0; visibility: hidden; pointer-events: none; }
           </button>
         </div>
       </div>
+
+    <!-- v3.44.x：链接频率观测（聊天 → 更多功能 → 工具）——椭圆长条 + 百分比，纯随机 -->
+    <div class="poke-card yl-freq-card" id="chat-freq-panel" hidden>
+      <div class="poke-card-head">
+        <span>链接频率</span>
+        <button class="poke-card-close" id="chat-freq-close" title="关闭">✕</button>
+      </div>
+      <div class="poke-card-scroll yl-freq-body">
+        <div class="yl-freq-pct"><b id="yl-freq-pct">--</b><i>%</i></div>
+        <div class="yl-freq-track"><span id="yl-freq-fill"></span></div>
+        <div class="yl-freq-status" id="yl-freq-status">正在感知链接能量…</div>
+        <div class="yl-freq-meta" id="yl-freq-meta"></div>
+        <div class="yl-freq-hint">纯随机观测 · 只代表这一刻的链接能量</div>
+        <button class="yl-freq-refresh" id="yl-freq-refresh" type="button">重新观测</button>
+      </div>
+    </div>
+
+    <!-- v3.44.x：字卡模式选卡面板（工具 → 字卡模式开启后，点输入框唤出） -->
+    <div class="poke-card yl-cm-card" id="chat-cardmode-panel" hidden>
+      <div class="poke-card-head">
+        <span>我的字卡</span>
+        <button class="poke-card-close" id="chat-cardmode-close" title="关闭">✕</button>
+      </div>
+      <div class="yl-cm-search-row">
+        <input class="yl-cm-search" id="chat-cardmode-search" type="text" placeholder="搜索字卡" maxlength="20" autocomplete="off">
+      </div>
+      <div class="poke-card-scroll yl-cm-list" id="chat-cardmode-list"></div>
+    </div>
+
+    <!-- v3.44.x：涂鸦（半屏纯白画布，多色画笔，画完发到聊天；对方可在涂鸦上贴表情） -->
+    <div class="poke-card yl-doodle-card" id="chat-doodle-panel" hidden>
+      <div class="poke-card-head">
+        <span>涂鸦</span>
+        <button class="poke-card-close" id="chat-doodle-close" title="关闭">✕</button>
+      </div>
+      <div class="yl-doodle-body">
+        <div class="yl-doodle-canvas-wrap"><canvas id="yl-doodle-canvas"></canvas></div>
+        <div class="yl-doodle-tools" id="yl-doodle-colors"></div>
+        <div class="yl-doodle-acts">
+          <button class="yl-doodle-btn" id="yl-doodle-undo" type="button">撤销</button>
+          <button class="yl-doodle-btn" id="yl-doodle-clear" type="button">清空</button>
+          <button class="yl-doodle-btn primary" id="yl-doodle-send" type="button">发给 TA</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- v3.44.x：你画我猜（随机词 → 我画/描述 → TA 在 ABCD 里选 → 结束/再来一局） -->
+    <div class="poke-card yl-dg-card" id="chat-drawguess-panel" hidden>
+      <div class="poke-card-head">
+        <span>你画我猜 · <b id="yl-dg-name">TA</b></span>
+        <button class="poke-card-close" id="chat-drawguess-close" title="关闭">✕</button>
+      </div>
+      <div class="poke-card-scroll yl-dg-body">
+        <div class="yl-dg-screen" id="yl-dg-setup">
+          <div class="yl-dg-tip">这一局的词</div>
+          <div class="yl-dg-word" id="yl-dg-word">——</div>
+          <button class="yl-dg-link" id="yl-dg-reroll" type="button">换一个词</button>
+          <label class="yl-dg-time">TA 思考时间
+            <select id="yl-dg-time">
+              <option value="10">10 秒</option>
+              <option value="20" selected>20 秒</option>
+              <option value="30">30 秒</option>
+            </select>
+          </label>
+          <button class="yl-dg-primary" id="yl-dg-start" type="button">开始画 / 描述</button>
+        </div>
+        <div class="yl-dg-screen" id="yl-dg-play" hidden>
+          <div class="yl-dg-wordbar">要画的是：<b id="yl-dg-word2">——</b></div>
+          <div class="yl-dg-canvas-wrap"><canvas id="yl-dg-canvas"></canvas></div>
+          <div class="yl-dg-colors" id="yl-dg-colors"></div>
+          <div class="yl-dg-row">
+            <input class="yl-dg-desc" id="yl-dg-desc" type="text" maxlength="30" placeholder="也可以写一句描述…">
+            <button class="yl-dg-mini" id="yl-dg-clear" type="button">清空</button>
+          </div>
+          <button class="yl-dg-primary" id="yl-dg-ready" type="button">我准备好了，让 TA 猜</button>
+          <div class="yl-dg-chat">
+            <div class="yl-dg-log" id="yl-dg-log"></div>
+            <div class="yl-dg-chat-row">
+              <input id="yl-dg-chat-input" type="text" maxlength="40" placeholder="和 TA 说点什么…" autocomplete="off">
+              <button id="yl-dg-chat-send" type="button">发送</button>
+            </div>
+          </div>
+        </div>
+        <div class="yl-dg-screen" id="yl-dg-guess" hidden>
+          <div class="yl-dg-tip">TA 正在看你画的</div>
+          <div class="yl-dg-options" id="yl-dg-options"></div>
+          <div class="yl-dg-count" id="yl-dg-count">20</div>
+        </div>
+        <div class="yl-dg-screen" id="yl-dg-result" hidden>
+          <div class="yl-dg-result-emoji" id="yl-dg-result-emoji">◌</div>
+          <div class="yl-dg-result-title" id="yl-dg-result-title"></div>
+          <div class="yl-dg-result-sub" id="yl-dg-result-sub"></div>
+          <div class="yl-dg-result-acts">
+            <button class="yl-dg-ghost" id="yl-dg-end" type="button">结束</button>
+            <button class="yl-dg-primary" id="yl-dg-again" type="button">再来一局</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- TA在身边·位置面板（聊天寻踪半框 / 桌面寻踪页「TA在身边」入口共用，必须放在所有 .page 之外——
          position:fixed 弹层若嵌在 .page 内，页面切换时会被父级 hidden 隐藏，桌面寻踪页点开就会"跑到聊天页"；
@@ -18106,7 +18383,7 @@ to { opacity: 0; visibility: hidden; pointer-events: none; }
   // v3.5.123：readonly 起手（防 Chrome 密码弹条破坏表单签名）——这里立即解除，
   // 早于所有功能模块，任何设备都不会出现输入框不可用的情况
   (function () { var _ci = document.getElementById('chat-input'); if (_ci) _ci.readOnly = false; })();
-window.__jsErrors = window.__jsErrors || []; window.__mochiLoaded = window.__mochiLoaded || []; window.__mochiErrLoaded = window.__mochiErrLoaded || []; window.__mochiBootAt = Date.now(); window.__mochiJsFiles = ["device.js","idb.js","contacts.js","card-lock.js","dcp-master.js","media-pool.js","storage-slim.js","perf-check.js","energy-check.js","flash-check.js","img-compress.js","img-ingest.js","clock.js","tabs.js","desktop-slider.js","quote-cards.js","personalize.js","soft-theme.js","chat.js","group-chat.js","chatcard.js","chat-settings.js","reply-settings.js","fav-settings.js","default-cards-data.js","dict-ext-data.js","default-cards.js","quote-spell.js","dream-free.js","mood-followup-data.js","mood-reply-cards.js","ta-mood-data.js","ta-mood.js","fav-reason-data.js","fav-reason.js","music-player.js","calendar.js","divination.js","avatar-lib.js","ta-ask.js","ck-question.js","incoming-requests.js","ta-invite.js","bg-keep.js","records.js","call.js","mail.js","feed.js","loc-lib.js","p2-features.js","watch-companion.js","gift-shop.js","memo-app.js","memo-arc.js","my-arc.js","period.js","accounting.js","garden.js","room.js","drift-bottle.js","decision.js","group-decision.js","pong.js","snake-game.js","breakout.js","connect-four.js","coop-mine.js","fishing.js","memory-game.js","gomoku.js","linkup.js","match3.js","auction.js","arcade.js","mood-diary.js","sfx.js","fullscreen.js","data-backup.js","feature-data.js","pwa.js","update-remind.js","cjian.js","feature-hub.js","settings-help.js","onboarding.js","page-coach.js","card-audit.js","storage-guide.js","mobile-adapt.js"]; window.__mochiExtFiles = ["idb.js","contacts.js","card-lock.js","dcp-master.js","media-pool.js","storage-slim.js","perf-check.js","energy-check.js","flash-check.js","img-compress.js","img-ingest.js","clock.js","tabs.js","desktop-slider.js","quote-cards.js","personalize.js","soft-theme.js","chat.js","group-chat.js","chatcard.js","chat-settings.js","reply-settings.js","fav-settings.js","default-cards-data.js","dict-ext-data.js","default-cards.js","quote-spell.js","dream-free.js","mood-followup-data.js","mood-reply-cards.js","ta-mood-data.js","ta-mood.js","fav-reason-data.js","fav-reason.js","music-player.js","calendar.js","divination.js","avatar-lib.js","ta-ask.js","ck-question.js","incoming-requests.js","ta-invite.js","bg-keep.js","records.js","call.js","mail.js","feed.js","loc-lib.js","p2-features.js","watch-companion.js","gift-shop.js","memo-app.js","memo-arc.js","my-arc.js","period.js","accounting.js","garden.js","room.js","drift-bottle.js","decision.js","group-decision.js","pong.js","snake-game.js","breakout.js","connect-four.js","coop-mine.js","fishing.js","memory-game.js","gomoku.js","linkup.js","match3.js","auction.js","arcade.js","mood-diary.js","sfx.js","fullscreen.js","data-backup.js","feature-data.js","update-remind.js","cjian.js","feature-hub.js","settings-help.js","onboarding.js","page-coach.js","card-audit.js","storage-guide.js","mobile-adapt.js"];
+window.__jsErrors = window.__jsErrors || []; window.__mochiLoaded = window.__mochiLoaded || []; window.__mochiErrLoaded = window.__mochiErrLoaded || []; window.__mochiBootAt = Date.now(); window.__mochiJsFiles = ["device.js","idb.js","contacts.js","card-lock.js","dcp-master.js","media-pool.js","storage-slim.js","perf-check.js","energy-check.js","flash-check.js","img-compress.js","img-ingest.js","clock.js","tabs.js","desktop-slider.js","quote-cards.js","personalize.js","soft-theme.js","chat.js","group-chat.js","chatcard.js","chat-settings.js","link-freq.js","chat-play.js","reply-settings.js","fav-settings.js","default-cards-data.js","dict-ext-data.js","default-cards.js","quote-spell.js","dream-free.js","mood-followup-data.js","mood-reply-cards.js","ta-mood-data.js","ta-mood.js","fav-reason-data.js","fav-reason.js","music-player.js","calendar.js","divination.js","avatar-lib.js","ta-ask.js","ck-question.js","incoming-requests.js","ta-invite.js","bg-keep.js","records.js","call.js","mail.js","feed.js","loc-lib.js","p2-features.js","watch-companion.js","gift-shop.js","memo-app.js","memo-arc.js","my-arc.js","period.js","accounting.js","garden.js","room.js","drift-bottle.js","decision.js","group-decision.js","pong.js","snake-game.js","breakout.js","connect-four.js","coop-mine.js","fishing.js","memory-game.js","gomoku.js","linkup.js","match3.js","auction.js","arcade.js","mood-diary.js","sfx.js","fullscreen.js","data-backup.js","feature-data.js","pwa.js","update-remind.js","cjian.js","feature-hub.js","settings-help.js","onboarding.js","page-coach.js","card-audit.js","storage-guide.js","mobile-adapt.js"]; window.__mochiExtFiles = ["idb.js","contacts.js","card-lock.js","dcp-master.js","media-pool.js","storage-slim.js","perf-check.js","energy-check.js","flash-check.js","img-compress.js","img-ingest.js","clock.js","tabs.js","desktop-slider.js","quote-cards.js","personalize.js","soft-theme.js","chat.js","group-chat.js","chatcard.js","chat-settings.js","link-freq.js","chat-play.js","reply-settings.js","fav-settings.js","default-cards-data.js","dict-ext-data.js","default-cards.js","quote-spell.js","dream-free.js","mood-followup-data.js","mood-reply-cards.js","ta-mood-data.js","ta-mood.js","fav-reason-data.js","fav-reason.js","music-player.js","calendar.js","divination.js","avatar-lib.js","ta-ask.js","ck-question.js","incoming-requests.js","ta-invite.js","bg-keep.js","records.js","call.js","mail.js","feed.js","loc-lib.js","p2-features.js","watch-companion.js","gift-shop.js","memo-app.js","memo-arc.js","my-arc.js","period.js","accounting.js","garden.js","room.js","drift-bottle.js","decision.js","group-decision.js","pong.js","snake-game.js","breakout.js","connect-four.js","coop-mine.js","fishing.js","memory-game.js","gomoku.js","linkup.js","match3.js","auction.js","arcade.js","mood-diary.js","sfx.js","fullscreen.js","data-backup.js","feature-data.js","update-remind.js","cjian.js","feature-hub.js","settings-help.js","onboarding.js","page-coach.js","card-audit.js","storage-guide.js","mobile-adapt.js"];
 (function () { try {
 (function () {
 try { window.__jsErrors = window.__jsErrors || []; } catch (e0) {}
@@ -22848,6 +23125,8 @@ window.__mochiBootRetry = function () { try { location.reload(); } catch (e) {} 
 <script defer src="js/group-chat.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('group-chat.js')"></script>
 <script defer src="js/chatcard.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('chatcard.js')"></script>
 <script defer src="js/chat-settings.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('chat-settings.js')"></script>
+<script defer src="js/link-freq.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('link-freq.js')"></script>
+<script defer src="js/chat-play.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('chat-play.js')"></script>
 <script defer src="js/reply-settings.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('reply-settings.js')"></script>
 <script defer src="js/fav-settings.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('fav-settings.js')"></script>
 <script defer src="js/default-cards-data.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('default-cards-data.js')"></script>
@@ -22935,4 +23214,4 @@ window.__mochiBootRetry = function () { try { location.reload(); } catch (e) {} 
 <!-- __MOCHI_EOF__ -->
 </body>
 </html>
-<!-- __MOCHI_EOF__ mvhnkd19 -->
+<!-- __MOCHI_EOF__ mvhpand4 -->

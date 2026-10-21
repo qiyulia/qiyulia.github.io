@@ -4673,6 +4673,10 @@ b.style.padding = '6px';
 b.style.background = '';
 b.style.border = '';
 b.style.boxShadow = '';
+if (rec.type === 'image' && rec.doodle && typeof window.mochiDoodleRender === 'function') {
+window.mochiDoodleRender(b, rec);
+bindToggle(b, rec.side);
+} else {
 b.innerHTML = (rec.quote ? quoteHtml(rec.quote, rec.qside) : '') + (rec.type === 'image'
 ? '<img class="msg-img msg-img-big" src="' + attrEsc(rec.text) + '" alt="图片" loading="lazy" decoding="async">'
 : '<img class="msg-img msg-img-sm" src="' + attrEsc(rec.text) + '" alt="表情" loading="lazy" decoding="async">');
@@ -4683,6 +4687,7 @@ if (window.viewChatImage) window.viewChatImage(rec.text);
 });
 }
 bindMediaFailPlaceholder(b);
+}
 } else if (rec.type === 'voice' || (String(rec.text || '').indexOf('|||') >= 0 && /@@m:[0-9a-f]{32}$/.test(String(rec.text || ''))) || chatIsDataAudioSrc(rec.text)) {
 b.style.padding = '8px 10px';
 b.style.background = '';
@@ -13823,6 +13828,17 @@ if (v && typeof v === 'string' && v.length > 2) store.set('rp-cover-' + side, v)
 }
 } catch (e) {}
 window.chatSendMsg = (text) => { if (typeof text === 'string' && text.trim()) addMsg(text.trim()); };
+window.chatSendDoodle = (src) => {
+if (typeof src !== 'string' || !/^data:image\/(png|jpe?g|webp);base64,/i.test(src)) return false;
+const rec = { side: 'out', text: src, type: 'image', doodle: true };
+addRec(rec);
+lastSendTxt = src;
+lastSendTs = Date.now();
+try { window.__replyOnceDiag = 0; } catch (e) {}
+try { if (window.logFish) window.logFish(); } catch (e2) {}
+scheduleReply();
+return true;
+};
 window.chatSendFlower = (emoji, name, wish, fromTA) => {
 return addRec({ side: fromTA ? 'in' : 'out', special: 'flower', flEmoji: emoji, flName: name, flWish: wish || '' });
 };

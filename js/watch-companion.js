@@ -143,14 +143,28 @@ setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 32
 }, 5200);
 }
 function pickOne(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function libTextPool(maxLen) {
+var out = [];
+try { var own = window.getCustomCards && window.getCustomCards(); if (own && own.length) out = out.concat(own); } catch (e) {}
+try { var def = window.getDefaultCards && window.getDefaultCards('chat'); if (def && def.length) out = out.concat(def); } catch (e) {}
+out = out.filter(function (s) {
+return typeof s === 'string' && s && s.indexOf('data:') !== 0 && s.indexOf('@@m:') !== 0 &&
+s.indexOf('|||') < 0 && s.length <= (maxLen || 48);
+});
+return out;
+}
+function pickLibText(maxLen) {
+var pool = libTextPool(maxLen);
+return pool.length ? pickOne(pool) : '';
+}
 function partnerTick() {
 clearTimeout(partnerTimer);
 if (!watchVisible() || !dmOn) return;
 var delay = 8000 + Math.random() * 9000;
 partnerTimer = setTimeout(function () {
 if (!watchVisible() || !dmOn) { partnerTick(); return; }
-if (Math.random() < 0.3) showPartnerCard(pickOne(PARTNER_CARDS));
-else spawnDanmaku(pickOne(PARTNER_DM), false);
+if (Math.random() < 0.3) showPartnerCard(pickLibText(56) || pickOne(PARTNER_CARDS));
+else spawnDanmaku(pickLibText(28) || pickOne(PARTNER_DM), false);
 partnerTick();
 }, delay);
 }
@@ -164,12 +178,30 @@ spawnDanmaku(v, true);
 if (wDmInput) wDmInput.value = '';
 try { wDmInput.focus(); } catch (e) {}
 setTimeout(function () {
-if (watchVisible() && dmOn && Math.random() < 0.45) spawnDanmaku(pickOne(PARTNER_REPLY), false);
+if (watchVisible() && dmOn && Math.random() < 0.45) spawnDanmaku(pickLibText(28) || pickOne(PARTNER_REPLY), false);
 }, 1200 + Math.random() * 1600);
 }
 function portraitView() { return window.innerHeight > window.innerWidth; }
+var fsLock = false;
+function videoFsActive() {
+try {
+var el = document.fullscreenElement || document.webkitFullscreenElement;
+if (el && el.tagName === 'VIDEO') return true;
+if (wVideo && wVideo.webkitDisplayingFullscreen) return true;
+} catch (e) {}
+return false;
+}
+function onVideoFsBegin() {
+fsLock = true;
+if (watchPage) watchPage.classList.remove('watch-rot');
+}
+function onVideoFsEnd() {
+fsLock = false;
+applyRotate();
+}
 function applyRotate() {
 if (!watchPage || !landOn) return;
+if (fsLock || videoFsActive()) return;
 watchPage.classList.toggle('watch-rot', portraitView());
 }
 function setLandscape(on) {
@@ -306,6 +338,22 @@ setDmOn(!dmOn);
 if (dmOn) partnerTick();
 });
 if (wLandBtn) wLandBtn.addEventListener('click', function () { setLandscape(!landOn); });
+if (wVideo) {
+['webkitbeginfullscreen', 'beginfullscreen'].forEach(function (ev) {
+wVideo.addEventListener(ev, onVideoFsBegin);
+});
+['webkitendfullscreen', 'endfullscreen'].forEach(function (ev) {
+wVideo.addEventListener(ev, onVideoFsEnd);
+});
+}
+document.addEventListener('fullscreenchange', function () {
+if (videoFsActive()) onVideoFsBegin();
+else if (fsLock) onVideoFsEnd();
+});
+document.addEventListener('webkitfullscreenchange', function () {
+if (videoFsActive()) onVideoFsBegin();
+else if (fsLock) onVideoFsEnd();
+});
 window.addEventListener('resize', applyRotate);
 window.addEventListener('orientationchange', function () { setTimeout(applyRotate, 160); });
 document.addEventListener('keydown', function (e) {

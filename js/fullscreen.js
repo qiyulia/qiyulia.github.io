@@ -402,10 +402,14 @@ try { d.classList.remove('fs-css-active'); } catch (e) {}
 }
 }
 document.addEventListener('fullscreenchange', () => {
+const _fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+if (_fsEl && _fsEl.tagName === 'VIDEO') return;
 syncToggle(false); applyFsInputHacks(); syncFsClass();
 if (isFullscreen()) startFsMonitorSafe(); else handleFsExit();
 });
 document.addEventListener('webkitfullscreenchange', () => {
+const _fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+if (_fsEl && _fsEl.tagName === 'VIDEO') return;
 syncToggle(false); applyFsInputHacks(); syncFsClass();
 if (isFullscreen()) startFsMonitorSafe(); else handleFsExit();
 });
