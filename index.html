@@ -11475,6 +11475,126 @@ background:linear-gradient(135deg, var(--grad-a), var(--grad-b)); color:#2b3040;
 .yl-doodle-canvas-wrap { height:36vh; }
 .yl-dg-canvas-wrap { height:26vh; }
 }
+.page-slide:first-child .rs-head {
+display:flex; align-items:center; gap:8px; padding:14px 2px 0;
+font-size:10.5px; font-weight:700; letter-spacing:2.6px; color:var(--ink);
+}
+.page-slide:first-child .rs-dot { width:7px; height:7px; border-radius:50%; background:var(--ink); flex-shrink:0; }
+.page-slide:first-child .rs-date {
+margin-left:auto; font-size:10.5px; font-weight:600; letter-spacing:2px;
+color:var(--muted); font-variant-numeric:tabular-nums;
+}
+.page-slide:first-child .deco-widget {
+height:auto; margin-top:8px; margin-bottom:12px; padding:10px 2px 0;
+background:transparent; border:none; box-shadow:none; border-radius:0;
+}
+.page-slide:first-child .deco-avatars { gap:8px; align-items:flex-start; justify-content:space-between; }
+.page-slide:first-child .deco-avatar { gap:0; }
+.page-slide:first-child .deco-avatar .ring {
+width:86px; height:86px;
+width:min(86px,24vw); height:min(86px,24vw);
+border-radius:50%; background:var(--widget-bg); border:1.5px solid var(--ink); color:var(--ink);
+}
+.page-slide:first-child #avatar-partner .ring { background:var(--ink); border-color:var(--ink); color:var(--widget-bg); }
+.page-slide:first-child .deco-avatar .ring svg { width:36px; height:36px; stroke:currentColor; }
+.page-slide:first-child .deco-avatar .lbl {
+margin-top:10px; font-size:12px; font-weight:600; letter-spacing:1.5px; color:var(--ink);
+background:transparent; border:none; padding:0; border-radius:0;
+}
+.page-slide:first-child .deco-avatar .lbl:hover { background:transparent; opacity:.6; }
+.page-slide:first-child .rs-pulse {
+display:flex; flex-direction:column; align-items:center;
+width:132px; width:min(132px,34vw); padding-top:10px;
+}
+.page-slide:first-child .rs-sync {
+display:inline-flex; align-items:center; gap:3px;
+font-size:10.5px; font-weight:600; letter-spacing:2px; color:var(--ink); white-space:nowrap;
+}
+.page-slide:first-child .rs-sync .deco-heart { color:inherit; }
+.page-slide:first-child .rs-sync .deco-heart svg { width:11px; height:11px; stroke:currentColor; }
+.page-slide:first-child .rs-wave { width:100%; height:28px; margin-top:2px; stroke:var(--ink); }
+.page-slide:first-child .rs-hz {
+display:flex; align-items:baseline; gap:2px; margin-top:2px;
+color:var(--ink); line-height:1; font-variant-numeric:tabular-nums;
+}
+.page-slide:first-child .rs-hz b { font-size:32px; font-weight:500; letter-spacing:.5px; }
+.page-slide:first-child .rs-hz i { font-style:normal; font-size:10px; font-weight:600; letter-spacing:.5px; color:var(--muted); }
+.page-slide:first-child .rs-cap { margin-top:4px; font-size:9px; letter-spacing:.8px; color:var(--muted); white-space:nowrap; }
+.page-slide:first-child .deco-love {
+width:100%; margin-top:12px; padding-top:8px;
+border-top:1px solid var(--widget-border); font-size:11px; color:var(--muted);
+}
+.page-slide:first-child .deco-love #love-days { font-size:11px; font-weight:600; letter-spacing:1px; color:var(--ink); }
+.page-slide:first-child .deco-love #love-date { font-size:10.5px; }
+.page-slide:first-child .mini-row { gap:12px; margin-bottom:12px; }
+.page-slide:first-child .mini-card {
+position:relative; height:148px; padding:16px 16px 26px;
+border-radius:24px; box-shadow:none; justify-content:flex-start;
+}
+.page-slide:first-child .mini-card .mc-top {
+display:flex; align-items:center; justify-content:space-between;
+height:22px; font-size:13px; font-weight:600; letter-spacing:.5px; color:var(--ink);
+}
+.page-slide:first-child .mini-card .mc-top::after {
+content:""; font-size:8.5px; font-weight:600; letter-spacing:1.4px;
+padding:3px 8px; border:1px solid currentColor; border-radius:99px; opacity:.55;
+}
+.page-slide:first-child .mini-card[data-card-bg="quote"] .mc-top::after { content:"QUOTE"; }
+.page-slide:first-child .mini-card[data-card-bg="fish"] .mc-top::after { content:"FISH"; }
+.page-slide:first-child .mini-card .mc-b { margin-top:10px; font-size:17px; font-weight:600; line-height:1.5; color:var(--ink); }
+.page-slide:first-child .mini-card #love-quote {
+height:72px; line-height:1.4; margin-top:10px; font-size:17px;
+-webkit-line-clamp:3;
+}
+.page-slide:first-child .mini-card .mc-b b { font-size:30px; font-weight:500; line-height:1; }
+.page-slide:first-child .mini-card[data-card-bg="fish"] .mc-b { height:72px; display:flex; align-items:flex-end; gap:4px; }
+.page-slide:first-child .mini-card[data-card-bg="quote"] {
+background:var(--ink); border-color:var(--ink); color:var(--widget-bg);
+}
+.page-slide:first-child .mini-card[data-card-bg="quote"] .mc-top,
+.page-slide:first-child .mini-card[data-card-bg="quote"] .mc-b,
+.page-slide:first-child .mini-card[data-card-bg="quote"] #love-quote { color:var(--widget-bg); }
+.page-slide:first-child .mini-row .mini-card::after {
+content:"01"; position:absolute; right:16px; bottom:11px;
+font-size:10px; letter-spacing:1px; color:var(--muted);
+}
+.page-slide:first-child .mini-row .mini-card[data-card-bg="quote"]::after { color:rgba(255,255,255,.55); }
+.page-slide:first-child .mini-row .mini-card:nth-child(2)::after { content:"02"; }
+.page-slide:first-child .checkin {
+height:52px; margin-bottom:14px; padding:0 2px;
+border-radius:16px; background:transparent; box-shadow:none;
+}
+.page-slide:first-child .ck-heart { width:26px; height:26px; background:var(--ink); color:var(--widget-bg); font-size:11px; }
+.page-slide:first-child .ck-txt { font-size:11.5px; letter-spacing:.3px; color:var(--muted); }
+.page-slide:first-child .ck-btn {
+background:var(--ink); color:var(--widget-bg); box-shadow:none;
+font-size:11.5px; padding:8px 14px; min-height:34px;
+}
+.page-slide:first-child .ck-btn.done { background:transparent; color:var(--muted); border:1px solid var(--widget-border); }
+.page-slide:first-child .rs-sec {
+grid-column:1 / -1; display:flex; align-items:center; gap:12px;
+height:16px; margin:0 2px 2px;
+font-size:11.5px; letter-spacing:2px; color:var(--ink);
+}
+.page-slide:first-child .rs-sec-t { font-weight:700; }
+.page-slide:first-child .rs-sec-line { flex:1; height:1px; background:var(--widget-border); }
+.page-slide:first-child .rs-sec-n { font-size:10px; font-weight:600; letter-spacing:1px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.page-slide:first-child .app-grid { gap:18px 10px; padding:0 2px 6px; }
+.page-slide:first-child .app { gap:9px; }
+.page-slide:first-child .app .app-ico {
+width:64px; height:64px;
+width:min(72px,19vw); height:min(72px,19vw);
+border-radius:20px; background:var(--widget-bg); box-shadow:none;
+}
+.page-slide:first-child .app .app-ico svg { width:27px; height:27px; stroke:var(--ink); stroke-width:1.55; }
+.page-slide:first-child .app .app-ico img { border-radius:20px; }
+.page-slide:first-child .app .app-name { font-size:11.5px; font-weight:500; letter-spacing:1px; color:var(--ink); }
+[data-theme="dark"] .page-slide:first-child .mini-card[data-card-bg="quote"] {
+background:#141414; border-color:rgba(255,255,255,.18); color:#f0f0f0;
+}
+[data-theme="dark"] .page-slide:first-child .mini-card[data-card-bg="quote"] .mc-top,
+[data-theme="dark"] .page-slide:first-child .mini-card[data-card-bg="quote"] .mc-b,
+[data-theme="dark"] .page-slide:first-child .mini-card[data-card-bg="quote"] #love-quote { color:#f0f0f0; }
 </style>
 </head>
 <body>
@@ -11524,13 +11644,22 @@ background:linear-gradient(135deg, var(--grad-a), var(--grad-b)); color:#2b3040;
       </div>
       <div class="desktop-pages" id="desktop-pages">
       <div class="page-slide">
+      <!-- 主界面极简黑白皮肤：顶部连接行（纯装饰，日期由 home-reskin.js 填充） -->
+      <div class="rs-head" aria-hidden="true"><i class="rs-dot"></i><span class="rs-brand">CONNECTION</span><span class="rs-date" id="rs-date"></span></div>
       <div class="deco-widget" id="deco-widget" data-desk-widget="deco" data-card-bg="deco">
         <div class="deco-avatars">
           <div class="deco-avatar" id="avatar-partner" title="设置「TA」的头像">
             <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg></div>
             <span class="lbl" id="lbl-partner" title="点击修改昵称">TA</span>
           </div>
-          <span class="deco-heart" id="deco-heart"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.7-9.3-9A5.3 5.3 0 0112 6.4a5.3 5.3 0 019.3 5.6c-1.8 4.3-9.3 9-9.3 9z"/></svg></span>
+          <!-- 心跳同频（纯装饰）：频率由 home-reskin.js 按自然日稳定生成，和聊天「频率」功能无关；
+               关系类型图标 #deco-heart 放在「已同频」行内，功能与设置同步不变 -->
+          <div class="rs-pulse" aria-hidden="true">
+            <span class="rs-sync"><span class="deco-heart" id="deco-heart"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.7-9.3-9A5.3 5.3 0 0112 6.4a5.3 5.3 0 019.3 5.6c-1.8 4.3-9.3 9-9.3 9z"/></svg></span>已同频</span>
+            <svg class="rs-wave" viewBox="0 0 170 34" fill="none" stroke="#111111" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M0 19h33l3-9 5 20 4-15 4 9h9"/><path d="M104 19h16" stroke-dasharray="2 5" stroke-opacity=".4"/><path d="M136 19h14"/></svg>
+            <span class="rs-hz"><b id="rs-hz">128.6</b><i>Hz</i></span>
+            <span class="rs-cap">信号稳定 · 心跳同频</span>
+          </div>
           <div class="deco-avatar" id="avatar-user" title="设置「我」的头像">
             <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"/></svg></div>
             <span class="lbl" id="lbl-user" title="点击修改昵称">我</span>
@@ -11558,40 +11687,42 @@ background:linear-gradient(135deg, var(--grad-a), var(--grad-b)); color:#2b3040;
 
       <!-- 桌面功能（直接显示） -->
       <div class="app-grid" data-app="main" data-desk-widget="apps">
+        <!-- 极简黑白皮肤：常用分组标题（纯装饰，数量由 home-reskin.js 按可见图标数填充） -->
+        <div class="rs-sec" aria-hidden="true"><span class="rs-sec-t">常用</span><i class="rs-sec-line"></i><span class="rs-sec-n" id="rs-app-count">08</span></div>
         <div class="app" data-app="chat" data-desk-widget="app-chat">
-          <div class="app-badge-box"><div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><span class="app-badge" id="chat-badge" hidden></span></div>
+          <div class="app-badge-box"><div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="13" rx="3.2"/><path d="M8 18v3l4-3"/><circle cx="8.5" cy="11.5" r=".9"/><circle cx="12" cy="11.5" r=".9"/><circle cx="15.5" cy="11.5" r=".9"/></svg></div><span class="app-badge" id="chat-badge" hidden></span></div>
           <div class="app-name">聊天</div>
         </div>
         <div class="app" data-app="group-chat" data-desk-widget="app-group-chat" hidden>
-          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/><circle cx="9" cy="11" r="1.2" fill="#111111"/><circle cx="13" cy="11" r="1.2" fill="#111111"/><circle cx="17" cy="11" r="1.2" fill="#111111"/></svg></div>
+          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4.5h9a2 2 0 012 2v6a2 2 0 01-2 2h-3.5l-3 2.6v-2.6H9.5a2 2 0 01-2-2v-6a2 2 0 012-2z"/><path d="M6 9H5a2 2 0 00-2 2v3.5a2 2 0 002 2h1.5V20l2.8-2.4"/></svg></div>
           <div class="app-name">群聊</div>
         </div>
         <div class="app" data-app="home" data-desk-widget="app-home">
-          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M5.5 10v10h13V10"/><path d="M9.5 20v-5.5h5V20"/></svg></div>
+          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5"/><path d="M6.5 9.2V19.5h11V9.2"/><path d="M10 19.5v-5h4v5"/></svg></div>
           <div class="app-name">主页</div>
         </div>
         <div class="app" data-app="mail" data-desk-widget="app-mail">
-          <div class="app-badge-box"><div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13.5" rx="2.5"/><path d="M3.5 7.5L12 13l8.5-5.5"/><path d="M5 17.5l4.5-4M19 17.5l-4.5-4"/></svg></div><span class="app-badge" id="mail-badge" hidden></span></div>
+          <div class="app-badge-box"><div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M4 7.5l8 5.6 8-5.6"/></svg></div><span class="app-badge" id="mail-badge" hidden></span></div>
           <div class="app-name">信箱</div>
         </div>
         <div class="app" data-app="feed" data-desk-widget="app-feed">
-          <div class="app-badge-box"><div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div><span class="app-badge" id="feed-app-badge" hidden></span></div>
+          <div class="app-badge-box"><div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c0-3.2 2.5-5.5 5.5-5.5s5.5 2.3 5.5 5.5"/><circle cx="17" cy="8.7" r="2.2"/><path d="M17.4 13.6c2.2.4 3.6 2.4 3.6 4.9"/></svg></div><span class="app-badge" id="feed-app-badge" hidden></span></div>
           <div class="app-name">朋友圈</div>
         </div>
         <div class="app" data-app="calendar" data-desk-widget="app-calendar">
-          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/><path d="M8 14h3M13 14h3M8 17.5h3"/></svg></div>
+          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/><path d="M8 13.5h2M14 13.5h2M8 17h2"/></svg></div>
           <div class="app-name">日历</div>
         </div>
         <div class="app" data-app="memory" data-desk-widget="app-memory">
-          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S4.5 15.2 4.5 9.9A4.9 4.9 0 0112 7.1a4.9 4.9 0 017.5 2.8c0 5.3-7.5 10.6-7.5 10.6z"/></svg></div>
+          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S4.8 15.4 4.8 10A4.8 4.8 0 0112 7.2 4.8 4.8 0 0119.2 10c0 5.4-7.2 10.5-7.2 10.5z"/><path d="M12 9.4l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg></div>
           <div class="app-name">纪念</div>
         </div>
         <div class="app" data-app="divination" data-desk-widget="app-divination">
-          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M12 8.5l1.15 2.4 2.4 1.15-2.4 1.15L12 15.6l-1.15-2.4-2.4-1.15 2.4-1.15z"/></svg></div>
+          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 14.8A8.6 8.6 0 1110.1 4.1a6.8 6.8 0 0010.1 10.7z"/><path d="M17.6 5.2l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg></div>
           <div class="app-name">占卜</div>
         </div>
         <div class="app" data-app="note" data-desk-widget="app-note">
-          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11a1 1 0 011 1v16l-6.5-4-6.5 4v-16a1 1 0 011-1z"/></svg></div>
+          <div class="app-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11a1 1 0 011 1v16l-6.5-4.2-6.5 4.2v-16a1 1 0 011-1z"/></svg></div>
           <div class="app-name">收藏</div>
         </div>
         <!-- #542 曾把功能大全提为桌面一级入口，#543 按用户要求撤出桌面（挤占原布局网格）：
@@ -18383,7 +18514,7 @@ background:linear-gradient(135deg, var(--grad-a), var(--grad-b)); color:#2b3040;
   // v3.5.123：readonly 起手（防 Chrome 密码弹条破坏表单签名）——这里立即解除，
   // 早于所有功能模块，任何设备都不会出现输入框不可用的情况
   (function () { var _ci = document.getElementById('chat-input'); if (_ci) _ci.readOnly = false; })();
-window.__jsErrors = window.__jsErrors || []; window.__mochiLoaded = window.__mochiLoaded || []; window.__mochiErrLoaded = window.__mochiErrLoaded || []; window.__mochiBootAt = Date.now(); window.__mochiJsFiles = ["device.js","idb.js","contacts.js","card-lock.js","dcp-master.js","media-pool.js","storage-slim.js","perf-check.js","energy-check.js","flash-check.js","img-compress.js","img-ingest.js","clock.js","tabs.js","desktop-slider.js","quote-cards.js","personalize.js","soft-theme.js","chat.js","group-chat.js","chatcard.js","chat-settings.js","link-freq.js","chat-play.js","reply-settings.js","fav-settings.js","default-cards-data.js","dict-ext-data.js","default-cards.js","quote-spell.js","dream-free.js","mood-followup-data.js","mood-reply-cards.js","ta-mood-data.js","ta-mood.js","fav-reason-data.js","fav-reason.js","music-player.js","calendar.js","divination.js","avatar-lib.js","ta-ask.js","ck-question.js","incoming-requests.js","ta-invite.js","bg-keep.js","records.js","call.js","mail.js","feed.js","loc-lib.js","p2-features.js","watch-companion.js","gift-shop.js","memo-app.js","memo-arc.js","my-arc.js","period.js","accounting.js","garden.js","room.js","drift-bottle.js","decision.js","group-decision.js","pong.js","snake-game.js","breakout.js","connect-four.js","coop-mine.js","fishing.js","memory-game.js","gomoku.js","linkup.js","match3.js","auction.js","arcade.js","mood-diary.js","sfx.js","fullscreen.js","data-backup.js","feature-data.js","pwa.js","update-remind.js","cjian.js","feature-hub.js","settings-help.js","onboarding.js","page-coach.js","card-audit.js","storage-guide.js","mobile-adapt.js"]; window.__mochiExtFiles = ["idb.js","contacts.js","card-lock.js","dcp-master.js","media-pool.js","storage-slim.js","perf-check.js","energy-check.js","flash-check.js","img-compress.js","img-ingest.js","clock.js","tabs.js","desktop-slider.js","quote-cards.js","personalize.js","soft-theme.js","chat.js","group-chat.js","chatcard.js","chat-settings.js","link-freq.js","chat-play.js","reply-settings.js","fav-settings.js","default-cards-data.js","dict-ext-data.js","default-cards.js","quote-spell.js","dream-free.js","mood-followup-data.js","mood-reply-cards.js","ta-mood-data.js","ta-mood.js","fav-reason-data.js","fav-reason.js","music-player.js","calendar.js","divination.js","avatar-lib.js","ta-ask.js","ck-question.js","incoming-requests.js","ta-invite.js","bg-keep.js","records.js","call.js","mail.js","feed.js","loc-lib.js","p2-features.js","watch-companion.js","gift-shop.js","memo-app.js","memo-arc.js","my-arc.js","period.js","accounting.js","garden.js","room.js","drift-bottle.js","decision.js","group-decision.js","pong.js","snake-game.js","breakout.js","connect-four.js","coop-mine.js","fishing.js","memory-game.js","gomoku.js","linkup.js","match3.js","auction.js","arcade.js","mood-diary.js","sfx.js","fullscreen.js","data-backup.js","feature-data.js","update-remind.js","cjian.js","feature-hub.js","settings-help.js","onboarding.js","page-coach.js","card-audit.js","storage-guide.js","mobile-adapt.js"];
+window.__jsErrors = window.__jsErrors || []; window.__mochiLoaded = window.__mochiLoaded || []; window.__mochiErrLoaded = window.__mochiErrLoaded || []; window.__mochiBootAt = Date.now(); window.__mochiJsFiles = ["device.js","idb.js","contacts.js","card-lock.js","dcp-master.js","media-pool.js","storage-slim.js","perf-check.js","energy-check.js","flash-check.js","img-compress.js","img-ingest.js","clock.js","tabs.js","desktop-slider.js","quote-cards.js","personalize.js","soft-theme.js","chat.js","group-chat.js","chatcard.js","chat-settings.js","link-freq.js","chat-play.js","reply-settings.js","fav-settings.js","default-cards-data.js","dict-ext-data.js","default-cards.js","quote-spell.js","dream-free.js","mood-followup-data.js","mood-reply-cards.js","ta-mood-data.js","ta-mood.js","fav-reason-data.js","fav-reason.js","music-player.js","calendar.js","divination.js","avatar-lib.js","ta-ask.js","ck-question.js","incoming-requests.js","ta-invite.js","bg-keep.js","records.js","call.js","mail.js","feed.js","loc-lib.js","p2-features.js","watch-companion.js","gift-shop.js","memo-app.js","memo-arc.js","my-arc.js","period.js","accounting.js","garden.js","room.js","drift-bottle.js","decision.js","group-decision.js","pong.js","snake-game.js","breakout.js","connect-four.js","coop-mine.js","fishing.js","memory-game.js","gomoku.js","linkup.js","match3.js","auction.js","arcade.js","mood-diary.js","sfx.js","fullscreen.js","data-backup.js","feature-data.js","pwa.js","update-remind.js","cjian.js","feature-hub.js","settings-help.js","onboarding.js","page-coach.js","card-audit.js","storage-guide.js","mobile-adapt.js","home-reskin.js"]; window.__mochiExtFiles = ["idb.js","contacts.js","card-lock.js","dcp-master.js","media-pool.js","storage-slim.js","perf-check.js","energy-check.js","flash-check.js","img-compress.js","img-ingest.js","clock.js","tabs.js","desktop-slider.js","quote-cards.js","personalize.js","soft-theme.js","chat.js","group-chat.js","chatcard.js","chat-settings.js","link-freq.js","chat-play.js","reply-settings.js","fav-settings.js","default-cards-data.js","dict-ext-data.js","default-cards.js","quote-spell.js","dream-free.js","mood-followup-data.js","mood-reply-cards.js","ta-mood-data.js","ta-mood.js","fav-reason-data.js","fav-reason.js","music-player.js","calendar.js","divination.js","avatar-lib.js","ta-ask.js","ck-question.js","incoming-requests.js","ta-invite.js","bg-keep.js","records.js","call.js","mail.js","feed.js","loc-lib.js","p2-features.js","watch-companion.js","gift-shop.js","memo-app.js","memo-arc.js","my-arc.js","period.js","accounting.js","garden.js","room.js","drift-bottle.js","decision.js","group-decision.js","pong.js","snake-game.js","breakout.js","connect-four.js","coop-mine.js","fishing.js","memory-game.js","gomoku.js","linkup.js","match3.js","auction.js","arcade.js","mood-diary.js","sfx.js","fullscreen.js","data-backup.js","feature-data.js","update-remind.js","cjian.js","feature-hub.js","settings-help.js","onboarding.js","page-coach.js","card-audit.js","storage-guide.js","mobile-adapt.js","home-reskin.js"];
 (function () { try {
 (function () {
 try { window.__jsErrors = window.__jsErrors || []; } catch (e0) {}
@@ -23193,6 +23324,7 @@ window.__mochiBootRetry = function () { try { location.reload(); } catch (e) {} 
 <script defer src="js/card-audit.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('card-audit.js')"></script>
 <script defer src="js/storage-guide.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('storage-guide.js')"></script>
 <script defer src="js/mobile-adapt.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('mobile-adapt.js')"></script>
+<script defer src="js/home-reskin.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('home-reskin.js')"></script>
 <!-- PERF-PLAN 阶段 1：上一行是 ext 外置脚本 defer 注入锚，构建时被整体替换为 35 个外置 js 标签；本行说明必须连同注释符号一起整体留在注释内，勿删。#797 教训：说明若写在注释结尾之外＝变正文裸文本（全页面右侧白色乱码条），其中的标签样本会被浏览器当真开标签，吞掉其后全部尾部 DOM -->
 
   <!-- PWA 安装到桌面按钮（Chrome/Edge 触发 beforeinstallprompt 时显示） -->
@@ -23214,4 +23346,4 @@ window.__mochiBootRetry = function () { try { location.reload(); } catch (e) {} 
 <!-- __MOCHI_EOF__ -->
 </body>
 </html>
-<!-- __MOCHI_EOF__ mvhpand4 -->
+<!-- __MOCHI_EOF__ mvid8v1g -->

@@ -7441,7 +7441,7 @@ if (!el) return;
 const text = (window.getQuoteOfDay && window.getQuoteOfDay()) || '我偏爱你。';
 el.textContent = window.taFit ? window.taFit(text) : text;
 requestAnimationFrame(function () {
-var fs = 13;
+var fs = parseFloat(getComputedStyle(el).fontSize) || 13;
 el.style.fontSize = fs + 'px';
 while (el.scrollHeight > el.clientHeight + 1 && fs > 10) {
 fs -= 0.5;
