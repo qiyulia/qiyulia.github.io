@@ -4501,7 +4501,7 @@ return m;
 }
 if (rec.special === 'askcoin') {
 m.className = 'msg-poke';
-m.innerHTML = '<span>🪙 ' + escTxt(chatPartnerName()) + ' 向 云恋 申请了心意币 ¥' + (Number(rec.askFen || 0) / 100).toFixed(2) + '</span>';
+m.innerHTML = '<span>🪙 ' + escTxt(chatPartnerName()) + ' 向 mochi 申请了心意币 ¥' + (Number(rec.askFen || 0) / 100).toFixed(2) + '</span>';
 appendMsg(m);
 maybeScrollChatBottom(rec.side);
 return m;
@@ -8303,7 +8303,7 @@ function rpRenderBalance() {
 const el = document.getElementById('rp-balance');
 if (!el) return;
 const w = rpWalletGet();
-el.textContent = '心意币 ¥' + (w.myBalance / 100).toFixed(2) + ' · ' + chatPartnerName() + ' ¥' + (w.systemBalance / 100).toFixed(2) + ' · 向 云恋 申请心意币';
+el.textContent = '心意币 ¥' + (w.myBalance / 100).toFixed(2) + ' · ' + chatPartnerName() + ' ¥' + (w.systemBalance / 100).toFixed(2) + ' · 向 mochi 申请心意币';
 }
 function rpEditWallet() {
 if (!window.openModal) return;
@@ -8315,10 +8315,10 @@ const fmtYuan = (n) => (Math.round(n * 100) / 100).toFixed(2);
 const hintTxt = () => {
 const w = rpWalletGet();
 return '当前：心意币 ¥' + (w.myBalance / 100).toFixed(2) + ' · ' + taName + ' ¥' + (w.systemBalance / 100).toFixed(2) +
-(doneAny ? '\n已到账，可继续为' + LBL[side] + '申请；留空点【完成】结束' : '\n选择收款方，输入申请金额点【申请】，云恋 打款后自动入账；留空点【完成】结束');
+(doneAny ? '\n已到账，可继续为' + LBL[side] + '申请；留空点【完成】结束' : '\n选择收款方，输入申请金额点【申请】，mochi 打款后自动入账；留空点【完成】结束');
 };
 let ctl = null;
-ctl = window.openModal('向 云恋 申请心意币', '', (arg) => {
+ctl = window.openModal('向 mochi 申请心意币', '', (arg) => {
 const picked = (arg === 'my' || arg === 'ta');
 const el = document.getElementById('modal-input');
 const raw = String(picked ? ((el && el.value) || '') : (arg == null ? '' : arg)).trim();
@@ -8332,7 +8332,7 @@ if (target === 'my') w.myBalance += fen;
 else w.systemBalance += fen;
 rpWalletSet(w); rpRenderBalance();
 try { if (window.giftCoinLedgerAdd) window.giftCoinLedgerAdd('ask', target === 'my' ? fen : 0, target === 'ta' ? fen : 0, '聊天申请'); } catch (e) {}
-toast('云恋 已打款，' + LBL[target] + ' +¥' + fmtYuan(fen / 100));
+toast('mochi 已打款，' + LBL[target] + ' +¥' + fmtYuan(fen / 100));
 doneAny = true;
 side = target === 'my' ? 'ta' : 'my';
 if (ctl) {

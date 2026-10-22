@@ -2037,7 +2037,7 @@ return true;
 }
 const CC_COPY_MAX = 3 * 1024 * 1024;
 function ccExportOffer(json, extra) {
-const fname = '云恋字卡库数据.json';
+const fname = 'mochi字卡库数据.json';
 const doFile = function () { ccSaveExportJson(json, fname, 'mochi 字卡库数据', '已导出字卡数据' + extra); };
 const doCopy = function () {
 const okTip = '字卡数据已复制——发给对方后用 字卡库 →「导入数据 → 粘贴文本导入」贴进去即可';
@@ -3836,7 +3836,7 @@ try {
 let data = '';
 try { data = JSON.stringify(payload, null, 2); }
 catch (e) { toast('导出失败：字卡数据过大，请到字卡库分分类导出'); finish(); return; }
-ccSaveExportJson(data, '云恋字卡库备份.json', '云恋 字卡库备份',
+ccSaveExportJson(data, 'mochi字卡库备份.json', 'mochi 字卡库备份',
 '字卡备份已导出' + (exp.miss ? '；' + exp.miss + ' 张图片数据缺失无法还原' : ''));
 } catch (e) { toast('导出失败'); }
 finish();

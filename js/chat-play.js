@@ -108,7 +108,7 @@ pad.clear = function () { pad.strokes = []; redraw(); };
 pad.empty = function () { return !pad.strokes.length; };
 pad.setColor = function (c) { pad.color = c; };
 pad.export = function () {
-try { paintBg(); return canvas.toDataURL('image/jpeg', 0.86); } catch (e) { return ''; }
+try { redraw(); return canvas.toDataURL('image/jpeg', 0.86); } catch (e) { return ''; }
 };
 return pad;
 }

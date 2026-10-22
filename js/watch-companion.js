@@ -558,7 +558,7 @@ beep(3);
 saveState(); renderComp();
 try {
 if (window.Notification && Notification.permission === 'granted' && document.hidden) {
-new Notification('云恋 · ' + MODE_LABEL[cs.mode] + '完成', { body: '计时结束啦，休息一下吧。' });
+new Notification('mochi · ' + MODE_LABEL[cs.mode] + '完成', { body: '计时结束啦，休息一下吧。' });
 }
 } catch (e) {}
 toast(MODE_LABEL[cs.mode] + '计时完成');
