@@ -2314,7 +2314,7 @@ const artwork = m.cover ? [{ src: m.cover, sizes: '512x512', type: 'image/jpeg' 
 navigator.mediaSession.metadata = new window.MediaMetadata({
 title: m.name || '未知歌曲',
 artist: m.artist || '未知歌手',
-album: 'mochi 音乐',
+album: 'Mochi 音乐',
 artwork: artwork
 });
 }

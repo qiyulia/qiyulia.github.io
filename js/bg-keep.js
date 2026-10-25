@@ -243,7 +243,7 @@ try {
 if (window.__musicPlaying || musicIntentPlaying()) return; // 歌曲在播／还想播＝那条是 music-player 自己的，不摘
 if (!('mediaSession' in navigator) || !navigator.mediaSession) return;
 const md = navigator.mediaSession.metadata;
-if (md && String(md.title) !== 'mochi 后台保活') return; // 不是我们的条，不摘
+if (md && String(md.title) !== 'Mochi 后台保活') return; // 不是我们的条，不摘
 } catch (e) { return; }
 kaClearKeepMediaSession();
 }
@@ -395,7 +395,7 @@ if (window.__musicPlaying) return; // 音乐在播，保留音乐的媒体条
 if (musicIntentPlaying()) return; // 音乐还想播（瞬断暂停中），不覆盖歌曲媒体条
 if (kaNoDuckNow()) { kaReleaseKeepMediaSession(); return; }
 navigator.mediaSession.metadata = new window.MediaMetadata({
-title: 'mochi 后台保活',
+title: 'Mochi 后台保活',
 artist: 'mochi',
 album: '后台消息提醒运行中'
 });
@@ -788,7 +788,7 @@ let hold = !kaNoDuckNow(); // #1489③：新档下这条心跳不再把 playback
 try {
 if (document.visibilityState === 'hidden') {
 const md = navigator.mediaSession && navigator.mediaSession.metadata;
-hold = !!(md && String(md.title) === 'mochi 后台保活');
+hold = !!(md && String(md.title) === 'Mochi 后台保活');
 }
 } catch (e) { hold = true; }
 if (hold) {
@@ -927,7 +927,7 @@ if (typeof window.openModal !== 'function') return;
 window.openModal('后台保活已开启 · 三条必知', '', function () {}, {
 noInput: true, pillSubmit: true,
 pills: [{ label: '知道了', value: 'ok' }],
-staticText: '保活＝页面在后台持续播放一段近无声音频，让系统不冻结本页。有两条硬限制（手机/浏览器限制，不是网站故障）：\n\n① 别的 App 会把保活截断：刷视频、听歌等会占用手机音频通道，保活音频被暂停＝保活失效，回到本页才自动恢复；被截断期间后台消息收不到、后台弹窗不弹。（反过来也一样：老路会把你正在听的音乐压低——现在默认静音音频改走「不抢其他 App 的声音」那条通道，切进切出不再忽响忽轻，代价是通知栏那条「mochi 后台保活」不再出现；想要回到老路（占住音频通道、通知栏有媒体条）就把 设置→系统→「保活不抢其他 App 的声音」关掉。）\n\n② 后台挂久了会失效：系统省电/内存策略会把挂久的页面冻结甚至丢弃重载（Edge「睡眠标签页」/Chrome「内存节省程序」约 30 分钟就会丢）。失效后请彻底关闭网页重新打开，再把「后台保活」「后台弹窗」开关重新打开。\n\n③ 开着它时页面不会在后台自动换新版（换版要重载页面、会把后台运行打断）：顶部出现「检测到新版本」条时，你自己挑时间点「刷新使用新版」即可；不点也不影响使用，下次彻底关闭网页重开会自然换到新版。'
+staticText: '保活＝页面在后台持续播放一段近无声音频，让系统不冻结本页。有两条硬限制（手机/浏览器限制，不是网站故障）：\n\n① 别的 App 会把保活截断：刷视频、听歌等会占用手机音频通道，保活音频被暂停＝保活失效，回到本页才自动恢复；被截断期间后台消息收不到、后台弹窗不弹。（反过来也一样：老路会把你正在听的音乐压低——现在默认静音音频改走「不抢其他 App 的声音」那条通道，切进切出不再忽响忽轻，代价是通知栏那条「Mochi 后台保活」不再出现；想要回到老路（占住音频通道、通知栏有媒体条）就把 设置→系统→「保活不抢其他 App 的声音」关掉。）\n\n② 后台挂久了会失效：系统省电/内存策略会把挂久的页面冻结甚至丢弃重载（Edge「睡眠标签页」/Chrome「内存节省程序」约 30 分钟就会丢）。失效后请彻底关闭网页重新打开，再把「后台保活」「后台弹窗」开关重新打开。\n\n③ 开着它时页面不会在后台自动换新版（换版要重载页面、会把后台运行打断）：顶部出现「检测到新版本」条时，你自己挑时间点「刷新使用新版」即可；不点也不影响使用，下次彻底关闭网页重开会自然换到新版。'
 });
 } catch (e) {}
 }

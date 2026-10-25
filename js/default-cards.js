@@ -936,18 +936,6 @@ const gOv = function (k) { const s = st(); const v = s ? s.get('dict-overall-' +
 const sOv = function (k, nv) { const s = st(); if (s) s.set('dict-overall-' + k, String(nv)); };
 window.dictUse = function (scene) { return gUse(scene === 'mail' ? 'mail' : scene === 'feed' ? 'feed' : 'chat'); };
 window.dictOverall = function (scene) { return gOv(scene === 'mail' ? 'mail' : scene === 'feed' ? 'feed' : 'chat'); };
-const lockHint = document.getElementById('dict-lock-hint');
-function renderDictLockHint() {
-if (!lockHint) return;
-let locked = false;
-try { locked = !!(window.cardLockOpen && !window.cardLockOpen()); } catch (e) { locked = false; }
-if (!locked) { lockHint.hidden = true; lockHint.textContent = ''; return; }
-lockHint.hidden = false;
-lockHint.textContent = '防未成年人锁定开启中：词典属于系统内置字卡，锁定时聊天 / 写信 / 朋友圈都不会使用词典（下方开关全开也没效果，不是没保存）。到开屏公告区「防未成年人·内置字卡锁定」卡输入密码解锁，解锁后自动恢复，无需改这里任何开关。';
-}
-renderDictLockHint();
-document.addEventListener('mochi-cardlock-open', renderDictLockHint);
-document.addEventListener('mochi-cardlock-locked', renderDictLockHint);
 [['chat', '聊天'], ['mail', '写信'], ['feed', '朋友圈']].forEach(function (pair) {
 const k = pair[0], label = pair[1];
 const el = document.getElementById('dict-use-' + k);

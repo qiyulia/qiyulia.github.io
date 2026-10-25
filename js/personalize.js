@@ -904,14 +904,14 @@ syncBgUI();
 const pv = document.getElementById('bg-preset-val'); if (pv) pv.textContent = '默认';
 };
 const BG_PRESETS = [
-{ name: '晨曦', css: 'linear-gradient(135deg, #f7f7f7 0%, #d0d0d0 100%)' },
-{ name: '暮色', css: 'linear-gradient(135deg, #3a3a3a 0%, #6a6a6a 100%)' },
-{ name: '森林', css: 'linear-gradient(135deg, #e0e0e0 0%, #c8c8c8 100%)' },
-{ name: '暖阳', css: 'linear-gradient(135deg, #efefef 0%, #d8d8d8 100%)' },
+{ name: '晨曦', css: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' },
+{ name: '暮色', css: 'linear-gradient(135deg, #2c3e50 0%, #4a67a4 100%)' },
+{ name: '森林', css: 'linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)' },
+{ name: '暖阳', css: 'linear-gradient(135deg, #f6d365 0%, #fda085 100%)' },
 { name: '极简', css: 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)' },
-{ name: '星空', css: 'linear-gradient(135deg, #141414 0%, #2e2e2e 50%, #222222 100%)' },
-{ name: '樱花', css: 'linear-gradient(135deg, #f0f0f0 0%, #dcdcdc 100%)' },
-{ name: '海洋', css: 'linear-gradient(135deg, #d5d5d5 0%, #ececec 100%)' },
+{ name: '星空', css: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)' },
+{ name: '樱花', css: 'linear-gradient(135deg, #ffdde1 0%, #ee9ca7 100%)' },
+{ name: '海洋', css: 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)' },
 ];
 const bgPresetRow = document.getElementById('row-bg-preset');
 const bgPresetVal = document.getElementById('bg-preset-val');
@@ -947,7 +947,7 @@ grid1.appendChild(card);
 });
 wrap.appendChild(grid1);
 const sec2 = document.createElement('div'); sec2.style.cssText = 'font-size:12px;color:var(--muted,#888);margin-bottom:6px'; sec2.textContent = '纯色壁纸'; wrap.appendChild(sec2);
-const solidColors = ['#ffffff','#f5f5f5','#e8e8e8','#1c1c1e','#111111','#888888','#444444','#222222'];
+const solidColors = ['#ffffff','#f5f5f5','#e8e8e8','#1c1c1e','#111111','#e05555','#3a7bd5','#4a9d5e'];
 const grid2 = document.createElement('div'); grid2.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px';
 solidColors.forEach((c) => {
 const card = document.createElement('button');
@@ -2189,7 +2189,7 @@ box.style.cssText = 'display:flex;flex-direction:column;gap:3px';
 box.appendChild(row); box.appendChild(hp);
 return box;
 };
-const PALETTE = ['#111111', '#ffffff', '#333333', '#555555', '#777777', '#999999', '#bbbbbb', '#dddddd', '#eeeeee', '#8a8a8a'];
+const PALETTE = ['#111111', '#ffffff', '#e05555', '#ff8800', '#ffd54f', '#4a9d5e', '#3a7bd5', '#8e5bd5', '#e055a0', '#8a8a8a'];
 let colorItems = [];
 let paletteHost = null;
 const mkColorItem = (label, key, varName, isGlobal, onSet) => {
@@ -2558,8 +2558,6 @@ const KW = {
 '通话设置': '来电 挂断 通话背景 铃声',
 '音效设置': '声音 铃声 提示音 静音',
 '功能大全': '索引 直达 查找',
-'应用锁': '密码 锁 隐私',
-'开屏问答门': '问答 暗号 验证 提问',
 '手机布局': '布局 适配 模式',
 '离线消息提醒': '通知 推送 通知提醒 新消息 安卓 电脑 主屏幕 iPhone Chrome Edge',
 '使用说明': '教程 帮助 常见问题 安装',
@@ -2582,7 +2580,7 @@ const KW = {
 const PY = {
 '联系人 / 桌面': 'lxrzm', '开启群聊': 'kqql', '跨桌面查岗': 'kzmcg', '查岗频率': 'cgpl', '打电话': 'dh',
 '深色模式': 'ssms', '手机桌面美化': 'sjzmmh', '回复设置': 'hfsz', '通话设置': 'thsz', '音效设置': 'yxsz',
-'功能大全': 'gndq', '应用锁': 'yys', '开屏问答门': 'kpwdm', '手机布局': 'sjbj', '离线消息提醒': 'lxxtx',
+'功能大全': 'gndq', '手机布局': 'sjbj', '离线消息提醒': 'lxxtx',
 '使用说明': 'sysm', '导出数据': 'dcsj', '导入数据': 'drsj', '修改摸鱼天数': 'xgmyts', '设备兼容诊断': 'sbjrzd', '顶部避让修正': 'dbbrxz',
 '屏幕适配诊断': 'pmspzd', '屏幕适配微调': 'pmspwt', '功能诊断': 'gnzd', '查看存储': 'ckcc', '压缩图片': 'ystp', '卡顿自检': 'kdzj',
 '字卡使用状态自检': 'zksyztzj', '清除本地数据': 'qcbdsj', '新手引导': 'xsyd', '功能介绍': 'gnjs'
@@ -7441,7 +7439,7 @@ if (!el) return;
 const text = (window.getQuoteOfDay && window.getQuoteOfDay()) || '我偏爱你。';
 el.textContent = window.taFit ? window.taFit(text) : text;
 requestAnimationFrame(function () {
-var fs = parseFloat(getComputedStyle(el).fontSize) || 13;
+var fs = 13;
 el.style.fontSize = fs + 'px';
 while (el.scrollHeight > el.clientHeight + 1 && fs > 10) {
 fs -= 0.5;
@@ -8201,7 +8199,7 @@ if (aboutPage) aboutPage.hidden = false;
 });
 bind('row-privacy', () => {
 open('隐私与数据安全',
-'本站是纯本地应用：无后端、无账号、无需联网，你的聊天记录、字卡、头像、壁纸、音乐等全部数据只保存在本机浏览器存储里（localStorage + IndexedDB），作者看不到、也不会收集或上传。\n\n请留意：卸载应用或清除浏览器数据会一并删除本机数据且无法找回——唯一可靠的防线是定期「导出数据」完整备份。\n\niOS Safari 等可能被系统自动清空存储，建议常导出完整备份。\n\n「应用锁」「开屏问答门」用于防旁人日常偷看；数据存于本机，懂技术的人仍可读取本机数据。');
+'本站是纯本地应用：无后端、无账号、无需联网，你的聊天记录、字卡、头像、壁纸、音乐等全部数据只保存在本机浏览器存储里（localStorage + IndexedDB），作者看不到、也不会收集或上传。\n\n请留意：卸载应用或清除浏览器数据会一并删除本机数据且无法找回——唯一可靠的防线是定期「导出数据」完整备份。\n\niOS Safari 等可能被系统自动清空存储，建议常导出完整备份。');
 });
 bind('row-contact', () => {
 open('联系作者 / 反馈',

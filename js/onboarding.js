@@ -128,9 +128,10 @@ window.openMochiGuide();
 }, 400);
 }, 300);
 (function injectSettingRow() {
+const about = document.querySelector('#page-setting .them-sec[data-sec="about"]');
 const guideRow = document.getElementById('row-guide');
 const helpGroup = (guideRow && guideRow.closest) ? guideRow.closest('.set-group') : null;
-const host = helpGroup || document.querySelector('#page-setting .them-sec[data-sec="tools"]');
+const host = helpGroup || about || document.querySelector('#page-setting .them-sec[data-sec="tools"]');
 if (!host) return;
 const row = document.createElement('div');
 row.className = 'set-row';

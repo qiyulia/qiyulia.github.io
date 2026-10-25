@@ -4501,7 +4501,7 @@ return m;
 }
 if (rec.special === 'askcoin') {
 m.className = 'msg-poke';
-m.innerHTML = '<span>🪙 ' + escTxt(chatPartnerName()) + ' 向 mochi 申请了心意币 ¥' + (Number(rec.askFen || 0) / 100).toFixed(2) + '</span>';
+m.innerHTML = '<span>🪙 ' + escTxt(chatPartnerName()) + ' 向 Mochi 申请了心意币 ¥' + (Number(rec.askFen || 0) / 100).toFixed(2) + '</span>';
 appendMsg(m);
 maybeScrollChatBottom(rec.side);
 return m;
@@ -4673,10 +4673,6 @@ b.style.padding = '6px';
 b.style.background = '';
 b.style.border = '';
 b.style.boxShadow = '';
-if (rec.type === 'image' && rec.doodle && typeof window.mochiDoodleRender === 'function') {
-window.mochiDoodleRender(b, rec);
-bindToggle(b, rec.side);
-} else {
 b.innerHTML = (rec.quote ? quoteHtml(rec.quote, rec.qside) : '') + (rec.type === 'image'
 ? '<img class="msg-img msg-img-big" src="' + attrEsc(rec.text) + '" alt="图片" loading="lazy" decoding="async">'
 : '<img class="msg-img msg-img-sm" src="' + attrEsc(rec.text) + '" alt="表情" loading="lazy" decoding="async">');
@@ -4687,7 +4683,6 @@ if (window.viewChatImage) window.viewChatImage(rec.text);
 });
 }
 bindMediaFailPlaceholder(b);
-}
 } else if (rec.type === 'voice' || (String(rec.text || '').indexOf('|||') >= 0 && /@@m:[0-9a-f]{32}$/.test(String(rec.text || ''))) || chatIsDataAudioSrc(rec.text)) {
 b.style.padding = '8px 10px';
 b.style.background = '';
@@ -6798,7 +6793,7 @@ try { const v = _cpStore(cid).get(CP_KEY); if (!v) return null; const p = JSON.p
 function _cpSave(cid, p) { try { _cpStore(cid).set(CP_KEY, JSON.stringify(p)); } catch (e) {} }
 function _cpClear(cid) { try { _cpStore(cid).remove(CP_KEY); } catch (e) {} }
 function _cpBusy() {
-return ['modal-mask', 'tc-mask', 'qa-mask', 'call-mask', 'applock-mask'].some(function (id) {
+return ['modal-mask', 'tc-mask', 'qa-mask', 'call-mask'].some(function (id) {
 const el = document.getElementById(id);
 return el && !el.hidden;
 });
@@ -8303,7 +8298,7 @@ function rpRenderBalance() {
 const el = document.getElementById('rp-balance');
 if (!el) return;
 const w = rpWalletGet();
-el.textContent = '心意币 ¥' + (w.myBalance / 100).toFixed(2) + ' · ' + chatPartnerName() + ' ¥' + (w.systemBalance / 100).toFixed(2) + ' · 向 mochi 申请心意币';
+el.textContent = '心意币 ¥' + (w.myBalance / 100).toFixed(2) + ' · ' + chatPartnerName() + ' ¥' + (w.systemBalance / 100).toFixed(2) + ' · 向 Mochi 申请心意币';
 }
 function rpEditWallet() {
 if (!window.openModal) return;
@@ -8315,10 +8310,10 @@ const fmtYuan = (n) => (Math.round(n * 100) / 100).toFixed(2);
 const hintTxt = () => {
 const w = rpWalletGet();
 return '当前：心意币 ¥' + (w.myBalance / 100).toFixed(2) + ' · ' + taName + ' ¥' + (w.systemBalance / 100).toFixed(2) +
-(doneAny ? '\n已到账，可继续为' + LBL[side] + '申请；留空点【完成】结束' : '\n选择收款方，输入申请金额点【申请】，mochi 打款后自动入账；留空点【完成】结束');
+(doneAny ? '\n已到账，可继续为' + LBL[side] + '申请；留空点【完成】结束' : '\n选择收款方，输入申请金额点【申请】，Mochi 打款后自动入账；留空点【完成】结束');
 };
 let ctl = null;
-ctl = window.openModal('向 mochi 申请心意币', '', (arg) => {
+ctl = window.openModal('向 Mochi 申请心意币', '', (arg) => {
 const picked = (arg === 'my' || arg === 'ta');
 const el = document.getElementById('modal-input');
 const raw = String(picked ? ((el && el.value) || '') : (arg == null ? '' : arg)).trim();
@@ -8332,7 +8327,7 @@ if (target === 'my') w.myBalance += fen;
 else w.systemBalance += fen;
 rpWalletSet(w); rpRenderBalance();
 try { if (window.giftCoinLedgerAdd) window.giftCoinLedgerAdd('ask', target === 'my' ? fen : 0, target === 'ta' ? fen : 0, '聊天申请'); } catch (e) {}
-toast('mochi 已打款，' + LBL[target] + ' +¥' + fmtYuan(fen / 100));
+toast('Mochi 已打款，' + LBL[target] + ' +¥' + fmtYuan(fen / 100));
 doneAny = true;
 side = target === 'my' ? 'ta' : 'my';
 if (ctl) {
@@ -13828,16 +13823,16 @@ if (v && typeof v === 'string' && v.length > 2) store.set('rp-cover-' + side, v)
 }
 } catch (e) {}
 window.chatSendMsg = (text) => { if (typeof text === 'string' && text.trim()) addMsg(text.trim()); };
-window.chatSendDoodle = (src) => {
-if (typeof src !== 'string' || !/^data:image\/(png|jpe?g|webp);base64,/i.test(src)) return false;
-const rec = { side: 'out', text: src, type: 'image', doodle: true };
-addRec(rec);
-lastSendTxt = src;
-lastSendTs = Date.now();
-try { window.__replyOnceDiag = 0; } catch (e) {}
-try { if (window.logFish) window.logFish(); } catch (e2) {}
-scheduleReply();
+window.chatSendImg = (src, text) => {
+if (typeof src !== 'string' || src.indexOf('data:image') !== 0) return false;
+try {
+draftImgs.push(src);
+addMsg(typeof text === 'string' ? text : '');
 return true;
+} catch (e) {
+try { draftImgs = []; } catch (e2) {}
+return false;
+}
 };
 window.chatSendFlower = (emoji, name, wish, fromTA) => {
 return addRec({ side: fromTA ? 'in' : 'out', special: 'flower', flEmoji: emoji, flName: name, flWish: wish || '' });
