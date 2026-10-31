@@ -854,6 +854,7 @@ const RULES = [
 [/quote-cards/, '自定义字卡', arr => arr.length + ' 张'],
 [/fav-msgs/, '收藏', arr => arr.length + ' 条'],
 [/:avatar-user$|:avatar-partner$/, '头像', null],
+[/ta-voice-lib/, 'TA语音库', arr => (Array.isArray(arr) ? arr.length : 0) + ' 条'],
 [/music-file:|music-favs/, '音乐', null],
 [/divine-history/, '占卜记录', arr => arr.length + ' 条'],
 [/cal-my-|records-/, '日历/纪念', null],
@@ -922,12 +923,22 @@ const avTa = !!allKeys.find(k => /:avatar-partner$/.test(k));
 let fish = null;
 const fishK = allKeys.find(k => /:fish-total$/.test(k));
 if (fishK) fish = (data.ls && data.ls[fishK]) !== undefined ? data.ls[fishK] : (data.idb && data.idb[fishK]);
+let tvN = 0;
+try {
+const tvK = allKeys.find(k => /:ta-voice-lib$/.test(k));
+if (tvK) {
+const tvRaw = (data.idb && data.idb[tvK]) || (data.ls && data.ls[tvK]);
+const tvArr = typeof tvRaw === 'string' ? JSON.parse(tvRaw) : tvRaw;
+if (Array.isArray(tvArr)) tvN = tvArr.length;
+}
+} catch (e) {}
 const lines = [];
 lines.push('备份内容（请确认是对的文件）：');
 lines.push('· 导出时间：' + fmtLocalTime(data.exportTime));
 lines.push('· 小存储 ' + cnt(data.ls) + ' 项（' + fmtMB(lsB) + '）+ 大文件 ' + cnt(data.idb) + ' 项（' + fmtMB(idbB) + '）');
 lines.push('· 聊天记录：' + chatN);
 lines.push('· 头像：我 ' + (avMe ? '✓有' : '✗无') + '，TA ' + (avTa ? '✓有' : '✗无'));
+lines.push('· TA语音库：' + (tvN ? tvN + ' 条' : '✗无'));
 lines.push('· 摸鱼累计：' + (fish !== null ? fish : '✗无'));
 lines.push('若这里显示「聊天记录：无/头像✗」等，说明不是最新完整备份，请勿导入。');
 return lines.join('\n');
