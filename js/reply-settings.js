@@ -1265,6 +1265,23 @@ return Array.isArray(arr) ? arr.filter(it => typeof it === 'string' && it.indexO
 function vlibSet(arr) {
 try { ls.set(VLIB, JSON.stringify(arr)); return true; } catch (e) { return false; }
 }
+// 写入前必读：若语音库总量超 200KB，xyStore 会只存 IDB、不存 localStorage，
+// 同步的 ls.get() 拿不到 → 返回 [] → 一写就把旧语音全冲掉。这里先确保大键回填到内存再读。
+async function vlibLoad() {
+try {
+const st = ls;
+if (st && typeof st.awaitingBigKey === 'function' && st.awaitingBigKey(VLIB)) {
+if (typeof window.idbEnsureBigKey === 'function') {
+try { await window.idbEnsureBigKey(VLIB); } catch (e) {}
+} else {
+await new Promise(function (r) {
+try { st.whenBigKeyBack(VLIB, function () { r(); }); setTimeout(r, 3000); } catch (e) { r(); }
+});
+}
+}
+} catch (e) {}
+return vlibGet();
+}
 let previewAudio = null;
 function stopPreview() {
 try { if (previewAudio) { previewAudio.pause(); previewAudio = null; } } catch (e) {}
@@ -1303,8 +1320,8 @@ a.addEventListener('ended', stopPreview);
 a.play().catch(function () { vtToast('这条语音打不开，可能格式不支持'); });
 } catch (e) { vtToast('这条语音打不开'); }
 });
-del.addEventListener('click', function () {
-const next = vlibGet().filter(function (x) { return x !== item; });
+del.addEventListener('click', async function () {
+const next = (await vlibLoad()).filter(function (x) { return x !== item; });
 if (vlibSet(next)) { stopPreview(); renderList(); vtToast('已删除「' + name + '」'); }
 });
 row.appendChild(nm); row.appendChild(play); row.appendChild(del);
@@ -1356,7 +1373,7 @@ input.addEventListener('change', async function () {
 const files = Array.from(input.files || []);
 input.value = '';
 if (!files.length) return;
-const arr = vlibGet();
+const arr = await vlibLoad();
 let skipped = 0, added = 0;
 for (let i = 0; i < files.length; i++) {
 const f = files[i];
