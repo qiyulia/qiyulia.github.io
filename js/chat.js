@@ -3068,6 +3068,16 @@ if (!grRec || grRec.special !== 'gift' || !giftIsIncoming(grRec)) return;
 giftReplyNow(grIdx);
 return;
 }
+const zikaBtn = e.target.closest('.msg-zika-btn');
+if (zikaBtn) {
+e.stopPropagation();
+const zItem = zikaBtn.closest('.msg-ask');
+const zIdx = zItem && zItem.dataset.idx !== undefined ? Number(zItem.dataset.idx) : -1;
+const zRec = zIdx >= 0 ? msgs[zIdx] : null;
+if (!zRec || zRec.special !== 'cardoffer') return;
+cardOfferDecide(zIdx, zikaBtn.classList.contains('ok'));
+return;
+}
 const wishBuyBtn = e.target.closest('.msg-wish-buy');
 if (wishBuyBtn) {
 e.stopPropagation();
@@ -4316,6 +4326,86 @@ if (acts) acts.outerHTML = wishDoneHtml();
 } catch (e) {}
 }
 window.chatWishSettled = chatWishSettled;
+const CARD_OFFER_GROUP = '聊天转存';
+const CARD_OFFER_MIN = 3;
+const CARD_OFFER_MAX = 80;
+function cardOfferCardHtml(rec) {
+const st = rec.coStatus || 'pending';
+const quote = '<div class="msg-zika-quote">「' + escTxt(rec.coText || '') + '」</div>';
+let bodyHtml;
+if (st === 'accepted') bodyHtml = '<div class="msg-ask-a">' + escTxt(rec.coResult || '已收进字卡库') + '</div>';
+else if (st === 'declined') bodyHtml = '<div class="msg-ask-a">' + escTxt(rec.coResult || '已拒绝，这句没有收进字卡库') + '</div>';
+else bodyHtml = '<div class="msg-zika-tip">同意后会自动放进字卡库的「' + CARD_OFFER_GROUP + '」分组，之后 TA 聊天时可能会用到它。</div>' +
+'<div class="msg-zika-acts"><button class="msg-zika-btn no" type="button">拒绝</button><button class="msg-zika-btn ok" type="button">同意</button></div>';
+return '<div class="msg-ask-card msg-zika-card' + (st === 'pending' ? '' : ' answered') + '">' +
+'<div class="msg-ask-q">' + (st === 'pending' ? '要把这句收成字卡吗？' : '字卡') + '</div>' +
+quote + bodyHtml + '</div>';
+}
+function cardOfferPatch(idx) {
+const rec = msgs[idx];
+if (!rec || rec.special !== 'cardoffer') return false;
+const el = body && body.querySelector('.msg-ask[data-idx="' + idx + '"]');
+if (!el) return false;
+el.innerHTML = cardOfferCardHtml(rec);
+return true;
+}
+function cardOfferDecide(idx, ok) {
+const rec = msgs[idx];
+if (!rec || rec.special !== 'cardoffer') return;
+if ((rec.coStatus || 'pending') !== 'pending') return;
+const txt = String(rec.coText || '').trim();
+if (ok) {
+if (typeof window.ccAppendCards !== 'function') { try { toast('字卡库还没加载好，稍后再试'); } catch (e) {} return; }
+const existed = cardOfferExists(txt);
+try { window.ccAppendCards('text', CARD_OFFER_GROUP, [txt], 'own'); } catch (e) {}
+rec.coStatus = 'accepted';
+rec.coDecidedAt = Date.now();
+rec.coResult = existed ? '✓ 字卡库里已经有这句了，没有重复添加' : '✓ 已收进字卡库 · 分组「' + CARD_OFFER_GROUP + '」';
+try { toast(existed ? '字卡库里已经有这句了' : '已收进字卡库'); } catch (e) {}
+} else {
+rec.coStatus = 'declined';
+rec.coDecidedAt = Date.now();
+rec.coResult = '已拒绝，这句没有收进字卡库';
+try { toast('已拒绝'); } catch (e) {}
+}
+saveMsgs();
+try { saveMsgsNow(); } catch (e) {}
+cardOfferPatch(idx);
+}
+function cardOfferExists(txt) {
+try {
+const cards = window.getCustomCardsFor ? window.getCustomCardsFor(window.__activeCid || 'default') : [];
+return cards.indexOf(txt) >= 0;
+} catch (e) { return false; }
+}
+function cardOfferTextOf(t) {
+const s = String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
+if (!s || s.length < CARD_OFFER_MIN || s.length > CARD_OFFER_MAX) return '';
+if (/^(https?:\/\/|data:|www\.)/i.test(s)) return '';
+if (s.indexOf('|||') >= 0) return '';
+if (!/[A-Za-z0-9\u4e00-\u9fff]/.test(s)) return '';   // 纯符号/纯 emoji 不值得收
+return s;
+}
+function maybeCardOffer(text, rec) {
+try {
+const txt = cardOfferTextOf(text);
+if (!txt || !rec) return;
+const prefix = window.activePrefix ? window.activePrefix() : '';
+setTimeout(function () {
+try {
+if (prefix && window.activePrefix && window.activePrefix() !== prefix) return;
+if (msgs.indexOf(rec) < 0) return;
+if (cardOfferExists(txt)) return;
+for (let i = msgs.length - 1, n = 0; i >= 0 && n < 60; i--, n++) {
+const p = msgs[i];
+if (p && p.special === 'cardoffer' && (p.coStatus || 'pending') === 'pending' && Date.now() - (p.ts || 0) < 10 * 60 * 1000) return;
+}
+addRec({ side: 'in', special: 'cardoffer', silent: true, rateAllow: true,
+text: '把「' + txt + '」收进字卡库？', coText: txt, coStatus: 'pending' });
+} catch (e) {}
+}, 700);
+} catch (e) {}
+}
 function renderMsg(rec, atIdx) {
 const m = document.createElement('div');
 m.dataset.mk = msgKeyOf(rec); // FIX 2026-09-15 #491 身份锚随渲染写入，批量渲染只覆盖 data-idx 不动它
@@ -4364,6 +4454,14 @@ m.innerHTML = '<div class="msg-ask-card' + (answered ? ' answered' : '') + '">' 
 : '<div class="msg-ask-tip">' + (askIsPick ? T('等待 TA 选择…') : T('等待 TA 回答…')) + '</div>') +
 favHeartHtml(rec) +
 '</div>';
+appendMsg(m);
+maybeScrollChatBottom(rec.side);
+return m;
+}
+if (rec.special === 'cardoffer') {
+m.className = 'msg-ask';
+m.dataset.idx = __msgAt;
+m.innerHTML = cardOfferCardHtml(rec);
 appendMsg(m);
 maybeScrollChatBottom(rec.side);
 return m;
@@ -13752,6 +13850,7 @@ if (typeof lastQuote.idx === 'number' && lastQuote.idx >= 0) rec.qidx = lastQuot
 lastQuote = null;
 }
 addRec(rec);
+maybeCardOffer(t, rec);
 lastSendTxt = t;
 lastSendTs = Date.now();
 try { if (window.cjianNoteChat) window.cjianNoteChat(); } catch (err) {}
