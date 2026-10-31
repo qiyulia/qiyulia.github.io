@@ -4329,6 +4329,21 @@ window.chatWishSettled = chatWishSettled;
 const CARD_OFFER_GROUP = '聊天转存';
 const CARD_OFFER_MIN = 3;
 const CARD_OFFER_MAX = 80;
+const CARD_OFFER_PROB_DEFAULT = 40;
+const CARD_OFFER_DELAY_DEFAULT = 5;
+function cardOfferCfg() {
+try {
+const st = window.xyStore ? window.xyStore('xy-home-v2') : null;
+const rawP = st ? st.get('card-offer-prob') : '';
+const rawD = st ? st.get('card-offer-delay') : '';
+const p = Number(rawP), d = Number(rawD);
+return {
+prob: (rawP !== '' && rawP != null && isFinite(p)) ? Math.max(0, Math.min(100, Math.round(p))) : CARD_OFFER_PROB_DEFAULT,
+delay: (rawD !== '' && rawD != null && isFinite(d)) ? Math.max(1, Math.min(60, Math.round(d))) : CARD_OFFER_DELAY_DEFAULT
+};
+} catch (e) { return { prob: CARD_OFFER_PROB_DEFAULT, delay: CARD_OFFER_DELAY_DEFAULT }; }
+}
+window.cardOfferCfg = cardOfferCfg;
 function cardOfferCardHtml(rec) {
 const st = rec.coStatus || 'pending';
 const quote = '<div class="msg-zika-quote">「' + escTxt(rec.coText || '') + '」</div>';
@@ -4338,7 +4353,7 @@ else if (st === 'declined') bodyHtml = '<div class="msg-ask-a">' + escTxt(rec.co
 else bodyHtml = '<div class="msg-zika-tip">同意后会自动放进字卡库的「' + CARD_OFFER_GROUP + '」分组，之后 TA 聊天时可能会用到它。</div>' +
 '<div class="msg-zika-acts"><button class="msg-zika-btn no" type="button">拒绝</button><button class="msg-zika-btn ok" type="button">同意</button></div>';
 return '<div class="msg-ask-card msg-zika-card' + (st === 'pending' ? '' : ' answered') + '">' +
-'<div class="msg-ask-q">' + (st === 'pending' ? '要把这句收成字卡吗？' : '字卡') + '</div>' +
+'<div class="msg-ask-q">' + (st === 'pending' ? 'TA 想把这句话加进字卡' : '已加入字卡') + '</div>' +
 quote + bodyHtml + '</div>';
 }
 function cardOfferPatch(idx) {
@@ -4390,6 +4405,8 @@ function maybeCardOffer(text, rec) {
 try {
 const txt = cardOfferTextOf(text);
 if (!txt || !rec) return;
+const cfg = cardOfferCfg();
+if (Math.random() * 100 >= cfg.prob) return;
 const prefix = window.activePrefix ? window.activePrefix() : '';
 setTimeout(function () {
 try {
@@ -4401,9 +4418,9 @@ const p = msgs[i];
 if (p && p.special === 'cardoffer' && (p.coStatus || 'pending') === 'pending' && Date.now() - (p.ts || 0) < 10 * 60 * 1000) return;
 }
 addRec({ side: 'in', special: 'cardoffer', silent: true, rateAllow: true,
-text: '把「' + txt + '」收进字卡库？', coText: txt, coStatus: 'pending' });
+text: 'TA 想把「' + txt + '」加进字卡库？', coText: txt, coStatus: 'pending' });
 } catch (e) {}
-}, 700);
+}, cfg.delay * 1000);
 } catch (e) {}
 }
 function renderMsg(rec, atIdx) {

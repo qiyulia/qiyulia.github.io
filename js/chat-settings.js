@@ -2785,6 +2785,109 @@ toast(pwBox.checked
 csAddSync(pwSync);
 document.addEventListener('contact-switched', pwSync);
 tcRow.parentNode.insertBefore(pwRow, tcRow.nextSibling);
+const coGetNum = (k, dft) => {
+try {
+const v = window.xyStore(GNS2).get(k);
+const n = Number(v);
+return (v != null && v !== '' && isFinite(n)) ? n : dft;
+} catch (e) { return dft; }
+};
+const coSetNum = (k, v) => { try { window.xyStore(GNS2).set(k, String(v)); } catch (e) {} };
+const cmEnableRow = document.createElement('div');
+cmEnableRow.className = 'set-row';
+cmEnableRow.id = 'cs-cardmode-enable-row';
+cmEnableRow.innerHTML =
+'<div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="14" rx="2.5"/><path d="M8 3h10a2.5 2.5 0 012.5 2.5V17"/><path d="M6.5 11h6M6.5 15h4"/></svg></div>' +
+'<div class="txt">字卡模式<span class="sub">开（默认）：聊天输入栏显示「字卡」按钮，点开只能发字卡。关：按钮和字卡面板从聊天界面消失，输入法恢复正常；重新打开后才会再出现。</span></div>' +
+'<label class="toggle"><input type="checkbox"><span class="tk"></span></label>';
+const cmEnableBox = cmEnableRow.querySelector('input');
+const cmEnableGet = () => { try { return window.xyStore(GNS2).get('chat-cardmode-enabled') !== '0'; } catch (e) { return true; } };
+const cmEnableSet = (en) => { try { window.xyStore(GNS2).set('chat-cardmode-enabled', en ? '1' : '0'); } catch (e) {} };
+const cmEnableSync = () => { const v = cmEnableGet(); if (v !== cmEnableBox.checked) cmEnableBox.checked = v; };
+cmEnableSync();
+cmEnableBox.addEventListener('change', () => {
+if (cmEnableBox.checked === cmEnableGet()) return;
+cmEnableSet(cmEnableBox.checked);
+try { document.dispatchEvent(new Event('cardmode-setting-changed')); } catch (e) {}
+toast(cmEnableBox.checked ? '已开启：聊天输入栏显示「字卡」按钮' : '已关闭：聊天界面的字卡模式入口已隐藏');
+});
+csAddSync(cmEnableSync);
+document.addEventListener('contact-switched', cmEnableSync);
+const coProbRow = document.createElement('div');
+coProbRow.className = 'set-row';
+coProbRow.id = 'cs-card-offer-prob-row';
+coProbRow.innerHTML =
+'<div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="18" rx="2"/><path d="M8 8h4M8 12h4M8 16h2"/><circle cx="17.5" cy="17.5" r="3.5"/><path d="M17.5 15.8v1.7l1.2.8"/></svg></div>' +
+'<div class="txt">字卡提议概率<span class="sub">发出文字消息后，TA 按这个概率随机想把这句话加进字卡（不是每条都弹）。0 = 永不提议，100 = 每条都提议；同一个待处理的提议还在时不会重复弹。</span></div>' +
+'<div class="val" id="cs-card-offer-prob-val">40%</div>';
+const coSync = () => {
+const p = coGetNum('card-offer-prob', 40);
+const d = coGetNum('card-offer-delay', 5);
+const pv = document.getElementById('cs-card-offer-prob-val');
+const dv = document.getElementById('cs-card-offer-delay-val');
+if (pv) pv.textContent = p + '%' + (p === 0 ? '（不提议）' : '');
+if (dv) dv.textContent = d + ' 秒';
+};
+coSync();
+coProbRow.addEventListener('click', () => {
+if (!window.openModal) return;
+window.openModal('字卡提议概率（0-100%）', String(coGetNum('card-offer-prob', 40)), (v) => {
+let n = parseFloat(String(v || '').trim());
+if (!isFinite(n)) { toast('请填 0~100 的数字'); return; }
+n = Math.max(0, Math.min(100, Math.round(n)));
+coSetNum('card-offer-prob', n);
+coSync();
+toast(n === 0 ? '已设置：TA 不再主动提议字卡' : '已设置：字卡提议概率 ' + n + '%');
+}, { maxlength: 3 });
+});
+const coDelayRow = document.createElement('div');
+coDelayRow.className = 'set-row';
+coDelayRow.id = 'cs-card-offer-delay-row';
+coDelayRow.innerHTML =
+'<div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>' +
+'<div class="txt">字卡提议延迟<span class="sub">消息发出后隔多少秒才弹出提议（1~60 秒）。设长一点就不会刚发完立刻冒出，更像 TA 想了一会儿才开口。</span></div>' +
+'<div class="val" id="cs-card-offer-delay-val">5 秒</div>';
+coDelayRow.addEventListener('click', () => {
+if (!window.openModal) return;
+window.openModal('字卡提议延迟（秒，1-60）', String(coGetNum('card-offer-delay', 5)), (v) => {
+let n = parseFloat(String(v || '').trim());
+if (!isFinite(n)) { toast('请填 1~60 的数字'); return; }
+n = Math.max(1, Math.min(60, Math.round(n)));
+coSetNum('card-offer-delay', n);
+coSync();
+toast('已设置：发出消息后 ' + n + ' 秒弹出字卡提议');
+}, { maxlength: 2 });
+});
+csAddSync(coSync);
+document.addEventListener('contact-switched', coSync);
+const coFuncSec = htsRow.closest('.them-sec[data-sec="function"]') || htsRow.parentNode;
+const coTitle = document.createElement('div');
+coTitle.className = 'gs-title';
+coTitle.dataset.tag = 'msg';
+coTitle.textContent = '字卡';
+const coGroup = document.createElement('div');
+coGroup.className = 'set-group glass';
+coGroup.dataset.tag = 'msg';
+coGroup.appendChild(cmEnableRow);
+coGroup.appendChild(coProbRow);
+coGroup.appendChild(coDelayRow);
+const coFirstMsg = coFuncSec.querySelector('.gs-title[data-tag="msg"]');
+if (coFirstMsg) {
+coFuncSec.insertBefore(coTitle, coFirstMsg);
+coFuncSec.insertBefore(coGroup, coTitle.nextSibling);
+} else {
+coFuncSec.appendChild(coTitle);
+coFuncSec.appendChild(coGroup);
+}
+const coTagsEl = document.getElementById('cs-func-tags');
+const coFilter = () => {
+const act = coTagsEl && coTagsEl.querySelector('.them-tab.active');
+const ft = (act && act.dataset.ft) || 'all';
+coTitle.hidden = coGroup.hidden = !(ft === 'all' || ft === 'msg');
+};
+coFilter();
+if (coTagsEl) coTagsEl.addEventListener('click', (e) => { if (e.target.closest('.them-tab')) setTimeout(coFilter, 0); });
+coSync();
 }
 function csDrawerEl() {
 let d = document.getElementById('chat-beauty-drawer');

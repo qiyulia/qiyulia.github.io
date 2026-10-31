@@ -194,6 +194,15 @@ if (el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'] });
 }
 } catch (e) {}
 document.addEventListener('contact-switched', function () { if (on) { setMode(false); render(); } });
+function cmEnabled() {
+try { return window.xyStore ? window.xyStore('xy-home-v2').get('chat-cardmode-enabled') !== '0' : true; } catch (e) { return true; }
+}
+function applyCmEnabled() {
+if (cmEnabled()) { btn.style.display = ''; }
+else { if (on) setMode(false); panel.hidden = true; btn.style.display = 'none'; }
+}
+applyCmEnabled();
+document.addEventListener('cardmode-setting-changed', applyCmEnabled);
 })();
 if (window.__mochiLoaded) window.__mochiLoaded.push("card-mode.js");
 } catch (__e) { if (window.__mochiErrLoaded) window.__mochiErrLoaded.push("card-mode.js"); try { console.error("[JS] card-mode.js", __e && __e.message || __e); } catch (x) {} if (window.__jsErrors) window.__jsErrors.push("[card-mode.js] " + String(__e && __e.message || __e)); } })();
