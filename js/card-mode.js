@@ -48,7 +48,7 @@ var searchEl = panel.querySelector('#cm-search');
 var tab = 'all';
 var on = false;
 var SIBLINGS = ['chat-more-panel', 'emoji-panel', 'chat-search', 'chat-ask-panel', 'chat-doodle-panel', 'chat-drawguess-panel'];
-var TYPES = ['text', 'kaomoji', 'emoji', 'sticker', 'image', 'poke', 'voice'];
+var TYPES = ['text', 'kaomoji', 'emoji', 'voice']; // 不含「图片」「拍一拍」「表情包」分类
 var SCOPE_LABEL = { pub: '公用', own: '专属' };
 function toast(msg) { try { if (window.toast) window.toast(msg); } catch (e) {} }
 function cid() { try { return window.__activeCid || 'default'; } catch (e) { return 'default'; } }

@@ -4353,7 +4353,7 @@ else if (st === 'declined') bodyHtml = '<div class="msg-ask-a">' + escTxt(rec.co
 else bodyHtml = '<div class="msg-zika-tip">同意后会自动放进字卡库的「' + CARD_OFFER_GROUP + '」分组，之后 TA 聊天时可能会用到它。</div>' +
 '<div class="msg-zika-acts"><button class="msg-zika-btn no" type="button">拒绝</button><button class="msg-zika-btn ok" type="button">同意</button></div>';
 return '<div class="msg-ask-card msg-zika-card' + (st === 'pending' ? '' : ' answered') + '">' +
-'<div class="msg-ask-q">' + (st === 'pending' ? 'TA 想把这句话加进字卡' : '已加入字卡') + '</div>' +
+'<div class="msg-ask-q">' + (st === 'pending' ? 'TA 想把这句话加进字卡' : (st === 'declined' ? '未加入字卡' : '已加入字卡')) + '</div>' +
 quote + bodyHtml + '</div>';
 }
 function cardOfferPatch(idx) {
