@@ -314,7 +314,8 @@ callIncomingToastTimer = setTimeout(() => {
 try { toastReply('来电概率已保存：' + v + '%'); } catch (e) {}
 }, 250);
 }
-document.querySelectorAll('#page-reply-settings .stepper, #page-call-settings .stepper').forEach(st => {
+function bindReplyStepper(st) {
+if (!st || st.__rpsBound) return;
 const k = st.dataset.k;
 if (!k) return; // #518：分类档自定义行无 data-k，由本文件 #518 段绑定 ±，避免双绑与 reply-undefined 落盘
 const intAttr = (name, def) => { const v = parseInt(st.getAttribute(name), 10); return Number.isNaN(v) ? def : v; };
@@ -337,19 +338,10 @@ val.value = fmt(nv); window.saveReplyCfg(k, val.value);
 if (k === 'call-incoming') toastCallIncoming(fmt(nv));
 else { try { const lb = st.closest('.gs-row') ? st.closest('.gs-row').querySelector('span') : null; if (lb) toastSaved(lb.textContent, true); } catch (e) {} }
 });
-});
-document.querySelectorAll('#page-reply-settings .stepper .stp-val, #page-call-settings .stepper .stp-val').forEach(val => {
-const st = val.closest('.stepper');
-if (!st) return;
-const k = st.dataset.k;
-if (!k) return;
+if (!val) { st.__rpsBound = true; return; }
 val.removeAttribute('readonly'); // 转换器跳过 readonly，须先移除
 val.setAttribute('inputmode', 'decimal'); // 手机上弹数字键盘（转换器复制到 ce-box）
-const intAttr = (name, def) => { const v = parseInt(st.getAttribute(name), 10); return Number.isNaN(v) ? def : v; };
-const min = intAttr('data-min', 0);
-const max = intAttr('data-max', Infinity);
-const step = parseFloat(st.dataset.step) || 1;
-const fmt = (v) => step < 1 ? Number(v).toFixed(2) : String(Math.round(Number(v)));
+const fmtIn = (v) => step < 1 ? Number(v).toFixed(2) : String(Math.round(Number(v)));
 const selectAll = () => {
 try {
 const box = val.__ceBox;
@@ -374,9 +366,9 @@ if (!isFinite(v)) v = min;
 v = Math.min(max, Math.max(min, v));
 if (step < 1) v = Math.round(v / step) * step;
 else v = Math.round(v);
-val.value = fmt(v);
+val.value = fmtIn(v);
 window.saveReplyCfg(k, val.value);
-if (k === 'call-incoming') toastCallIncoming(fmt(v));
+if (k === 'call-incoming') toastCallIncoming(fmtIn(v));
 else { try { const lb = st.closest('.gs-row') ? st.closest('.gs-row').querySelector('span') : null; if (lb) toastSaved(lb.textContent, true); } catch (e) {} }
 };
 val.addEventListener('change', commit);
@@ -387,7 +379,9 @@ e.preventDefault();
 try { val.blur(); } catch (err) {}
 }
 });
-});
+st.__rpsBound = true;
+}
+document.querySelectorAll('#page-reply-settings .stepper, #page-call-settings .stepper').forEach(bindReplyStepper);
 const TOGGLE_NAMES = {
 'py-en': '多字卡回复', 'py-punct-en': '拼接随机标点', 'as-en': '主动发送', 'dnd-en': '免打扰', 'as-badge': '主动发送标识',
 'ml-kaomoji-en': '信箱颜文字', 'ml-emoji-en': '信箱emoji', 'ml-sticker-en': '信箱表情包',
@@ -1376,6 +1370,7 @@ if (vlibSet(arr)) renderList();
 vtToast('已添加 ' + added + ' 条语音' + (skipped ? '（' + skipped + ' 条超过 10MB 或读取失败，已跳过）' : ''));
 });
 tab.addEventListener('click', function () { try { renderList(); } catch (e) {} });
+try { const tvSt = panel.querySelector('.stepper[data-k="tv-prob"]'); if (tvSt && typeof bindReplyStepper === 'function') bindReplyStepper(tvSt); } catch (e) {}
 ['contact-switched', 'mochi-restore-done', 'mochi-wrj-heal'].forEach(function (ev) {
 document.addEventListener(ev, function () { try { renderList(); } catch (e) {} });
 });
