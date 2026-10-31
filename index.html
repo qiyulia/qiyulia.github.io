@@ -8173,6 +8173,12 @@ border-radius:10px; cursor:pointer; font-family:inherit; -webkit-tap-highlight-c
 }
 .rps-tab.sel { background:var(--ink); color:#fff; border-color:var(--ink); }
 .rps-panel[hidden] { display:none; }
+.tv-list { padding:0 0 6px; }
+.tv-item { display:flex; align-items:center; gap:8px; padding:8px 14px; border-top:1px solid rgba(0,0,0,.06); }
+.tv-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.tv-item .xy-icon-btn { flex-shrink:0; }
+.tv-empty { padding:10px 14px 14px; font-size:12px; opacity:.65; }
+[data-theme="dark"] .tv-item { border-top-color:rgba(255,255,255,.08); }
 [data-theme="dark"] .rps-tab { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14); color:#bbb; }
 [data-theme="dark"] .rps-tab.sel { background:var(--btn-bg); color:var(--btn-ink); border-color:var(--btn-bg); }
 .rps-quick { padding:0 14px 8px; }

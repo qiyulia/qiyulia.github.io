@@ -34,101 +34,97 @@ var color = opts.color || '#111111';
 var size = opts.size || 8;
 var eraser = false;
 var dirty = false;
-var history = [];
-var MAX_HISTORY = 10;
+var strokes = [];
+var MAX_STROKES = 300;
 var drawing = false;
 var last = null;
-function cssSize() {
-var r = canvas.getBoundingClientRect();
-return { w: Math.max(1, Math.round(r.width)), h: Math.max(1, Math.round(r.height)) };
-}
-function paintPaper(w, h) {
-ctx.save();
-ctx.setTransform(1, 0, 0, 1, 0, 0);
-ctx.globalCompositeOperation = 'source-over';
-ctx.fillStyle = '#ffffff';
-ctx.fillRect(0, 0, w, h);
-ctx.restore();
-}
-function applyStyle() {
+var curStroke = null;
+function strokeCtx(s) {
+ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+ctx.globalCompositeOperation = s.eraser ? 'destination-out' : 'source-over';
+ctx.strokeStyle = s.color;
+ctx.fillStyle = s.color;
 ctx.lineCap = 'round';
 ctx.lineJoin = 'round';
-ctx.lineWidth = size * dpr;
-ctx.strokeStyle = color;
-ctx.fillStyle = color;
-ctx.globalCompositeOperation = eraser ? 'destination-out' : 'source-over';
+ctx.lineWidth = s.size;
 }
-function restore(src) {
-if (!src) return;
-var img = new Image();
-img.onload = function () {
+function redraw() {
+var w = canvas.width / dpr, h = canvas.height / dpr;
 ctx.save();
 ctx.setTransform(1, 0, 0, 1, 0, 0);
 ctx.globalCompositeOperation = 'source-over';
 ctx.clearRect(0, 0, canvas.width, canvas.height);
-ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
 ctx.restore();
-applyStyle();
-};
-img.src = src;
+for (var i = 0; i < strokes.length; i++) {
+var s = strokes[i];
+if (!s.points.length) continue;
+strokeCtx(s);
+if (s.points.length === 1) {
+ctx.beginPath();
+ctx.arc(s.points[0].x, s.points[0].y, s.size / 2, 0, Math.PI * 2);
+ctx.fill();
+} else {
+ctx.beginPath();
+ctx.moveTo(s.points[0].x, s.points[0].y);
+for (var j = 1; j < s.points.length; j++) ctx.lineTo(s.points[j].x, s.points[j].y);
+ctx.stroke();
 }
-function snapshot() {
-try {
-history.push(canvas.toDataURL('image/png'));
-if (history.length > MAX_HISTORY) history.shift();
-} catch (e) {}
+}
+ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 function resize() {
-var s = cssSize();
-var w = Math.max(1, Math.round(s.w * dpr));
-var h = Math.max(1, Math.round(s.h * dpr));
+var rect = canvas.getBoundingClientRect();
+if (!rect || rect.width < 2 || rect.height < 2) return; // 面板隐藏/未布局：别缩成 1px 再放大（晕染来源）
+var w = Math.max(1, Math.round(rect.width * dpr));
+var h = Math.max(1, Math.round(rect.height * dpr));
 if (w === canvas.width && h === canvas.height) return;
-var keep = null;
-try { keep = canvas.toDataURL('image/png'); } catch (e) { keep = null; }
 canvas.width = w;
 canvas.height = h;
-paintPaper(w, h);
-applyStyle();
-if (dirty && keep) restore(keep);
+redraw();
 }
 function start(e) {
 if (canvas.hidden || drawing) return;
-snapshot();
 drawing = true;
 var p = pos(e);
 last = p;
-applyStyle();
-ctx.beginPath();
-ctx.arc(p.x, p.y, (size * dpr) / 2, 0, Math.PI * 2);
-ctx.fill();
+curStroke = { color: color, size: size, eraser: eraser, points: [p] };
+strokes.push(curStroke);
+if (strokes.length > MAX_STROKES) strokes.shift();
 dirty = true;
+strokeCtx(curStroke);
+ctx.beginPath();
+ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2);
+ctx.fill();
 try { if (canvas.setPointerCapture && e.pointerId !== undefined) canvas.setPointerCapture(e.pointerId); } catch (e2) {}
 }
 function move(e) {
-if (!drawing) return;
+if (!drawing || !curStroke) return;
 e.preventDefault();
 var p = pos(e);
-applyStyle();
+var lx = last.x, ly = last.y;
+if (Math.abs(p.x - lx) < 0.5 && Math.abs(p.y - ly) < 0.5) return;
+last = p;
+curStroke.points.push(p);
+strokeCtx(curStroke);
 ctx.beginPath();
-ctx.moveTo(last.x, last.y);
+ctx.moveTo(lx, ly);
 ctx.lineTo(p.x, p.y);
 ctx.stroke();
-last = p;
 }
 function end() {
 if (!drawing) return;
 drawing = false;
 last = null;
+curStroke = null;
 }
 function pos(e) {
 var r = canvas.getBoundingClientRect();
 var cx = e.clientX, cy = e.clientY;
 if (e.touches && e.touches.length) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
 else if (e.changedTouches && e.changedTouches.length) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
-return {
-x: (cx - r.left) * (canvas.width / Math.max(1, r.width)),
-y: (cy - r.top) * (canvas.height / Math.max(1, r.height))
-};
+return { x: cx - r.left, y: cy - r.top };
 }
 if (window.PointerEvent) {
 canvas.addEventListener('pointerdown', start);
@@ -153,33 +149,22 @@ try { new ResizeObserver(function () { clearTimeout(rt); rt = setTimeout(resize,
 }
 window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(resize, 160); });
 setTimeout(resize, 30);
-applyStyle();
 return {
 resize: resize,
 clear: function () {
-try { history = []; canvas.width = canvas.width; paintPaper(canvas.width, canvas.height); applyStyle(); dirty = false; } catch (e) {}
+try { strokes = []; dirty = false; redraw(); } catch (e) {}
 },
 undo: function () {
-var src = history.pop();
-if (!src) return false;
-var img = new Image();
-img.onload = function () {
-ctx.save();
-ctx.setTransform(1, 0, 0, 1, 0, 0);
-ctx.globalCompositeOperation = 'source-over';
-ctx.fillStyle = '#ffffff';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-ctx.drawImage(img, 0, 0);
-ctx.restore();
-applyStyle();
-};
-img.src = src;
+if (!strokes.length) return false;
+strokes.pop();
+dirty = strokes.length > 0;
+redraw();
 return true;
 },
-isEmpty: function () { return !dirty; },
-setColor: function (c) { color = c || '#111111'; eraser = false; applyStyle(); },
-setSize: function (n) { var v = Number(n); if (v > 0) size = v; applyStyle(); },
-setEraser: function (on) { eraser = !!on; applyStyle(); },
+isEmpty: function () { return !dirty || !strokes.length; },
+setColor: function (c) { color = c || '#111111'; eraser = false; },
+setSize: function (n) { var v = Number(n); if (v > 0) size = v; },
+setEraser: function (on) { eraser = !!on; },
 isEraser: function () { return eraser; },
 exportDataURL: function (maxSide) {
 if (!dirty) return '';
@@ -634,12 +619,25 @@ setTimeout(taSay, 600);
 }
 function closeDrawGuess() {
 gPanel.hidden = true;
+// 关掉面板不算中断：本轮继续走，TA 到点照常选，重新打开时倒计时接着走（不刷新）
+stopChatTicker();
+}
+function resetDrawGuess() {
+gPanel.hidden = true;
 dgRunning = false;
+dgRoundDone = false;
 clearTimeout(dgPickTimer);
 dgPickTimer = null;
 clearInterval(dgThinkTimer);
 dgThinkTimer = null;
 stopChatTicker();
+try { gSketch.clear(); } catch (e) {}
+var st = gPanel.querySelector('#dg-start');
+if (st) st.textContent = '发题给 TA';
+var fill = gPanel.querySelector('#dg-timerfill');
+if (fill) fill.style.width = '100%';
+var num = gPanel.querySelector('#dg-timernum');
+if (num) num.textContent = '—';
 }
 window.openDrawGuessPanel = openDrawGuess;
 window.closeDrawGuessPanel = closeDrawGuess;
@@ -675,7 +673,7 @@ if (el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'] });
 } catch (e) {}
 document.addEventListener('contact-switched', function () {
 try { closeDoodle(); } catch (e) {}
-try { closeDrawGuess(); } catch (e) {}
+try { resetDrawGuess(); } catch (e) {}
 });
 })();
 if (window.__mochiLoaded) window.__mochiLoaded.push("play-features.js");

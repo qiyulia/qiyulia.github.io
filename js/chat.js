@@ -2407,6 +2407,19 @@ return '遇到打不开的语音 ' + window.__mochiVoiceDeadN + ' 次（录音�
 + (last.code ? ' 内核码' + last.code : '') + ' @' + new Date(last.t).toLocaleTimeString();
 } catch (e) { return '语音体检读数失败'; }
 };
+let taVoiceCache = { raw: null, list: [] };
+function taVoiceLibList() {
+try {
+const st = window.activeStore ? window.activeStore() : null;
+const raw = st ? (st.get('ta-voice-lib') || '') : '';
+if (raw === taVoiceCache.raw) return taVoiceCache.list;
+let arr = [];
+if (raw) { try { arr = JSON.parse(raw); } catch (e) { arr = []; } }
+const list = Array.isArray(arr) ? arr.filter(it => typeof it === 'string' && it.indexOf('|||') > 0 && it.length > 40) : [];
+taVoiceCache = { raw: raw, list: list };
+return list;
+} catch (e) { return []; }
+}
 function getPool() {
 const cards = (window.getCustomCards && window.getCustomCards()) || [];
 const pokeSet = (function () {
@@ -2457,7 +2470,7 @@ eg.forEach(g => (g[1] || []).forEach(c => { if (isOff && isOff('emoji', c)) retu
 }
 }
 } catch (e) {}
-return { text, kaomoji, emoji, sticker, image, voice, poke };
+return { text, kaomoji, emoji, sticker, image, voice, taVoice: taVoiceLibList(), poke };
 }
 window.getPool = getPool;
 function hasCustomReplyCards() {
@@ -6255,6 +6268,8 @@ reply = pickNonBlank(pool.emoji); type = 'emoji';
 reply = pickNonBlank(pool.image); type = 'image';
 } else if (pool.voice.length && hit(c['voice-prob'])) {
 reply = pickNonBlank(pool.voice); type = 'voice';
+} else if (pool.taVoice.length && hit(c['tv-prob'])) {
+reply = pickNonBlank(pool.taVoice); type = 'voice';
 } else {
 reply = pickNonBlank(pool.text) || pick(FALLBACK_REPLY_POOL);
 }
@@ -7122,6 +7137,7 @@ if (defs && defs.type !== 'poke' && defs.text) return { text: defs.text, type: '
 const _bands = [
 [pool.sticker.length ? 15 : 0, () => ({ text: pick(pool.sticker), type: 'sticker' })],
 [pool.image.length ? 10 : 0, () => ({ text: pick(pool.image), type: 'image' })],
+[pool.taVoice.length ? Math.min(20, Number(c['tv-prob']) || 0) : 0, () => ({ text: pick(pool.taVoice), type: 'voice' })],
 [pool.kaomoji.length ? 15 : 0, () => ({ text: pick(pool.kaomoji), type: 'text' })],
 [pool.emoji.length ? 15 : 0, () => ({ text: pick(pool.emoji), type: 'text' })],
 [45, () => ({ text: pick(pool.text) || '在吗？', type: 'text' })]

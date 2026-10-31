@@ -8,7 +8,7 @@ const DEFAULTS = {
 'rl-en': 0, 'rl-win': 5, 'rl-max': 15,
 'turn-en': 0,
 'rn-prob': 20, 'touch-prob': 5,
-'sticker-prob': 10, 'emoji-prob': 5, 'image-prob': 5, 'voice-prob': 10,
+'sticker-prob': 10, 'emoji-prob': 5, 'image-prob': 5, 'voice-prob': 10, 'tv-prob': 0,
 'kaomoji-prob': 5, 'quote-prob': 30,
 'rc-prob': 25, 'rc-refix': 35, 'rc-en': 1, 'cf-prob': 20,
 'py-en': 1, 'py-prob': 50, 'py-min': 2, 'py-max': 5,
@@ -1224,6 +1224,162 @@ document.addEventListener(ev, () => { try { icSync(); } catch (e) {} });
 const genRow2 = document.getElementById('row-general');
 if (genRow2) genRow2.addEventListener('click', () => { try { icSync(); } catch (e) {} });
 }
+})();
+(function () {
+const VLIB = 'ta-voice-lib';
+const MAX_BYTES = 10 * 1024 * 1024;
+const AUDIO_MIME = {
+mp3: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', wav: 'audio/wav',
+ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/ogg', aac: 'audio/aac',
+amr: 'audio/amr', flac: 'audio/flac', webm: 'audio/webm', wma: 'audio/x-ms-wma', caf: 'audio/x-caf'
+};
+function vtToast(msg) {
+try {
+const d = ccToastEnsure();
+if (!d) return;
+d.textContent = msg; d.className = 'cc-toast'; void d.offsetWidth; d.className = 'cc-toast show';
+clearTimeout(d._timer); d._timer = setTimeout(() => { d.className = 'cc-toast'; }, 1800);
+} catch (e) {}
+}
+function audioMimeFromName(name) {
+const ext = (name || '').split('.').pop().toLowerCase();
+return AUDIO_MIME[ext] || '';
+}
+function normalizeAudioDataURL(dataURL, file) {
+if (!dataURL) return dataURL;
+const m = /^data:([^;,]*);/.exec(dataURL);
+const mime = m ? m[1] : '';
+if (mime && mime.indexOf('audio/') === 0) return dataURL;
+const comma = dataURL.indexOf(',');
+const payload = comma >= 0 ? dataURL.slice(comma + 1) : dataURL;
+const extMime = audioMimeFromName(file && file.name) || (file && file.type) || 'audio/mpeg';
+return 'data:' + extMime + ';base64,' + payload;
+}
+function vlibGet() {
+try {
+const st = ls;
+if (st.awaitingBigKey && st.awaitingBigKey(VLIB)) {
+try { if (st.requestBigKey) st.requestBigKey(VLIB); } catch (e1) {}
+try { if (st.whenBigKeyBack) st.whenBigKeyBack(VLIB, function () { renderList(); }); } catch (e2) {}
+}
+const raw = st.get(VLIB);
+if (!raw) return [];
+const arr = JSON.parse(raw);
+return Array.isArray(arr) ? arr.filter(it => typeof it === 'string' && it.indexOf('|||') > 0) : [];
+} catch (e) { return []; }
+}
+function vlibSet(arr) {
+try { ls.set(VLIB, JSON.stringify(arr)); return true; } catch (e) { return false; }
+}
+let previewAudio = null;
+function stopPreview() {
+try { if (previewAudio) { previewAudio.pause(); previewAudio = null; } } catch (e) {}
+}
+function renderList() {
+const box = document.getElementById('tv-list');
+if (!box) return;
+box.innerHTML = '';
+const arr = vlibGet();
+if (!arr.length) {
+const em = document.createElement('div');
+em.className = 'tv-empty';
+em.textContent = '还没有上传语音。点上方「上传语音」添加。';
+box.appendChild(em);
+return;
+}
+arr.forEach(function (item) {
+const sep = item.indexOf('|||');
+const name = (item.slice(0, sep) || '语音').replace(/\.[^.]+$/, '');
+const row = document.createElement('div');
+row.className = 'tv-item';
+const nm = document.createElement('span');
+nm.className = 'tv-name';
+nm.textContent = name;
+const play = document.createElement('button');
+play.type = 'button'; play.className = 'xy-icon-btn'; play.textContent = '试听';
+const del = document.createElement('button');
+del.type = 'button'; del.className = 'xy-icon-btn'; del.textContent = '删除';
+play.addEventListener('click', function () {
+try {
+stopPreview();
+const src = item.slice(item.indexOf('|||') + 3);
+const a = new Audio(src);
+previewAudio = a;
+a.addEventListener('ended', stopPreview);
+a.play().catch(function () { vtToast('这条语音打不开，可能格式不支持'); });
+} catch (e) { vtToast('这条语音打不开'); }
+});
+del.addEventListener('click', function () {
+const next = vlibGet().filter(function (x) { return x !== item; });
+if (vlibSet(next)) { stopPreview(); renderList(); vtToast('已删除「' + name + '」'); }
+});
+row.appendChild(nm); row.appendChild(play); row.appendChild(del);
+box.appendChild(row);
+});
+}
+const rpsTabs = document.querySelector('#page-reply-settings .rps-tabs');
+if (!rpsTabs) return;
+const tab = document.createElement('button');
+tab.type = 'button';
+tab.className = 'rps-tab';
+tab.setAttribute('data-rps', 'voice');
+tab.textContent = '语音消息';
+rpsTabs.appendChild(tab);
+const panel = document.createElement('div');
+panel.className = 'rps-panel';
+panel.setAttribute('data-rps', 'voice');
+panel.hidden = true;
+panel.innerHTML =
+'<div class="gs-title">语音消息（TA 发到聊天里的语音）</div>' +
+'<div class="set-group glass">' +
+'<div class="gs-row"><span>语音消息概率</span><div class="stepper" data-k="tv-prob" data-min="0" data-max="100" data-step="5"><button class="stp-min" type="button">−</button><input class="stp-val" id="tv-prob-val" readonly><button class="stp-max" type="button">+</button></div></div>' +
+'<div class="gs-sub">和【回复与主动】里的「语音概率」不是一回事——那条是打电话用的。这条只管 TA 在聊天里发语音消息：0＝从不发；概率再高，下面没有上传语音也不会发。命中时从已上传的语音里随机挑一条，以 TA 的语音气泡发给你。</div>' +
+'<div class="gs-row"><span>语音文件（可上传多条）</span><button class="xy-icon-btn" type="button" id="tv-upload">上传语音</button></div>' +
+'<div class="gs-sub">支持 MP3 / M4A / WAV / OGG 等，单个不超过 10MB。上传后在聊天里以 TA 的语音消息出现，点气泡上的播放键即可听；可以点「试听」先确认，或点「删除」移除。按联系人独立保存。</div>' +
+'<div class="tv-list" id="tv-list"></div>' +
+'</div>';
+rpsTabs.parentNode.appendChild(panel);
+const group = panel.querySelector('.set-group');
+const input = document.createElement('input');
+input.type = 'file';
+input.accept = 'audio/*,.mp3,.m4a,.mp4,.wav,.ogg,.oga,.opus,.aac,.amr,.flac,.webm';
+input.multiple = true;
+input.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';
+group.appendChild(input);
+const uploadBtn = document.getElementById('tv-upload');
+if (uploadBtn) uploadBtn.addEventListener('click', function () { try { input.click(); } catch (e) {} });
+function readAudioFile(f) {
+return new Promise(function (resolve) {
+try {
+const fr = new FileReader();
+fr.onload = function () { resolve(normalizeAudioDataURL(String(fr.result || ''), f)); };
+fr.onerror = function () { resolve(''); };
+fr.readAsDataURL(f);
+} catch (e) { resolve(''); }
+});
+}
+input.addEventListener('change', async function () {
+const files = Array.from(input.files || []);
+input.value = '';
+if (!files.length) return;
+const arr = vlibGet();
+let skipped = 0, added = 0;
+for (let i = 0; i < files.length; i++) {
+const f = files[i];
+if (!f || f.size > MAX_BYTES) { skipped++; continue; }
+const data = await readAudioFile(f);
+if (!data || data.indexOf('data:') !== 0) { skipped++; continue; }
+arr.push(f.name + '|||' + data);
+added++;
+}
+if (vlibSet(arr)) renderList();
+vtToast('已添加 ' + added + ' 条语音' + (skipped ? '（' + skipped + ' 条超过 10MB 或读取失败，已跳过）' : ''));
+});
+tab.addEventListener('click', function () { try { renderList(); } catch (e) {} });
+['contact-switched', 'mochi-restore-done', 'mochi-wrj-heal'].forEach(function (ev) {
+document.addEventListener(ev, function () { try { renderList(); } catch (e) {} });
+});
+renderList();
 })();
 function replyStoreFor(k) {
 if (k.indexOf('gc-') === 0) { try { return window.xyStore ? window.xyStore('xy-home-v2') : null; } catch (e) { return null; } }
