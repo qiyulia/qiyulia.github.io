@@ -2801,7 +2801,16 @@ cmEnableRow.innerHTML =
 '<div class="txt">字卡模式<span class="sub">开（默认）：聊天输入栏显示「字卡」按钮，点开只能发字卡。关：按钮和字卡面板从聊天界面消失，输入法恢复正常；重新打开后才会再出现。</span></div>' +
 '<label class="toggle"><input type="checkbox"><span class="tk"></span></label>';
 const cmEnableBox = cmEnableRow.querySelector('input');
-const cmEnableGet = () => { try { return window.xyStore(GNS2).get('chat-cardmode-enabled') !== '0'; } catch (e) { return true; } };
+const cmEnableGet = () => {
+try {
+// 同 card-mode.js：全局设置曾被迁移到 :default:，两处都查
+var g = window.xyStore(GNS2).get('chat-cardmode-enabled');
+if (g !== null) return g !== '0';
+var d = window.xyStore(GNS2 + ':default').get('chat-cardmode-enabled');
+if (d !== null) return d !== '0';
+return true;
+} catch (e) { return true; }
+};
 const cmEnableSet = (en) => { try { window.xyStore(GNS2).set('chat-cardmode-enabled', en ? '1' : '0'); } catch (e) {} };
 const cmEnableSync = () => { const v = cmEnableGet(); if (v !== cmEnableBox.checked) cmEnableBox.checked = v; };
 cmEnableSync();

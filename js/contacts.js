@@ -53,6 +53,7 @@ const EXCLUDE = ['contacts', 'active-contact', 'feed-posts', 'migrated-v1', 'js-
 'entry-cjian-first', 'entry-default-contact', 'entry-show-list',
 'battery-check-run', 'battery-check-last', 'heat-check-last',
 'flash-check-last',
+'chat-cardmode-enabled',
 'ver-retry',
 'fhub-freq', 'fhub-seen',
 'splash-folded', 'age-confirmed'];

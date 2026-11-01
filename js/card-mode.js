@@ -272,7 +272,15 @@ if (el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'] });
 } catch (e) {}
 document.addEventListener('contact-switched', function () { if (on) { setMode(false); render(); } });
 function cmEnabled() {
-try { return window.xyStore ? window.xyStore('xy-home-v2').get('chat-cardmode-enabled') !== '0' : true; } catch (e) { return true; }
+try {
+// chat-cardmode-enabled 是全局设置，但 contacts.js 的迁移曾把它挪到 :default: 下；
+// 两处都查一下，避免重进网站时读不到值而误判为开启。
+var g = window.xyStore ? window.xyStore('xy-home-v2').get('chat-cardmode-enabled') : null;
+if (g !== null) return g !== '0';
+var d = window.xyStore ? window.xyStore('xy-home-v2:default').get('chat-cardmode-enabled') : null;
+if (d !== null) return d !== '0';
+return true;
+} catch (e) { return true; }
 }
 function applyCmEnabled() {
 if (cmEnabled()) { btn.style.display = ''; }
@@ -280,6 +288,9 @@ else { if (on) setMode(false); panel.hidden = true; btn.style.display = 'none'; 
 }
 applyCmEnabled();
 document.addEventListener('cardmode-setting-changed', applyCmEnabled);
+// 修复：重进网站时 idbRestore 可能晚于本脚本执行，导致读到 null 误判为开启、按钮还显示。
+// restore 完成后再校准一次（chat-cardmode-enabled 是全局键，存 xy-home-v2 命名空间）。
+document.addEventListener('mochi-restore-done', function () { try { applyCmEnabled(); } catch (e) {} });
 })();
 if (window.__mochiLoaded) window.__mochiLoaded.push("card-mode.js");
 } catch (__e) { if (window.__mochiErrLoaded) window.__mochiErrLoaded.push("card-mode.js"); try { console.error("[JS] card-mode.js", __e && __e.message || __e); } catch (x) {} if (window.__jsErrors) window.__jsErrors.push("[card-mode.js] " + String(__e && __e.message || __e)); } })();
