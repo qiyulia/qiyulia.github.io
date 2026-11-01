@@ -4484,7 +4484,7 @@ const n = Number(rec.aiN || 0) || 0;
 const body = loading ? 'AI 正在结合上下文解读…（约 10~30 秒）' : escTxtBr(String(rec.text || ''));
 return '<div class="msg-ask-card msg-ai-card">' +
 '<div class="msg-ai-head"><span class="msg-ai-badge">AI 解读</span><span class="msg-ai-sub">' +
-(rec.aiCtxN ? '结合最近 ' + rec.aiCtxN + ' 条对话' : '结合上下文') + '</span></div>' +
+(rec.aiCtxN ? '结合附近 ' + rec.aiCtxN + ' 条对话' : '结合上下文') + '</span></div>' +
 (q ? '<div class="msg-ai-quote">「' + escTxt(q) + '」</div>' : '') +
 '<div class="msg-ai-body' + (loading || failed ? ' loading' : '') + '">' + body + '</div>' +
 ((!loading && n) ? '<div class="msg-ai-foot">今日第 ' + n + ' 次解读 · 免费接口</div>' : '') +
@@ -11267,22 +11267,34 @@ maRunAction(btn); // touch 直驱执行——不依赖内核从 touch 合成 cli
 }
 let aiIntBusy = false;
 function aiIntContextOf(idx) {
-const out = [];
-let start = Math.min(idx, msgs.length - 1);
-if (start < 0) start = msgs.length - 1;
-for (let i = start - 1; i >= 0 && out.length < 8; i--) {
+function pickText(i) {
 const m = msgs[i];
-if (!m || m.special || m.retracted) continue;
-if (m.type === 'image' || m.type === 'sticker' || m.type === 'voice') continue;
+if (!m || m.special || m.retracted) return null;
+if (m.type === 'image' || m.type === 'sticker' || m.type === 'voice') return null;
 let t = String(m.text || '').trim();
-if (!t || t.indexOf('data:') === 0 || t.indexOf('|||') >= 0) continue;
+if (!t || t.indexOf('data:') === 0 || t.indexOf('|||') >= 0) return null;
 try { if (window.mochiMediaExpand) t = window.mochiMediaExpand(t) || t; } catch (e) {}
 t = t.replace(/\s+/g, ' ').slice(0, 60);
-if (!t) continue;
-out.push({ side: m.side, text: t });
+if (!t) return null;
+return { i: i, side: m.side, text: t };
 }
-out.reverse();
-return out;
+// 以被解读的那句为中心向外找，双方各自最近的 5 条（前后都算）
+let i0 = Math.min(idx, msgs.length - 1);
+if (i0 < 0) i0 = msgs.length - 1;
+const mine = [], ta = [];
+for (let d = 1; (mine.length < 5 || ta.length < 5) && (i0 - d >= 0 || i0 + d < msgs.length); d++) {
+const cands = [i0 - d, i0 + d];
+for (let k = 0; k < cands.length; k++) {
+const i = cands[k];
+if (i < 0 || i >= msgs.length) continue;
+const p = pickText(i);
+if (!p) continue;
+const bucket = p.side === 'out' ? mine : ta;
+if (bucket.length >= 5) continue;
+bucket.push(p);
+}
+}
+return mine.concat(ta).sort(function (a, b) { return a.i - b.i; });
 }
 function aiIntPatch(el, rec) {
 try { const card = el && el.querySelector ? el.querySelector('.msg-ai-card') : null; if (card) card.outerHTML = aiIntCardHtml(rec); } catch (e) {}
@@ -11296,6 +11308,12 @@ try { if (window.mochiMediaExpand) target = window.mochiMediaExpand(target) || t
 target = String(target || '').trim().slice(0, 120);
 if (!target) { toast('这条消息没有可解读的文字'); return; }
 const ctx = aiIntContextOf(idx);
+// 目标那句本身也算进上下文（双方各 5 条 + 这句 = 11 条）
+try {
+let pos = ctx.length;
+for (let i = 0; i < ctx.length; i++) { if (ctx[i].i > idx) { pos = i; break; } }
+ctx.splice(pos, 0, { i: idx, side: rec.side, text: target });
+} catch (e) {}
 const me = chatUserName(), ta = chatPartnerName();
 const prec = { side: 'in', special: 'ai-int', silent: true, rateAllow: true, dedupExempt: true,
 aiState: 'loading', aiQuote: target, aiCtxN: ctx.length, text: '' };

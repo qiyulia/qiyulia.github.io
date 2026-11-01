@@ -59,8 +59,8 @@ return s.slice(0, 320);
 }
 function buildPrompt(text, ctx, me, ta) {
 const lines = (ctx || []).map(m => (m.side === 'out' ? me : ta) + '：' + m.text).join('\n');
-return '聊天记录（' + me + ' 是我，' + ta + ' 是对方）：\n' + (lines || '（无更早的对话）') +
-'\n\n要解读的是 ' + ta + ' 刚说的这句：「' + text + '」\n\n' +
+return '这段聊天记录按时间顺序（' + me + ' 是我，' + ta + ' 是对方；含要解读的这句，以及它附近双方最近各 5 句）：\n' + (lines || '（附近没有其它对话）') +
+'\n\n要解读的是 ' + ta + ' 说的这句：「' + text + '」\n\n' +
 '请只输出 3 行中文，不要用 markdown、不要编号、不要客套：\n' +
 '意思：结合上下文说明 ' + ta + ' 真正想表达什么\n' +
 '语气：概括 ' + ta + ' 的情绪或态度（如撒娇、试探、赌气、想被哄）\n' +
