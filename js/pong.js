@@ -28,13 +28,13 @@ const MAX_SPEED = 6.5;
 const PLAYER_MAX_SPEED = 8.5;      // 玩家挡板最大速度（px/tick，提高让玩家更容易接快球）
 const FPS = 60;
 const DIFFS = {
-casual: { reactDelay: [0.8, 1.2],  maxSpeed: 1.5, predictErr: 56, missRate: 0.30, paddleH: 92, ppH: 120, ballR: 8, winScore: 3, fumble: 0.32, maxBall: 5.0,
+casual: { reactDelay: [0.8, 1.2],  maxSpeed: 1.5, predictErr: 56, missRate: 0.30, paddleH: 92, ballR: 8, winScore: 3, fumble: 0.32, maxBall: 5.0,
 beh: { early: 0.02, slow: 0.18, drift: 0.18, shift: 0.03, miss: 0.18, risky: 0.01 } },
-easy:   { reactDelay: [0.55, 0.85], maxSpeed: 1.85, predictErr: 44, missRate: 0.22, paddleH: 84, ppH: 110, ballR: 7, winScore: 4, fumble: 0.24, maxBall: 5.6,
+easy:   { reactDelay: [0.55, 0.85], maxSpeed: 1.85, predictErr: 44, missRate: 0.22, paddleH: 84, ballR: 7, winScore: 4, fumble: 0.24, maxBall: 5.6,
 beh: { early: 0.03, slow: 0.13, drift: 0.12, shift: 0.04, miss: 0.12, risky: 0.02 } },
-normal: { reactDelay: [0.2, 0.4],  maxSpeed: 3.6, predictErr: 16, missRate: 0.08, paddleH: 70, ppH: 84, ballR: 6, winScore: 5, fumble: 0.06, maxBall: 6.2,
+normal: { reactDelay: [0.2, 0.4],  maxSpeed: 3.6, predictErr: 16, missRate: 0.08, paddleH: 70, ballR: 6, winScore: 5, fumble: 0.06, maxBall: 6.2,
 beh: { early: 0.06, slow: 0.05, drift: 0.05, shift: 0.04, miss: 0.03, risky: 0.08 } },
-hard:   { reactDelay: [0.12, 0.28], maxSpeed: 5.0, predictErr: 8,  missRate: 0.04, paddleH: 70, ppH: 78, ballR: 6, winScore: 5, fumble: 0, maxBall: 6.5,
+hard:   { reactDelay: [0.12, 0.28], maxSpeed: 5.0, predictErr: 8,  missRate: 0.04, paddleH: 70, ballR: 6, winScore: 5, fumble: 0, maxBall: 6.5,
 beh: { early: 0.07, slow: 0.03, drift: 0.03, shift: 0.03, miss: 0.02, risky: 0.1 } }
 };
 const POOLS = {
@@ -89,12 +89,12 @@ let rafId = null, lastTs = 0, acc = 0;
 let running = false;
 function newState(diff) {
 const d = DIFFS[diff] || DIFFS.easy;
-const pH = d.paddleH, ppH = d.ppH || d.paddleH, bR = d.ballR;
+const pH = d.paddleH, bR = d.ballR;
 return {
 diff: diff,
 playerScore: 0, opponentScore: 0,
 ball: { x: W / 2, y: H / 2, vx: 0, vy: 0, speed: INIT_SPEED },
-player: { y: H / 2 - ppH / 2, vy: 0, targetY: H / 2 - ppH / 2 },
+player: { y: H / 2 - pH / 2, vy: 0, targetY: H / 2 - pH / 2 },
 opponent: { y: H / 2 - pH / 2, vy: 0, targetY: H / 2 - pH / 2, reactUntil: 0, aiNextAt: 0 },
 status: 'countdown',          // countdown | rally | scored | ended
 countdown: 3, countdownAt: 0,
@@ -241,7 +241,7 @@ targetY = predY - pH / 2;
 }
 o.targetY = Math.max(0, Math.min(H - pH, targetY));
 }
-function playerH(s) { return (s.params && (s.params.ppH || s.params.paddleH)) || 72; }
+function playerH(s) { return (s.params && s.params.paddleH) || 72; }
 function movePaddle(paddle, targetY, maxSpeed, paddleH) {
 const diff = targetY - paddle.y;
 const step = Math.max(-maxSpeed, Math.min(maxSpeed, diff));
@@ -251,21 +251,21 @@ paddle.y = Math.max(0, Math.min(H - paddleH, paddle.y));
 }
 function checkPaddle(s) {
 const b = s.ball;
-const bR = s.params.ballR, pH = s.params.paddleH, ppH = playerH(s);
+const bR = s.params.ballR, pH = s.params.paddleH;
 const tx = PADDLE_GAP + PADDLE_W;
 if (b.vx < 0 && b.x - bR <= tx && b.x - bR >= PADDLE_GAP - 4 && b.y >= s.opponent.y && b.y <= s.opponent.y + pH) {
 b.x = tx + bR;
 bouncePaddle(s, s.opponent, false);
 }
 const px = W - PADDLE_GAP - PADDLE_W;
-if (b.vx > 0 && b.x + bR >= px && b.x + bR <= W - PADDLE_GAP + 4 && b.y >= s.player.y && b.y <= s.player.y + ppH) {
+if (b.vx > 0 && b.x + bR >= px && b.x + bR <= W - PADDLE_GAP + 4 && b.y >= s.player.y && b.y <= s.player.y + pH) {
 b.x = px - bR;
 bouncePaddle(s, s.player, true);
 }
 }
 function bouncePaddle(s, paddle, isPlayer) {
 const b = s.ball;
-const pH = isPlayer ? playerH(s) : s.params.paddleH;
+const pH = s.params.paddleH;
 const hit = (b.y - (paddle.y + pH / 2)) / (pH / 2);   // -1~1
 s.lastHit = hit;                                       // 记录击球点用于挡板闪光颜色教学
 s.rallyHits++;
@@ -373,7 +373,6 @@ s.scorePauseUntil = now + 900;
 }
 function endGame(s, now) {
 s.status = 'ended';
-clearSaved();   // 对局已结束，清除保存
 sfxWin();
 const playerWin = s.playerScore > s.opponentScore;
 const draw = s.playerScore === s.opponentScore;
@@ -422,6 +421,7 @@ const body =
 (coinLine ? '<div class="pong-end-stat">' + coinLine + '</div>' : '') +
 (drop ? '<div class="pong-end-stat">🎁 掉落限定摆件「' + drop.name + '」</div>' : '');
 showOverlay(title, body, '再玩一次');
+if (overlayBtn2El) { overlayBtn2El.textContent = '游戏结束'; overlayBtn2El.hidden = false; }
 try {
 if (window.chatAddSystem) {
 window.chatAddSystem('Pong · 你 ' + s.playerScore + ' : ' + s.opponentScore + ' TA' + (draw ? ' · 平局' : playerWin ? ' · 你赢' : ' · TA赢'), { special: 'pong' });
@@ -607,7 +607,6 @@ state.countdown = 3;
 state.countdownAt = performance.now() + 400;
 hideOverlay();
 fitCanvas();
-clearSaved();
 paused = false;
 if (pauseBtn) pauseBtn.textContent = '⏸';
 running = true;
@@ -620,50 +619,7 @@ running = false;
 if (rafId) cancelAnimationFrame(rafId);
 rafId = null;
 }
-function saveKey() { return (window.activePrefix && window.activePrefix() || 'xy-home-v2') + ':pong-saved'; }
 let paused = false;
-function canSave(s) {
-return s && s.status !== 'ended' && (s.playerScore + s.opponentScore > 0 || s.status === 'rally' || s.status === 'scored');
-}
-function saveGame() {
-try {
-if (!canSave(state)) { localStorage.removeItem(saveKey()); return; }
-const s = state;
-const clone = JSON.parse(JSON.stringify(s));
-clone.countdownAt = 0; clone.scorePauseUntil = 0;
-clone.opponent.aiNextAt = 0; clone.opponent.reactUntil = 0;
-clone._cdLen = null;
-localStorage.setItem(saveKey(), JSON.stringify(clone));
-} catch (e) {}
-}
-function loadSaved() {
-try {
-const raw = localStorage.getItem(saveKey());
-if (!raw) return null;
-const s = JSON.parse(raw);
-if (!s || s.status === 'ended') return null;
-return s;
-} catch (e) { return null; }
-}
-function clearSaved() { try { localStorage.removeItem(saveKey()); } catch (e) {} }
-function resumeGame() {
-const s = loadSaved();
-if (!s) return false;
-s.status = 'rally';
-s.countdownAt = 0; s.scorePauseUntil = 0;
-s.opponent.aiNextAt = 0; s.opponent.reactUntil = 0;
-s.params = DIFFS[s.diff] || DIFFS.easy;
-state = s;
-hideOverlay();
-fitCanvas();
-paused = false;
-if (pauseBtn) pauseBtn.textContent = '⏸';
-running = true;
-lastTs = 0; acc = 0;
-if (rafId) cancelAnimationFrame(rafId);
-rafId = requestAnimationFrame(loop);
-return true;
-}
 function togglePause() {
 if (!state || state.status === 'ended') return;
 paused = !paused;
@@ -770,7 +726,7 @@ if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); t
 if (fsBtn) fsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFs(); });
 if (overlayBtn2El) overlayBtn2El.addEventListener('click', (e) => {
 e.stopPropagation();
-resumeGame();
+closePongPanel();
 });
 window.openPongPanel = function () {
 if (!panel) return;
@@ -787,36 +743,20 @@ fitCanvas();
 paused = false;
 if (pauseBtn) pauseBtn.textContent = '⏸';
 updateWinTip();   // 按当前难度更新获胜分提示
-if (canSave(state)) {
-state.status = 'rally';
-state.opponent.aiNextAt = 0; state.opponent.reactUntil = 0;
-hideOverlay();
-running = true; lastTs = 0; acc = 0;
-if (rafId) cancelAnimationFrame(rafId);
-rafId = requestAnimationFrame(loop);
-return;
-}
-const saved = loadSaved();
-if (saved) {
-showOverlay('双人 Pong', '<div class="pong-start-tip">有未完成的对局<br>你 ' + saved.playerScore + ' : ' + saved.opponentScore + ' TA</div><div class="pong-start-ctrl">手机：按住画面上下拖动<br>电脑：↑↓ 或 W S</div>', '重新开始');
-if (overlayBtn2El) overlayBtn2El.hidden = false;
-} else {
 const curDiff = (diffSel && diffSel.value) || 'easy';
 const ws = (DIFFS[curDiff] || DIFFS.easy).winScore;
 showOverlay('双人 Pong', '<div class="pong-start-tip">你控制右侧挡板<br>先得 ' + ws + ' 分获胜</div><div class="pong-start-ctrl">手机：按住画面上下拖动<br>电脑：↑↓ 或 W S</div>', '开始');
 if (overlayBtn2El) overlayBtn2El.hidden = true;
-}
 stopGame();
 };
 window.closePongPanel = function () {
-if (canSave(state)) saveGame();   // 保存进行中的对局
 stopGame();
 if (isFs) toggleFs();
 if (panel) panel.hidden = true;
 };
 document.addEventListener('contact-switched', () => { try { closePongPanel(); } catch (e) {} });
 document.addEventListener('visibilitychange', () => {
-if (document.hidden && running && state && state.status !== 'ended') { saveGame(); togglePause(); }
+if (document.hidden && running && state && state.status !== 'ended') { togglePause(); }
 });
 let refitSettle = 0;
 function onViewportChange() {
