@@ -2827,7 +2827,7 @@ coProbRow.className = 'set-row';
 coProbRow.id = 'cs-card-offer-prob-row';
 coProbRow.innerHTML =
 '<div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="18" rx="2"/><path d="M8 8h4M8 12h4M8 16h2"/><circle cx="17.5" cy="17.5" r="3.5"/><path d="M17.5 15.8v1.7l1.2.8"/></svg></div>' +
-'<div class="txt">字卡提议概率<span class="sub">发出文字消息后，TA 按这个概率随机想把这句话加进字卡（不是每条都弹）。0 = 永不提议，100 = 每条都提议；同一个待处理的提议还在时不会重复弹。</span></div>' +
+'<div class="txt">字卡提议概率<span class="sub">发出文字消息后，TA 按这个概率随机从你最近 5 条文字/emoji 消息里挑一句想加进字卡（图片、语音不算，不是每条都弹）。0 = 永不提议，100 = 每条都提议；同一个待处理的提议还在时不会重复弹。</span></div>' +
 '<div class="val" id="cs-card-offer-prob-val">40%</div>';
 const coSync = () => {
 const p = coGetNum('card-offer-prob', 40);

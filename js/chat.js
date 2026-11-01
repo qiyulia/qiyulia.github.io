@@ -4406,13 +4406,41 @@ const cards = window.getCustomCardsFor ? window.getCustomCardsFor(window.__activ
 return cards.indexOf(txt) >= 0;
 } catch (e) { return false; }
 }
+const CARD_OFFER_EMOJI_RE = /\p{Extended_Pictographic}/u;
 function cardOfferTextOf(t) {
 const s = String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
-if (!s || s.length < CARD_OFFER_MIN || s.length > CARD_OFFER_MAX) return '';
+if (!s || s.length > CARD_OFFER_MAX) return '';
 if (/^(https?:\/\/|data:|www\.)/i.test(s)) return '';
 if (s.indexOf('|||') >= 0) return '';
-if (!/[A-Za-z0-9\u4e00-\u9fff]/.test(s)) return '';   // 纯符号/纯 emoji 不值得收
+const hasWord = /[A-Za-z0-9\u4e00-\u9fff]/.test(s);
+const hasEmoji = CARD_OFFER_EMOJI_RE.test(s);
+if (!hasWord && !hasEmoji) return '';          // 纯符号不值得收，emoji 消息可以
+if (hasWord && s.length < CARD_OFFER_MIN) return '';
 return s;
+}
+function cardOfferIsPureText(rec) {
+if (!rec || rec.side !== 'out') return false;
+if (rec.special) return false;
+if (rec.type === 'voice' || rec.type === 'sticker' || rec.type === 'image') return false;
+if (Array.isArray(rec.parts) && rec.parts.some(function (p) { return p && p.k && p.k !== 'text'; })) return false;
+return true;
+}
+const CARD_OFFER_RECENT = 5;   // 触发时从「我最近发的 5 条文字/emoji」里随机挑一条（图片、语音不算）
+function cardOfferRecentPool(lim) {
+const pool = [], seen = {}, offered = {};
+for (let i = msgs.length - 1, n = 0; i >= 0 && n < 80; i--, n++) {
+const p = msgs[i];
+if (p && p.special === 'cardoffer' && p.coText) offered[p.coText] = 1;
+}
+for (let i = msgs.length - 1; i >= 0 && pool.length < lim; i--) {
+const m = msgs[i];
+if (!cardOfferIsPureText(m)) continue;
+const t = cardOfferTextOf(m.text);
+if (!t || seen[t] || offered[t] || cardOfferExists(t)) continue;
+seen[t] = 1;
+pool.push(t);
+}
+return pool;
 }
 function maybeCardOffer(text, rec) {
 try {
@@ -4430,8 +4458,11 @@ for (let i = msgs.length - 1, n = 0; i >= 0 && n < 60; i--, n++) {
 const p = msgs[i];
 if (p && p.special === 'cardoffer' && (p.coStatus || 'pending') === 'pending' && Date.now() - (p.ts || 0) < 10 * 60 * 1000) return;
 }
+const pool = cardOfferRecentPool(CARD_OFFER_RECENT);
+if (!pool.length) return;
+const pick = pool[Math.floor(Math.random() * pool.length)];
 addRec({ side: 'in', special: 'cardoffer', silent: true, rateAllow: true,
-text: 'TA 想把「' + txt + '」加进字卡库？', coText: txt, coStatus: 'pending' });
+text: 'TA 想把「' + pick + '」加进字卡库？', coText: pick, coStatus: 'pending' });
 } catch (e) {}
 }, cfg.delay * 1000);
 } catch (e) {}
