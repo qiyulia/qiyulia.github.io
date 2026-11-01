@@ -4427,16 +4427,25 @@ return true;
 }
 const CARD_OFFER_RECENT = 5;   // 触发时从「我最近发的 5 条文字/emoji」里随机挑一条（图片、语音不算）
 function cardOfferRecentPool(lim) {
-const pool = [], seen = {}, offered = {};
+const offered = {};
 for (let i = msgs.length - 1, n = 0; i >= 0 && n < 80; i--, n++) {
 const p = msgs[i];
 if (p && p.special === 'cardoffer' && p.coText) offered[p.coText] = 1;
 }
-for (let i = msgs.length - 1; i >= 0 && pool.length < lim; i--) {
+// 先按消息条数取「最近 5 条」文字/emoji 作为固定窗口（被提议过的不腾出名额）
+const win = [];
+for (let i = msgs.length - 1; i >= 0 && win.length < lim; i--) {
 const m = msgs[i];
 if (!cardOfferIsPureText(m)) continue;
 const t = cardOfferTextOf(m.text);
-if (!t || seen[t] || offered[t] || cardOfferExists(t)) continue;
+if (!t) continue;
+win.push(t);
+}
+// 窗口内被提议过 / 已在字卡库的那条不参与抽选，但也不会让更旧的消息顶进来
+const pool = [], seen = {};
+for (let k = 0; k < win.length; k++) {
+const t = win[k];
+if (seen[t] || offered[t] || cardOfferExists(t)) continue;
 seen[t] = 1;
 pool.push(t);
 }
