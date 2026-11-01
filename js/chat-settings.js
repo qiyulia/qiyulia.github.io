@@ -2741,6 +2741,40 @@ document.addEventListener('contact-switched', syncCat);
 prevRow.parentNode.insertBefore(row, prevRow.nextSibling);
 prevRow = row;
 });
+// 上下文 AI 解读开关（默认关闭；关闭后聊天菜单里不显示该入口）
+const aiRow = document.createElement('div');
+aiRow.className = 'set-row';
+aiRow.id = 'cs-ai-interpret-row';
+aiRow.innerHTML =
+'<div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg></div>' +
+'<div class="txt">上下文 AI 解读<span class="sub" id="cs-ai-int-sub"></span></div>' +
+'<label class="toggle"><input type="checkbox"><span class="tk"></span></label>';
+const aiBox = aiRow.querySelector('input');
+const aiGet = () => { try { return window.mochiAIIntEnabled ? window.mochiAIIntEnabled() : false; } catch (e) { return false; } };
+const aiSet = (en) => { try { window.xyStore(GNS2).set('ai-interpret-enabled', en ? '1' : '0'); } catch (e) {} };
+const aiSubText = () => {
+const n = window.mochiAIIntUsage ? window.mochiAIIntUsage() : 0;
+return '开启后：点 TA 的文字消息，菜单里出现「AI 解读」，用免费 AI 结合上下文解释 TA 真正想表达什么（图片/语音不参与）。关闭后聊天里完全不显示该入口。今日已解读 ' + n + ' 次（免费接口每日约 50 次，用完次日 8:00 恢复）。';
+};
+const aiSync = () => {
+const v = aiGet();
+if (v !== aiBox.checked) aiBox.checked = v;
+const s = aiRow.querySelector('#cs-ai-int-sub');
+if (s) s.textContent = aiSubText();
+};
+aiSync();
+aiBox.addEventListener('change', () => {
+if (aiBox.checked === aiGet()) return;
+aiSet(aiBox.checked);
+aiSync();
+toast(aiBox.checked ? '已开启：点 TA 的消息可选「AI 解读」' : '已关闭：聊天里不再显示「AI 解读」入口');
+});
+csAddSync(aiSync);
+document.addEventListener('contact-switched', aiSync);
+document.addEventListener('ai-int-changed', aiSync);
+const aiAnchor = document.getElementById('cs-del-ta-msg-row'); // 放到「功能 → 消息管理」里，与删除消息同组
+const aiHost = (aiAnchor && aiAnchor.parentNode) ? aiAnchor.parentNode : (prevRow && prevRow.parentNode);
+if (aiHost) aiHost.insertBefore(aiRow, (aiAnchor && aiAnchor.nextSibling) || null);
 const tcRow = document.createElement('div');
 tcRow.className = 'set-row';
 tcRow.id = 'cs-chat-textcard-direct-row';

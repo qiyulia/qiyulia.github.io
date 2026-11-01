@@ -54,6 +54,7 @@ const EXCLUDE = ['contacts', 'active-contact', 'feed-posts', 'migrated-v1', 'js-
 'battery-check-run', 'battery-check-last', 'heat-check-last',
 'flash-check-last',
 'chat-cardmode-enabled',
+'ai-interpret-enabled', 'ai-interpret-usage',
 'ver-retry',
 'fhub-freq', 'fhub-seen',
 'splash-folded', 'age-confirmed'];

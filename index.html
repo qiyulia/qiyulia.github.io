@@ -2755,6 +2755,23 @@ cursor:pointer;
 .msg-ask-q { font-size:14px; font-weight:700; color:var(--ink); line-height:1.5; }
 .msg-ask-tip { font-size:11px; color:var(--muted); margin-top:8px; }
 .msg-ask-a { font-size:12px; color:#3b7a4e; font-weight:600; margin-top:8px; }
+/* 上下文 AI 解读卡片 */
+.msg-ai-card { text-align:left; max-width:86%; min-width:240px; cursor:default; }
+.msg-ai-head { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.msg-ai-badge {
+font-size:10px; font-weight:700; letter-spacing:.4px; padding:2px 8px; border-radius:99px;
+background:rgba(107,77,240,.12); color:#6b4df0;
+}
+.msg-ai-sub { font-size:10px; color:var(--muted); }
+.msg-ai-quote {
+font-size:12px; color:var(--soft-ink); line-height:1.55;
+background:var(--static-bg); border-left:3px solid rgba(107,77,240,.35);
+border-radius:0 8px 8px 0; padding:6px 9px; margin-bottom:8px;
+word-break:break-word; max-height:4.4em; overflow:hidden;
+}
+.msg-ai-body { font-size:13px; color:var(--ink); line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+.msg-ai-body.loading { color:var(--muted); font-size:12px; }
+.msg-ai-foot { font-size:10px; color:var(--muted); margin-top:8px; }
 .msg-zika-quote {
 font-size:12.5px; color:var(--soft-ink); line-height:1.6; text-align:left;
 background:var(--static-bg); border-radius:8px; padding:7px 10px; margin-top:8px;
@@ -8795,6 +8812,8 @@ color: var(--muted);
 [data-theme="dark"] .msg-inplace .ip-opt-chk.on .ip-opt-box { border-color:var(--ink); background:var(--ink); }
 [data-theme="dark"] .msg-inplace .ip-opt-chk.on .ip-opt-box::after { border-color:#111; }
 [data-theme="dark"] .msg-ask-card { background:var(--dark-card-92); border-color:var(--dark-border); }
+[data-theme="dark"] .msg-ai-badge { background:rgba(150,120,255,.22); color:#bda9ff; }
+[data-theme="dark"] .msg-ai-quote { border-left-color:rgba(150,120,255,.5); }
 [data-theme="dark"] .msg-choose-card { background:var(--dark-card-92); border-color:var(--dark-border); }
 [data-theme="dark"] .msg-survey-card { background:var(--dark-card-92); border-color:var(--dark-border); }
 [data-theme="dark"] .msg-survey-opt { background:var(--dark-card); border-color:var(--dark-border-12); color:var(--ink); }
@@ -17148,6 +17167,10 @@ font:inherit; font-size:13px; color:#222; background:#fff; outline:none;
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2"/><path d="M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"/></svg>
           <span>删除</span>
         </button>
+        <button class="ma-btn ma-ai" data-act="ai" title="AI解读" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9z"/></svg>
+          <span>AI解读</span>
+        </button>
       </div>
       
     </div>
@@ -23121,6 +23144,7 @@ window.__mochiBootRetry = function () { try { location.reload(); } catch (e) {} 
 <script defer src="js/auction.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('auction.js')"></script>
 <script defer src="js/arcade.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('arcade.js')"></script>
 <script defer src="js/play-features.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('play-features.js')"></script>
+<script defer src="js/ai-interpret.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('ai-interpret.js')"></script>
 <script defer src="js/companion.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('companion.js')"></script>
 <script defer src="js/cinema.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('cinema.js')"></script>
 <script defer src="js/mood-diary.js" onerror="window.__mochiExtFail=(window.__mochiExtFail||[]).concat('mood-diary.js')"></script>

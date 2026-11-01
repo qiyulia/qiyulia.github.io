@@ -4476,6 +4476,20 @@ text: 'TA 想把「' + pick + '」加进字卡库？', coText: pick, coStatus: '
 }, cfg.delay * 1000);
 } catch (e) {}
 }
+function aiIntCardHtml(rec) {
+const q = String(rec.aiQuote || '');
+const loading = rec.aiState === 'loading' && (Date.now() - (rec.ts || 0) < 120000);
+const failed = rec.aiState === 'fail';
+const n = Number(rec.aiN || 0) || 0;
+const body = loading ? 'AI 正在结合上下文解读…（约 10~30 秒）' : escTxtBr(String(rec.text || ''));
+return '<div class="msg-ask-card msg-ai-card">' +
+'<div class="msg-ai-head"><span class="msg-ai-badge">AI 解读</span><span class="msg-ai-sub">' +
+(rec.aiCtxN ? '结合最近 ' + rec.aiCtxN + ' 条对话' : '结合上下文') + '</span></div>' +
+(q ? '<div class="msg-ai-quote">「' + escTxt(q) + '」</div>' : '') +
+'<div class="msg-ai-body' + (loading || failed ? ' loading' : '') + '">' + body + '</div>' +
+((!loading && n) ? '<div class="msg-ai-foot">今日第 ' + n + ' 次解读 · 免费接口</div>' : '') +
+'</div>';
+}
 function renderMsg(rec, atIdx) {
 const m = document.createElement('div');
 m.dataset.mk = msgKeyOf(rec); // FIX 2026-09-15 #491 身份锚随渲染写入，批量渲染只覆盖 data-idx 不动它
@@ -4497,6 +4511,14 @@ if (typeof t === 'string' && t.indexOf('{ta}') >= 0) t = t.split('{ta}').join(__
 if (typeof t === 'string' && t.indexOf('{me}') >= 0) t = t.split('{me}').join(__meNm);
 return t;
 };
+if (rec.special === 'ai-int') {
+m.className = 'msg-ask msg-ai';
+m.dataset.idx = __msgAt;
+m.innerHTML = aiIntCardHtml(rec);
+appendMsg(m);
+maybeScrollChatBottom('in');
+return m;
+}
 if (rec.special === 'invite') {
 m.className = 'msg-ask';
 m.dataset.idx = __msgAt; // #1326：分支重写读调用方给的这一格
@@ -10996,6 +11018,7 @@ if (t.closest('.msg-quote')) return null;
 const item = b.closest('.msg');
 if (!item || item.classList.contains('msg-poke')) return null;
 if (t.closest('.msg-poke-seg')) return null;
+if (t.closest('.msg-ai')) return null; // AI 解读卡片不参与消息菜单
 const txt = b.textContent;
 if (txt.indexOf('撤回了一条消息') >= 0 || txt.indexOf('已读不回') >= 0) return null;
 return { item, b };
@@ -11018,6 +11041,18 @@ if (delBtn) {
 let delEn = false;
 try { delEn = store.get('cs-del-ta-msg') === '1'; } catch (e) {}
 delBtn.hidden = !(delEn && activeSide === 'in');
+}
+// AI 解读：开关关闭时不显示；只对 TA 的文字消息显示
+const aiBtn = msgActions.querySelector('.ma-ai');
+if (aiBtn) {
+let aiOn = false;
+try { aiOn = !!(window.mochiAIIntEnabled && window.mochiAIIntEnabled()); } catch (eAi) {}
+let aiOk = false;
+if (aiOn && activeSide === 'in' && _qr && !_qr.special && !_qr.retracted) {
+const _aiT = String(_qr.text || '').trim();
+aiOk = !!_aiT && _aiT.indexOf('data:') !== 0 && _qr.type !== 'image' && _qr.type !== 'sticker' && _qr.type !== 'voice';
+}
+aiBtn.hidden = !aiOk;
 }
 msgActions.hidden = false;
 const _maPlace = window.mochiFollowActionBar(msgActions, b, closeMsgActions);
@@ -11145,6 +11180,9 @@ toast('已收藏到我的收藏');
 }
 }
 closeMsgActions();
+} else if (act === 'ai') {
+closeMsgActions();
+if (rec) runAIInterpret(idx, rec);
 } else if (act === 'multisel') {
 const _msMk = (activeMsgSnap && activeMsgSnap.mk) || (activeMsgEl && activeMsgEl.dataset ? activeMsgEl.dataset.mk : '');
 closeMsgActions();
@@ -11226,6 +11264,59 @@ e.preventDefault();
 maClickGuard = Date.now() + 600; // 吞引擎补发 click 防双跑
 maRunAction(btn); // touch 直驱执行——不依赖内核从 touch 合成 click
 });
+}
+let aiIntBusy = false;
+function aiIntContextOf(idx) {
+const out = [];
+let start = Math.min(idx, msgs.length - 1);
+if (start < 0) start = msgs.length - 1;
+for (let i = start - 1; i >= 0 && out.length < 8; i--) {
+const m = msgs[i];
+if (!m || m.special || m.retracted) continue;
+if (m.type === 'image' || m.type === 'sticker' || m.type === 'voice') continue;
+let t = String(m.text || '').trim();
+if (!t || t.indexOf('data:') === 0 || t.indexOf('|||') >= 0) continue;
+try { if (window.mochiMediaExpand) t = window.mochiMediaExpand(t) || t; } catch (e) {}
+t = t.replace(/\s+/g, ' ').slice(0, 60);
+if (!t) continue;
+out.push({ side: m.side, text: t });
+}
+out.reverse();
+return out;
+}
+function aiIntPatch(el, rec) {
+try { const card = el && el.querySelector ? el.querySelector('.msg-ai-card') : null; if (card) card.outerHTML = aiIntCardHtml(rec); } catch (e) {}
+}
+function runAIInterpret(idx, rec) {
+try {
+if (!rec || !window.mochiAIInterpret) { toast('AI 解读暂不可用'); return; }
+if (aiIntBusy) { toast('正在解读上一条，稍等一下'); return; }
+let target = quoteTextOf(rec).text;
+try { if (window.mochiMediaExpand) target = window.mochiMediaExpand(target) || target; } catch (e) {}
+target = String(target || '').trim().slice(0, 120);
+if (!target) { toast('这条消息没有可解读的文字'); return; }
+const ctx = aiIntContextOf(idx);
+const me = chatUserName(), ta = chatPartnerName();
+const prec = { side: 'in', special: 'ai-int', silent: true, rateAllow: true, dedupExempt: true,
+aiState: 'loading', aiQuote: target, aiCtxN: ctx.length, text: '' };
+const el = addRec(prec);
+if (!el) return;
+aiIntBusy = true;
+window.mochiAIInterpret({ text: target, context: ctx, me: me, ta: ta }).then(function (out) {
+prec.aiState = 'done';
+prec.text = out;
+try { prec.aiN = window.mochiAIIntBump ? window.mochiAIIntBump() : 0; } catch (e) {}
+try { saveMsgs(); } catch (e) {}
+aiIntPatch(el, prec);
+maybeScrollChatBottom('in');
+}).catch(function (err) {
+prec.aiState = 'fail';
+prec.text = (err && err.message) ? String(err.message) : '解读失败，稍后再试';
+try { saveMsgs(); } catch (e) {}
+aiIntPatch(el, prec);
+toast('AI 解读失败：' + (prec.text || '稍后再试'));
+}).then(function () { aiIntBusy = false; });
+} catch (e) { aiIntBusy = false; }
 }
 function toast(msg) {
 let t = document.getElementById('cc-toast');
