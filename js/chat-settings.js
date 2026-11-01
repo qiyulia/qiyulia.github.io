@@ -2752,9 +2752,21 @@ aiRow.innerHTML =
 const aiBox = aiRow.querySelector('input');
 const aiGet = () => { try { return window.mochiAIIntEnabled ? window.mochiAIIntEnabled() : false; } catch (e) { return false; } };
 const aiSet = (en) => { try { window.xyStore(GNS2).set('ai-interpret-enabled', en ? '1' : '0'); } catch (e) {} };
+const aiCfgGet = (k) => {
+try {
+var g = window.xyStore(GNS2).get(k);
+if (g !== null && g !== undefined) return String(g);
+var d = window.xyStore(GNS2 + ':default').get(k);
+if (d !== null && d !== undefined) return String(d);
+} catch (e) {}
+return '';
+};
+const aiCfgSet = (k, v) => { try { window.xyStore(GNS2).set(k, String(v || '').trim()); } catch (e) {} };
 const aiSubText = () => {
 const n = window.mochiAIIntUsage ? window.mochiAIIntUsage() : 0;
-return '开启后：点 TA 的文字消息，菜单里出现「AI 解读」，用免费 AI 结合上下文解释 TA 真正想表达什么（图片/语音不参与）。关闭后聊天里完全不显示该入口。今日已解读 ' + n + ' 次（免费接口每日约 50 次，用完次日 8:00 恢复）。';
+const custom = !!(String(aiCfgGet('ai-api-url') || '').trim() || String(aiCfgGet('ai-api-key') || '').trim());
+return '开启后：点 TA 的文字消息，菜单里出现「AI 解读」，结合上下文解释 TA 真正想表达什么（图片/语音不参与）。关闭后聊天里完全不显示该入口。今日已解读 ' + n + ' 次' +
+(custom ? '（当前使用自定义接口）' : '（匿名免费接口约 15 秒 1 次，高峰期可能暂时不可用）') + '。';
 };
 const aiSync = () => {
 const v = aiGet();
@@ -2772,9 +2784,66 @@ toast(aiBox.checked ? '已开启：点 TA 的消息可选「AI 解读」' : '已
 csAddSync(aiSync);
 document.addEventListener('contact-switched', aiSync);
 document.addEventListener('ai-int-changed', aiSync);
-const aiAnchor = document.getElementById('cs-del-ta-msg-row'); // 放到「功能 → 消息管理」里，与删除消息同组
-const aiHost = (aiAnchor && aiAnchor.parentNode) ? aiAnchor.parentNode : (prevRow && prevRow.parentNode);
-if (aiHost) aiHost.insertBefore(aiRow, (aiAnchor && aiAnchor.nextSibling) || null);
+// 单独成组放在「功能」页顶部，避免落进默认折叠的分组里看不见
+const aiGroup = document.createElement('div');
+aiGroup.className = 'set-group glass';
+aiGroup.id = 'cs-ai-group';
+aiGroup.appendChild(aiRow);
+const aiTitle = document.createElement('div');
+aiTitle.className = 'gs-title';
+aiTitle.textContent = 'AI 解读';
+const aiFuncSec = document.querySelector('#page-chat-settings .them-sec[data-sec="function"]');
+if (aiFuncSec) {
+const aiFirstGroup = aiFuncSec.querySelector('.set-group');
+const aiFirstTitle = aiFirstGroup && aiFirstGroup.previousElementSibling && aiFirstGroup.previousElementSibling.classList.contains('gs-title')
+? aiFirstGroup.previousElementSibling : null;
+const aiInsertAt = aiFirstTitle || aiFirstGroup;
+if (aiInsertAt) {
+aiFuncSec.insertBefore(aiGroup, aiInsertAt);
+aiFuncSec.insertBefore(aiTitle, aiGroup);
+} else {
+aiFuncSec.appendChild(aiTitle);
+aiFuncSec.appendChild(aiGroup);
+}
+}
+// AI 接口配置（可选）：接口地址 / API Key / 模型名；留空＝匿名免费接口
+const aiCfgRow = (id, title, sub, ph, type, k) => {
+const r = document.createElement('div');
+r.className = 'set-row ai-cfg-row';
+r.id = id;
+r.innerHTML =
+'<div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>' +
+'<div class="txt">' + title + '<span class="sub">' + sub + '</span>' +
+'<input class="ai-cfg-inp" type="' + type + '" placeholder="' + ph + '" autocomplete="off" autocapitalize="off" spellcheck="false"></div>';
+const inp = r.querySelector('input');
+inp.value = aiCfgGet(k);
+const save = () => {
+let v = String(inp.value || '').trim();
+if (k === 'ai-api-url' && v && !/^https:\/\//i.test(v)) {
+toast('接口地址需以 https:// 开头');
+inp.value = aiCfgGet(k);
+return;
+}
+aiCfgSet(k, v);
+if (k === 'ai-api-url') aiSync();
+};
+inp.addEventListener('change', save);
+inp.addEventListener('blur', save);
+return r;
+};
+const aiUrlRow = aiCfgRow('cs-ai-url-row', 'AI 接口地址（可选）', '留空＝有 Key 默认走 OpenRouter 免费模型；没 Key 用匿名免费接口。也可填其它 OpenAI 兼容地址（Groq 不支持浏览器直连）', 'https://openrouter.ai/api/v1/chat/completions', 'url', 'ai-api-url');
+const aiKeyRow = aiCfgRow('cs-ai-key-row', 'API Key（可选）', '填了 Key 默认用 OpenRouter 免费模型（50 次/天）；留空＝匿名免费接口（约 15 秒 1 次）。只存本机浏览器', 'sk-or-v1-…', 'password', 'ai-api-key');
+const aiModelRow = aiCfgRow('cs-ai-model-row', '模型名（可选）', '留空＝OpenRouter 用 meta-llama/llama-3.3-70b-instruct:free；免费接口用 openai', 'meta-llama/llama-3.3-70b-instruct:free', 'text', 'ai-api-model');
+if (aiGroup) {
+[aiUrlRow, aiKeyRow, aiModelRow].forEach(function (r) { aiGroup.appendChild(r); });
+}
+// 换桌面时把三个输入框回读一遍（配置是全局的）
+document.addEventListener('contact-switched', function () {
+[aiUrlRow, aiKeyRow, aiModelRow].forEach(function (r) {
+const inp = r.querySelector('input');
+if (inp) inp.value = aiCfgGet(r.id === 'cs-ai-url-row' ? 'ai-api-url' : r.id === 'cs-ai-key-row' ? 'ai-api-key' : 'ai-api-model');
+});
+});
 const tcRow = document.createElement('div');
 tcRow.className = 'set-row';
 tcRow.id = 'cs-chat-textcard-direct-row';

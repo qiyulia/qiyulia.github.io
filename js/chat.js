@@ -4476,18 +4476,33 @@ text: 'TA 想把「' + pick + '」加进字卡库？', coText: pick, coStatus: '
 }, cfg.delay * 1000);
 } catch (e) {}
 }
+function aiApiLabel() {
+try {
+var env = window.xyStore;
+if (!env) return '免费接口';
+var g = String(env('xy-home-v2').get('ai-api-url') || '').trim();
+var k = String(env('xy-home-v2').get('ai-api-key') || '').trim();
+if (!g && !k) {
+g = String(env('xy-home-v2:default').get('ai-api-url') || '').trim();
+k = String(env('xy-home-v2:default').get('ai-api-key') || '').trim();
+}
+if (/^https:\/\/api\.groq\.com\//i.test(g)) return 'Groq';
+if (/^https:\/\/openrouter\.ai\//i.test(g) || (!g && k)) return 'OpenRouter';
+return (g || k) ? '自定义接口' : '免费接口';
+} catch (e) { return '免费接口'; }
+}
 function aiIntCardHtml(rec) {
 const q = String(rec.aiQuote || '');
 const loading = rec.aiState === 'loading' && (Date.now() - (rec.ts || 0) < 120000);
 const failed = rec.aiState === 'fail';
 const n = Number(rec.aiN || 0) || 0;
-const body = loading ? 'AI 正在结合上下文解读…（约 10~30 秒）' : escTxtBr(String(rec.text || ''));
+const body = loading ? 'AI 正在结合上下文解读…（约 15~40 秒）' : escTxtBr(String(rec.text || ''));
 return '<div class="msg-ask-card msg-ai-card">' +
 '<div class="msg-ai-head"><span class="msg-ai-badge">AI 解读</span><span class="msg-ai-sub">' +
 (rec.aiCtxN ? '结合附近 ' + rec.aiCtxN + ' 条对话' : '结合上下文') + '</span></div>' +
 (q ? '<div class="msg-ai-quote">「' + escTxt(q) + '」</div>' : '') +
 '<div class="msg-ai-body' + (loading || failed ? ' loading' : '') + '">' + body + '</div>' +
-((!loading && n) ? '<div class="msg-ai-foot">今日第 ' + n + ' 次解读 · 免费接口</div>' : '') +
+((!loading && n) ? '<div class="msg-ai-foot">今日第 ' + n + ' 次解读 · ' + aiApiLabel() + '</div>' : '') +
 '</div>';
 }
 function renderMsg(rec, atIdx) {

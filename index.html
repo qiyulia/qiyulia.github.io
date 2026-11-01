@@ -2772,6 +2772,21 @@ word-break:break-word; max-height:4.4em; overflow:hidden;
 .msg-ai-body { font-size:13px; color:var(--ink); line-height:1.7; white-space:pre-wrap; word-break:break-word; }
 .msg-ai-body.loading { color:var(--muted); font-size:12px; }
 .msg-ai-foot { font-size:10px; color:var(--muted); margin-top:8px; }
+.set-row.ai-cfg-row { align-items:flex-start; cursor:default; }
+.set-row.ai-cfg-row .ico { margin-top:1px; }
+.set-row.ai-cfg-row .txt { font-size:13.5px; }
+.ai-cfg-inp {
+display:block; width:100%; margin-top:7px; padding:8px 10px;
+border:1px solid rgba(0,0,0,.1); border-radius:9px;
+background:rgba(0,0,0,.03); color:var(--ink);
+font-size:12px; font-family:inherit; outline:none;
+-webkit-appearance:none; appearance:none;
+}
+.ai-cfg-inp:focus { border-color:rgba(0,0,0,.26); background:#fff; }
+.ai-cfg-inp::placeholder { color:#b8b8b8; }
+[data-theme="dark"] .ai-cfg-inp { border-color:rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:#eee; }
+[data-theme="dark"] .ai-cfg-inp:focus { border-color:rgba(255,255,255,.32); background:rgba(255,255,255,.1); }
+[data-theme="dark"] .ai-cfg-inp::placeholder { color:#777; }
 .msg-zika-quote {
 font-size:12.5px; color:var(--soft-ink); line-height:1.6; text-align:left;
 background:var(--static-bg); border-radius:8px; padding:7px 10px; margin-top:8px;
