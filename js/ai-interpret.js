@@ -60,16 +60,26 @@ return v === '1';
 function cleanText(t) {
 let s = String(t || '').trim();
 s = s.replace(/`+/g, '').replace(/^\s*[-*#]+\s*/gm, '').replace(/\*\*/g, '');
-s = s.replace(/\s*(意思|语气|回应)：/g, '\n$1：').replace(/\n{2,}/g, '\n').trim();
+s = s.replace(/\s*(关联|意思|语气|回应)：/g, '\n$1：').replace(/\n{2,}/g, '\n').trim();
 s = s.split('\n').filter(l => l.trim()).slice(0, 6).join('\n');
 return s.slice(0, 320);
 }
-function buildPrompt(text, ctx, me, ta) {
-const lines = (ctx || []).map(m => (m.side === 'out' ? me : ta) + '：' + m.text).join('\n');
-return '这段聊天记录按时间顺序（' + me + ' 是我，' + ta + ' 是对方；含要解读的这句，以及它附近双方最近各 5 句）：\n' + (lines || '（附近没有其它对话）') +
-'\n\n要解读的是 ' + ta + ' 说的这句：「' + text + '」\n\n' +
-'请只输出 2 行中文，不要用 markdown、不要编号、不要客套；一律用「TA」指代对方，不要出现「他」「她」：\n' +
-'意思：结合上下文用 2~3 句（合计不超过 80 字）说清 ' + ta + ' 真正想表达什么，并点出是从哪句话/哪种语气判断出来的\n' +
+function buildPrompt(text, ctx, me, ta, kind) {
+const lines = (ctx || []).map(function (m, i) {
+const who = m.side === 'out' ? me : ta;
+const mark = m.kind === 'card' ? '[字卡]' : (m.sys ? '[系统]' : '');
+return (i + 1) + '. ' + who + mark + '：' + m.text;
+}).join('\n');
+const self = kind === 'card' ? '[字卡]' : '';
+return '这段聊天记录按时间顺序（' + me + ' 是我，' + ta + ' 是对方；编号只用于定位，不用逐条翻译）：\n' + (lines || '（附近没有其它对话）') +
+'\n\n要解读的是 ' + ta + self + ' 说的：「' + text + '」\n\n' +
+'要求：\n' +
+'1) 先判断哪些句子真正和这句接得上（同一话题、在回应它、或它明显在回应对方）。和这句完全无关的（换话题、自言自语、系统提示）一律忽略：不翻译、不在输出里提到。\n' +
+'2) 如果这句是[字卡]拼出来的：只解读与它相关的卡面词，不要按整句语法直译（拼出来的话语义不连贯）。\n' +
+'3) 如果这句确实和上文完全接不上：意思直接写「与上文无关，没有可接的线索」，不要硬编。\n' +
+'4) 只输出 3 行中文，不要 markdown、编号、客套；一律用「TA」指代对方，不要出现「他」「她」：\n' +
+'关联：引用真正相关的原话（最多 2 句，用「」括起；没有就写「无」）\n' +
+'意思：结合相关句说清 ' + ta + ' 真正想表达什么（2~3 句，合计不超过 80 字）\n' +
 '语气：用 1 句概括 ' + ta + ' 当下的情绪或态度（如撒娇、试探、赌气、想被哄、想确认关系）';
 }
 function cfg() {
@@ -103,8 +113,8 @@ const c = cfg();
 const payload = {
 model: c.model,
 messages: [
-{ role: 'system', content: '你擅长读懂情侣聊天里的言外之意。用「TA」指代对方、用「我」指代本人，不要用「你」「他」「她」称呼对方。回答简短克制，不评判、不说教。' },
-{ role: 'user', content: buildPrompt(text, opts.context || [], opts.me || '我', opts.ta || 'TA') }
+{ role: 'system', content: '你擅长读懂情侣聊天里的言外之意。用「TA」指代对方、用「我」指代本人，不要用「你」「他」「她」称呼对方。只解读能接上上文的部分，完全无关的话直接忽略，不硬译。回答简短克制，不评判、不说教。' },
+{ role: 'user', content: buildPrompt(text, opts.context || [], opts.me || '我', opts.ta || 'TA', opts.kind || 'text') }
 ],
 temperature: 0.7
 };

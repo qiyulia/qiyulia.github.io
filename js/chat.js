@@ -11281,17 +11281,32 @@ maRunAction(btn); // touch 直驱执行——不依赖内核从 touch 合成 cli
 });
 }
 let aiIntBusy = false;
+function aiIntCardText(m) {
+try {
+if (!m || !Array.isArray(m.parts) || !m.parts.length) return '';
+if (m.parts.some(function (p) { return p && p.k && p.k !== 'text'; })) return ''; // 含图片等的不算拼字卡
+const cards = [];
+for (let i = 0; i < m.parts.length; i++) {
+const p = m.parts[i];
+if (p && typeof p.v === 'string' && p.v.trim()) cards.push(p.v.trim());
+}
+if (cards.length < 2 && m.tag !== '多字卡回复') return '';
+return cards.slice(0, 10).join('｜');
+} catch (e) { return ''; }
+}
 function aiIntContextOf(idx) {
 function pickText(i) {
 const m = msgs[i];
 if (!m || m.special || m.retracted) return null;
 if (m.type === 'image' || m.type === 'sticker' || m.type === 'voice') return null;
+const cardText = aiIntCardText(m);
+if (cardText) return { i: i, side: m.side, text: cardText.slice(0, 120), kind: 'card' };
 let t = String(m.text || '').trim();
 if (!t || t.indexOf('data:') === 0 || t.indexOf('|||') >= 0) return null;
 try { if (window.mochiMediaExpand) t = window.mochiMediaExpand(t) || t; } catch (e) {}
 t = t.replace(/\s+/g, ' ').slice(0, 60);
 if (!t) return null;
-return { i: i, side: m.side, text: t };
+return { i: i, side: m.side, text: t, kind: 'text' };
 }
 // 以被解读的那句为中心向外找，双方各自最近的 5 条（前后都算）
 let i0 = Math.min(idx, msgs.length - 1);
@@ -11319,7 +11334,10 @@ try {
 if (!rec || !window.mochiAIInterpret) { toast('AI 解读暂不可用'); return; }
 if (aiIntBusy) { toast('正在解读上一条，稍等一下'); return; }
 let target = quoteTextOf(rec).text;
-try { if (window.mochiMediaExpand) target = window.mochiMediaExpand(target) || target; } catch (e) {}
+let targetKind = 'text';
+const cardTarget = aiIntCardText(rec);
+if (cardTarget) { target = cardTarget; targetKind = 'card'; }
+else { try { if (window.mochiMediaExpand) target = window.mochiMediaExpand(target) || target; } catch (e) {} }
 target = String(target || '').trim().slice(0, 120);
 if (!target) { toast('这条消息没有可解读的文字'); return; }
 const ctx = aiIntContextOf(idx);
@@ -11327,7 +11345,7 @@ const ctx = aiIntContextOf(idx);
 try {
 let pos = ctx.length;
 for (let i = 0; i < ctx.length; i++) { if (ctx[i].i > idx) { pos = i; break; } }
-ctx.splice(pos, 0, { i: idx, side: rec.side, text: target });
+ctx.splice(pos, 0, { i: idx, side: rec.side, text: target, kind: targetKind });
 } catch (e) {}
 const me = chatUserName(), ta = chatPartnerName();
 const prec = { side: 'in', special: 'ai-int', silent: true, rateAllow: true, dedupExempt: true,
@@ -11335,7 +11353,7 @@ aiState: 'loading', aiQuote: target, aiCtxN: ctx.length, text: '' };
 const el = addRec(prec);
 if (!el) return;
 aiIntBusy = true;
-window.mochiAIInterpret({ text: target, context: ctx, me: me, ta: ta }).then(function (out) {
+window.mochiAIInterpret({ text: target, context: ctx, me: me, ta: ta, kind: targetKind }).then(function (out) {
 prec.aiState = 'done';
 prec.text = out;
 try { prec.aiN = window.mochiAIIntBump ? window.mochiAIIntBump() : 0; } catch (e) {}
