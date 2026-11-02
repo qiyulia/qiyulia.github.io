@@ -426,7 +426,8 @@ trySay(s, 'clear', 0.4, now);
 function loseLife(s, b, now) {
 const hadMulti = s.balls.length > 1;
 const idx = s.balls.indexOf(b);
-if (idx >= 0 && hadMulti) {
+if (hadMulti && idx >= 0) {
+// 多球时掉一颗只是少一颗球，不扣血；等所有球都掉光才扣 1 滴
 if (idx === 0) {
 const o = s.balls[1];
 s.ball.x = o.x; s.ball.y = o.y; s.ball.vx = o.vx; s.ball.vy = o.vy; s.ball.trail = o.trail;
@@ -434,6 +435,10 @@ s.balls.splice(1, 1);
 } else {
 s.balls.splice(idx, 1);
 }
+if (s.aiBall && s.balls.indexOf(s.aiBall) < 0) { s.aiBall = null; s.prevAiVy = 0; }
+if (b.x <= W / 2) trySay(s, 'nearmiss', 0.22, now);
+hintEl.textContent = T('少了一颗球，还有 ') + s.balls.length + T(' 颗');
+return;
 }
 if (s.aiBall && s.balls.indexOf(s.aiBall) < 0) { s.aiBall = null; s.prevAiVy = 0; }
 s.lives--;
@@ -448,14 +453,9 @@ return;
 }
 hintEl.textContent = T('差一点！还剩 ') + s.lives + T(' 次');
 trySay(s, 'fail', 0.3, now);
-if (!hadMulti) {
 s.ball.vx = 0; s.ball.vy = 0;
 s.status = 'serve';
 s.serveAt = now + 1000;
-} else {
-const deficit = targetBallCount() - s.balls.length;
-for (let i = 0; i < deficit; i++) s.respawns.push(now + 1100 + i * 700);
-}
 }
 function bestKey() { return (window.activePrefix && window.activePrefix() || 'xy-home-v2') + ':brick-best'; }
 function loadBest() { try { return Number(localStorage.getItem(bestKey())) || 0; } catch (e) { return 0; } }
