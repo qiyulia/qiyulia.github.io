@@ -5228,10 +5228,6 @@ window.bgNotifyCheck(notifyT, opts.deliveredAt || Date.now(), { name: opts.name,
 }
 return;
 }
-{
-const _pp = document.getElementById('page-phone');
-if (_pp && _pp.hidden) return;
-}
 if (!deskMsgEl || !deskMsgEnabled()) return;
 if (deskMsgText) deskMsgText.textContent = notifyT;
 if (deskMsgName) deskMsgName.textContent = opts.name || chatPartnerName();
@@ -5321,11 +5317,13 @@ if (action) action();
 else if (!chatVisible()) enterChat();
 });
 (function () {
-const pp = document.getElementById('page-phone');
-if (!pp || typeof MutationObserver === 'undefined') return;
+// 横幅在桌面及其他任何页面（纪念 / 占卜 / 此间 / 同频…）都要能弹出；
+// 只有真正进入聊天页时才收起（聊天页里本来就看得到消息，再弹一条是重复）。
+const cp = document.getElementById('page-chat');
+if (!cp || typeof MutationObserver === 'undefined') return;
 new MutationObserver(function () {
-if (pp.hidden && deskMsgEl && !deskMsgEl.hidden) window.hideDeskMsg();
-}).observe(pp, { attributes: true, attributeFilter: ['hidden'] });
+if (!cp.hidden && deskMsgEl && !deskMsgEl.hidden) window.hideDeskMsg();
+}).observe(cp, { attributes: true, attributeFilter: ['hidden'] });
 })();
 let deskMsgSuppressClick = false;
 let deskMsgSuppressTimer = null;
