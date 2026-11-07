@@ -5340,6 +5340,7 @@ padding:0 6px; border-radius:6px; margin-left:4px;
 .mail-rescue-tip { display:flex; align-items:center; gap:8px; margin:0 0 10px; padding:10px 12px; background:var(--static-bg); border-radius:10px; }
 .mail-rescue-txt { flex:1; font-size:11px; color:var(--muted); line-height:1.5; }
 .mail-rescue-tip .cc-tool { flex-shrink:0; width:auto; padding:8px 12px; }
+#mail-readall-bar[hidden] { display:none; }
 .mail-paper {
 background:#fff; border:1px solid rgba(0,0,0,.1); border-radius:12px;
 overflow:hidden; margin-bottom:12px;
@@ -15856,6 +15857,10 @@ font:inherit; font-size:13px; color:#222; background:#fff; outline:none;
       </div>
       <div class="cal-scroll">
         <div class="cal-card glass" data-mpanel="in">
+          <div class="mail-rescue-tip" id="mail-readall-bar" hidden>
+            <div class="mail-rescue-txt" id="mail-readall-txt">有未读来信</div>
+            <button class="cc-tool" id="mail-readall">一键已读</button>
+          </div>
           <div id="mail-in-list"></div>
         </div>
         <div class="cal-card glass" data-mpanel="out" hidden>

@@ -677,6 +677,13 @@ outEl.innerHTML = outHtml || (mailEmptyIsLie() && window.mochiLoadingHtml
 : '<div class="ta-empty">还没有寄出任何信，提笔写一封吧</div>');
 if (outList.length && outEl.querySelectorAll('.mail-item').length < outList.length) outEl.innerHTML = outHtml;
 }
+const readBar = document.getElementById('mail-readall-bar');
+if (readBar) {
+const un = inList.filter(mailIsUnread).length;
+readBar.hidden = un === 0;
+const readTxt = document.getElementById('mail-readall-txt');
+if (readTxt) readTxt.textContent = '有 ' + un + ' 封来信还没读';
+}
 }
 if (window.mochiOnDataReady) window.mochiOnDataReady(function () { try { render(); } catch (e) {} });
 function mailListItemClick(e) {
@@ -1144,6 +1151,17 @@ if (mailBack) mailBack.addEventListener('click', () => {
 document.querySelectorAll('.page').forEach(p => p.hidden = true);
 const phone = document.getElementById('page-phone');
 if (phone) phone.hidden = false;
+});
+const mailReadAll = document.getElementById('mail-readall');
+if (mailReadAll) mailReadAll.addEventListener('click', () => {
+const list = load();
+let n = 0;
+list.forEach(l => { if (l.type === 'received' && !l.read) { l.read = true; n++; } });
+if (!n) { toast('没有未读来信'); render(); return; }
+save(list);
+render();
+updateBadge();
+toast('已把 ' + n + ' 封来信标为已读');
 });
 const openWriteBtn = document.getElementById('mail-open-write');
 if (openWriteBtn) {
