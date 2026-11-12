@@ -117,8 +117,9 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 /* ============ 外壳 ============ */
 .stage {
-  height: 100dvh;
   height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,34 +208,51 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 }
 
 .desk-pager {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  display: flex;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
+  overflow: hidden;
+  touch-action: pan-y;
 }
-.desk-pager::-webkit-scrollbar { display: none; }
-.desk-pager.no-smooth { scroll-behavior: auto; }
 
 .desk-page {
-  flex: 0 0 100%;
-  min-width: 100%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   min-height: 0;
   overflow-y: auto;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 0 2px 4px;
   scrollbar-width: none;
+  transition: transform .32s cubic-bezier(.22, .8, .28, 1), opacity .24s ease;
+  will-change: transform;
 }
 .desk-page::-webkit-scrollbar { display: none; }
-.home-page { padding-top: 0; }
+.home-page {
+  padding-top: 0;
+  transform: translateX(0);
+  opacity: 1;
+}
+.widget-page {
+  transform: translateX(100%);
+  opacity: .7;
+  pointer-events: none;
+}
+.desk-pager.show-widgets .home-page {
+  transform: translateX(-22%);
+  opacity: 0;
+  pointer-events: none;
+}
+.desk-pager.show-widgets .widget-page {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .page-dots {
   flex: 0 0 auto;
@@ -455,6 +473,44 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 }
 
 .desk-section { display: flex; flex-direction: column; gap: 10px; }
+.app-section { margin-top: 2px; }
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  padding: 4px 2px;
+}
+.app-entry {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--on-wall);
+}
+.software-icon {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  padding: 14px;
+  overflow: hidden;
+  border-radius: 18px;
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(56, 93, 130, .2), inset 0 0 0 1px rgba(255, 255, 255, .28);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.software-icon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .28), transparent 48%);
+  pointer-events: none;
+}
+.software-icon svg { position: relative; z-index: 1; }
+.chat-app-icon { background: linear-gradient(145deg, #83bceb, #4e89c5); }
+.moments-app-icon { background: linear-gradient(145deg, #edc78f, #dca15f); }
+.app-entry:active .software-icon { transform: scale(.92); box-shadow: 0 5px 12px rgba(56, 93, 130, .16); }
+.app-entry-label { font-size: 12px; color: var(--on-wall-muted); }
 
 .section-head {
   display: flex;
@@ -524,7 +580,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 /* 底部 dock */
 .dock {
-  margin-top: auto;
+  flex: 0 0 auto;
+  margin-top: 0;
   display: flex;
   align-items: stretch;
   background: var(--glass);
@@ -698,6 +755,84 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   padding: 40px 0;
 }
 .empty-state[hidden] { display: none; }
+
+/* ============ 朋友圈 ============ */
+.moments-body { gap: 14px; }
+.moments-hero {
+  flex: 0 0 auto;
+  min-height: 148px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 18px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, var(--wall-1), var(--wall-2));
+  box-shadow: 0 12px 28px var(--shadow);
+}
+.moments-hero .hero-eyebrow { color: var(--muted); }
+.moments-hero h3 {
+  margin-top: 14px;
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 20px;
+  line-height: 1.55;
+  font-weight: 600;
+}
+.moments-hero .avatar { flex: 0 0 auto; border: 2px solid rgba(255, 255, 255, .7); }
+.moment-composer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.moment-composer > label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.moment-composer textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 78px;
+  max-height: 180px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.moment-composer textarea:focus { border-color: var(--accent); }
+.moment-compose-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.moment-compose-foot > span { font-size: 10px; color: var(--muted); }
+.moment-compose-foot .btn { flex: 0 0 auto; padding: 7px 20px; }
+.moment-list { display: flex; flex-direction: column; gap: 10px; }
+.moment-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.moment-card-head { display: flex; align-items: center; gap: 10px; }
+.moment-card-head .avatar { width: 38px; height: 38px; font-size: 18px; }
+.moment-card-head strong { font-size: 13px; }
+.moment-card-text {
+  margin: 12px 0;
+  font-size: 13.5px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.moment-card-foot { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+.moment-time { flex: 1; font-size: 10.5px; }
+.moment-action { font-size: 11px; color: var(--muted); padding: 3px 0; }
+.moment-like { display: flex; align-items: center; gap: 4px; }
+.moment-like svg { width: 14px; height: 14px; }
+.moment-like.is-active { color: var(--accent); }
+.moment-like.is-active svg { fill: currentColor; }
+.moment-delete:hover { color: #b4402f; }
 
 /* ============ 聊天 ============ */
 .chat-topbar { gap: 10px; }

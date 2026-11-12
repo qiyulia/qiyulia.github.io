@@ -46,6 +46,7 @@
     if (!s.settings) s.settings = { replyMin: 1, replyMax: 2, typingMs: 700 };
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
+    if (!Array.isArray(s.moments)) s.moments = [];
     if (!s.iconStyle || typeof s.iconStyle !== 'object') s.iconStyle = { shape: 'rounded', color: 'blue' };
     if (!['rounded', 'circle', 'square'].includes(s.iconStyle.shape)) s.iconStyle.shape = 'rounded';
     if (!['blue', 'lilac', 'sage', 'apricot'].includes(s.iconStyle.color)) s.iconStyle.color = 'blue';

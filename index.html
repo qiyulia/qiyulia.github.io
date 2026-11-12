@@ -20,7 +20,7 @@ if ('caches' in window) {
 }
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='44' font-size='34' font-family='serif' text-anchor='middle' fill='%23f5faff'%3E絮%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=20261112-2">
 </head>
 <body>
 <div class="stage">
@@ -142,27 +142,46 @@ if ('caches' in window) {
               </div>
             </div>
 
-            <div class="desk-section">
+            <div class="desk-section app-section">
               <div class="section-head">
-                <span>联系人</span>
-                <button type="button" class="text-btn" id="d-manage">管理</button>
+                <span>应用</span>
+                <span>把想说的话放在这里</span>
               </div>
-              <div id="d-contacts" class="contact-strip"></div>
+              <div class="app-grid">
+                <button type="button" class="app-entry" data-go="contacts">
+                  <span class="software-icon chat-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 7.5h20v14H14l-7 5v-5H6v-14z"/><path d="M11 14.5h.01M16 14.5h.01M21 14.5h.01" stroke-width="3.2"/></svg>
+                  </span>
+                  <span class="app-entry-label">聊天</span>
+                </button>
+                <button type="button" class="app-entry" data-go="moments">
+                  <span class="software-icon moments-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="4"/><circle cx="16" cy="16" r="10" stroke-dasharray="12 5"/><circle cx="24.5" cy="9" r="2.5" fill="currentColor" stroke="none"/></svg>
+                  </span>
+                  <span class="app-entry-label">朋友圈</span>
+                </button>
+              </div>
             </div>
           </section>
         </div>
 
         <div class="page-dots" aria-label="主界面分页">
-          <button type="button" data-desk-page="0" aria-label="小组件页"></button>
-          <button type="button" class="is-active" data-desk-page="1" aria-label="主界面"></button>
+          <button type="button" class="is-active" data-desk-page="0" aria-label="主界面"></button>
+          <button type="button" data-desk-page="1" aria-label="右侧小组件页"></button>
         </div>
 
         <nav class="dock" aria-label="快捷入口">
+          <button type="button" class="dock-item" data-go="desktop">
+            <span class="dock-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5M10 20v-6h4v6"/></svg>
+            </span>
+            <span class="dock-label">主页</span>
+          </button>
           <button type="button" class="dock-item" data-go="contacts">
             <span class="dock-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v10H9l-5 4V6z"/></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-4 3-6 7-6s6.5 2 7 6"/></svg>
             </span>
-            <span class="dock-label">消息</span>
+            <span class="dock-label">联系人</span>
             <span class="badge" id="d-badge-msg" hidden></span>
           </button>
           <button type="button" class="dock-item" data-go="cards">
@@ -187,7 +206,7 @@ if ('caches' in window) {
         <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <h2>消息</h2>
+        <h2>联系人</h2>
         <button type="button" class="icon-btn" id="btn-add-contact" aria-label="添加联系人">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
@@ -197,6 +216,42 @@ if ('caches' in window) {
         <div id="contact-empty" class="empty-state" hidden>
           <p>还没有联系人。</p>
           <button type="button" class="btn primary" id="btn-add-contact-2">添加第一个联系人</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 朋友圈 ============ -->
+    <section id="view-moments" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>朋友圈</h2>
+        <button type="button" class="icon-btn" id="moment-focus" aria-label="发布动态">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </header>
+      <div class="page-body moments-body">
+        <div class="moments-hero">
+          <div>
+            <p class="hero-eyebrow">MY MOMENTS</p>
+            <h3>把普通的一天，<br>留成以后记得的片段。</h3>
+          </div>
+          <span class="avatar" id="m-avatar">🍊</span>
+        </div>
+
+        <form id="moment-form" class="moment-composer">
+          <label for="moment-input">分享此刻</label>
+          <textarea id="moment-input" rows="3" maxlength="300" placeholder="今天发生了什么？" required></textarea>
+          <div class="moment-compose-foot">
+            <span id="moment-count">0 / 300</span>
+            <button type="submit" class="btn primary">发布</button>
+          </div>
+        </form>
+
+        <div id="moment-list" class="moment-list"></div>
+        <div id="moment-empty" class="empty-state">
+          <p>还没有动态，写下第一条吧。</p>
         </div>
       </div>
     </section>
@@ -360,12 +415,13 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js"></script>
-<script src="js/store.js"></script>
-<script src="js/desktop.js"></script>
-<script src="js/chat.js"></script>
-<script src="js/cards.js"></script>
-<script src="js/settings.js"></script>
-<script src="js/app.js"></script>
+<script src="js/seed.js?v=20261112-2"></script>
+<script src="js/store.js?v=20261112-2"></script>
+<script src="js/desktop.js?v=20261112-2"></script>
+<script src="js/chat.js?v=20261112-2"></script>
+<script src="js/cards.js?v=20261112-2"></script>
+<script src="js/settings.js?v=20261112-2"></script>
+<script src="js/moments.js?v=20261112-2"></script>
+<script src="js/app.js?v=20261112-2"></script>
 </body>
 </html>

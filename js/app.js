@@ -9,9 +9,13 @@
     });
     app.dataset.view = view;
 
-    if (view === 'desktop') App.renderDesktop();
+    if (view === 'desktop') {
+      if (App.showDeskPage) App.showDeskPage(0);
+      App.renderDesktop();
+    }
     else if (view === 'contacts') App.renderContacts();
     else if (view === 'chat') App.renderChat();
+    else if (view === 'moments') App.renderMoments();
     else if (view === 'cards') App.renderCards();
     else if (view === 'settings') App.renderSettings();
   };
@@ -46,6 +50,7 @@
   App.renderAll = function () {
     App.renderDesktop();
     App.renderContacts();
+    App.renderMoments();
     if (App.chatContactId) App.renderChat();
     App.renderCards();
     App.renderSettings();
@@ -81,6 +86,7 @@
   App.initChat();
   App.initCards();
   App.initSettings();
+  App.initMoments();
 
   App.go('desktop');
 })();

@@ -35,7 +35,6 @@
     el('#d-today-card').textContent = daily ? daily.text : '字卡库空空的，去添几张吧。';
 
     renderWidgets(now);
-    renderStrip();
     App.renderContacts();
     App.updateBadges();
   };
@@ -189,20 +188,6 @@
     renderMusic();
   }
 
-  function renderStrip() {
-    const box = el('#d-contacts');
-    const people = App.state.contacts.slice(0, 10);
-    let html = people.map(function (c) {
-      return '<button type="button" class="strip-person" data-open-chat="' + c.id + '">' +
-        '<span class="avatar">' + App.esc(c.avatar || '🙂') + '</span>' +
-        '<span class="strip-name">' + App.esc(c.name) + '</span>' +
-        '</button>';
-    }).join('');
-    html += '<button type="button" class="strip-person is-add" data-add-contact>' +
-      '<span class="avatar">＋</span><span class="strip-name">添加</span></button>';
-    box.innerHTML = html;
-  }
-
   App.renderContacts = function () {
     const list = el('#contact-list');
     const empty = el('#contact-empty');
@@ -294,8 +279,7 @@
     App.toast('已删除联系人');
   }
 
-  let deskPage = 1;
-  let pagerScrollTimer = null;
+  let deskPage = 0;
   let notesTimer = null;
 
   function updatePagerDots() {
@@ -304,34 +288,69 @@
     });
   }
 
-  function jumpToDeskPage(index, smooth) {
+  function jumpToDeskPage(index) {
     const pager = el('#desk-pager');
-    deskPage = index;
+    deskPage = index === 1 ? 1 : 0;
+    pager.classList.toggle('show-widgets', deskPage === 1);
     updatePagerDots();
-    if (smooth && typeof pager.scrollTo === 'function') {
-      pager.scrollTo({ left: index * pager.clientWidth, behavior: 'smooth' });
-    } else {
-      pager.classList.add('no-smooth');
-      pager.scrollLeft = index * pager.clientWidth;
-      requestAnimationFrame(function () { pager.classList.remove('no-smooth'); });
-    }
+
+    const home = pager.querySelector('.home-page');
+    const widgets = pager.querySelector('.widget-page');
+    home.inert = deskPage === 1;
+    widgets.inert = deskPage === 0;
+    home.setAttribute('aria-hidden', String(deskPage === 1));
+    widgets.setAttribute('aria-hidden', String(deskPage === 0));
   }
 
   function initPager() {
     const pager = el('#desk-pager');
-    jumpToDeskPage(1, false);
-    pager.addEventListener('scroll', function () {
-      clearTimeout(pagerScrollTimer);
-      pagerScrollTimer = setTimeout(function () {
-        if (!pager.clientWidth) return;
-        deskPage = Math.max(0, Math.min(1, Math.round(pager.scrollLeft / pager.clientWidth)));
-        updatePagerDots();
-      }, 70);
+    let gesture = null;
+    let suppressClick = false;
+    App.showDeskPage = jumpToDeskPage;
+    jumpToDeskPage(0);
+
+    pager.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.target.closest('textarea, input, select')) return;
+      gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, horizontal: false };
     });
+
+    pager.addEventListener('pointermove', function (e) {
+      if (!gesture || gesture.id !== e.pointerId) return;
+      const dx = e.clientX - gesture.x;
+      const dy = e.clientY - gesture.y;
+      if (!gesture.horizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        gesture.horizontal = true;
+        pager.setPointerCapture(e.pointerId);
+      }
+    });
+
+    function finishGesture(e) {
+      if (!gesture || gesture.id !== e.pointerId) return;
+      const dx = e.clientX - gesture.x;
+      const wasHorizontal = gesture.horizontal;
+      gesture = null;
+      if (!wasHorizontal || Math.abs(dx) < 55) return;
+
+      if (deskPage === 0 && dx > 0) jumpToDeskPage(1);
+      else if (deskPage === 1 && dx < 0) jumpToDeskPage(0);
+      else return;
+
+      suppressClick = true;
+      setTimeout(function () { suppressClick = false; }, 100);
+    }
+
+    pager.addEventListener('pointerup', finishGesture);
+    pager.addEventListener('pointercancel', function () { gesture = null; });
+    pager.addEventListener('click', function (e) {
+      if (!suppressClick) return;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+
     document.querySelectorAll('[data-desk-page]').forEach(function (btn) {
-      btn.addEventListener('click', function () { jumpToDeskPage(Number(btn.dataset.deskPage), true); });
+      btn.addEventListener('click', function () { jumpToDeskPage(Number(btn.dataset.deskPage)); });
     });
-    window.addEventListener('resize', function () { jumpToDeskPage(deskPage, false); });
   }
 
   App.initDesktop = function () {
@@ -373,7 +392,6 @@
       el('#d-clock').textContent = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
     }, 1000 * 20);
 
-    el('#d-manage').addEventListener('click', function () { App.go('contacts'); });
     el('#btn-add-contact').addEventListener('click', function () { openContactDialog(null); });
     el('#btn-add-contact-2').addEventListener('click', function () { openContactDialog(null); });
     form.addEventListener('submit', saveContact);

@@ -112,6 +112,7 @@
         if (!confirm('导入会覆盖当前的全部数据，确定继续？')) return;
 
         if (!data.chats || typeof data.chats !== 'object' || Array.isArray(data.chats)) data.chats = {};
+        if (!Array.isArray(data.moments)) data.moments = [];
         if (!data.profile) data.profile = { userName: '我', userAvatar: '🍊', since: '' };
         if (!data.settings) data.settings = { replyMin: 1, replyMax: 2, typingMs: 700 };
         if (!data.theme) data.theme = 'sand';
