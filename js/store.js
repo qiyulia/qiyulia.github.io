@@ -44,7 +44,11 @@
     if (!Array.isArray(s.cards)) s.cards = App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); });
     if (!s.profile) s.profile = { userName: '我', userAvatar: '🍊', since: '' };
     if (!s.settings) s.settings = { replyMin: 1, replyMax: 2, typingMs: 700 };
-    if (!s.theme) s.theme = 'sand';
+    if (!s.theme) s.theme = 'mist';
+    if (typeof s.notes !== 'string') s.notes = '';
+    if (!s.iconStyle || typeof s.iconStyle !== 'object') s.iconStyle = { shape: 'rounded', color: 'blue' };
+    if (!['rounded', 'circle', 'square'].includes(s.iconStyle.shape)) s.iconStyle.shape = 'rounded';
+    if (!['blue', 'lilac', 'sage', 'apricot'].includes(s.iconStyle.color)) s.iconStyle.color = 'blue';
 
     s.contacts.forEach(function (c) {
       if (!c.id) c.id = App.uid('c');

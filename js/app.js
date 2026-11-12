@@ -25,9 +25,9 @@
   };
 
   App.applyTheme = function () {
-    const theme = App.state.theme || 'sand';
+    const theme = App.state.theme || 'mist';
     app.className = 'app theme-' + theme;
-    const colors = { sand: '#f6f1e9', mist: '#eef3f3', rose: '#f9eff1', night: '#14161c' };
+    const colors = { sand: '#f6f1e9', mist: '#edf5fc', rose: '#f9eff1', night: '#14161c' };
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', colors[theme] || colors.sand);
   };

@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>絮语 · 字卡传讯</title>
 <meta name="description" content="絮语是一个纯本地运行的字卡传讯小工具：写一句话，存成字卡，让 TA 随机说给你听。">
-<meta name="theme-color" content="#f6f1e9">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23b8562f'/%3E%3Ctext x='32' y='44' font-size='34' font-family='serif' text-anchor='middle' fill='%23fff7ef'%3E絮%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#edf5fc">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='44' font-size='34' font-family='serif' text-anchor='middle' fill='%23f5faff'%3E絮%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div class="stage">
-  <div id="app" class="app theme-sand" data-view="desktop">
+  <div id="app" class="app theme-mist" data-view="desktop">
 
     <!-- ============ 桌面 ============ -->
     <section id="view-desktop" class="view is-active">
@@ -22,30 +22,126 @@
           <span id="d-date"></span>
         </header>
 
-        <div class="hero">
-          <p class="hero-eyebrow">絮 语</p>
-          <h1 class="hero-title" id="d-greeting">你好</h1>
-          <p class="hero-sub">把想说的话，存成一张张字卡。</p>
+        <div class="desk-pager" id="desk-pager">
+          <section class="desk-page widget-page" aria-label="小组件页">
+            <div class="widget-page-head">
+              <p class="hero-eyebrow">MY WIDGETS</p>
+              <h1 class="hero-title">小组件</h1>
+              <p class="hero-sub">把日子、声音和想法放在手边。</p>
+            </div>
+
+            <div class="widget-board">
+              <section class="widget board-widget calendar-widget">
+                <div class="widget-title-row">
+                  <span class="widget-label">日历</span>
+                  <strong id="w-month"></strong>
+                </div>
+                <div class="calendar-week" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+                <div class="calendar-grid" id="w-calendar"></div>
+              </section>
+
+              <section class="widget board-widget anniversary-widget">
+                <span class="widget-label">纪念日</span>
+                <p class="anniversary-days"><strong id="w-days">1</strong><span>天</span></p>
+                <p class="anniversary-copy" id="w-next"></p>
+                <span class="widget-foot" id="w-since"></span>
+              </section>
+
+              <section class="widget board-widget music-widget">
+                <div class="widget-title-row">
+                  <span class="widget-label">音乐</span>
+                  <span class="widget-foot">本地合成 · 离线可听</span>
+                </div>
+                <div class="music-main">
+                  <span class="music-disc" id="w-disc" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 9l10-2"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
+                  </span>
+                  <div class="music-copy">
+                    <strong id="w-track">晚风</strong>
+                    <span id="w-artist">絮语电台 · 轻柔旋律</span>
+                  </div>
+                  <button type="button" class="music-play" id="w-play" aria-label="播放音乐">
+                    <svg id="w-play-icon" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7V5z"/></svg>
+                  </button>
+                </div>
+                <div class="music-progress" aria-hidden="true"><span id="w-progress"></span></div>
+                <div class="music-controls">
+                  <button type="button" class="mini-btn" id="w-prev" aria-label="上一首"><svg viewBox="0 0 24 24"><path d="M7 5v14M18 6l-9 6 9 6V6z"/></svg></button>
+                  <span id="w-music-status">点一下，听首小曲</span>
+                  <button type="button" class="mini-btn" id="w-next" aria-label="下一首"><svg viewBox="0 0 24 24"><path d="M17 5v14M6 6l9 6-9 6V6z"/></svg></button>
+                </div>
+              </section>
+
+              <section class="widget board-widget notes-widget">
+                <div class="widget-title-row">
+                  <span class="widget-label">笔记</span>
+                  <span class="widget-foot" id="w-notes-status">自动保存</span>
+                </div>
+                <textarea id="w-notes" rows="4" maxlength="500" placeholder="记一件小事，或留给未来的一句话…" aria-label="笔记内容"></textarea>
+                <span class="notes-count" id="w-notes-count">0 / 500</span>
+              </section>
+
+              <section class="widget board-widget icon-widget">
+                <div class="widget-title-row">
+                  <span class="widget-label">图标美化</span>
+                  <span class="widget-foot">同步到底部图标</span>
+                </div>
+                <div class="icon-customizer">
+                  <div class="icon-preview" aria-hidden="true">
+                    <span class="preview-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v10H9l-5 4V6z"/></svg></span>
+                    <span class="preview-icon"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="12" height="14" rx="2"/><path d="M8 6V4h12v14h-2"/></svg></span>
+                    <span class="preview-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></span>
+                  </div>
+                  <div class="icon-options">
+                    <div class="segmented" id="icon-shapes" aria-label="图标形状">
+                      <button type="button" data-icon-shape="rounded">圆角</button>
+                      <button type="button" data-icon-shape="circle">圆形</button>
+                      <button type="button" data-icon-shape="square">方形</button>
+                    </div>
+                    <div class="color-swatches" id="icon-colors" aria-label="图标颜色">
+                      <button type="button" data-icon-color="blue" style="--sw:#6b9ed2" aria-label="淡蓝"></button>
+                      <button type="button" data-icon-color="lilac" style="--sw:#a18bc4" aria-label="淡紫"></button>
+                      <button type="button" data-icon-color="sage" style="--sw:#79a98d" aria-label="豆绿"></button>
+                      <button type="button" data-icon-color="apricot" style="--sw:#d99b72" aria-label="杏橙"></button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="desk-page home-page" aria-label="主界面">
+            <div class="hero">
+              <p class="hero-eyebrow">絮 语</p>
+              <h1 class="hero-title" id="d-greeting">你好</h1>
+              <p class="hero-sub">向右滑，看看今天的小组件。</p>
+            </div>
+
+            <div class="widget-grid">
+              <div class="widget days-widget">
+                <span class="widget-label">在一起</span>
+                <p class="days-value"><strong id="d-days">0</strong><span>天</span></p>
+                <span class="widget-foot" id="d-since"></span>
+              </div>
+              <div class="widget note-widget">
+                <span class="widget-label">今日字笺</span>
+                <p id="d-today-card">……</p>
+              </div>
+            </div>
+
+            <div class="desk-section">
+              <div class="section-head">
+                <span>联系人</span>
+                <button type="button" class="text-btn" id="d-manage">管理</button>
+              </div>
+              <div id="d-contacts" class="contact-strip"></div>
+            </div>
+          </section>
         </div>
 
-        <div class="widget-grid">
-          <div class="widget days-widget">
-            <span class="widget-label">在一起</span>
-            <p class="days-value"><strong id="d-days">0</strong><span>天</span></p>
-            <span class="widget-foot" id="d-since"></span>
-          </div>
-          <div class="widget note-widget">
-            <span class="widget-label">今日字笺</span>
-            <p id="d-today-card">……</p>
-          </div>
-        </div>
-
-        <div class="desk-section">
-          <div class="section-head">
-            <span>联系人</span>
-            <button type="button" class="text-btn" id="d-manage">管理</button>
-          </div>
-          <div id="d-contacts" class="contact-strip"></div>
+        <div class="page-dots" aria-label="主界面分页">
+          <button type="button" data-desk-page="0" aria-label="小组件页"></button>
+          <button type="button" class="is-active" data-desk-page="1" aria-label="主界面"></button>
         </div>
 
         <nav class="dock" aria-label="快捷入口">
@@ -170,7 +266,7 @@
           <h3>外观</h3>
           <div class="theme-row" id="theme-row">
             <button type="button" class="theme-chip" data-theme="sand"><i style="--sw:#e2c3a5"></i>暖沙</button>
-            <button type="button" class="theme-chip" data-theme="mist"><i style="--sw:#b9cfd2"></i>雾青</button>
+            <button type="button" class="theme-chip" data-theme="mist"><i style="--sw:#bfdcf4"></i>淡蓝</button>
             <button type="button" class="theme-chip" data-theme="rose"><i style="--sw:#dfb3bc"></i>暮粉</button>
             <button type="button" class="theme-chip" data-theme="night"><i style="--sw:#3b4252"></i>夜色</button>
           </div>

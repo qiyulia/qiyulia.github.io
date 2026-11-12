@@ -67,7 +67,9 @@
     const contactId = 'c-amian';
     return {
       version: 1,
-      theme: 'sand',
+      theme: 'mist',
+      notes: '',
+      iconStyle: { shape: 'rounded', color: 'blue' },
       profile: {
         userName: '我',
         userAvatar: '🍊',
