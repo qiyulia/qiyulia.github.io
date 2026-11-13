@@ -49,6 +49,17 @@
     let body = '';
     if (m.type === 'image') {
       body = '<div class="bubble sticker"><img class="sticker-img" src="' + App.esc(m.src) + '" alt="表情包"></div>';
+    } else if (m.type === 'audio') {
+      body = '<div class="bubble bubble-audio">' +
+        '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' +
+        '</div>';
+    } else if (m.type === 'emotion') {
+      body = '<div class="bubble bubble-emotion">' +
+        '<p class="emotion-text">' + App.esc(m.text) + '</p>' +
+        '<span class="emotion-divider"></span>' +
+        '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span></div>' +
+        '<div class="emotion-row"><span class="emotion-chip">频率</span><span class="emotion-value">链接度' + App.esc(m.strength || '中') + ' ' + Math.max(0, Math.min(100, Number(m.percent || 0))) + '%</span></div>' +
+        '</div>';
     } else {
       body = '<div class="bubble">' + App.esc(m.text) + '</div>';
     }
@@ -113,10 +124,21 @@
   function sendPat() {
     const contact = currentContact();
     if (!contact) return;
-    const text = App.sendAs === 'me'
-      ? '你拍了拍 ' + contact.name
-      : contact.name + ' 拍了拍你';
-    pushMessage({ id: App.uid('m'), role: App.sendAs, type: 'pat', text: text, ts: Date.now() });
+    const card = App.pickPatCard();
+    const raw = card ? card.text : '拍了拍{name}';
+    const target = App.sendAs === 'me' ? contact.name : '你';
+    const subject = App.sendAs === 'me' ? '你' : contact.name;
+    const action = raw.indexOf('{name}') !== -1
+      ? raw.split('{name}').join(target)
+      : raw + ' ' + target;
+    pushMessage({
+      id: App.uid('m'),
+      role: App.sendAs,
+      type: 'pat',
+      text: subject + action,
+      ts: Date.now(),
+      cardId: card ? card.id : undefined,
+    });
   }
 
   async function scheduleReply(contactId, userText) {
@@ -126,7 +148,7 @@
     const count = min + Math.floor(Math.random() * (max - min + 1));
     if (count <= 0) return;
 
-    const cards = App.pickCards(userText, count, contactId);
+    const cards = App.pickCards(userText, count, contactId, ['聊天', '情绪', '语音']);
     if (!cards.length) {
       App.toast('字卡库是空的，先去添加几张字卡');
       return;
@@ -143,33 +165,35 @@
       if (active()) setTyping(true);
 
       const base = Number(st.settings.typingMs) || 700;
-      const wait = Math.min(2200, base + card.text.length * 22 + Math.random() * 260);
+      const extra = card.category === '语音' ? 900 : 0;
+      const wait = Math.min(2600, base + extra + card.text.length * 22 + Math.random() * 260);
       await sleep(wait);
 
       if (active()) setTyping(false);
       if (!stillThere()) return;
 
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
-      const name = contact ? contact.name : 'TA';
-      if (card.text === '拍一拍') {
-        chat.push({
-          id: App.uid('m'),
-          role: 'ta',
-          type: 'pat',
-          text: name + ' 拍了拍你',
-          ts: Date.now(),
-          cardId: card.id,
-        });
+      const baseMsg = { id: App.uid('m'), role: 'ta', ts: Date.now(), cardId: card.id };
+
+      if (card.category === '情绪') {
+        chat.push(Object.assign(baseMsg, {
+          type: 'emotion',
+          text: card.text,
+          emotion: card.emotion || '平常',
+          strength: card.strength || '中',
+          percent: App.emotionPercent(card.strength),
+        }));
+      } else if (card.category === '语音') {
+        chat.push(Object.assign(baseMsg, {
+          type: 'audio',
+          src: card.audio,
+          text: card.text,
+        }));
       } else {
-        chat.push({
-          id: App.uid('m'),
-          role: 'ta',
+        chat.push(Object.assign(baseMsg, {
           type: 'text',
           text: card.text,
-          ts: Date.now(),
-          cardId: card.id,
-        });
+        }));
       }
       App.save();
 

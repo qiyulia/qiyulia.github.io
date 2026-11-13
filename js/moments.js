@@ -14,10 +14,10 @@
     return !moment.role || moment.role === 'me';
   }
 
-  // 抽一张字卡用作 TA 的评论/动态文案
+  // 抽一张「聊天」字卡用作 TA 的评论/动态文案
   function pickCardForMoment() {
     const enabled = (App.state.cards || []).filter(function (c) {
-      return c.enabled && c.text && c.text !== '拍一拍';
+      return c.enabled && c.text && c.category === '聊天';
     });
     if (!enabled.length) return null;
     return enabled[Math.floor(Math.random() * enabled.length)];

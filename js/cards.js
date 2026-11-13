@@ -41,11 +41,20 @@
   };
 
   function cardRow(c) {
+    const extra =
+      (c.category === '情绪'
+        ? '<span class="tag">情绪：' + App.esc(c.emotion || '平常') + '</span>' +
+          '<span class="tag ghost">强度：' + App.esc(c.strength || '中') + '</span>'
+        : '') +
+      (c.category === '语音'
+        ? '<span class="tag">语音' + (c.audio ? ' · mp3' : ' · 未添加') + '</span>'
+        : '');
     return '<div class="card-item" data-id="' + c.id + '">' +
       '<div class="card-main">' +
         '<p class="card-text">' + App.esc(c.text) + '</p>' +
         '<div class="card-meta">' +
           '<span class="tag">' + App.esc(c.category || '未分类') + '</span>' +
+          extra +
           (c.trigger ? '<span class="tag ghost">触发：' + App.esc(c.trigger) + '</span>' : '') +
           (c.builtin ? '<span class="tag ghost">内置</span>' : '') +
         '</div>' +
@@ -65,14 +74,37 @@
     return App.state.cards.find(function (c) { return c.id === id; });
   }
 
+  function toggleExtraFields(category, card) {
+    const emotionBox = el('#card-emotion-fields');
+    const voiceBox = el('#card-voice-fields');
+    emotionBox.style.display = category === '情绪' ? '' : 'none';
+    voiceBox.style.display = category === '语音' ? '' : 'none';
+    el('#card-emotion').value = card && card.emotion ? card.emotion : '';
+    el('#card-strength').value = card && card.strength ? card.strength : '中';
+    el('#card-audio-file').value = '';
+    el('#card-audio-hint').textContent = card && card.audio
+      ? '已保存一段语音（重新选择可替换）'
+      : '还没有语音，请选择一段 mp3 文件';
+  }
+
   function openCardDialog(card) {
     editingCard = card || null;
     el('#card-dialog-title').textContent = card ? '编辑字卡' : '新建字卡';
     el('#card-text').value = card ? card.text : '';
-    el('#card-cat').value = card ? card.category : '日常';
+    el('#card-cat').value = card ? card.category : '聊天';
     el('#card-trigger').value = card ? (card.trigger || '') : '';
+    toggleExtraFields(el('#card-cat').value, card);
     dialog.showModal();
     setTimeout(function () { el('#card-text').focus(); }, 60);
+  }
+
+  function fileToDataURL(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result)); };
+      reader.onerror = function () { reject(new Error('读取语音失败')); };
+      reader.readAsDataURL(file);
+    });
   }
 
   function deleteCard(card) {
@@ -97,15 +129,23 @@
         if (!item || typeof item !== 'object') return;
         const text = String(item.text || '').trim();
         if (!text || existing[text]) return;
-        const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : '日常';
-        App.state.cards.unshift({
+        const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : '聊天';
+        const card = {
           id: App.uid('card'),
           text: text,
           category: category,
           trigger: String(item.trigger || '').slice(0, 10),
           enabled: item.enabled !== false,
           builtin: false,
-        });
+        };
+        if (category === '情绪') {
+          card.emotion = String(item.emotion || '平常').slice(0, 12);
+          card.strength = ['强', '中', '弱'].indexOf(item.strength) !== -1 ? item.strength : '中';
+        }
+        if (category === '语音' && typeof item.audio === 'string' && item.audio.indexOf('data:audio') === 0) {
+          card.audio = item.audio;
+        }
+        App.state.cards.unshift(card);
         existing[text] = true;
         added++;
       });
@@ -145,7 +185,11 @@
 
     el('#btn-add-card').addEventListener('click', function () { openCardDialog(null); });
 
-    el('#card-form').addEventListener('submit', function (e) {
+    el('#card-cat').addEventListener('change', function (e) {
+      toggleExtraFields(e.target.value, editingCard);
+    });
+
+    el('#card-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       const text = el('#card-text').value.trim();
       if (!text) {
@@ -154,21 +198,44 @@
       }
       const category = el('#card-cat').value;
       const trigger = el('#card-trigger').value.trim().slice(0, 10);
+      const emotion = el('#card-emotion').value.trim().slice(0, 12) || '平常';
+      const strength = el('#card-strength').value;
 
-      if (editingCard) {
-        editingCard.text = text;
-        editingCard.category = category;
-        editingCard.trigger = trigger;
-      } else {
-        App.state.cards.unshift({
-          id: App.uid('card'),
-          text: text,
-          category: category,
-          trigger: trigger,
-          enabled: true,
-          builtin: false,
-        });
+      const target = editingCard || {
+        id: App.uid('card'),
+        enabled: true,
+        builtin: false,
+      };
+
+      if (category === '语音') {
+        const file = el('#card-audio-file').files && el('#card-audio-file').files[0];
+        if (file) {
+          try {
+            target.audio = await fileToDataURL(file);
+          } catch (err) {
+            App.toast(err.message || '语音读取失败');
+            return;
+          }
+        } else if (!target.audio) {
+          App.toast('语音字卡需要选择一段 mp3 文件');
+          return;
+        }
       }
+
+      target.text = text;
+      target.category = category;
+      target.trigger = trigger;
+
+      if (category === '情绪') {
+        target.emotion = emotion;
+        target.strength = strength;
+      } else {
+        delete target.emotion;
+        delete target.strength;
+      }
+      if (category !== '语音') delete target.audio;
+
+      if (!editingCard) App.state.cards.unshift(target);
 
       App.save();
       dialog.close();

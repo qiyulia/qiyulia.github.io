@@ -144,6 +144,7 @@
           if (!c.id) c.id = App.uid('c');
           if (!data.chats[c.id]) data.chats[c.id] = [];
         });
+        App.normalizeCards(data);
         App.state = data;
         App.chatContactId = null;
         App.unread = {};

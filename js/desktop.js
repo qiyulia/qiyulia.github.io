@@ -13,7 +13,9 @@
   }
 
   function pickDailyCard() {
-    const enabled = App.state.cards.filter(function (c) { return c.enabled && c.text; });
+    const enabled = App.state.cards.filter(function (c) {
+      return c.enabled && c.text && c.category === '聊天';
+    });
     if (!enabled.length) return null;
     const now = new Date();
     const key = '' + now.getFullYear() + (now.getMonth() + 1) + now.getDate();

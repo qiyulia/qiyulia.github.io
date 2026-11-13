@@ -1126,6 +1126,61 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   font-size: 12px;
 }
 
+/* 情绪字卡气泡 */
+.bubble-emotion {
+  padding: 12px 14px;
+  min-width: 172px;
+  max-width: 100%;
+}
+.emotion-text {
+  margin: 0 0 9px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.emotion-divider {
+  display: block;
+  border-top: 1px dashed color-mix(in srgb, var(--ink) 18%, transparent);
+  margin: 0 0 9px;
+}
+.emotion-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.emotion-row + .emotion-row { margin-top: 7px; }
+.emotion-chip {
+  flex: 0 0 auto;
+  padding: 2px 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+.emotion-value { color: var(--ink); }
+.msg.me .bubble-emotion .emotion-text { color: var(--accent-ink); }
+.msg.me .bubble-emotion .emotion-value { color: var(--accent-ink); }
+.msg.me .bubble-emotion .emotion-divider {
+  border-top-color: color-mix(in srgb, var(--accent-ink) 40%, transparent);
+}
+.msg.me .bubble-emotion .emotion-chip {
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent-ink) 18%, transparent);
+}
+
+/* 语音字卡气泡 */
+.bubble-audio { padding: 7px; }
+.bubble-audio audio {
+  display: block;
+  width: 216px;
+  max-width: 60vw;
+  height: 34px;
+}
+
+.card-voice-fields { display: flex; flex-direction: column; gap: 6px; }
+.field-hint { margin: 0; font-size: 11.5px; color: var(--muted); }
+
 /* ============ 搜索与筛选 ============ */
 .searchbar {
   display: flex;
@@ -1150,6 +1205,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 .chips {
   display: flex;
+  flex: 0 0 auto;
   gap: 7px;
   overflow-x: auto;
   padding-bottom: 2px;

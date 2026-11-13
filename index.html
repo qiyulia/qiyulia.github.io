@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261113-1">
+<link rel="stylesheet" href="css/style.css?v=20261113-5">
 </head>
 <body>
 <div class="stage">
@@ -435,6 +435,22 @@ if ('caches' in window) {
       <textarea id="card-text" rows="3" maxlength="200" placeholder="写一句想被随机说出口的话…" required></textarea>
     </label>
     <label class="field"><span>分类</span><select id="card-cat"></select></label>
+    <div class="field-row" id="card-emotion-fields">
+      <label class="field"><span>情绪</span><input id="card-emotion" maxlength="12" placeholder="如：高兴"></label>
+      <label class="field"><span>链接强度</span>
+        <select id="card-strength">
+          <option value="强">强（70~100%）</option>
+          <option value="中">中（40~69%）</option>
+          <option value="弱">弱（0~39%）</option>
+        </select>
+      </label>
+    </div>
+    <div class="card-voice-fields" id="card-voice-fields">
+      <label class="field"><span>语音（mp3，建议 1.5MB 以内）</span>
+        <input id="card-audio-file" type="file" accept="audio/mpeg,audio/mp3,audio/*">
+      </label>
+      <p class="field-hint" id="card-audio-hint">还没有语音，请选择一段 mp3 文件</p>
+    </div>
     <label class="field"><span>触发词（可选）</span><input id="card-trigger" maxlength="10" placeholder="消息里出现这个词时优先使用"></label>
     <div class="sheet-actions">
       <button type="button" class="btn ghost" data-close>取消</button>
@@ -464,13 +480,13 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261113-1"></script>
-<script src="js/store.js?v=20261113-1"></script>
-<script src="js/desktop.js?v=20261113-1"></script>
-<script src="js/chat.js?v=20261113-1"></script>
-<script src="js/cards.js?v=20261113-1"></script>
-<script src="js/settings.js?v=20261113-1"></script>
-<script src="js/moments.js?v=20261113-1"></script>
-<script src="js/app.js?v=20261113-1"></script>
+<script src="js/seed.js?v=20261113-5"></script>
+<script src="js/store.js?v=20261113-5"></script>
+<script src="js/desktop.js?v=20261113-5"></script>
+<script src="js/chat.js?v=20261113-5"></script>
+<script src="js/cards.js?v=20261113-5"></script>
+<script src="js/settings.js?v=20261113-5"></script>
+<script src="js/moments.js?v=20261113-5"></script>
+<script src="js/app.js?v=20261113-5"></script>
 </body>
 </html>

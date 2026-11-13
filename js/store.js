@@ -59,16 +59,7 @@
         ta: App.DEFAULT_STICKERS.ta.slice(),
       };
     }
-    if (!s.cards.some(function (c) { return c.text === '拍一拍'; })) {
-      s.cards.push({
-        id: 'builtin-pat',
-        category: '日常',
-        text: '拍一拍',
-        trigger: '拍',
-        enabled: true,
-        builtin: true,
-      });
-    }
+    App.normalizeCards(s);
     if (!s.iconStyle || typeof s.iconStyle !== 'object') s.iconStyle = { shape: 'rounded', color: 'blue' };
     if (!['rounded', 'circle', 'square'].includes(s.iconStyle.shape)) s.iconStyle.shape = 'rounded';
     if (!['blue', 'lilac', 'sage', 'apricot'].includes(s.iconStyle.color)) s.iconStyle.color = 'blue';
@@ -79,6 +70,34 @@
     });
 
     App.state = s;
+  };
+
+  /* 分类迁移与字段补全（聊天/拍一拍/情绪/语音） */
+  App.normalizeCards = function (s) {
+    if (!s || !Array.isArray(s.cards)) return;
+    const OLD_CATEGORY = {
+      '日常': '聊天', '撒娇': '聊天', '关心': '聊天',
+      '吐槽': '聊天', '深夜': '聊天', '鼓励': '聊天',
+    };
+    s.cards.forEach(function (c) {
+      if (OLD_CATEGORY[c.category]) c.category = '聊天';
+      if (c.text === '拍一拍') {
+        c.category = '拍一拍';
+        c.text = '拍了拍{name}';
+        c.trigger = '';
+      }
+      if (App.CATEGORIES.indexOf(c.category) === -1) c.category = '聊天';
+      if (c.category === '情绪') {
+        if (!c.emotion) c.emotion = '平常';
+        if (['强', '中', '弱'].indexOf(c.strength) === -1) c.strength = '中';
+      }
+    });
+    /* 补齐新版内置字卡 */
+    (App.BUILTIN_CARDS || []).forEach(function (c) {
+      if (!s.cards.some(function (x) { return x.id === c.id; })) {
+        s.cards.push(Object.assign({}, c));
+      }
+    });
   };
 
   /* ---------- 时间与文案工具 ---------- */
@@ -114,13 +133,27 @@
   App.messagePreview = function (m) {
     if (!m) return '';
     if (m.type === 'image') return '[图片]';
+    if (m.type === 'audio') return '[语音]';
     if (m.type === 'pat') return m.text || '拍了拍';
     return m.text || '';
   };
 
+  /* ---------- 情绪强度 → 百分比 ---------- */
+  App.emotionPercent = function (strength) {
+    if (strength === '强') return 70 + Math.floor(Math.random() * 31); // 70~100
+    if (strength === '弱') return Math.floor(Math.random() * 40);      // 0~39
+    return 40 + Math.floor(Math.random() * 30);                        // 40~69
+  };
+
   /* ---------- 字卡抽取 ---------- */
-  App.pickCards = function (userText, count, contactId) {
-    const enabled = App.state.cards.filter(function (c) { return c.enabled && c.text; });
+  App.pickCards = function (userText, count, contactId, categories) {
+    const cats = categories && categories.length ? categories : ['聊天', '情绪', '语音'];
+    const enabled = App.state.cards.filter(function (c) {
+      if (!c.enabled || !c.text) return false;
+      if (cats.indexOf(c.category) === -1) return false;
+      if (c.category === '语音' && !c.audio) return false;
+      return true;
+    });
     if (!enabled.length || count <= 0) return [];
 
     const recent = {};
@@ -150,6 +183,15 @@
       used[candidates[index].id] = true;
     }
     return picked;
+  };
+
+  /* 随机抽一张“拍一拍”字卡 */
+  App.pickPatCard = function () {
+    const pool = App.state.cards.filter(function (c) {
+      return c.enabled && c.category === '拍一拍' && c.text;
+    });
+    if (!pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
   };
 
   /* ---------- 文件工具 ---------- */
