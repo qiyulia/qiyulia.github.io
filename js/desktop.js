@@ -362,11 +362,32 @@
     App.showDeskPage = jumpToDeskPage;
     jumpToDeskPage(0);
 
+    function updateGesture(x, y) {
+      if (!gesture) return false;
+      const dx = x - gesture.x;
+      const dy = y - gesture.y;
+      gesture.dx = dx;
+
+      if (!gesture.decided && Math.max(Math.abs(dx), Math.abs(dy)) > 6) {
+        gesture.decided = true;
+        gesture.horizontal = Math.abs(dx) > Math.abs(dy);
+        if (gesture.horizontal) pager.classList.add('is-dragging');
+      }
+      if (!gesture.horizontal) return false;
+
+      const atStart = deskPage === 0 && dx > 0;
+      const atEnd = deskPage === 1 && dx < 0;
+      paintPager(atStart || atEnd ? dx * 0.22 : dx);
+      return true;
+    }
+
     pager.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'touch') return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (e.target.closest('textarea, input, select')) return;
       gesture = {
         id: e.pointerId,
+        touchId: null,
         x: e.clientX,
         y: e.clientY,
         dx: 0,
@@ -377,24 +398,36 @@
 
     pager.addEventListener('pointermove', function (e) {
       if (!gesture || gesture.id !== e.pointerId) return;
-      const dx = e.clientX - gesture.x;
-      const dy = e.clientY - gesture.y;
-      gesture.dx = dx;
-
-      if (!gesture.decided && Math.max(Math.abs(dx), Math.abs(dy)) > 8) {
-        gesture.decided = true;
-        gesture.horizontal = Math.abs(dx) > Math.abs(dy);
-        if (gesture.horizontal) {
-          pager.setPointerCapture(e.pointerId);
-          pager.classList.add('is-dragging');
-        }
-      }
-      if (!gesture.horizontal) return;
+      const wasHorizontal = gesture.horizontal;
+      if (!updateGesture(e.clientX, e.clientY)) return;
+      if (!wasHorizontal) pager.setPointerCapture(e.pointerId);
       e.preventDefault();
+    }, { passive: false });
 
-      const atStart = deskPage === 0 && dx > 0;
-      const atEnd = deskPage === 1 && dx < 0;
-      paintPager(atStart || atEnd ? dx * 0.22 : dx);
+    /* 手机浏览器会在斜向拖动时抢占 Pointer 手势并取消它。
+       触摸单独用可取消的 touchmove 锁定横向跟手，纵向仍交给原生滚动。 */
+    pager.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) return;
+      if (e.target.closest('textarea, input, select')) return;
+      const touch = e.touches[0];
+      gesture = {
+        id: 'touch-' + touch.identifier,
+        touchId: touch.identifier,
+        x: touch.clientX,
+        y: touch.clientY,
+        dx: 0,
+        horizontal: false,
+        decided: false,
+      };
+    }, { passive: true });
+
+    pager.addEventListener('touchmove', function (e) {
+      if (!gesture || gesture.touchId === null) return;
+      const touch = Array.from(e.touches).find(function (item) {
+        return item.identifier === gesture.touchId;
+      });
+      if (!touch) return;
+      if (updateGesture(touch.clientX, touch.clientY)) e.preventDefault();
     }, { passive: false });
 
     function finishGesture(e, cancelled) {
@@ -411,11 +444,21 @@
       }
       jumpToDeskPage(next);
       suppressClick = true;
-      setTimeout(function () { suppressClick = false; }, 150);
+      setTimeout(function () { suppressClick = false; }, 300);
+    }
+
+    function finishTouch(e, cancelled) {
+      if (!gesture || gesture.touchId === null) return;
+      const ended = Array.from(e.changedTouches).some(function (touch) {
+        return touch.identifier === gesture.touchId;
+      });
+      if (ended) finishGesture({ pointerId: gesture.id }, cancelled);
     }
 
     pager.addEventListener('pointerup', function (e) { finishGesture(e, false); });
     pager.addEventListener('pointercancel', function (e) { finishGesture(e, true); });
+    pager.addEventListener('touchend', function (e) { finishTouch(e, false); });
+    pager.addEventListener('touchcancel', function (e) { finishTouch(e, true); });
     pager.addEventListener('click', function (e) {
       if (!suppressClick) return;
       suppressClick = false;
