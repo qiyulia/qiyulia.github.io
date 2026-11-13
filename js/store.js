@@ -44,9 +44,31 @@
     if (!Array.isArray(s.cards)) s.cards = App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); });
     if (!s.profile) s.profile = { userName: '我', userAvatar: '🍊', since: '' };
     if (!s.settings) s.settings = { replyMin: 1, replyMax: 2, typingMs: 700 };
+    if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
+    if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
+    if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];
+    if (!s.stickers || typeof s.stickers !== 'object') s.stickers = { mine: [], ta: [] };
+    if (!Array.isArray(s.stickers.mine)) s.stickers.mine = [];
+    if (!Array.isArray(s.stickers.ta)) s.stickers.ta = [];
+    if (!s.stickers.mine.length && !s.stickers.ta.length && App.DEFAULT_STICKERS) {
+      s.stickers = {
+        mine: App.DEFAULT_STICKERS.mine.slice(),
+        ta: App.DEFAULT_STICKERS.ta.slice(),
+      };
+    }
+    if (!s.cards.some(function (c) { return c.text === '拍一拍'; })) {
+      s.cards.push({
+        id: 'builtin-pat',
+        category: '日常',
+        text: '拍一拍',
+        trigger: '拍',
+        enabled: true,
+        builtin: true,
+      });
+    }
     if (!s.iconStyle || typeof s.iconStyle !== 'object') s.iconStyle = { shape: 'rounded', color: 'blue' };
     if (!['rounded', 'circle', 'square'].includes(s.iconStyle.shape)) s.iconStyle.shape = 'rounded';
     if (!['blue', 'lilac', 'sage', 'apricot'].includes(s.iconStyle.color)) s.iconStyle.color = 'blue';
@@ -87,6 +109,13 @@
   App.lastMessage = function (contactId) {
     const chat = App.state.chats[contactId] || [];
     return chat.length ? chat[chat.length - 1] : null;
+  };
+
+  App.messagePreview = function (m) {
+    if (!m) return '';
+    if (m.type === 'image') return '[图片]';
+    if (m.type === 'pat') return m.text || '拍了拍';
+    return m.text || '';
   };
 
   /* ---------- 字卡抽取 ---------- */

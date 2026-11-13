@@ -15,7 +15,10 @@
     }
     else if (view === 'contacts') App.renderContacts();
     else if (view === 'chat') App.renderChat();
-    else if (view === 'moments') App.renderMoments();
+    else if (view === 'moments') {
+      if (App.maybeTaPosts) App.maybeTaPosts();
+      App.renderMoments();
+    }
     else if (view === 'cards') App.renderCards();
     else if (view === 'settings') App.renderSettings();
   };

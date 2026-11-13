@@ -204,7 +204,7 @@
       const last = App.lastMessage(c.id);
       const unread = App.unread[c.id] || 0;
       const snippet = last
-        ? (last.role === 'me' ? '我：' : '') + last.text
+        ? (last.role === 'me' ? '我：' : '') + App.messagePreview(last)
         : (c.note || '还没有聊天记录');
       return '<div class="contact-row">' +
         '<button type="button" class="contact-hit" data-open-chat="' + c.id + '">' +

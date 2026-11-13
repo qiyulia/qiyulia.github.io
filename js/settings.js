@@ -20,6 +20,9 @@
     el('#set-min').value = st.settings.replyMin;
     el('#set-max').value = st.settings.replyMax;
     el('#set-typing').value = String(st.settings.typingMs || 700);
+    el('#set-ta-like').value = String(st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb);
+    el('#set-ta-comment').value = String(st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb);
+    el('#set-ta-moment-cards').value = String(st.settings.taMomentCards == null ? 1 : st.settings.taMomentCards);
 
     document.querySelectorAll('#theme-row [data-theme]').forEach(function (btn) {
       btn.classList.toggle('is-on', btn.dataset.theme === st.theme);
@@ -76,6 +79,21 @@
       markDirty();
     });
 
+    el('#set-ta-like').addEventListener('change', function (e) {
+      App.state.settings.taLikeProb = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+      markDirty();
+    });
+
+    el('#set-ta-comment').addEventListener('change', function (e) {
+      App.state.settings.taCommentProb = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+      markDirty();
+    });
+
+    el('#set-ta-moment-cards').addEventListener('change', function (e) {
+      App.state.settings.taMomentCards = Math.max(1, Math.min(3, Number(e.target.value) || 1));
+      markDirty();
+    });
+
     el('#theme-row').addEventListener('click', function (e) {
       const btn = e.target.closest('[data-theme]');
       if (!btn) return;
@@ -113,8 +131,14 @@
 
         if (!data.chats || typeof data.chats !== 'object' || Array.isArray(data.chats)) data.chats = {};
         if (!Array.isArray(data.moments)) data.moments = [];
+        if (!data.stickers || typeof data.stickers !== 'object') data.stickers = { mine: [], ta: [] };
+        if (!Array.isArray(data.stickers.mine)) data.stickers.mine = [];
+        if (!Array.isArray(data.stickers.ta)) data.stickers.ta = [];
         if (!data.profile) data.profile = { userName: '我', userAvatar: '🍊', since: '' };
         if (!data.settings) data.settings = { replyMin: 1, replyMax: 2, typingMs: 700 };
+        if (data.settings.taLikeProb == null) data.settings.taLikeProb = 60;
+        if (data.settings.taCommentProb == null) data.settings.taCommentProb = 40;
+        if (data.settings.taMomentCards == null) data.settings.taMomentCards = 1;
         if (!data.theme) data.theme = 'sand';
         data.contacts.forEach(function (c) {
           if (!c.id) c.id = App.uid('c');

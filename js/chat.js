@@ -4,11 +4,18 @@
   const el = function (sel) { return document.querySelector(sel); };
   const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
+  if (App.sendAs == null) App.sendAs = 'me';
+
+  function currentContact() {
+    return App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
+  }
+
   App.openChat = function (contactId) {
     const exists = App.state.contacts.some(function (c) { return c.id === contactId; });
     if (!exists) return;
     App.chatContactId = contactId;
     App.unread[contactId] = 0;
+    closeStickerPanel();
     App.renderChat();
     App.renderContacts();
     App.updateBadges();
@@ -17,7 +24,7 @@
 
   App.renderChat = function () {
     const id = App.chatContactId;
-    const contact = App.state.contacts.find(function (c) { return c.id === id; });
+    const contact = currentContact();
     if (!contact) return;
 
     el('#c-avatar').textContent = contact.avatar || '🙂';
@@ -29,13 +36,24 @@
     list.innerHTML = chat.length
       ? chat.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
+    updateSideButtons();
+    renderStickerPanel();
     scrollBottom();
   };
 
   function messageHtml(m) {
     const mine = m.role === 'me';
+    if (m.type === 'pat') {
+      return '<div class="pat-line" role="status">' + App.esc(m.text) + '</div>';
+    }
+    let body = '';
+    if (m.type === 'image') {
+      body = '<div class="bubble sticker"><img class="sticker-img" src="' + App.esc(m.src) + '" alt="表情包"></div>';
+    } else {
+      body = '<div class="bubble">' + App.esc(m.text) + '</div>';
+    }
     return '<div class="msg ' + (mine ? 'me' : 'ta') + '">' +
-      '<div class="bubble">' + App.esc(m.text) + '</div>' +
+      body +
       '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
       '</div>';
   }
@@ -63,20 +81,42 @@
     }
   }
 
+  function pushMessage(message) {
+    const id = App.chatContactId;
+    if (!id) return;
+    const chat = App.state.chats[id] || (App.state.chats[id] = []);
+    chat.push(message);
+    App.save();
+    App.renderChat();
+  }
+
   function sendMessage() {
     const input = el('#msg-input');
     const text = input.value.trim();
-    const id = App.chatContactId;
-    if (!id || !text) return;
+    if (!App.chatContactId || !text) return;
 
-    const chat = App.state.chats[id] || (App.state.chats[id] = []);
-    chat.push({ id: App.uid('m'), role: 'me', text: text, ts: Date.now() });
+    const role = App.sendAs;
+    pushMessage({ id: App.uid('m'), role: role, type: 'text', text: text, ts: Date.now() });
 
     input.value = '';
     input.style.height = 'auto';
-    App.save();
-    App.renderChat();
-    scheduleReply(id, text);
+
+    if (role === 'me') scheduleReply(App.chatContactId, text);
+  }
+
+  function sendSticker(src) {
+    if (!App.chatContactId || !src) return;
+    pushMessage({ id: App.uid('m'), role: App.sendAs, type: 'image', src: src, ts: Date.now() });
+    closeStickerPanel();
+  }
+
+  function sendPat() {
+    const contact = currentContact();
+    if (!contact) return;
+    const text = App.sendAs === 'me'
+      ? '你拍了拍 ' + contact.name
+      : contact.name + ' 拍了拍你';
+    pushMessage({ id: App.uid('m'), role: App.sendAs, type: 'pat', text: text, ts: Date.now() });
   }
 
   async function scheduleReply(contactId, userText) {
@@ -110,13 +150,27 @@
       if (!stillThere()) return;
 
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      chat.push({
-        id: App.uid('m'),
-        role: 'ta',
-        text: card.text,
-        ts: Date.now(),
-        cardId: card.id,
-      });
+      const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+      const name = contact ? contact.name : 'TA';
+      if (card.text === '拍一拍') {
+        chat.push({
+          id: App.uid('m'),
+          role: 'ta',
+          type: 'pat',
+          text: name + ' 拍了拍你',
+          ts: Date.now(),
+          cardId: card.id,
+        });
+      } else {
+        chat.push({
+          id: App.uid('m'),
+          role: 'ta',
+          type: 'text',
+          text: card.text,
+          ts: Date.now(),
+          cardId: card.id,
+        });
+      }
       App.save();
 
       if (active()) {
@@ -129,6 +183,100 @@
 
       await sleep(240);
     }
+  }
+
+  /* ---------- 表情包 ---------- */
+  function updateSideButtons() {
+    document.querySelectorAll('[data-sticker-side]').forEach(function (btn) {
+      btn.classList.toggle('is-on', btn.dataset.stickerSide === App.sendAs);
+    });
+    const hint = el('#sticker-side-hint');
+    if (hint) hint.textContent = App.sendAs === 'me' ? '当前：我的表情包' : '当前：TA 的表情包';
+  }
+
+  function renderStickerPanel() {
+    const side = App.sendAs;
+    const stickers = App.state.stickers[side] || [];
+    el('#sticker-grid').innerHTML = stickers.length
+      ? stickers.map(function (src, index) {
+          return '<div class="sticker-cell">' +
+            '<button type="button" class="sticker-item" data-send-sticker="' + index + '" aria-label="发送表情包">' +
+              '<img src="' + App.esc(src) + '" alt="表情包">' +
+            '</button>' +
+            '<button type="button" class="sticker-delete" data-del-sticker="' + index + '" aria-label="删除表情包">×</button>' +
+          '</div>';
+        }).join('')
+      : '<p class="sticker-empty">还没有表情包，点下方按钮从本地相册添加。</p>';
+  }
+
+  function closeStickerPanel() {
+    const panel = el('#sticker-panel');
+    if (panel) panel.hidden = true;
+  }
+
+  function toggleStickerPanel() {
+    const panel = el('#sticker-panel');
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) renderStickerPanel();
+  }
+
+  function compressImage(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+          const max = 240;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > max) { height = Math.round(height * max / width); width = max; }
+          } else if (height > max) {
+            width = Math.round(width * max / height); height = max;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.onerror = function () { reject(new Error('图片读取失败')); };
+        img.src = reader.result;
+      };
+      reader.onerror = function () { reject(new Error('图片读取失败')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function addStickers(files) {
+    const side = App.sendAs;
+    const images = Array.from(files || []).slice(0, 12);
+    if (!images.length) return;
+
+    App.toast('正在处理图片…');
+    const list = App.state.stickers[side] || (App.state.stickers[side] = []);
+    let added = 0;
+    let first = null;
+
+    for (let i = 0; i < images.length; i++) {
+      try {
+        const src = await compressImage(images[i]);
+        if (!list.includes(src)) {
+          list.push(src);
+          if (!first) first = src;
+          added++;
+        }
+      } catch (e) {
+        App.toast(e.message || '图片处理失败');
+      }
+    }
+
+    if (!added) return;
+    App.save();
+    renderStickerPanel();
+    if (first) sendSticker(first);
+    App.toast('已添加 ' + added + ' 张表情包');
   }
 
   App.initChat = function () {
@@ -150,6 +298,45 @@
     input.addEventListener('input', function () {
       input.style.height = 'auto';
       input.style.height = Math.min(118, input.scrollHeight) + 'px';
+    });
+
+    document.addEventListener('click', function (e) {
+      const stickerTab = e.target.closest('[data-sticker-side]');
+      if (stickerTab) {
+        App.sendAs = stickerTab.dataset.stickerSide;
+        updateSideButtons();
+        renderStickerPanel();
+        return;
+      }
+
+      const stickerItem = e.target.closest('[data-send-sticker]');
+      if (stickerItem) {
+        const list = App.state.stickers[App.sendAs] || [];
+        const src = list[Number(stickerItem.dataset.sendSticker)];
+        if (src) sendSticker(src);
+        return;
+      }
+
+      const stickerDel = e.target.closest('[data-del-sticker]');
+      if (stickerDel) {
+        const list = App.state.stickers[App.sendAs] || [];
+        const index = Number(stickerDel.dataset.delSticker);
+        list.splice(index, 1);
+        App.save();
+        renderStickerPanel();
+        return;
+      }
+
+      if (!e.target.closest('#composer, #sticker-panel, #btn-sticker')) closeStickerPanel();
+    });
+
+    el('#btn-sticker').addEventListener('click', toggleStickerPanel);
+    el('#btn-pat').addEventListener('click', sendPat);
+    el('#btn-add-sticker').addEventListener('click', function () { el('#sticker-file').click(); });
+    el('#sticker-file').addEventListener('change', function (e) {
+      const files = e.target.files;
+      e.target.value = '';
+      addStickers(files);
     });
 
     el('#btn-clear-chat').addEventListener('click', function () {

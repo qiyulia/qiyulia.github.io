@@ -9,6 +9,7 @@
     ['日常', '刚睡醒，头发乱得像被风揉过。你呢？', ''],
     ['日常', '中午吃了碗热汤面，胃里暖了很久。', ''],
     ['日常', '窗外的云走得很慢，我也没什么急事。', ''],
+    ['日常', '拍一拍', '拍'],
     ['日常', '刚洗完衣服，阳台上一排小旗子。', ''],
     ['日常', '今天的风有点甜，可能是路过花店沾上的。', ''],
     ['日常', '在地铁上看到一只很乖的橘猫，可惜没拍清。', '猫'],
@@ -56,6 +57,12 @@
     };
   });
 
+  const MINE_STICKER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><radialGradient id='g1' cx='50%25' cy='50%25' r='60%25'><stop offset='0%25' stop-color='%23ffe4ef'/><stop offset='100%25' stop-color='%23ffc8dc'/></radialGradient></defs><rect width='120' height='120' fill='url(%23g1)'/><g fill='%23ff8fb8' opacity='.75'><path d='M22 22 l4 6 6 -2 -4 6 -6 -2 z'/><path d='M92 16 l3 5 5 -2 -3 5 -5 -2 z'/><path d='M56 102 l3 4 5 -1 -3 4 -5 -1 z'/></g><g fill='%23d2d6db' stroke='%23333' stroke-width='2.5' stroke-linejoin='round'><path d='M30 58 L22 28 L46 46 Z'/><path d='M90 58 L98 28 L74 46 Z'/><ellipse cx='60' cy='66' rx='36' ry='30'/></g><path d='M42 60 l5 5 M50 60 l-5 5' stroke='%23333' stroke-width='2.5' stroke-linecap='round'/><path d='M70 60 l5 5 M78 60 l-5 5' stroke='%23333' stroke-width='2.5' stroke-linecap='round'/><path d='M50 80 Q60 88 70 80' stroke='%23333' stroke-width='2.5' fill='none' stroke-linecap='round'/><circle cx='44' cy='74' r='4' fill='%23ffb3cc' opacity='.7'/><circle cx='76' cy='74' r='4' fill='%23ffb3cc' opacity='.7'/></svg>";
+
+  const TA_STICKER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><radialGradient id='g2' cx='50%25' cy='50%25' r='60%25'><stop offset='0%25' stop-color='%23ffe4ef'/><stop offset='100%25' stop-color='%23ffc0d8'/></radialGradient></defs><rect width='120' height='120' fill='url(%23g2)'/><g fill='%23ff8fb8' opacity='.55'><path d='M8 28 l4 6 6 -2 -4 6 -6 -2 z'/><path d='M100 18 l3 5 5 -2 -3 5 -5 -2 z'/><path d='M6 82 l4 6 6 -2 -4 6 -6 -2 z'/><path d='M104 94 l3 5 5 -2 -3 5 -5 -2 z'/></g><g fill='%23d2d6db' stroke='%23333' stroke-width='2.5' stroke-linejoin='round'><path d='M28 64 L20 36 L44 52 Z'/><path d='M92 64 L100 36 L76 52 Z'/><ellipse cx='60' cy='74' rx='38' ry='32'/></g><path d='M48 30 q-8 -18 4 -24 q12 6 4 24' fill='%23f5d0c0' stroke='%23333' stroke-width='2.5'/><line x1='46' y1='28' x2='40' y2='18' stroke='%23c79a82' stroke-width='2'/><line x1='52' y1='26' x2='52' y2='14' stroke='%23c79a82' stroke-width='2'/><line x1='58' y1='28' x2='64' y2='18' stroke='%23c79a82' stroke-width='2'/><circle cx='46' cy='72' r='8' fill='%23222'/><circle cx='74' cy='72' r='8' fill='%23222'/><circle cx='49' cy='69' r='2.5' fill='%23fff'/><circle cx='77' cy='69' r='2.5' fill='%23fff'/><path d='M52 88 Q60 94 68 88' stroke='%23333' stroke-width='2.5' fill='none' stroke-linecap='round'/><circle cx='38' cy='84' r='5' fill='%23ffb3cc' opacity='.7'/><circle cx='82' cy='84' r='5' fill='%23ffb3cc' opacity='.7'/></svg>";
+
+  App.DEFAULT_STICKERS = { mine: [MINE_STICKER], ta: [TA_STICKER] };
+
   function localDate(date) {
     const pad = function (n) { return String(n).padStart(2, '0'); };
     return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
@@ -79,6 +86,9 @@
         replyMin: 1,
         replyMax: 2,
         typingMs: 700,
+        taLikeProb: 60,
+        taCommentProb: 40,
+        taMomentCards: 1,
       },
       contacts: [
         { id: contactId, name: '阿眠', avatar: '🌙', note: '住在隔壁的夜猫子' },
@@ -89,6 +99,7 @@
         ],
       },
       cards: App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); }),
+      stickers: App.DEFAULT_STICKERS,
     };
   };
 })();
