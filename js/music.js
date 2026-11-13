@@ -270,7 +270,12 @@
         return setSource(URL.createObjectURL(blob));
       });
     }
-    const src = safeUrl(track.audioUrl || track.url);
+    let candidate = track.audioUrl || track.url;
+    if (track.source === 'netease' && !isAudioFileUrl(candidate)) {
+      const id = neteaseId(track.pageUrl || track.url);
+      if (id) candidate = neteaseAudioUrl(id);
+    }
+    const src = safeUrl(candidate);
     if (!src) return Promise.reject(new Error('音频链接无效，请重新导入'));
     return Promise.resolve(setSource(src));
   }
@@ -299,11 +304,13 @@
     }).catch(function (err) {
       if (currentTrack().id !== track.id) return false;
       playing = false;
-      statusText = track.source === 'netease' || track.source === 'kugou'
-        ? '原平台页面无法直接播放，请打开原平台或导入本地音频'
-        : (err && /本地音频文件缺失|音频链接无效/.test(err.message || '')
-          ? err.message
-          : (err && err.name === 'NotAllowedError' ? '浏览器阻止了播放，请再点一次播放' : '音频加载失败，请检查直链或改从本地导入'));
+      statusText = track.source === 'netease'
+        ? '这首歌需要会员或受版权限制，无法站外播放；请打开原平台或导入本地音频'
+        : (track.source === 'kugou'
+          ? '酷狗页面无法直接播放，请打开原平台或导入本地音频'
+          : (err && /本地音频文件缺失|音频链接无效/.test(err.message || '')
+            ? err.message
+            : (err && err.name === 'NotAllowedError' ? '浏览器阻止了播放，请再点一次播放' : '音频加载失败，请检查直链或改从本地导入')));
       App.renderMusic();
       App.toast(statusText);
       return false;
@@ -438,6 +445,25 @@
     } catch (e) {}
     return 'url';
   }
+  function neteaseId(url) {
+    try {
+      const parsed = new URL(url);
+      if (!/(^|\.)163\.com$/.test(parsed.hostname)) return '';
+      const hash = (parsed.hash || '').replace(/^#\/?/, '');
+      const query = parsed.search + '&' + hash;
+      const match = query.match(/(?:^|[?&#])id=(\d+)/);
+      if (match) return match[1];
+      const path = parsed.pathname.match(/\/song\/(\d+)/);
+      return path ? path[1] : '';
+    } catch (e) { return ''; }
+  }
+  /* 网易云官方外链播放地址：免费歌曲可直接播放，会员或受限歌曲会跳转到 404。 */
+  function neteaseAudioUrl(id) {
+    return id ? 'https://music.163.com/song/media/outer/url?id=' + id + '.mp3' : '';
+  }
+  function isAudioFileUrl(url) {
+    return /\.(mp3|m4a|aac|ogg|wav|flac)(\?|#|$)/i.test(url || '');
+  }
   function fetchPlatformMetadata(url) {
     const controller = new AbortController();
     const timeout = setTimeout(function () { controller.abort(); }, 6000);
@@ -468,7 +494,9 @@
     input.value = url;
     recognizedAudioUrl = '';
     const source = sourceForUrl(url);
-    const fallback = urlNameParts(url);
+    const fallback = source === 'netease'
+      ? { title: '网易云歌曲', artist: '' }
+      : urlNameParts(url);
     el('#music-track-title').value = fallback.title;
     el('#music-track-artist').value = fallback.artist;
     if (source === 'url') {
@@ -487,7 +515,10 @@
         ? '已识别公开信息，请确认后导入；能否播放仍以实际加载为准。'
         : '没有读到歌曲信息，请手动补全后导入。';
     }).catch(function () {
-      el('#music-link-status').textContent = '平台限制了自动读取，请手动补全歌名和歌手后导入。';
+      const id = source === 'netease' ? neteaseId(url) : '';
+      el('#music-link-status').textContent = id
+        ? '网易云禁止站外读取歌曲信息，请手动填写歌名和歌手；免费歌曲导入后可直接播放。'
+        : '平台限制了自动读取，请手动补全歌名和歌手后导入。';
     }).finally(function () { button.disabled = false; });
   }
 
@@ -501,12 +532,14 @@
     const title = el('#music-track-title').value.trim() || urlNameParts(url).title;
     const artist = el('#music-track-artist').value.trim() || '未知歌手';
     const source = sourceForUrl(url);
+    const audioUrl = recognizedAudioUrl ||
+      (source === 'netease' ? neteaseAudioUrl(neteaseId(url)) : '');
     const track = {
       id: App.uid('track'),
       title: title,
       artist: artist,
       source: source,
-      url: recognizedAudioUrl || url,
+      url: audioUrl || url,
       pageUrl: url,
       createdAt: Date.now(),
     };
@@ -517,7 +550,9 @@
     recognizedAudioUrl = '';
     el('#music-link-status').textContent = source === 'url'
       ? '已加入播放列表，点击歌曲时会验证音频直链是否可播放。'
-      : '已加入播放列表；若平台页面不能播放，请打开原平台或改用本地音频。';
+      : (source === 'netease'
+        ? '已加入播放列表；免费歌曲可直接播放，会员或受限歌曲请打开原平台。'
+        : '已加入播放列表；若平台页面不能播放，请打开原平台或改用本地音频。');
     App.toast('歌曲已加入播放列表');
   }
 
@@ -647,9 +682,11 @@
       clearTaTimers();
       playing = false;
       const track = currentTrack();
-      statusText = track.source === 'netease' || track.source === 'kugou'
-        ? '原平台页面无法直接播放，请打开原平台或导入本地音频'
-        : '音频加载失败，请检查链接或重新导入';
+      statusText = track.source === 'netease'
+        ? '这首歌需要会员或受版权限制，无法站外播放；请打开原平台或导入本地音频'
+        : (track.source === 'kugou'
+          ? '酷狗页面无法直接播放，请打开原平台或导入本地音频'
+          : '音频加载失败，请检查链接或重新导入');
       App.renderMusic();
     });
 
