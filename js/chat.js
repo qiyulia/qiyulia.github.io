@@ -49,19 +49,27 @@
     if (m.type === 'pat') {
       return '<div class="pat-line" role="status">' + App.esc(m.text) + '</div>';
     }
+    const hasFrequency = m.strength != null || m.percent != null || m.type === 'emotion';
+    const hasEmotion = !!m.emotion || m.type === 'emotion';
+    const strength = ['强', '中', '弱'].indexOf(m.strength) !== -1 ? m.strength : '中';
+    const percent = Math.max(0, Math.min(100, Number(m.percent) || 0));
+    const meta = hasFrequency
+      ? '<span class="emotion-divider"></span>' +
+        (hasEmotion
+          ? '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span></div>'
+          : '') +
+        '<div class="emotion-row"><span class="emotion-chip">频率</span><span class="emotion-value">链接度' + App.esc(strength) + ' ' + percent + '%</span></div>'
+      : '';
     let body = '';
     if (m.type === 'image') {
       body = '<div class="bubble sticker"><img class="sticker-img" src="' + App.esc(m.src) + '" alt="表情包"></div>';
     } else if (m.type === 'audio') {
-      body = '<div class="bubble bubble-audio">' +
-        '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' +
+      body = '<div class="bubble bubble-audio' + (hasFrequency ? ' bubble-emotion' : '') + '">' +
+        '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' + meta +
         '</div>';
-    } else if (m.type === 'emotion') {
+    } else if (hasFrequency) {
       body = '<div class="bubble bubble-emotion">' +
-        '<p class="emotion-text">' + App.esc(m.text) + '</p>' +
-        '<span class="emotion-divider"></span>' +
-        '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span></div>' +
-        '<div class="emotion-row"><span class="emotion-chip">频率</span><span class="emotion-value">链接度' + App.esc(m.strength || '中') + ' ' + Math.max(0, Math.min(100, Number(m.percent || 0))) + '%</span></div>' +
+        '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta +
         '</div>';
     } else {
       body = '<div class="bubble">' + App.esc(m.text) + '</div>';
@@ -228,6 +236,14 @@
     App.openChat(id);
   };
 
+  function pickReplyEmotion(card) {
+    if (card.category === '情绪' && card.emotion) return card.emotion;
+    const pool = App.state.cards.filter(function (c) {
+      return c.category === '情绪' && c.emotion;
+    });
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)].emotion : '平常';
+  }
+
   async function scheduleReply(contactId, userText) {
     const st = App.state;
     const contact = st.contacts.find(function (c) { return c.id === contactId; });
@@ -242,6 +258,8 @@
       App.toast('字卡库是空的，先去添加几张字卡');
       return;
     }
+    const emotionProb = Math.max(0, Math.min(100, Number(cs.emotionProb) || 0));
+    const strengths = ['强', '中', '弱'];
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
@@ -262,28 +280,20 @@
       if (!stillThere()) return;
 
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      const baseMsg = { id: App.uid('m'), role: 'ta', ts: Date.now(), cardId: card.id };
-
-      if (card.category === '情绪') {
-        chat.push(Object.assign(baseMsg, {
-          type: 'emotion',
-          text: card.text,
-          emotion: card.emotion || '平常',
-          strength: card.strength || '中',
-          percent: App.emotionPercent(card.strength),
-        }));
-      } else if (card.category === '语音') {
-        chat.push(Object.assign(baseMsg, {
-          type: 'audio',
-          src: card.audio,
-          text: card.text,
-        }));
-      } else {
-        chat.push(Object.assign(baseMsg, {
-          type: 'text',
-          text: card.text,
-        }));
-      }
+      const strength = strengths[Math.floor(Math.random() * strengths.length)];
+      const message = {
+        id: App.uid('m'),
+        role: 'ta',
+        type: card.category === '语音' ? 'audio' : 'text',
+        text: card.text,
+        ts: Date.now(),
+        cardId: card.id,
+        strength: strength,
+        percent: App.emotionPercent(strength),
+      };
+      if (card.category === '语音') message.src = card.audio;
+      if (Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
+      chat.push(message);
       App.save();
 
       if (active()) {

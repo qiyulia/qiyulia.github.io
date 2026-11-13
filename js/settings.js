@@ -52,6 +52,7 @@
     el('#set-min').value = st.settings.replyMin;
     el('#set-max').value = st.settings.replyMax;
     el('#set-typing').value = st.settings.typingMs || 700;
+    el('#set-emotion-prob').value = st.settings.emotionProb == null ? 30 : st.settings.emotionProb;
     el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
     el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
     el('#set-ta-moment-cards').value = st.settings.taMomentCards == null ? 1 : st.settings.taMomentCards;
@@ -137,6 +138,11 @@
       markDirty();
     }, { min: 0, max: 3000, step: 100 });
 
+    App.bindStepper('#set-emotion-prob', function (v) {
+      App.state.settings.emotionProb = v;
+      markDirty();
+    });
+
     App.bindStepper('#set-ta-like', function (v) {
       App.state.settings.taLikeProb = v;
       markDirty();
@@ -208,6 +214,7 @@
         if (data.settings.taLikeProb == null) data.settings.taLikeProb = 60;
         if (data.settings.taCommentProb == null) data.settings.taCommentProb = 40;
         if (data.settings.taMomentCards == null) data.settings.taMomentCards = 1;
+        if (data.settings.emotionProb == null) data.settings.emotionProb = 30;
         if (!data.theme) data.theme = 'sand';
         data.contacts.forEach(function (c) {
           if (!c.id) c.id = App.uid('c');

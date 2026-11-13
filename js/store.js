@@ -47,6 +47,7 @@
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
     if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
     if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;
+    if (s.settings.emotionProb == null) s.settings.emotionProb = 30;
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];
@@ -89,6 +90,7 @@
       replyMin: pick('replyMin', 1),
       replyMax: pick('replyMax', 2),
       typingMs: pick('typingMs', 700),
+      emotionProb: pick('emotionProb', 30),
       taLikeProb: pick('taLikeProb', 60),
       taCommentProb: pick('taCommentProb', 40),
       taMomentCards: pick('taMomentCards', 1),

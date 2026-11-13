@@ -134,6 +134,7 @@
         replyMin: 1,
         replyMax: 2,
         typingMs: 700,
+        emotionProb: 30,
         taLikeProb: 60,
         taCommentProb: 40,
         taMomentCards: 1,
