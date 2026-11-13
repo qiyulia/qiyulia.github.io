@@ -59,6 +59,20 @@
     el('#set-pat-back').value = st.settings.patBackProb == null ? 50 : st.settings.patBackProb;
     el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
 
+    const partnerSelect = el('#set-partner');
+    partnerSelect.innerHTML = st.contacts.length
+      ? st.contacts.map(function (c) {
+          return '<option value="' + App.esc(c.id) + '"' + (c.id === st.currentContactId ? ' selected' : '') + '>' + App.esc(c.name) + '</option>';
+        }).join('')
+      : '<option value="">还没有联系人</option>';
+    const partner = st.contacts.find(function (c) { return c.id === st.currentContactId; });
+    partnerSelect.disabled = !partner;
+    el('#btn-edit-partner').disabled = !partner;
+    el('#set-partner-avatar').innerHTML = App.avatarHtml(partner ? partner.avatar : '🙂');
+    el('#set-partner-name').textContent = partner ? partner.name : 'TA';
+    el('#set-partner-note').textContent = partner && partner.note ? partner.note : '还没有备注';
+    el('#set-partner-birthday').textContent = partner && partner.birthday ? '生日 · ' + partner.birthday.replace(/-/g, '.') : '生日未填写';
+
     document.querySelectorAll('#theme-row [data-theme]').forEach(function (btn) {
       btn.classList.toggle('is-on', btn.dataset.theme === st.theme);
     });
@@ -109,6 +123,18 @@
     el('#set-since').addEventListener('change', function (e) {
       App.state.profile.since = e.target.value;
       markDirty();
+    });
+
+    el('#set-partner').addEventListener('change', function (e) {
+      if (!App.state.contacts.some(function (c) { return c.id === e.target.value; })) return;
+      App.state.currentContactId = e.target.value;
+      App.save();
+      App.renderAll();
+    });
+
+    el('#btn-edit-partner').addEventListener('click', function () {
+      const partner = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
+      if (partner && App.openContactDialog) App.openContactDialog(partner);
     });
 
     el('#set-min').addEventListener('change', function (e) {
@@ -220,11 +246,14 @@
           if (!c.id) c.id = App.uid('c');
           if (!data.chats[c.id]) data.chats[c.id] = [];
           if (!c.settings || typeof c.settings !== 'object') c.settings = {};
+          if (typeof c.birthday !== 'string') c.birthday = '';
         });
         if (!data.contacts.some(function (c) { return c.id === data.currentContactId; })) {
           data.currentContactId = data.contacts.length ? data.contacts[0].id : null;
         }
         App.normalizeCards(data);
+        App.normalizeMusic(data);
+        if (App.resetMusicMedia) App.resetMusicMedia();
         App.state = data;
         App.chatContactId = null;
         App.unread = {};
@@ -240,6 +269,7 @@
 
     el('#btn-reset').addEventListener('click', function () {
       if (!confirm('清空全部数据并恢复初始状态？建议先导出备份。')) return;
+      if (App.resetMusicMedia) App.resetMusicMedia();
       App.state = App.seedState();
       App.chatContactId = null;
       App.unread = {};

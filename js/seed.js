@@ -111,6 +111,19 @@
 
   App.DEFAULT_STICKERS = { mine: [MINE_STICKER], ta: [TA_STICKER] };
 
+  App.MUSIC_SEED = function () {
+    return {
+      currentId: 'synth-breeze',
+      mode: 'sequence',
+      favorites: { mine: [], ta: [] },
+      tracks: [
+        { id: 'synth-breeze', title: '晚风', artist: '絮语电台 · 轻柔旋律', source: 'synth' },
+        { id: 'synth-cloud', title: '云端漫步', artist: '絮语电台 · 明亮琴音', source: 'synth' },
+        { id: 'synth-stars', title: '枕边星', artist: '絮语电台 · 睡前慢板', source: 'synth' },
+      ],
+    };
+  };
+
   function localDate(date) {
     const pad = function (n) { return String(n).padStart(2, '0'); };
     return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
@@ -125,6 +138,7 @@
       theme: 'mist',
       notes: '',
       iconStyle: { shape: 'rounded', color: 'blue' },
+      music: App.MUSIC_SEED(),
       profile: {
         userName: '我',
         userAvatar: '🍊',
@@ -140,7 +154,7 @@
         taMomentCards: 1,
       },
       contacts: [
-        { id: contactId, name: '阿眠', avatar: '🌙', note: '住在隔壁的夜猫子' },
+        { id: contactId, name: '阿眠', avatar: '🌙', note: '住在隔壁的夜猫子', birthday: '' },
       ],
       chats: {
         [contactId]: [

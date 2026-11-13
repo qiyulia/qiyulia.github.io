@@ -1578,6 +1578,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .msg.ta .msg-main { align-items: flex-start; }
 .msg.me { flex-direction: row-reverse; }
 .msg.me .msg-main { align-items: flex-end; }
+.msg.me .msg-avatar { transform: translateY(-6px); }
 .msg-avatar {
   width: 30px;
   height: 30px;
@@ -1591,6 +1592,17 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   background: var(--surface);
   border: 1px solid var(--line);
 }
+.msg-avatar-button, .avatar-button { cursor: pointer; padding: 0; color: inherit; }
+.msg-avatar-button:active, .avatar-button:active { transform: scale(.9); }
+.calendar-widget { width: 100%; color: inherit; text-align: left; }
+.calendar-widget:active { transform: scale(.985); }
+.section-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.partner-preview { display: flex; align-items: center; gap: 12px; padding-top: 3px; }
+.partner-preview .avatar { width: 52px; height: 52px; font-size: 24px; }
+.partner-preview-copy { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.partner-preview-copy strong { font-size: 14px; }
+.partner-preview-copy span { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.tool-btn:disabled { opacity: .45; cursor: default; }
 
 /* ---------- 数字 / 概率：手动输入 + 步进 ---------- */
 .prob-input { display: flex; align-items: center; gap: 8px; }
@@ -1699,6 +1711,70 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 .cal-mark-btn.period.is-marked { background: #f9c6d4; border-color: #efa9be; color: #8c2f4c; }
 .cal-mark-btn.ovulation.is-marked { background: #cdd6f7; border-color: #aebcf0; color: #2f3f8c; }
+
+/* ---------- 音乐应用 ---------- */
+.music-app-icon { background: linear-gradient(145deg, #b9a6e8, #8170c3); }
+.music-now { gap: 13px; background: linear-gradient(155deg, var(--surface), color-mix(in srgb, var(--accent) 9%, var(--surface))); }
+.music-now-main { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.music-now-disc {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  padding: 18px;
+  border-radius: 50%;
+  color: var(--accent-ink);
+  background: var(--accent);
+  box-shadow: 0 10px 24px var(--shadow), inset 0 0 0 6px rgba(255, 255, 255, .13);
+}
+.music-now-disc.is-playing { animation: disc-spin 7s linear infinite; }
+.music-now-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.music-now-copy > span { font-size: 9.5px; letter-spacing: .08em; color: var(--accent); }
+.music-now-copy h3, .music-now-copy p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-now-copy h3 { font-size: 18px; }
+.music-now-copy p { font-size: 11px; color: var(--muted); }
+.music-heart { flex: 0 0 auto; width: 34px; height: 34px; padding: 7px; color: var(--muted); border-radius: 50%; }
+.music-heart:hover { background: var(--accent-soft); }
+.music-heart.is-active { color: #df6485; }
+.music-heart.is-active svg { fill: currentColor; }
+.music-time-row { display: flex; justify-content: space-between; margin-bottom: -9px; color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; }
+.music-app-progress { height: 5px; border-radius: 99px; overflow: hidden; background: var(--surface-2); }
+.music-app-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .15s linear; }
+.music-player-controls { display: grid; grid-template-columns: 1fr 36px 52px 36px 1fr; align-items: center; justify-items: center; gap: 7px; }
+.music-player-controls .mini-btn { width: 34px; height: 34px; padding: 8px; }
+.music-main-play { width: 50px; height: 50px; padding: 13px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); box-shadow: 0 7px 18px var(--shadow); }
+.music-main-play:active { transform: scale(.94); }
+.music-mode-btn { justify-self: start; max-width: 66px; padding: 6px 7px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font-size: 10px; line-height: 1.35; }
+.music-ta-heart { justify-self: end; color: var(--muted); font-size: 10px; white-space: nowrap; }
+.music-ta-heart.is-active { color: #df6485; }
+.music-now-foot { min-height: 18px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--muted); }
+#music-status { line-height: 1.5; }
+#music-open-source { flex: 0 0 auto; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.music-link-form, .music-local-import { display: flex; flex-direction: column; gap: 10px; }
+.music-import-actions .btn { flex: 1; }
+.music-local-import { padding-top: 12px; border-top: 1px dashed var(--line); }
+.music-list { display: flex; flex-direction: column; gap: 7px; }
+.music-track-row { display: flex; align-items: center; gap: 3px; min-width: 0; padding: 5px 4px 5px 5px; border: 1px solid transparent; border-radius: 13px; background: var(--field); }
+.music-track-row.is-current { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
+.music-track-select { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; text-align: left; padding: 4px; color: inherit; }
+.music-track-index { flex: 0 0 auto; width: 20px; text-align: center; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.music-track-row.is-current .music-track-index { color: var(--accent); font-size: 16px; }
+.music-track-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.music-track-copy strong, .music-track-copy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-track-copy strong { font-size: 12.5px; font-weight: 600; }
+.music-track-copy span { color: var(--muted); font-size: 9.5px; }
+.music-track-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 1px; }
+.music-row-heart, .music-row-edit, .music-row-delete { width: 25px; height: 28px; padding: 0; border-radius: 8px; color: var(--muted); font-size: 15px; }
+.music-row-heart:hover, .music-row-edit:hover, .music-row-delete:hover { background: var(--surface); }
+.music-row-heart.is-active, .music-row-ta.is-active { color: #df6485; }
+.music-row-delete { font-size: 17px; }
+.music-row-ta { min-width: 32px; color: var(--muted); font-size: 9px; white-space: nowrap; text-align: center; }
+#music-identify:disabled { opacity: .55; cursor: wait; }
+
+@media (max-width: 360px) {
+  .music-track-row { align-items: flex-start; flex-direction: column; }
+  .music-track-select { width: 100%; }
+  .music-track-actions { align-self: flex-end; margin-top: -4px; }
+}
 
 /* 桌面小组件日历同步标记色 */
 #w-calendar span.cal-period { background: #f9c6d4; color: #8c2f4c; border-radius: 8px; }

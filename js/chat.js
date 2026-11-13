@@ -76,8 +76,11 @@
     }
     const contact = currentContact();
     const avatarSrc = mine ? App.state.profile.userAvatar : (contact && contact.avatar);
+    const avatarHtml = mine
+      ? '<span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>'
+      : '<button type="button" class="msg-avatar msg-avatar-button" data-pat-current="1" aria-label="拍一拍 ' + App.esc(contact ? contact.name : 'TA') + '" title="拍一拍">' + App.avatarHtml(avatarSrc) + '</button>';
     return '<div class="msg ' + (mine ? 'me' : 'ta') + '">' +
-      '<span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>' +
+      avatarHtml +
       '<div class="msg-main">' +
         body +
         '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
@@ -140,7 +143,7 @@
     closeStickerPanel();
   }
 
-  function sendPat(card) {
+  App.sendPat = function (card) {
     const contact = currentContact();
     if (!contact) return;
     const picked = card || App.pickPatCard();
@@ -161,7 +164,20 @@
     schedulePatBack(contact.id);
     scheduleReply(contact.id, '');
     maybeTaSticker(contact.id);
-  }
+  };
+
+  App.addChatSystemMessage = function (contactId, text) {
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact || !text) return;
+    const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+    chat.push({ id: App.uid('m'), role: 'ta', type: 'pat', text: text, ts: Date.now() });
+    const chatOpen = App.chatContactId === contactId && el('#view-chat').classList.contains('is-active');
+    if (chatOpen) App.renderChat();
+    else App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+    App.save();
+    App.renderContacts();
+    App.updateBadges();
+  };
 
   /* 我拍了 TA 之后，TA 按概率回拍我 */
   function schedulePatBack(contactId) {
@@ -426,6 +442,12 @@
     });
 
     document.addEventListener('click', function (e) {
+      const patAvatar = e.target.closest('[data-pat-current]');
+      if (patAvatar) {
+        App.sendPat();
+        return;
+      }
+
       const kindBtn = e.target.closest('[data-panel-kind]');
       if (kindBtn) {
         App.panelKind = kindBtn.dataset.panelKind;
@@ -438,7 +460,7 @@
         const card = (App.state.cards || []).find(function (c) {
           return c.id === patItem.dataset.sendPat;
         });
-        if (card) sendPat(card);
+        if (card) App.sendPat(card);
         return;
       }
 

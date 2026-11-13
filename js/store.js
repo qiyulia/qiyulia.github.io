@@ -29,6 +29,38 @@
     }
   };
 
+  App.normalizeMusic = function (s) {
+    const defaults = App.MUSIC_SEED();
+    if (!s.music || typeof s.music !== 'object' || Array.isArray(s.music)) s.music = defaults;
+    const music = s.music;
+    const seen = {};
+    const list = Array.isArray(music.tracks) ? music.tracks : [];
+    music.tracks = list.filter(function (track) {
+      if (!track || typeof track.id !== 'string' || !track.id || seen[track.id]) return false;
+      seen[track.id] = true;
+      track.title = String(track.title || '未命名歌曲');
+      track.artist = String(track.artist || '未知歌手');
+      if (['synth', 'local', 'url', 'netease', 'kugou'].indexOf(track.source) === -1) track.source = track.url ? 'url' : 'local';
+      if (track.source !== 'synth' && track.source !== 'local' && !/^https?:\/\//.test(track.url || track.audioUrl || '')) return false;
+      return true;
+    });
+    defaults.tracks.forEach(function (track) {
+      if (!seen[track.id]) music.tracks.push(Object.assign({}, track));
+    });
+    if (!music.favorites || typeof music.favorites !== 'object') music.favorites = { mine: [], ta: [] };
+    ['mine', 'ta'].forEach(function (side) {
+      if (!Array.isArray(music.favorites[side])) music.favorites[side] = [];
+      music.favorites[side] = music.favorites[side].filter(function (id, index, ids) {
+        return music.tracks.some(function (track) { return track.id === id; }) && ids.indexOf(id) === index;
+      });
+    });
+    if (['sequence', 'repeat', 'shuffle'].indexOf(music.mode) === -1) music.mode = 'sequence';
+    if (!music.tracks.some(function (track) { return track.id === music.currentId; })) {
+      music.currentId = music.tracks.length ? music.tracks[0].id : '';
+    }
+    return s;
+  };
+
   App.load = function () {
     let raw = null;
     try {
@@ -62,6 +94,7 @@
       };
     }
     App.normalizeCards(s);
+    App.normalizeMusic(s);
     if (!s.iconStyle || typeof s.iconStyle !== 'object') s.iconStyle = { shape: 'rounded', color: 'blue' };
     if (!['rounded', 'circle', 'square'].includes(s.iconStyle.shape)) s.iconStyle.shape = 'rounded';
     if (!['blue', 'lilac', 'sage', 'apricot'].includes(s.iconStyle.color)) s.iconStyle.color = 'blue';
@@ -70,6 +103,7 @@
       if (!c.id) c.id = App.uid('c');
       if (!s.chats[c.id]) s.chats[c.id] = [];
       if (!c.settings || typeof c.settings !== 'object') c.settings = {};
+      if (typeof c.birthday !== 'string') c.birthday = '';
     });
     if (!s.contacts.some(function (c) { return c.id === s.currentContactId; })) {
       s.currentContactId = s.contacts.length ? s.contacts[0].id : null;

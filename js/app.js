@@ -23,6 +23,7 @@
     else if (view === 'settings') App.renderSettings();
     else if (view === 'chat-settings') App.renderChatSettings();
     else if (view === 'calendar') App.renderCalendar();
+    else if (view === 'music') App.renderMusic();
   };
 
   App.toast = function (message) {
@@ -59,6 +60,7 @@
     if (App.chatContactId) App.renderChat();
     App.renderCards();
     App.renderSettings();
+    if (App.renderMusic) App.renderMusic();
   };
 
   document.addEventListener('click', function (e) {
@@ -93,6 +95,7 @@
   App.initSettings();
   App.initMoments();
   App.initCalendar();
+  App.initMusic();
 
   App.go('desktop');
 })();

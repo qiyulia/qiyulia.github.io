@@ -92,7 +92,7 @@
     if (document.activeElement !== notes) notes.value = st.notes;
     el('#w-notes-count').textContent = st.notes.length + ' / 500';
     App.applyIconStyle();
-    renderMusic();
+    if (App.renderMusic) App.renderMusic();
   }
 
   /* ---------- 图标美化 ---------- */
@@ -116,86 +116,6 @@
       btn.setAttribute('aria-pressed', String(active));
     });
   };
-
-  /* ---------- 离线音乐：Web Audio 合成短旋律 ---------- */
-  const TRACKS = [
-    { title: '晚风', artist: '絮语电台 · 轻柔旋律', tempo: 92, notes: [261.63, 329.63, 392, 329.63, 293.66, 349.23, 440, 349.23, 261.63, 329.63, 392, 523.25, 440, 392, 329.63, 293.66] },
-    { title: '云端漫步', artist: '絮语电台 · 明亮琴音', tempo: 108, notes: [329.63, 392, 493.88, 587.33, 493.88, 392, 349.23, 440, 523.25, 659.25, 523.25, 440, 392, 493.88, 587.33, 493.88] },
-    { title: '枕边星', artist: '絮语电台 · 睡前慢板', tempo: 72, notes: [220, 261.63, 329.63, 261.63, 196, 246.94, 293.66, 246.94, 174.61, 220, 261.63, 329.63, 293.66, 261.63, 246.94, 196] },
-  ];
-  const music = { index: 0, playing: false, step: 0, context: null, timer: null, nextTime: 0 };
-
-  function renderMusic() {
-    const track = TRACKS[music.index];
-    el('#w-track').textContent = track.title;
-    el('#w-artist').textContent = track.artist;
-    el('#w-play').setAttribute('aria-label', music.playing ? '暂停音乐' : '播放音乐');
-    el('#w-play-icon').innerHTML = music.playing
-      ? '<path d="M8 5v14M16 5v14"/>'
-      : '<path d="M8 5l11 7-11 7V5z"/>';
-    el('#w-disc').classList.toggle('is-playing', music.playing);
-    el('#w-music-status').textContent = music.playing ? '正在播放 · 第 ' + (music.index + 1) + ' 首' : '点一下，听首小曲';
-    el('#w-progress').style.width = (music.step / track.notes.length * 100) + '%';
-  }
-
-  function playTone(freq, time, duration, volume) {
-    const ctx = music.context;
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(freq, time);
-    gain.gain.setValueAtTime(0.0001, time);
-    gain.gain.exponentialRampToValueAtTime(volume, time + 0.035);
-    gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-    oscillator.start(time);
-    oscillator.stop(time + duration + 0.03);
-  }
-
-  function scheduleMusic() {
-    if (!music.playing) return;
-    const track = TRACKS[music.index];
-    const beat = 60 / track.tempo;
-    while (music.nextTime < music.context.currentTime + 0.25) {
-      const note = track.notes[music.step];
-      playTone(note, music.nextTime, beat * 0.85, 0.065);
-      if (music.step % 4 === 0) playTone(note / 2, music.nextTime, beat * 1.8, 0.025);
-      music.step = (music.step + 1) % track.notes.length;
-      music.nextTime += beat;
-      el('#w-progress').style.width = (music.step / track.notes.length * 100) + '%';
-    }
-  }
-
-  function startMusic() {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) {
-      App.toast('当前浏览器不支持音乐播放');
-      return;
-    }
-    if (!music.context) music.context = new AudioContext();
-    music.context.resume();
-    music.playing = true;
-    music.nextTime = music.context.currentTime + 0.08;
-    clearInterval(music.timer);
-    scheduleMusic();
-    music.timer = setInterval(scheduleMusic, 80);
-    renderMusic();
-  }
-
-  function stopMusic() {
-    music.playing = false;
-    clearInterval(music.timer);
-    music.timer = null;
-    renderMusic();
-  }
-
-  function changeTrack(direction) {
-    music.index = (music.index + direction + TRACKS.length) % TRACKS.length;
-    music.step = 0;
-    if (music.playing) music.nextTime = music.context.currentTime + 0.08;
-    renderMusic();
-  }
 
   App.renderContacts = function () {
     const list = el('#contact-list');
@@ -249,6 +169,7 @@
     dialogAvatar = contact ? (contact.avatar || '') : '';
     renderDialogAvatar();
     el('#contact-note').value = contact ? (contact.note || '') : '';
+    el('#contact-birthday').value = contact ? (contact.birthday || '') : '';
     const cs = App.contactSettings(contact);
     el('#ct-reply-min').value = cs.replyMin;
     el('#ct-reply-max').value = cs.replyMax;
@@ -262,6 +183,7 @@
     dialog.showModal();
     setTimeout(function () { el('#contact-name').focus(); }, 60);
   }
+  App.openContactDialog = openContactDialog;
 
   function saveContact(e) {
     e.preventDefault();
@@ -272,6 +194,7 @@
     }
     const avatar = dialogAvatar || '🙂';
     const note = el('#contact-note').value.trim();
+    const birthday = el('#contact-birthday').value;
     let min = Math.max(0, Math.min(5, Number(el('#ct-reply-min').value) || 0));
     let max = Math.max(0, Math.min(5, Number(el('#ct-reply-max').value) || 0));
     if (max < min) max = min;
@@ -290,9 +213,10 @@
       editingContact.name = name;
       editingContact.avatar = avatar;
       editingContact.note = note;
+      editingContact.birthday = birthday;
       editingContact.settings = settings;
     } else {
-      const contact = { id: App.uid('c'), name: name, avatar: avatar, note: note, settings: settings };
+      const contact = { id: App.uid('c'), name: name, avatar: avatar, note: note, birthday: birthday, settings: settings };
       App.state.contacts.push(contact);
       App.state.chats[contact.id] = [];
       App.state.currentContactId = contact.id;
@@ -300,7 +224,7 @@
 
     App.save();
     dialog.close();
-    App.renderDesktop();
+    App.renderAll();
     App.toast(editingContact ? '已更新联系人' : '已添加联系人');
     editingContact = null;
   }
@@ -319,7 +243,7 @@
     App.save();
     dialog.close();
     editingContact = null;
-    App.renderDesktop();
+    App.renderAll();
     App.toast('已删除联系人');
   }
 
@@ -481,13 +405,6 @@
       clearTimeout(notesTimer);
       notesTimer = setTimeout(function () { el('#w-notes-status').textContent = '自动保存'; }, 1200);
     });
-
-    el('#w-play').addEventListener('click', function () {
-      if (music.playing) stopMusic();
-      else startMusic();
-    });
-    el('#w-prev').addEventListener('click', function () { changeTrack(-1); });
-    el('#w-next').addEventListener('click', function () { changeTrack(1); });
 
     document.querySelectorAll('[data-icon-shape]').forEach(function (btn) {
       btn.addEventListener('click', function () {
