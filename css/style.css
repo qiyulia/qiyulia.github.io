@@ -1768,7 +1768,6 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .music-row-heart.is-active, .music-row-ta.is-active { color: #df6485; }
 .music-row-delete { font-size: 17px; }
 .music-row-ta { min-width: 32px; color: var(--muted); font-size: 9px; white-space: nowrap; text-align: center; }
-#music-identify:disabled { opacity: .55; cursor: wait; }
 
 @media (max-width: 360px) {
   .music-track-row { align-items: flex-start; flex-direction: column; }

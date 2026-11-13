@@ -351,23 +351,22 @@ if ('caches' in window) {
         <section class="panel music-import-panel">
           <h3>导入音乐</h3>
           <form id="music-link-form" class="music-link-form">
-            <label class="field"><span>酷狗、网易云或音频直链</span><input id="music-url" type="url" inputmode="url" placeholder="粘贴分享链接或音频地址" required></label>
+            <label class="field"><span>音频直链</span><input id="music-url" type="url" inputmode="url" placeholder="粘贴可直接播放的 MP3、M4A、OGG 等地址" required></label>
             <div class="field-row">
-              <label class="field"><span>歌名</span><input id="music-track-title" maxlength="60" placeholder="自动识别或手动填写"></label>
+              <label class="field"><span>歌名</span><input id="music-track-title" maxlength="60" placeholder="留空则使用文件名"></label>
               <label class="field"><span>歌手</span><input id="music-track-artist" maxlength="60" placeholder="歌手名"></label>
             </div>
             <div class="btn-row music-import-actions">
-              <button type="button" class="btn" id="music-identify">识别链接</button>
-              <button type="submit" class="btn primary">导入歌曲</button>
+              <button type="submit" class="btn primary">导入直链</button>
             </div>
-            <p class="field-hint" id="music-link-status">先识别链接；受平台限制时，可手动补全歌名和歌手。</p>
+            <p class="field-hint" id="music-link-status">粘贴音频直链，确认歌名和歌手后即可导入。</p>
           </form>
           <div class="music-local-import">
-            <button type="button" class="btn" id="music-local-button">从本地导入音频</button>
+            <button type="button" class="btn" id="music-local-button">选择本地音频文件</button>
             <input type="file" id="music-local-file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" multiple hidden>
-            <p class="field-hint" id="music-local-status">支持多选，音频文件只保存在本机。</p>
+            <p class="field-hint" id="music-local-status">支持多选，音频仅保存在当前浏览器，刷新后仍可播放。</p>
           </div>
-          <p class="panel-note">网易云免费歌曲可直接播放，会员或版权受限歌曲请打开原平台；酷狗页面暂不支持站外播放。备份不包含音频文件。</p>
+          <p class="panel-note">直链需可公开访问且未受防盗链限制；备份不包含本地音频文件。</p>
         </section>
 
         <section class="panel music-playlist-panel">

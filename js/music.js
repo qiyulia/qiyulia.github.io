@@ -17,7 +17,6 @@
   let audioTrackId = '';
   let objectUrl = '';
   let mediaToken = 0;
-  let recognizedAudioUrl = '';
   let taTimer = null;
   let taResumeTimer = null;
   const synth = { context: null, timer: null, endTimer: null, nextTime: 0, step: 0, trackId: '' };
@@ -441,24 +440,11 @@
     const split = base.match(/^(.+?)\s+-\s+(.+)$/);
     return split ? { title: split[2].trim(), artist: split[1].trim() } : { title: base, artist: '' };
   }
-  function platformNameParts(text) {
-    const clean = String(text || '').replace(/\s*[-_丨|]?\s*(单曲|MV)?\s*[-_丨|]?\s*(网易云音乐|酷狗音乐|酷狗).*$/i, '').trim();
-    const split = clean.match(/^(.+?)\s+-\s+(.+)$/);
-    return split ? { title: split[1].trim(), artist: split[2].trim() } : { title: clean, artist: '' };
-  }
   function urlNameParts(url) {
     try {
       const parsed = new URL(url);
       return localNameParts(parsed.pathname.split('/').pop());
     } catch (e) { return { title: '未命名歌曲', artist: '' }; }
-  }
-  function sourceForUrl(url) {
-    try {
-      const host = new URL(url).hostname;
-      if (/(^|\.)163\.com$/.test(host)) return 'netease';
-      if (/(^|\.)kugou\.com$/.test(host)) return 'kugou';
-    } catch (e) {}
-    return 'url';
   }
   function neteaseId(url) {
     try {
@@ -479,95 +465,28 @@
   function isAudioFileUrl(url) {
     return /\.(mp3|m4a|aac|ogg|wav|flac)(\?|#|$)/i.test(url || '');
   }
-  function fetchPlatformMetadata(url) {
-    const controller = new AbortController();
-    const timeout = setTimeout(function () { controller.abort(); }, 6000);
-    return fetch(url, { mode: 'cors', credentials: 'omit', signal: controller.signal }).then(function (response) {
-      if (!response.ok) throw new Error('平台页面读取失败');
-      return response.text();
-    }).then(function (html) {
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const meta = function (property) {
-        const node = doc.querySelector('meta[property="' + property + '"],meta[name="' + property + '"]');
-        return node ? node.getAttribute('content') || '' : '';
-      };
-      return {
-        title: meta('og:title') || (doc.title || ''),
-        audioUrl: safeUrl(meta('og:audio') || meta('og:audio:url') || meta('twitter:player:stream')),
-      };
-    }).finally(function () { clearTimeout(timeout); });
-  }
-
-  function identifyLink() {
+  function importLink(e) {
+    e.preventDefault();
     const input = el('#music-url');
     const url = safeUrl(input.value.trim());
     if (!url) {
-      el('#music-link-status').textContent = '请输入有效的 http 或 https 链接。';
+      el('#music-link-status').textContent = '请输入有效的 http 或 https 音频直链。';
       input.focus();
       return;
     }
-    input.value = url;
-    recognizedAudioUrl = '';
-    const source = sourceForUrl(url);
-    const fallback = source === 'netease'
-      ? { title: '网易云歌曲', artist: '' }
-      : urlNameParts(url);
-    el('#music-track-title').value = fallback.title;
-    el('#music-track-artist').value = fallback.artist;
-    if (source === 'url') {
-      el('#music-link-status').textContent = '已从链接读取文件名，可修改歌名和歌手后导入。';
-      return;
-    }
-    const button = el('#music-identify');
-    button.disabled = true;
-    el('#music-link-status').textContent = '正在读取平台公开信息…';
-    fetchPlatformMetadata(url).then(function (meta) {
-      const parts = platformNameParts(meta.title);
-      if (parts.title) el('#music-track-title').value = parts.title;
-      if (parts.artist) el('#music-track-artist').value = parts.artist;
-      recognizedAudioUrl = meta.audioUrl || '';
-      el('#music-link-status').textContent = parts.title
-        ? '已识别公开信息，请确认后导入；能否播放仍以实际加载为准。'
-        : '没有读到歌曲信息，请手动补全后导入。';
-    }).catch(function () {
-      const id = source === 'netease' ? neteaseId(url) : '';
-      el('#music-link-status').textContent = id
-        ? '网易云禁止站外读取歌曲信息，请手动填写歌名和歌手；免费歌曲导入后可直接播放。'
-        : '平台限制了自动读取，请手动补全歌名和歌手后导入。';
-    }).finally(function () { button.disabled = false; });
-  }
-
-  function importLink(e) {
-    e.preventDefault();
-    const url = safeUrl(el('#music-url').value.trim());
-    if (!url) {
-      el('#music-link-status').textContent = '请输入有效的 http 或 https 链接。';
-      return;
-    }
-    const title = el('#music-track-title').value.trim() || urlNameParts(url).title;
-    const artist = el('#music-track-artist').value.trim() || '未知歌手';
-    const source = sourceForUrl(url);
-    const audioUrl = recognizedAudioUrl ||
-      (source === 'netease' ? neteaseAudioUrl(neteaseId(url)) : '');
     const track = {
       id: App.uid('track'),
-      title: title,
-      artist: artist,
-      source: source,
-      url: audioUrl || url,
-      pageUrl: url,
+      title: el('#music-track-title').value.trim() || urlNameParts(url).title,
+      artist: el('#music-track-artist').value.trim() || '未知歌手',
+      source: 'url',
+      url: url,
       createdAt: Date.now(),
     };
     tracks().push(track);
     App.save();
     App.renderMusic();
     el('#music-link-form').reset();
-    recognizedAudioUrl = '';
-    el('#music-link-status').textContent = source === 'url'
-      ? '已加入播放列表，点击歌曲时会验证音频直链是否可播放。'
-      : (source === 'netease'
-        ? '已加入播放列表；免费歌曲可直接播放，会员或受限歌曲请打开原平台。'
-        : '已加入播放列表；若平台页面不能播放，请打开原平台或改用本地音频。');
+    el('#music-link-status').textContent = '已加入播放列表，点击歌曲即可播放；若加载失败，请检查直链是否有效。';
     App.toast('歌曲已加入播放列表');
   }
 
@@ -643,8 +562,6 @@
       App.renderMusic();
     });
     el('#music-favorite').addEventListener('click', function () { toggleFavorite(currentTrack().id, 'mine'); });
-    el('#music-identify').addEventListener('click', identifyLink);
-    el('#music-url').addEventListener('input', function () { recognizedAudioUrl = ''; });
     el('#music-link-form').addEventListener('submit', importLink);
     el('#music-local-button').addEventListener('click', function () { el('#music-local-file').click(); });
     el('#music-local-file').addEventListener('change', function (e) {
