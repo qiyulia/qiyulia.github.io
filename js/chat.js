@@ -5,6 +5,7 @@
   const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
   if (App.sendAs == null) App.sendAs = 'me';
+  if (App.panelKind == null) App.panelKind = 'sticker';
 
   function currentContact() {
     return App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
@@ -121,11 +122,11 @@
     closeStickerPanel();
   }
 
-  function sendPat() {
+  function sendPat(card) {
     const contact = currentContact();
     if (!contact) return;
-    const card = App.pickPatCard();
-    const raw = card ? card.text : '拍了拍{name}';
+    const picked = card || App.pickPatCard();
+    const raw = picked ? picked.text : '拍了拍{name}';
     const target = App.sendAs === 'me' ? contact.name : '你';
     const subject = App.sendAs === 'me' ? '你' : contact.name;
     const action = raw.indexOf('{name}') !== -1
@@ -137,7 +138,7 @@
       type: 'pat',
       text: subject + action,
       ts: Date.now(),
-      cardId: card ? card.id : undefined,
+      cardId: picked ? picked.id : undefined,
     });
   }
 
@@ -219,6 +220,18 @@
   }
 
   function renderStickerPanel() {
+    const kind = App.panelKind || 'sticker';
+    const isPat = kind === 'pat';
+    document.querySelectorAll('[data-panel-kind]').forEach(function (btn) {
+      btn.classList.toggle('is-on', btn.dataset.panelKind === kind);
+    });
+    el('#sticker-side-head').hidden = isPat;
+    el('#sticker-grid').hidden = isPat;
+    el('#pat-grid').hidden = !isPat;
+    el('#btn-add-sticker').hidden = isPat;
+
+    if (isPat) { renderPatGrid(); return; }
+
     const side = App.sendAs;
     const stickers = App.state.stickers[side] || [];
     el('#sticker-grid').innerHTML = stickers.length
@@ -231,6 +244,21 @@
           '</div>';
         }).join('')
       : '<p class="sticker-empty">还没有表情包，点下方按钮从本地相册添加。</p>';
+  }
+
+  function renderPatGrid() {
+    const contact = currentContact();
+    const name = contact ? contact.name : '你';
+    const cards = (App.state.cards || []).filter(function (c) {
+      return c.category === '拍一拍' && c.enabled !== false && c.text;
+    });
+    el('#pat-grid').innerHTML = cards.length
+      ? cards.map(function (c) {
+          return '<button type="button" class="pat-item" data-send-pat="' + c.id + '">' +
+            App.esc(c.text.split('{name}').join(name)) +
+          '</button>';
+        }).join('')
+      : '<p class="sticker-empty">字卡库里还没有拍一拍字卡，去「字卡」添加。</p>';
   }
 
   function closeStickerPanel() {
@@ -325,6 +353,22 @@
     });
 
     document.addEventListener('click', function (e) {
+      const kindBtn = e.target.closest('[data-panel-kind]');
+      if (kindBtn) {
+        App.panelKind = kindBtn.dataset.panelKind;
+        renderStickerPanel();
+        return;
+      }
+
+      const patItem = e.target.closest('[data-send-pat]');
+      if (patItem) {
+        const card = (App.state.cards || []).find(function (c) {
+          return c.id === patItem.dataset.sendPat;
+        });
+        if (card) sendPat(card);
+        return;
+      }
+
       const stickerTab = e.target.closest('[data-sticker-side]');
       if (stickerTab) {
         App.sendAs = stickerTab.dataset.stickerSide;
@@ -355,7 +399,6 @@
     });
 
     el('#btn-sticker').addEventListener('click', toggleStickerPanel);
-    el('#btn-pat').addEventListener('click', sendPat);
     el('#btn-add-sticker').addEventListener('click', function () { el('#sticker-file').click(); });
     el('#sticker-file').addEventListener('change', function (e) {
       const files = e.target.files;

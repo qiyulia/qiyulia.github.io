@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261113-5">
+<link rel="stylesheet" href="css/style.css?v=20261113-6">
 </head>
 <body>
 <div class="stage">
@@ -283,16 +283,17 @@ if ('caches' in window) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14.5c1.4 1.8 2.6 2.5 4 2.5s2.6-.7 4-2.5"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
         </button>
         <textarea id="msg-input" rows="1" maxlength="500" placeholder="说点什么…" aria-label="输入消息"></textarea>
-        <button type="button" class="composer-icon-btn" id="btn-pat" aria-label="拍一拍" title="拍一拍">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11a1 1 0 0 1 1-1 1 1 0 0 1 1 1v3a1 1 0 1 1-2 0v-3zm3-5a1 1 0 0 1 2 0v8a1 1 0 1 1-2 0V6zm3 2a1 1 0 0 1 2 0v6a1 1 0 1 1-2 0V8zm3 1a1 1 0 0 1 2 0v6a4 4 0 0 1-4 4h-1.6a3 3 0 0 1-2.1-.9l-4.8-4.8a1.5 1.5 0 0 1 2.1-2.1L12 15V9a1 1 0 0 1 1-1z"/></svg>
-        </button>
         <button type="submit" class="send-btn" aria-label="发送">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-7-7 16-2.2-6.8L4 12z"/></svg>
         </button>
       </form>
       <input type="file" id="sticker-file" accept="image/*" multiple hidden>
       <div id="sticker-panel" class="sticker-panel" hidden>
-        <div class="sticker-head">
+        <div class="sticker-tabs sticker-kinds" role="group" aria-label="表情类型">
+          <button type="button" class="sticker-tab is-on" data-panel-kind="sticker">表情</button>
+          <button type="button" class="sticker-tab" data-panel-kind="pat">拍一拍</button>
+        </div>
+        <div class="sticker-head" id="sticker-side-head">
           <div class="sticker-tabs" role="group" aria-label="表情包身份">
             <button type="button" class="sticker-tab is-on" data-sticker-side="me">我</button>
             <button type="button" class="sticker-tab" data-sticker-side="ta">TA</button>
@@ -300,6 +301,7 @@ if ('caches' in window) {
           <span class="sticker-side-hint" id="sticker-side-hint">当前：我的表情包</span>
         </div>
         <div id="sticker-grid" class="sticker-grid"></div>
+        <div id="pat-grid" class="pat-grid" hidden></div>
         <button type="button" class="btn sticker-add" id="btn-add-sticker">+ 从本地相册添加到当前侧</button>
       </div>
     </section>
@@ -480,13 +482,13 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261113-5"></script>
-<script src="js/store.js?v=20261113-5"></script>
-<script src="js/desktop.js?v=20261113-5"></script>
-<script src="js/chat.js?v=20261113-5"></script>
-<script src="js/cards.js?v=20261113-5"></script>
-<script src="js/settings.js?v=20261113-5"></script>
-<script src="js/moments.js?v=20261113-5"></script>
-<script src="js/app.js?v=20261113-5"></script>
+<script src="js/seed.js?v=20261113-6"></script>
+<script src="js/store.js?v=20261113-6"></script>
+<script src="js/desktop.js?v=20261113-6"></script>
+<script src="js/chat.js?v=20261113-6"></script>
+<script src="js/cards.js?v=20261113-6"></script>
+<script src="js/settings.js?v=20261113-6"></script>
+<script src="js/moments.js?v=20261113-6"></script>
+<script src="js/app.js?v=20261113-6"></script>
 </body>
 </html>
