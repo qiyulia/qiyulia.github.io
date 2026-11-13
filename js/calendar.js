@@ -1,197 +1,229 @@
-/* 日历应用：待办、经期、排卵期标记与次月预测（全部本机保存） */
+/* 日历：待办、连续经期/排卵期记录与预测 */
 (function () {
   const App = window.App;
   const el = function (sel) { return document.querySelector(sel); };
+  const CYCLE_DAYS = 5;
 
-  const cursor = new Date();
-  cursor.setDate(1);
+  const today = new Date();
+  let cursor = new Date(today.getFullYear(), today.getMonth(), 1);
+  let selected = keyOf(today);
 
   function keyOf(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  function shiftKey(key, days) {
-    const parts = key.split('-').map(Number);
-    return keyOf(new Date(parts[0], parts[1] - 1, parts[2] + days));
+  function fromKey(key) {
+    const p = key.split('-').map(Number);
+    return new Date(p[0], p[1] - 1, p[2]);
   }
 
-  function shortDate(key) {
-    const parts = key.split('-').map(Number);
-    return parts[1] + '月' + parts[2] + '日';
+  function addDays(key, n) {
+    const d = fromKey(key);
+    d.setDate(d.getDate() + n);
+    return keyOf(d);
   }
 
-  let selected = keyOf(new Date());
-  let cycleVisible = false;
-  let hasPickedDay = false;
-
-  function dayData(key) {
-    return (App.state.calendar && App.state.calendar[key]) || null;
+  function rangeDays(start, count) {
+    const days = [];
+    for (let i = 0; i < count; i++) days.push(addDays(start, i));
+    return days;
   }
 
-  /* 连续经期只取第一天；有多个周期时使用近几次的平均间隔，否则按 28 天估算。 */
-  function predictions() {
-    const calendar = App.state.calendar || {};
-    const periodDays = Object.keys(calendar).filter(function (key) {
-      return calendar[key] && calendar[key].period;
+  function calendar() {
+    if (!App.state.calendar || typeof App.state.calendar !== 'object') App.state.calendar = {};
+    return App.state.calendar;
+  }
+
+  function closeCyclePanel() {
+    const panel = el('#cal-cycle-dialog');
+    if (panel.open) panel.close();
+    panel.hidden = true;
+  }
+
+  function openCyclePanel() {
+    const panel = el('#cal-cycle-dialog');
+    renderMarkState();
+    panel.hidden = false;
+    if (!panel.open) panel.showModal();
+  }
+
+  function groupStarts(type) {
+    const cal = calendar();
+    const days = Object.keys(cal).filter(function (key) {
+      return cal[key] && cal[key][type];
     }).sort();
-    const starts = periodDays.filter(function (key) {
-      const previous = dayData(shiftKey(key, -1));
-      return !(previous && previous.period);
+    const starts = [];
+    let previous = null;
+    days.forEach(function (key) {
+      if (!previous || addDays(previous, 1) !== key) starts.push(key);
+      previous = key;
     });
-    const ovulationDays = Object.keys(calendar).filter(function (key) {
-      return calendar[key] && calendar[key].ovulation;
-    }).sort();
-
-    let cycle = 28;
-    if (starts.length > 1) {
-      const recent = starts.slice(-4);
-      const intervals = [];
-      for (let i = 1; i < recent.length; i++) {
-        const from = new Date(recent[i - 1] + 'T00:00:00');
-        const to = new Date(recent[i] + 'T00:00:00');
-        intervals.push(Math.round((to - from) / 86400000));
-      }
-      if (intervals.length) {
-        cycle = Math.round(intervals.reduce(function (sum, n) { return sum + n; }, 0) / intervals.length);
-        cycle = Math.max(21, Math.min(35, cycle));
-      }
-    }
-
-    const today = keyOf(new Date());
-    let period = '';
-    let ovulation = '';
-    if (starts.length) {
-      period = shiftKey(starts[starts.length - 1], cycle);
-      while (period < today) period = shiftKey(period, cycle);
-      ovulation = shiftKey(period, -14);
-    } else if (ovulationDays.length) {
-      ovulation = shiftKey(ovulationDays[ovulationDays.length - 1], cycle);
-      while (ovulation < today) ovulation = shiftKey(ovulation, cycle);
-    }
-    return { period: period, ovulation: ovulation, cycle: cycle };
+    return starts;
   }
 
-  // 桌面小组件与日历共用实际记录和预测颜色。
+  function predictions() {
+    const periodStarts = groupStarts('period').sort();
+    const ovulationStarts = groupStarts('ovulation').sort();
+    const lastPeriod = periodStarts.length ? periodStarts[periodStarts.length - 1] : null;
+    const lastOvulation = ovulationStarts.length ? ovulationStarts[ovulationStarts.length - 1] : null;
+    let cycle = 28;
+
+    if (periodStarts.length > 1) {
+      const gaps = [];
+      for (let i = 1; i < periodStarts.length; i++) {
+        const gap = Math.round((fromKey(periodStarts[i]) - fromKey(periodStarts[i - 1])) / 86400000);
+        if (gap >= 21 && gap <= 35) gaps.push(gap);
+      }
+      if (gaps.length) {
+        const recent = gaps.slice(-4);
+        cycle = Math.round(recent.reduce(function (a, b) { return a + b; }, 0) / recent.length);
+      }
+    }
+
+    const fallback = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    const periodStart = lastPeriod ? addDays(lastPeriod, cycle) : keyOf(new Date(fallback.getFullYear(), fallback.getMonth(), 10));
+    const ovulationStart = lastPeriod
+      ? addDays(periodStart, -14)
+      : (lastOvulation ? addDays(lastOvulation, cycle) : keyOf(new Date(fallback.getFullYear(), fallback.getMonth(), 12)));
+
+    return {
+      period: rangeDays(periodStart, CYCLE_DAYS),
+      ovulation: rangeDays(ovulationStart, CYCLE_DAYS),
+      periodStart: periodStart,
+      ovulationStart: ovulationStart,
+      cycle: cycle,
+    };
+  }
+
   App.calendarDayClass = function (key) {
-    const d = dayData(key) || {};
+    const d = calendar()[key];
     const predicted = predictions();
     const cls = [];
-    if (d.period) cls.push('cal-period');
-    else if (key === predicted.period) cls.push('cal-period-predicted');
-    if (d.ovulation) cls.push('cal-ovulation');
-    else if (key === predicted.ovulation) cls.push('cal-ovulation-predicted');
-    if (d.todo && d.todo.trim()) cls.push('cal-has-todo');
+    if (d && d.period) cls.push('cal-period');
+    else if (predicted.period.indexOf(key) >= 0) cls.push('cal-period-predicted');
+    if (d && d.ovulation) cls.push('cal-ovulation');
+    else if (predicted.ovulation.indexOf(key) >= 0) cls.push('cal-ovulation-predicted');
+    if (d && d.todo) cls.push('cal-has-todo');
     return cls.join(' ');
   };
 
-  function renderGrid() {
+  function fmtRange(start, end) {
+    const a = fromKey(start);
+    const b = fromKey(end);
+    const left = (a.getMonth() + 1) + '月' + a.getDate() + '日';
+    const right = a.getMonth() === b.getMonth()
+      ? b.getDate() + '日'
+      : (b.getMonth() + 1) + '月' + b.getDate() + '日';
+    return left + '–' + right;
+  }
+
+  function renderMarkState() {
+    const cal = calendar();
+    const days = rangeDays(selected, CYCLE_DAYS);
+    const periodMarked = days.every(function (key) { return cal[key] && cal[key].period; });
+    const ovulationMarked = days.every(function (key) { return cal[key] && cal[key].ovulation; });
+    el('#cal-mark-period').textContent = periodMarked ? '取消经期' : '记录经期';
+    el('#cal-mark-ovulation').textContent = ovulationMarked ? '取消排卵期' : '记录排卵期';
+    el('#cal-mark-period').classList.toggle('is-marked', periodMarked);
+    el('#cal-mark-ovulation').classList.toggle('is-marked', ovulationMarked);
+    el('#cal-cycle-title').textContent = fromKey(selected).getMonth() + 1 + '月' + fromKey(selected).getDate() + '日';
+    el('#cal-cycle-range').textContent = '从 ' + selected.replace(/-/g, '.') + ' 开始，连续记录或取消 5 天。';
+  }
+
+  function render() {
+    closeCyclePanel();
     const year = cursor.getFullYear();
     const month = cursor.getMonth();
     el('#cal-title').textContent = year + '年' + (month + 1) + '月';
+    const cal = calendar();
+
+    el('#cal-selected-title').textContent = '已选 ' + selected.replace(/-/g, '.');
+    el('#cal-todo').value = (cal[selected] && cal[selected].todo) || '';
+    renderMarkState();
 
     const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
     const total = new Date(year, month + 1, 0).getDate();
-    const todayKey = keyOf(new Date());
-
     let html = '';
-    for (let i = 0; i < firstDay; i++) html += '<span class="cal-cell is-outside"></span>';
+    for (let i = 0; i < firstDay; i++) html += '<span class="cal-day is-outside"></span>';
     for (let day = 1; day <= total; day++) {
-      const key = keyOf(new Date(year, month, day));
-      const cls = ['cal-cell'];
+      const key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+      const cls = ['cal-day'];
+      if (key === keyOf(new Date())) cls.push('is-today');
+      if (key === selected) cls.push('is-selected');
       const extra = App.calendarDayClass(key);
       if (extra) cls.push(extra);
-      if (key === todayKey) cls.push('is-today');
-      if (key === selected) cls.push('is-selected');
-      html += '<button type="button" class="' + cls.join(' ') + '" data-cal-day="' + key + '">' + day + '</button>';
+      html += '<button type="button" class="' + cls.join(' ') + '" data-day="' + key + '">' + day + '</button>';
     }
     el('#cal-grid').innerHTML = html;
+
+    const p = predictions();
+    el('#cal-prediction').textContent = '下次预计：经期 ' + fmtRange(p.periodStart, p.period[p.period.length - 1]) +
+      ' · 排卵期 ' + fmtRange(p.ovulationStart, p.ovulation[p.ovulation.length - 1]) +
+      '（每次连续 5 天，按 ' + p.cycle + ' 天周期估算，仅供参考）';
   }
 
-  function renderSelected() {
-    el('#cal-selected-title').textContent = selected.split('-').join(' / ');
-    const d = dayData(selected) || {};
-    const todo = d.todo || '';
-    if (el('#cal-todo').value !== todo) el('#cal-todo').value = todo;
-    el('#cal-cycle-panel').hidden = !cycleVisible;
-    el('#cal-mark-period').classList.toggle('is-on', !!d.period);
-    el('#cal-mark-ovulation').classList.toggle('is-on', !!d.ovulation);
-    el('#cal-mark-period').textContent = d.period ? '取消经期' : '标记经期';
-    el('#cal-mark-ovulation').textContent = d.ovulation ? '取消排卵期' : '标记排卵期';
-  }
-
-  function renderPrediction() {
-    const predicted = predictions();
-    const parts = [];
-    if (predicted.period) parts.push('经期 ' + shortDate(predicted.period));
-    if (predicted.ovulation) parts.push('排卵期 ' + shortDate(predicted.ovulation));
-    el('#cal-prediction').textContent = parts.length
-      ? '下次预计：' + parts.join(' · ') + '（按 ' + predicted.cycle + ' 天周期估算，仅供参考）'
-      : '记录经期或排卵期后，会自动估算下次日期。';
-  }
-
-  App.renderCalendarApp = function () {
-    cycleVisible = false;
-    hasPickedDay = false;
-    renderGrid();
-    renderSelected();
-    renderPrediction();
-  };
-
-  function mutate(fn) {
-    const data = Object.assign({ todo: '', period: false, ovulation: false }, dayData(selected) || {});
-    fn(data);
-    if (!data.todo && !data.period && !data.ovulation) {
-      delete App.state.calendar[selected];
-    } else {
-      App.state.calendar[selected] = data;
-    }
+  function toggleRange(type) {
+    const cal = calendar();
+    const days = rangeDays(selected, CYCLE_DAYS);
+    const shouldMark = !days.every(function (key) { return cal[key] && cal[key][type]; });
+    days.forEach(function (key) {
+      const d = cal[key] || {};
+      d[type] = shouldMark;
+      if (!d.todo && !d.period && !d.ovulation) delete cal[key];
+      else cal[key] = d;
+    });
     App.save();
-    renderGrid();
-    renderSelected();
-    renderPrediction();
+    closeCyclePanel();
+    render();
+    if (App.renderDesktop) App.renderDesktop();
+    App.toast((type === 'period' ? '经期' : '排卵期') + (shouldMark ? '已记录连续 5 天' : '已取消连续 5 天'));
   }
+
+  App.renderCalendar = function () {
+    render();
+  };
 
   App.initCalendar = function () {
     el('#cal-prev').addEventListener('click', function () {
-      cursor.setMonth(cursor.getMonth() - 1);
-      cycleVisible = false;
-      hasPickedDay = false;
-      renderGrid();
-      renderSelected();
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1);
+      render();
     });
     el('#cal-next').addEventListener('click', function () {
-      cursor.setMonth(cursor.getMonth() + 1);
-      cycleVisible = false;
-      hasPickedDay = false;
-      renderGrid();
-      renderSelected();
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      render();
     });
 
     el('#cal-grid').addEventListener('click', function (e) {
-      const btn = e.target.closest('[data-cal-day]');
+      const btn = e.target.closest('[data-day]');
       if (!btn) return;
-      const key = btn.dataset.calDay;
-      if (selected === key && hasPickedDay) {
-        cycleVisible = true;
-      } else {
-        selected = key;
-        cycleVisible = false;
-      }
-      hasPickedDay = true;
-      renderGrid();
-      renderSelected();
+      selected = btn.dataset.day;
+      render();
+      openCyclePanel();
+    });
+
+    el('#cal-mark-period').addEventListener('click', function () { toggleRange('period'); });
+    el('#cal-mark-ovulation').addEventListener('click', function () { toggleRange('ovulation'); });
+    el('#cal-cycle-dialog [data-close]').addEventListener('click', closeCyclePanel);
+    el('#cal-cycle-dialog').addEventListener('cancel', function (e) {
+      e.preventDefault();
+      closeCyclePanel();
+    });
+    el('#cal-cycle-dialog').addEventListener('click', function (e) {
+      if (e.target === e.currentTarget) closeCyclePanel();
     });
 
     el('#cal-todo').addEventListener('input', function (e) {
-      const value = e.target.value;
-      mutate(function (d) { d.todo = value; });
+      const cal = calendar();
+      const d = cal[selected] || {};
+      d.todo = e.target.value;
+      if (!d.todo && !d.period && !d.ovulation) delete cal[selected];
+      else cal[selected] = d;
+      App.save();
+      const btn = el('[data-day="' + selected + '"]');
+      if (btn) btn.classList.toggle('cal-has-todo', !!d.todo);
+      if (App.renderDesktop) App.renderDesktop();
     });
 
-    el('#cal-mark-period').addEventListener('click', function () {
-      mutate(function (d) { d.period = !d.period; });
-    });
-    el('#cal-mark-ovulation').addEventListener('click', function () {
-      mutate(function (d) { d.ovulation = !d.ovulation; });
-    });
+    render();
   };
 })();

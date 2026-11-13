@@ -18,67 +18,30 @@
     const pager = el('#chat-settings-pager');
     if (!pager) return;
     chatSettingsPage = index === 1 ? 1 : 0;
-    pager.classList.toggle('show-moments', chatSettingsPage === 1);
 
     const reply = pager.querySelector('.reply-settings-page');
     const moments = pager.querySelector('.moments-settings-page');
+    reply.hidden = chatSettingsPage === 1;
+    moments.hidden = chatSettingsPage === 0;
     reply.inert = chatSettingsPage === 1;
     moments.inert = chatSettingsPage === 0;
     reply.setAttribute('aria-hidden', String(chatSettingsPage === 1));
     moments.setAttribute('aria-hidden', String(chatSettingsPage === 0));
 
-    document.querySelectorAll('[data-chat-settings-page]').forEach(function (dot) {
-      dot.classList.toggle('is-active', Number(dot.dataset.chatSettingsPage) === chatSettingsPage);
+    document.querySelectorAll('[data-chat-settings-page]').forEach(function (tab) {
+      const active = Number(tab.dataset.chatSettingsPage) === chatSettingsPage;
+      tab.classList.toggle('is-on', active);
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
     });
-    el('#chat-settings-page-hint').textContent = chatSettingsPage === 0
-      ? '右划进入朋友圈互动'
-      : '左划返回回复设置';
   }
 
   function initChatSettingsPager() {
-    const pager = el('#chat-settings-pager');
-    let gesture = null;
-    let suppressClick = false;
     showChatSettingsPage(0);
-
-    pager.addEventListener('pointerdown', function (e) {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      if (e.target.closest('textarea, input, select')) return;
-      gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, horizontal: false };
+    el('.chat-settings-tabs').addEventListener('click', function (e) {
+      const tab = e.target.closest('[data-chat-settings-page]');
+      if (tab) showChatSettingsPage(Number(tab.dataset.chatSettingsPage));
     });
-
-    pager.addEventListener('pointermove', function (e) {
-      if (!gesture || gesture.id !== e.pointerId) return;
-      const dx = e.clientX - gesture.x;
-      const dy = e.clientY - gesture.y;
-      if (!gesture.horizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-        gesture.horizontal = true;
-        pager.setPointerCapture(e.pointerId);
-      }
-    });
-
-    function finishGesture(e) {
-      if (!gesture || gesture.id !== e.pointerId) return;
-      const dx = e.clientX - gesture.x;
-      const wasHorizontal = gesture.horizontal;
-      gesture = null;
-      if (!wasHorizontal || Math.abs(dx) < 55) return;
-
-      if (chatSettingsPage === 0 && dx > 0) showChatSettingsPage(1);
-      else if (chatSettingsPage === 1 && dx < 0) showChatSettingsPage(0);
-      else return;
-
-      suppressClick = true;
-      setTimeout(function () { suppressClick = false; }, 100);
-    }
-
-    pager.addEventListener('pointerup', finishGesture);
-    pager.addEventListener('pointercancel', function () { gesture = null; });
-    pager.addEventListener('click', function (e) {
-      if (!suppressClick) return;
-      e.preventDefault();
-      e.stopPropagation();
-    }, true);
   }
 
   App.renderSettings = function () {

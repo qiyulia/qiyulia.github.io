@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261113-11">
+<link rel="stylesheet" href="css/style.css?v=20261113-12">
 </head>
 <body>
 <div class="stage">
@@ -214,11 +214,13 @@ if ('caches' in window) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
         <h2>联系人</h2>
-        <button type="button" class="icon-btn" id="btn-add-contact" aria-label="添加联系人">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
+        <span class="topbar-spacer"></span>
       </header>
       <div class="page-body">
+        <button type="button" class="btn primary contacts-add" id="btn-add-contact">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>添加联系人</span>
+        </button>
         <p class="panel-note contacts-hint">点名字 = 切换成这个角色并进入聊天；点 ✎ 单独改这个角色的回复与概率。每个角色的聊天记录互不干扰。</p>
         <div id="contact-list" class="contact-list"></div>
         <div id="contact-empty" class="empty-state" hidden>
@@ -295,14 +297,7 @@ if ('caches' in window) {
           <label class="field"><span>这一天要做的事</span>
             <textarea id="cal-todo" rows="3" maxlength="200" placeholder="记一下今天要做的事…"></textarea>
           </label>
-          <div id="cal-cycle-panel" hidden>
-            <div class="cal-marks">
-              <button type="button" class="cal-mark-btn period" id="cal-mark-period">标记经期</button>
-              <button type="button" class="cal-mark-btn ovulation" id="cal-mark-ovulation">标记排卵期</button>
-            </div>
-            <p class="panel-note">选择要记录的类型，再点一次即可取消。</p>
-          </div>
-          <p class="panel-note">待办会自动保存。再点一次已选中的日期，可记录经期或排卵期。</p>
+          <p class="panel-note">待办会自动保存。点击日期，可在弹窗中记录连续 5 天经期或排卵期。</p>
           <p class="panel-note cal-prediction" id="cal-prediction"></p>
         </div>
       </div>
@@ -311,10 +306,10 @@ if ('caches' in window) {
     <!-- ============ 聊天 ============ -->
     <section id="view-chat" class="view">
       <header class="topbar chat-topbar">
-        <button type="button" class="icon-btn" data-back="contacts" aria-label="返回">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回主页">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <button type="button" class="icon-btn" data-go="chat-settings" aria-label="第二设置" title="第二设置">
+        <button type="button" class="icon-btn" data-go="chat-settings" aria-label="设置" title="设置">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
         </button>
         <div class="chat-peer">
@@ -358,20 +353,23 @@ if ('caches' in window) {
       </div>
     </section>
 
-    <!-- ============ 聊天：第二设置 ============ -->
+    <!-- ============ 聊天：设置 ============ -->
     <section id="view-chat-settings" class="view">
       <header class="topbar">
         <button type="button" class="icon-btn" data-back="chat" aria-label="返回聊天">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <h2>第二设置</h2>
+        <h2>设置</h2>
         <span class="topbar-spacer"></span>
       </header>
       <div class="chat-settings-body">
+        <div class="chat-settings-tabs" role="tablist" aria-label="设置分类">
+          <button type="button" class="chat-settings-tab is-on" role="tab" id="chat-tab-reply" aria-selected="true" aria-controls="reply-settings-panel" data-chat-settings-page="0">回复</button>
+          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-moments" aria-selected="false" aria-controls="moments-settings-panel" data-chat-settings-page="1">朋友圈互动</button>
+        </div>
         <div class="chat-settings-pager" id="chat-settings-pager">
-          <section class="chat-settings-page reply-settings-page" aria-label="回复设置">
+          <section class="chat-settings-page reply-settings-page" id="reply-settings-panel" role="tabpanel" aria-labelledby="chat-tab-reply" aria-label="回复设置">
             <div class="panel">
-              <h3>回复</h3>
               <div class="field-row">
                 <label class="field"><span>每句话最少</span><input id="set-min" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
                 <label class="field"><span>最多</span><input id="set-max" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
@@ -402,9 +400,8 @@ if ('caches' in window) {
             </div>
           </section>
 
-          <section class="chat-settings-page moments-settings-page" aria-label="朋友圈互动设置">
+          <section class="chat-settings-page moments-settings-page" id="moments-settings-panel" role="tabpanel" aria-labelledby="chat-tab-moments" aria-label="朋友圈互动设置" hidden>
             <div class="panel">
-              <h3>朋友圈互动</h3>
               <label class="field"><span>TA 点赞我的动态（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-like" data-step="-5">−</button>
@@ -429,14 +426,6 @@ if ('caches' in window) {
               <p class="panel-note">都可以直接打字输入，也可以点 + / − 微调（概率每次 5%）。TA 发动态和评论的内容都来自字卡库。</p>
             </div>
           </section>
-        </div>
-
-        <div class="settings-page-foot">
-          <span id="chat-settings-page-hint">右划进入朋友圈互动</span>
-          <div class="page-dots settings-dots" aria-label="第二设置分页">
-            <span class="is-active" data-chat-settings-page="0" aria-label="回复"></span>
-            <span data-chat-settings-page="1" aria-label="朋友圈互动"></span>
-          </div>
         </div>
 
         <div class="panel chat-delete-panel">
@@ -526,6 +515,22 @@ if ('caches' in window) {
     </section>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- ============ 日历经期 / 排卵期弹窗 ============ -->
+<dialog id="cal-cycle-dialog" class="sheet cal-cycle-dialog">
+  <form>
+    <div class="sheet-head">
+      <h3 id="cal-cycle-title">选择记录</h3>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    </div>
+    <p class="panel-note" id="cal-cycle-range"></p>
+    <div class="cal-marks">
+      <button type="button" class="cal-mark-btn period" id="cal-mark-period">记录经期</button>
+      <button type="button" class="cal-mark-btn ovulation" id="cal-mark-ovulation">记录排卵期</button>
+    </div>
+    <p class="panel-note">选择后自动关闭；再次选择已记录的类型，可取消整段记录。</p>
+  </form>
+</dialog>
 
 <!-- ============ 字卡弹窗 ============ -->
 <dialog id="card-dialog" class="sheet">
@@ -642,14 +647,14 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261113-11"></script>
-<script src="js/store.js?v=20261113-11"></script>
-<script src="js/desktop.js?v=20261113-11"></script>
-<script src="js/chat.js?v=20261113-11"></script>
-<script src="js/cards.js?v=20261113-11"></script>
-<script src="js/settings.js?v=20261113-11"></script>
-<script src="js/moments.js?v=20261113-11"></script>
-<script src="js/calendar.js?v=20261113-11"></script>
-<script src="js/app.js?v=20261113-11"></script>
+<script src="js/seed.js?v=20261113-12"></script>
+<script src="js/store.js?v=20261113-12"></script>
+<script src="js/desktop.js?v=20261113-12"></script>
+<script src="js/chat.js?v=20261113-12"></script>
+<script src="js/cards.js?v=20261113-12"></script>
+<script src="js/settings.js?v=20261113-12"></script>
+<script src="js/moments.js?v=20261113-12"></script>
+<script src="js/calendar.js?v=20261113-12"></script>
+<script src="js/app.js?v=20261113-12"></script>
 </body>
 </html>

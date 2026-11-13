@@ -332,11 +332,20 @@
     });
   }
 
+  function paintPager(offset) {
+    const pager = el('#desk-pager');
+    const width = pager.clientWidth || 1;
+    const dx = offset || 0;
+    pager.querySelector('.home-page').style.transform = 'translateX(' + (-deskPage * width + dx) + 'px)';
+    pager.querySelector('.widget-page').style.transform = 'translateX(' + ((1 - deskPage) * width + dx) + 'px)';
+  }
+
   function jumpToDeskPage(index) {
     const pager = el('#desk-pager');
     deskPage = index === 1 ? 1 : 0;
     pager.classList.toggle('show-widgets', deskPage === 1);
     updatePagerDots();
+    paintPager(0);
 
     const home = pager.querySelector('.home-page');
     const widgets = pager.querySelector('.widget-page');
@@ -356,42 +365,66 @@
     pager.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (e.target.closest('textarea, input, select')) return;
-      gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, horizontal: false };
+      gesture = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        dx: 0,
+        horizontal: false,
+        decided: false,
+      };
     });
 
     pager.addEventListener('pointermove', function (e) {
       if (!gesture || gesture.id !== e.pointerId) return;
       const dx = e.clientX - gesture.x;
       const dy = e.clientY - gesture.y;
-      if (!gesture.horizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-        gesture.horizontal = true;
-        pager.setPointerCapture(e.pointerId);
+      gesture.dx = dx;
+
+      if (!gesture.decided && Math.max(Math.abs(dx), Math.abs(dy)) > 8) {
+        gesture.decided = true;
+        gesture.horizontal = Math.abs(dx) > Math.abs(dy);
+        if (gesture.horizontal) {
+          pager.setPointerCapture(e.pointerId);
+          pager.classList.add('is-dragging');
+        }
       }
-    });
+      if (!gesture.horizontal) return;
+      e.preventDefault();
 
-    function finishGesture(e) {
+      const atStart = deskPage === 0 && dx > 0;
+      const atEnd = deskPage === 1 && dx < 0;
+      paintPager(atStart || atEnd ? dx * 0.22 : dx);
+    }, { passive: false });
+
+    function finishGesture(e, cancelled) {
       if (!gesture || gesture.id !== e.pointerId) return;
-      const dx = e.clientX - gesture.x;
-      const wasHorizontal = gesture.horizontal;
+      const current = gesture;
       gesture = null;
-      if (!wasHorizontal || Math.abs(dx) < 55) return;
+      if (!current.horizontal) return;
 
-      if (deskPage === 0 && dx > 0) jumpToDeskPage(1);
-      else if (deskPage === 1 && dx < 0) jumpToDeskPage(0);
-      else return;
-
+      pager.classList.remove('is-dragging');
+      let next = deskPage;
+      if (!cancelled && Math.abs(current.dx) >= 55) {
+        if (deskPage === 0 && current.dx < 0) next = 1;
+        else if (deskPage === 1 && current.dx > 0) next = 0;
+      }
+      jumpToDeskPage(next);
       suppressClick = true;
-      setTimeout(function () { suppressClick = false; }, 100);
+      setTimeout(function () { suppressClick = false; }, 150);
     }
 
-    pager.addEventListener('pointerup', finishGesture);
-    pager.addEventListener('pointercancel', function () { gesture = null; });
+    pager.addEventListener('pointerup', function (e) { finishGesture(e, false); });
+    pager.addEventListener('pointercancel', function (e) { finishGesture(e, true); });
     pager.addEventListener('click', function (e) {
       if (!suppressClick) return;
+      suppressClick = false;
       e.preventDefault();
       e.stopPropagation();
     }, true);
-
+    window.addEventListener('resize', function () {
+      if (!gesture || !gesture.horizontal) paintPager(0);
+    });
   }
 
   App.initDesktop = function () {

@@ -22,7 +22,7 @@
     else if (view === 'cards') App.renderCards();
     else if (view === 'settings') App.renderSettings();
     else if (view === 'chat-settings') App.renderChatSettings();
-    else if (view === 'calendar') App.renderCalendarApp();
+    else if (view === 'calendar') App.renderCalendar();
   };
 
   App.toast = function (message) {

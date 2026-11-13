@@ -240,18 +240,22 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 }
 .widget-page {
   transform: translateX(100%);
-  opacity: .7;
+  opacity: 1;
   pointer-events: none;
 }
 .desk-pager.show-widgets .home-page {
-  transform: translateX(-22%);
-  opacity: 0;
+  transform: translateX(-100%);
+  opacity: 1;
   pointer-events: none;
 }
 .desk-pager.show-widgets .widget-page {
   transform: translateX(0);
   opacity: 1;
   pointer-events: auto;
+}
+.desk-pager.is-dragging .desk-page {
+  transition: none !important;
+  opacity: 1;
 }
 
 .page-dots {
@@ -1408,22 +1412,40 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 .panel-note { font-size: 11px; line-height: 1.6; color: var(--muted); }
 
-/* 聊天第二设置：回复 / 朋友圈互动双页滑动 */
+/* 聊天设置：顶部分类切换 */
 .chat-settings-body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   padding: 14px 16px calc(18px + var(--safe-bottom));
   overflow: hidden;
 }
+.chat-settings-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+}
+.chat-settings-tab {
+  min-height: 42px;
+  padding: 8px 18px;
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  transition: background .18s ease, color .18s ease, transform .15s ease;
+}
+.chat-settings-tab.is-on { background: var(--accent); color: var(--accent-ink); }
+.chat-settings-tab:active { transform: scale(.97); }
 .chat-settings-pager {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  touch-action: pan-y;
 }
 .chat-settings-page {
   position: absolute;
@@ -1431,31 +1453,13 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   overflow-y: auto;
   overscroll-behavior-y: contain;
   padding: 0 2px 4px;
-  transition: transform .28s cubic-bezier(.22, .8, .28, 1), opacity .22s ease;
+  animation: settings-tab-in .18s ease both;
 }
-.reply-settings-page { transform: translateX(0); opacity: 1; }
-.moments-settings-page { transform: translateX(100%); opacity: .7; pointer-events: none; }
-.chat-settings-pager.show-moments .reply-settings-page {
-  transform: translateX(-22%);
-  opacity: 0;
-  pointer-events: none;
+.chat-settings-page[hidden] { display: none; }
+@keyframes settings-tab-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.chat-settings-pager.show-moments .moments-settings-page {
-  transform: translateX(0);
-  opacity: 1;
-  pointer-events: auto;
-}
-.settings-page-foot {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 2px;
-  color: var(--muted);
-  font-size: 10.5px;
-}
-.settings-dots { flex: 0 0 auto; }
 .chat-delete-panel { flex: 0 0 auto; padding: 12px 14px; gap: 8px; }
 
 .btn-row { display: flex; gap: 8px; }
@@ -1548,6 +1552,17 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   gap: 11px;
 }
 .contact-settings h4 { margin: 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+.contacts-add {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.contacts-add svg { width: 16px; height: 16px; flex: 0 0 auto; }
 .contacts-hint { margin: 0 2px 10px; }
 
 /* ---------- 本地图片头像 ---------- */
@@ -1669,8 +1684,8 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .legend-dot.ovulation { background: #cdd6f7; }
 .legend-dot.todo { background: var(--accent); border-radius: 50%; width: 6px; height: 6px; }
 .legend-dot.predicted { background: transparent; border: 1px dashed #c681a0; }
-#cal-cycle-panel { display: flex; flex-direction: column; gap: 10px; }
-#cal-cycle-panel[hidden] { display: none; }
+.cal-cycle-dialog .cal-marks { margin: 4px 0; }
+.cal-cycle-dialog .cal-mark-btn { padding: 13px 8px; }
 .cal-marks { display: flex; gap: 10px; }
 .cal-mark-btn {
   flex: 1 1 auto;
