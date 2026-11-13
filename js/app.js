@@ -4,6 +4,7 @@
   const app = document.getElementById('app');
 
   App.go = function (view) {
+    if (App.closeMsgActions) App.closeMsgActions();
     document.querySelectorAll('.view').forEach(function (v) {
       v.classList.toggle('is-active', v.id === 'view-' + view);
     });

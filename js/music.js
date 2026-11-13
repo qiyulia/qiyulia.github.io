@@ -131,6 +131,13 @@
     taResumeTimer = null;
   }
 
+  function taProb(key, fallback) {
+    const contact = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
+    const value = Number(App.contactSettings(contact)[key]);
+    if (isNaN(value)) return fallback / 100;
+    return Math.max(0, Math.min(100, value)) / 100;
+  }
+
   function scheduleTa() {
     clearTimeout(taTimer);
     taTimer = null;
@@ -138,15 +145,19 @@
     taTimer = setTimeout(function () {
       taTimer = null;
       if (!playing || document.hidden) return;
+      const pFav = taProb('musicFavProb', 25);
+      const pSwitch = taProb('musicSwitchProb', 30);
+      const pPause = taProb('musicPauseProb', 15);
       const roll = Math.random();
-      if (roll < 0.35) {
+      if (roll < pFav) {
         toggleFavorite(currentTrack().id, 'ta');
         scheduleTa();
-      } else if (roll < 0.75) {
-        const direction = roll < 0.45 ? -1 : 1;
-        changeTrack(direction, true, roll >= 0.6);
-      } else {
+      } else if (roll < pFav + pSwitch) {
+        changeTrack(Math.random() < 0.5 ? -1 : 1, true, Math.random() < 0.5);
+      } else if (roll < pFav + pSwitch + pPause) {
         pauseByTa();
+      } else {
+        scheduleTa();
       }
     }, 20000 + Math.random() * 15000);
   }
@@ -155,13 +166,17 @@
     const contact = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
     clearTimeout(taTimer);
     stopPlayback();
-    statusText = 'TA 暂停了音乐，稍后会重新播放';
+    statusText = 'TA 暂停了音乐';
     App.renderMusic();
     if (contact && App.addChatSystemMessage) App.addChatSystemMessage(contact.id, contact.name + '暂停了音乐');
     clearTimeout(taResumeTimer);
     taResumeTimer = setTimeout(function () {
       taResumeTimer = null;
       if (document.hidden || playing) return;
+      if (Math.random() >= taProb('musicPlayProb', 60)) {
+        App.renderMusic();
+        return;
+      }
       playCurrent().then(function (ok) {
         if (ok && contact && App.addChatSystemMessage) App.addChatSystemMessage(contact.id, contact.name + '播放了音乐');
       });

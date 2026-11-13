@@ -58,6 +58,13 @@
     el('#set-ta-moment-cards').value = st.settings.taMomentCards == null ? 1 : st.settings.taMomentCards;
     el('#set-pat-back').value = st.settings.patBackProb == null ? 50 : st.settings.patBackProb;
     el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
+    el('#set-ta-recall').value = st.settings.taRecallProb == null ? 5 : st.settings.taRecallProb;
+    el('#set-ta-quote').value = st.settings.taQuoteProb == null ? 20 : st.settings.taQuoteProb;
+    el('#set-ta-fav').value = st.settings.taFavProb == null ? 15 : st.settings.taFavProb;
+    el('#set-music-pause').value = st.settings.musicPauseProb == null ? 15 : st.settings.musicPauseProb;
+    el('#set-music-play').value = st.settings.musicPlayProb == null ? 60 : st.settings.musicPlayProb;
+    el('#set-music-fav').value = st.settings.musicFavProb == null ? 25 : st.settings.musicFavProb;
+    el('#set-music-switch').value = st.settings.musicSwitchProb == null ? 30 : st.settings.musicSwitchProb;
 
     const partnerSelect = el('#set-partner');
     partnerSelect.innerHTML = st.contacts.length
@@ -194,6 +201,41 @@
       markDirty();
     });
 
+    App.bindStepper('#set-ta-recall', function (v) {
+      App.state.settings.taRecallProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-ta-quote', function (v) {
+      App.state.settings.taQuoteProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-ta-fav', function (v) {
+      App.state.settings.taFavProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-music-pause', function (v) {
+      App.state.settings.musicPauseProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-music-play', function (v) {
+      App.state.settings.musicPlayProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-music-fav', function (v) {
+      App.state.settings.musicFavProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-music-switch', function (v) {
+      App.state.settings.musicSwitchProb = v;
+      markDirty();
+    });
+
     el('#theme-row').addEventListener('click', function (e) {
       const btn = e.target.closest('[data-theme]');
       if (!btn) return;
@@ -241,6 +283,13 @@
         if (data.settings.taCommentProb == null) data.settings.taCommentProb = 40;
         if (data.settings.taMomentCards == null) data.settings.taMomentCards = 1;
         if (data.settings.emotionProb == null) data.settings.emotionProb = 30;
+        if (data.settings.taRecallProb == null) data.settings.taRecallProb = 5;
+        if (data.settings.taQuoteProb == null) data.settings.taQuoteProb = 20;
+        if (data.settings.taFavProb == null) data.settings.taFavProb = 15;
+        if (data.settings.musicPauseProb == null) data.settings.musicPauseProb = 15;
+        if (data.settings.musicPlayProb == null) data.settings.musicPlayProb = 60;
+        if (data.settings.musicFavProb == null) data.settings.musicFavProb = 25;
+        if (data.settings.musicSwitchProb == null) data.settings.musicSwitchProb = 30;
         if (!data.theme) data.theme = 'sand';
         data.contacts.forEach(function (c) {
           if (!c.id) c.id = App.uid('c');

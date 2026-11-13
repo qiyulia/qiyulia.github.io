@@ -7,6 +7,9 @@
   if (App.sendAs == null) App.sendAs = 'me';
   if (App.panelKind == null) App.panelKind = 'sticker';
 
+  let quoteDraft = null;
+  let actionMsgId = null;
+
   function currentContact() {
     return App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
   }
@@ -14,6 +17,10 @@
   App.openChat = function (contactId) {
     const exists = App.state.contacts.some(function (c) { return c.id === contactId; });
     if (!exists) return;
+    if (App.chatContactId !== contactId) {
+      quoteDraft = null;
+      closeMsgActions();
+    }
     App.chatContactId = contactId;
     App.state.currentContactId = contactId;
     App.unread[contactId] = 0;
@@ -41,13 +48,19 @@
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
     updateSideButtons();
     renderStickerPanel();
+    renderComposerQuote();
     scrollBottom();
   };
 
   function messageHtml(m) {
     const mine = m.role === 'me';
+    const contact = currentContact();
+    const taName = contact ? contact.name : 'TA';
     if (m.type === 'pat') {
       return '<div class="pat-line" role="status">' + App.esc(m.text) + '</div>';
+    }
+    if (m.recalled) {
+      return '<div class="msg-recall">' + App.esc(mine ? '你' : taName) + '撤回了一条消息</div>';
     }
     const hasFrequency = m.strength != null || m.percent != null || m.type === 'emotion';
     const hasEmotion = !!m.emotion || m.type === 'emotion';
@@ -74,18 +87,128 @@
     } else {
       body = '<div class="bubble">' + App.esc(m.text) + '</div>';
     }
-    const contact = currentContact();
+    const quote = m.quote && m.quote.text
+      ? '<span class="msg-quote"><strong>' + App.esc(m.quote.name || '') + '</strong>' + App.esc(m.quote.text) + '</span>'
+      : '';
+    const marks = [];
+    if (m.favMine) marks.push('我收藏了');
+    if (m.favTa) marks.push(App.esc(taName) + '收藏了');
+    const marksHtml = marks.length
+      ? '<div class="msg-marks">' + marks.map(function (t) { return '<span>★ ' + t + '</span>'; }).join('') + '</div>'
+      : '';
     const avatarSrc = mine ? App.state.profile.userAvatar : (contact && contact.avatar);
     const avatarHtml = mine
       ? '<span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>'
       : '<button type="button" class="msg-avatar msg-avatar-button" data-pat-current="1" aria-label="拍一拍 ' + App.esc(contact ? contact.name : 'TA') + '" title="拍一拍">' + App.avatarHtml(avatarSrc) + '</button>';
-    return '<div class="msg ' + (mine ? 'me' : 'ta') + '">' +
+    return '<div class="msg ' + (mine ? 'me' : 'ta') + '" data-msg-id="' + App.esc(m.id) + '">' +
       avatarHtml +
       '<div class="msg-main">' +
-        body +
+        quote +
+        '<div class="msg-bubble-hit" data-msg-bubble="1">' + body + '</div>' +
+        marksHtml +
         '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
       '</div>' +
       '</div>';
+  }
+
+  /* ---------- 引用草稿 ---------- */
+  function renderComposerQuote() {
+    const box = el('#composer-quote');
+    if (!box) return;
+    box.hidden = !quoteDraft;
+    if (!quoteDraft) return;
+    el('#composer-quote-name').textContent = quoteDraft.name;
+    el('#composer-quote-text').textContent = quoteDraft.text;
+  }
+
+  function messageAuthor(message, contact) {
+    return message.role === 'me'
+      ? (App.state.profile.userName || '我')
+      : (contact ? contact.name : 'TA');
+  }
+
+  /* ---------- 消息操作菜单 ---------- */
+  function findChatMessage(id) {
+    const chat = App.state.chats[App.chatContactId] || [];
+    return chat.find(function (m) { return m.id === id; });
+  }
+
+  function closeMsgActions() {
+    const menu = el('#msg-actions');
+    if (menu) menu.hidden = true;
+    actionMsgId = null;
+  }
+  App.closeMsgActions = closeMsgActions;
+
+  function openMsgActions(msgEl) {
+    const menu = el('#msg-actions');
+    const message = findChatMessage(msgEl.dataset.msgId);
+    if (!menu || !message) return;
+    actionMsgId = message.id;
+    const mine = message.role === 'me';
+    menu.querySelector('[data-msg-action="recall"]').hidden = !mine;
+    menu.querySelector('[data-msg-action="favorite"]').textContent = message.favMine ? '取消收藏' : '收藏';
+    menu.hidden = false;
+
+    const rect = msgEl.getBoundingClientRect();
+    const box = menu.getBoundingClientRect();
+    let left = mine ? rect.right - box.width : rect.left;
+    left = Math.max(8, Math.min(window.innerWidth - box.width - 8, left));
+    let top = rect.top - box.height - 8;
+    if (top < 8) top = rect.bottom + 8;
+    top = Math.max(8, Math.min(window.innerHeight - box.height - 8, top));
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+  }
+
+  function doMsgAction(action) {
+    const menu = el('#msg-actions');
+    if (menu) menu.hidden = true;
+    const id = actionMsgId;
+    actionMsgId = null;
+    const message = findChatMessage(id);
+    if (!message) return;
+    const chat = App.state.chats[App.chatContactId] || [];
+
+    if (action === 'recall') {
+      if (message.role !== 'me') return;
+      message.recalled = true;
+      message.recalledBy = 'me';
+      App.save();
+      App.renderChat();
+      App.renderContacts();
+      App.toast('已撤回消息');
+      return;
+    }
+
+    if (action === 'quote') {
+      quoteDraft = {
+        name: messageAuthor(message, currentContact()),
+        text: App.messagePreview(message),
+      };
+      renderComposerQuote();
+      const input = el('#msg-input');
+      if (input) input.focus();
+      return;
+    }
+
+    if (action === 'favorite') {
+      message.favMine = !message.favMine;
+      App.save();
+      App.renderChat();
+      App.toast(message.favMine ? '已收藏这条消息' : '已取消收藏');
+      return;
+    }
+
+    if (action === 'delete') {
+      if (!confirm('删除这条消息？')) return;
+      const index = chat.indexOf(message);
+      if (index !== -1) chat.splice(index, 1);
+      App.save();
+      App.renderChat();
+      App.renderContacts();
+      App.toast('已删除消息');
+    }
   }
 
   function scrollBottom() {
@@ -126,7 +249,11 @@
     if (!App.chatContactId || !text) return;
 
     const role = App.sendAs;
-    pushMessage({ id: App.uid('m'), role: role, type: 'text', text: text, ts: Date.now() });
+    const message = { id: App.uid('m'), role: role, type: 'text', text: text, ts: Date.now() };
+    if (quoteDraft) message.quote = quoteDraft;
+    quoteDraft = null;
+    renderComposerQuote();
+    pushMessage(message);
 
     input.value = '';
     input.style.height = 'auto';
@@ -260,6 +387,42 @@
     return pool.length ? pool[Math.floor(Math.random() * pool.length)].emotion : '平常';
   }
 
+  /* TA 按概率撤回/收藏自己或对方最近的消息 */
+  function scheduleTaMessageExtras(contactId, contact, message, cs) {
+    const recallProb = Math.max(0, Math.min(100, Number(cs.taRecallProb) || 0));
+    if (Math.random() * 100 < recallProb) {
+      setTimeout(function () {
+        const target = (App.state.chats[contactId] || []).find(function (m) {
+          return m.id === message.id;
+        });
+        if (!target || target.recalled) return;
+        target.recalled = true;
+        target.recalledBy = 'ta';
+        App.save();
+        if (App.chatContactId === contactId) App.renderChat();
+        else {
+          App.renderContacts();
+          App.updateBadges();
+        }
+      }, 2400 + Math.random() * 3000);
+    }
+
+    const favProb = Math.max(0, Math.min(100, Number(cs.taFavProb) || 0));
+    if (Math.random() * 100 < favProb) {
+      setTimeout(function () {
+        const pool = (App.state.chats[contactId] || []).filter(function (m) {
+          return !m.recalled && m.type !== 'pat';
+        }).slice(-8);
+        if (!pool.length) return;
+        const target = pool[Math.floor(Math.random() * pool.length)];
+        if (target.favTa) return;
+        target.favTa = true;
+        App.save();
+        if (App.chatContactId === contactId) App.renderChat();
+      }, 1800 + Math.random() * 3200);
+    }
+  }
+
   async function scheduleReply(contactId, userText) {
     const st = App.state;
     const contact = st.contacts.find(function (c) { return c.id === contactId; });
@@ -309,8 +472,24 @@
       };
       if (card.category === '语音') message.src = card.audio;
       if (Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
+
+      const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
+      if (chat.length && Math.random() * 100 < quoteProb) {
+        const pool = chat.filter(function (m) {
+          return !m.recalled && m.type !== 'pat' && (m.text || m.type === 'image');
+        }).slice(-12);
+        if (pool.length) {
+          const target = pool[Math.floor(Math.random() * pool.length)];
+          message.quote = {
+            name: messageAuthor(target, contact),
+            text: App.messagePreview(target),
+          };
+        }
+      }
+
       chat.push(message);
       App.save();
+      scheduleTaMessageExtras(contactId, contact, message, cs);
 
       if (active()) {
         App.renderChat();
@@ -442,6 +621,23 @@
     });
 
     document.addEventListener('click', function (e) {
+      const actionBtn = e.target.closest('[data-msg-action]');
+      if (actionBtn) {
+        e.preventDefault();
+        doMsgAction(actionBtn.dataset.msgAction);
+        return;
+      }
+      if (e.target.closest('#msg-actions')) return;
+
+      const bubbleHit = e.target.closest('[data-msg-id] [data-msg-bubble]');
+      if (bubbleHit) {
+        if (e.target.closest('audio')) return;
+        closeStickerPanel();
+        openMsgActions(bubbleHit.closest('[data-msg-id]'));
+        return;
+      }
+      closeMsgActions();
+
       const patAvatar = e.target.closest('[data-pat-current]');
       if (patAvatar) {
         App.sendPat();
@@ -494,6 +690,12 @@
     });
 
     el('#btn-sticker').addEventListener('click', toggleStickerPanel);
+    el('#composer-quote-close').addEventListener('click', function () {
+      quoteDraft = null;
+      renderComposerQuote();
+    });
+    el('#chat-scroll').addEventListener('wheel', closeMsgActions, { passive: true });
+    window.addEventListener('resize', closeMsgActions);
     el('#btn-add-sticker').addEventListener('click', function () { el('#sticker-file').click(); });
     el('#sticker-file').addEventListener('change', function (e) {
       const files = e.target.files;

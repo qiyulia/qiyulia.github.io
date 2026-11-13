@@ -80,6 +80,13 @@
     if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
     if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;
     if (s.settings.emotionProb == null) s.settings.emotionProb = 30;
+    if (s.settings.taRecallProb == null) s.settings.taRecallProb = 5;
+    if (s.settings.taQuoteProb == null) s.settings.taQuoteProb = 20;
+    if (s.settings.taFavProb == null) s.settings.taFavProb = 15;
+    if (s.settings.musicPauseProb == null) s.settings.musicPauseProb = 15;
+    if (s.settings.musicPlayProb == null) s.settings.musicPlayProb = 60;
+    if (s.settings.musicFavProb == null) s.settings.musicFavProb = 25;
+    if (s.settings.musicSwitchProb == null) s.settings.musicSwitchProb = 30;
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];
@@ -130,6 +137,13 @@
       taMomentCards: pick('taMomentCards', 1),
       patBackProb: pick('patBackProb', 50),
       taStickerProb: pick('taStickerProb', 30),
+      taRecallProb: pick('taRecallProb', 5),
+      taQuoteProb: pick('taQuoteProb', 20),
+      taFavProb: pick('taFavProb', 15),
+      musicPauseProb: pick('musicPauseProb', 15),
+      musicPlayProb: pick('musicPlayProb', 60),
+      musicFavProb: pick('musicFavProb', 25),
+      musicSwitchProb: pick('musicSwitchProb', 30),
     };
   };
 
@@ -246,6 +260,7 @@
 
   App.messagePreview = function (m) {
     if (!m) return '';
+    if (m.recalled) return '[已撤回]';
     if (m.type === 'image') return '[图片]';
     if (m.type === 'audio') return '[语音]';
     if (m.type === 'pat') return m.text || '拍了拍';

@@ -152,6 +152,13 @@
         taLikeProb: 60,
         taCommentProb: 40,
         taMomentCards: 1,
+        taRecallProb: 5,
+        taQuoteProb: 20,
+        taFavProb: 15,
+        musicPauseProb: 15,
+        musicPlayProb: 60,
+        musicFavProb: 25,
+        musicSwitchProb: 30,
       },
       contacts: [
         { id: contactId, name: '阿眠', avatar: '🌙', note: '住在隔壁的夜猫子', birthday: '' },
