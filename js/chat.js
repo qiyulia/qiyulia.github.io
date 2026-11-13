@@ -15,7 +15,9 @@
     const exists = App.state.contacts.some(function (c) { return c.id === contactId; });
     if (!exists) return;
     App.chatContactId = contactId;
+    App.state.currentContactId = contactId;
     App.unread[contactId] = 0;
+    App.save();
     closeStickerPanel();
     App.renderChat();
     App.renderContacts();
@@ -28,7 +30,7 @@
     const contact = currentContact();
     if (!contact) return;
 
-    el('#c-avatar').textContent = contact.avatar || '🙂';
+    el('#c-avatar').innerHTML = App.avatarHtml(contact.avatar);
     el('#c-name').textContent = contact.name;
     el('#c-note').textContent = contact.note || '字卡传讯';
 
@@ -64,9 +66,14 @@
     } else {
       body = '<div class="bubble">' + App.esc(m.text) + '</div>';
     }
+    const contact = currentContact();
+    const avatarSrc = mine ? App.state.profile.userAvatar : (contact && contact.avatar);
     return '<div class="msg ' + (mine ? 'me' : 'ta') + '">' +
-      body +
-      '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
+      '<span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>' +
+      '<div class="msg-main">' +
+        body +
+        '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
+      '</div>' +
       '</div>';
   }
 
@@ -113,7 +120,10 @@
     input.value = '';
     input.style.height = 'auto';
 
-    if (role === 'me') scheduleReply(App.chatContactId, text);
+    if (role === 'me') {
+      scheduleReply(App.chatContactId, text);
+      maybeTaSticker(App.chatContactId);
+    }
   }
 
   function sendSticker(src) {
@@ -140,12 +150,94 @@
       ts: Date.now(),
       cardId: picked ? picked.id : undefined,
     });
+    closeStickerPanel();
+
+    if (App.sendAs === 'me') {
+      schedulePatBack(contact.id);
+      scheduleReply(contact.id, '');
+      maybeTaSticker(contact.id);
+    }
   }
+
+  /* 我拍了 TA 之后，TA 按概率回拍我 */
+  function schedulePatBack(contactId) {
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact) return;
+    const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).patBackProb) || 0));
+    if (Math.random() * 100 >= prob) return;
+
+    const card = App.pickPatCard();
+    const raw = card ? card.text : '拍了拍{name}';
+    const action = raw.indexOf('{name}') !== -1
+      ? raw.split('{name}').join('你')
+      : raw + ' 你';
+
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+      chat.push({
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'pat',
+        text: contact.name + action,
+        ts: Date.now(),
+        cardId: card ? card.id : undefined,
+      });
+      App.save();
+      if (App.chatContactId === contactId) {
+        App.renderChat();
+      } else {
+        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+    }, 900 + Math.random() * 1200);
+  }
+
+  /* TA 按概率主动发一张表情包（从 TA 的表情库随机抽） */
+  function maybeTaSticker(contactId) {
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact) return;
+    const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).taStickerProb) || 0));
+    const pool = App.state.stickers.ta || [];
+    if (!pool.length || Math.random() * 100 >= prob) return;
+    const src = pool[Math.floor(Math.random() * pool.length)];
+
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+      chat.push({ id: App.uid('m'), role: 'ta', type: 'image', src: src, ts: Date.now() });
+      App.save();
+      if (App.chatContactId === contactId) {
+        App.renderChat();
+      } else {
+        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+    }, 1600 + Math.random() * 1800);
+  }
+
+  App.openCurrentChat = function () {
+    const st = App.state;
+    let id = st.currentContactId;
+    if (!st.contacts.some(function (c) { return c.id === id; })) {
+      id = st.contacts.length ? st.contacts[0].id : null;
+    }
+    if (!id) {
+      App.toast('先添加一个角色吧');
+      App.go('contacts');
+      return;
+    }
+    App.openChat(id);
+  };
 
   async function scheduleReply(contactId, userText) {
     const st = App.state;
-    const min = Math.max(0, Math.min(5, Number(st.settings.replyMin) || 0));
-    const max = Math.max(min, Math.min(5, Number(st.settings.replyMax) || 0));
+    const contact = st.contacts.find(function (c) { return c.id === contactId; });
+    const cs = App.contactSettings(contact);
+    const min = Math.max(0, Math.min(5, Number(cs.replyMin) || 0));
+    const max = Math.max(min, Math.min(5, Number(cs.replyMax) || 0));
     const count = min + Math.floor(Math.random() * (max - min + 1));
     if (count <= 0) return;
 
@@ -165,7 +257,7 @@
       const active = function () { return App.chatContactId === contactId; };
       if (active()) setTyping(true);
 
-      const base = Number(st.settings.typingMs) || 700;
+      const base = Number(cs.typingMs) || 700;
       const extra = card.category === '语音' ? 900 : 0;
       const wait = Math.min(2600, base + extra + card.text.length * 22 + Math.random() * 260);
       await sleep(wait);
@@ -273,32 +365,7 @@
   }
 
   function compressImage(file) {
-    return new Promise(function (resolve, reject) {
-      const reader = new FileReader();
-      reader.onload = function () {
-        const img = new Image();
-        img.onload = function () {
-          const max = 240;
-          let width = img.width;
-          let height = img.height;
-          if (width > height) {
-            if (width > max) { height = Math.round(height * max / width); width = max; }
-          } else if (height > max) {
-            width = Math.round(width * max / height); height = max;
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.82));
-        };
-        img.onerror = function () { reject(new Error('图片读取失败')); };
-        img.src = reader.result;
-      };
-      reader.onerror = function () { reject(new Error('图片读取失败')); };
-      reader.readAsDataURL(file);
-    });
+    return App.compressImage(file, 240);
   }
 
   async function addStickers(files) {

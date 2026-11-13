@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261113-6">
+<link rel="stylesheet" href="css/style.css?v=20261113-11">
 </head>
 <body>
 <div class="stage">
@@ -149,7 +149,7 @@ if ('caches' in window) {
                 <span>把想说的话放在这里</span>
               </div>
               <div class="app-grid">
-                <button type="button" class="app-entry" data-go="contacts">
+                <button type="button" class="app-entry" data-open-current-chat="1">
                   <span class="software-icon chat-app-icon">
                     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 7.5h20v14H14l-7 5v-5H6v-14z"/><path d="M11 14.5h.01M16 14.5h.01M21 14.5h.01" stroke-width="3.2"/></svg>
                   </span>
@@ -161,14 +161,20 @@ if ('caches' in window) {
                   </span>
                   <span class="app-entry-label">朋友圈</span>
                 </button>
+                <button type="button" class="app-entry" data-go="calendar">
+                  <span class="software-icon calendar-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="7" width="22" height="20" rx="4"/><path d="M5 13h22M11 4v6M21 4v6"/><path d="M11 19h3M18 19h3M11 23h3" stroke-width="2.4"/></svg>
+                  </span>
+                  <span class="app-entry-label">日历</span>
+                </button>
               </div>
             </div>
           </section>
         </div>
 
         <div class="page-dots" aria-label="主界面分页">
-          <button type="button" class="is-active" data-desk-page="0" aria-label="主界面"></button>
-          <button type="button" data-desk-page="1" aria-label="右侧小组件页"></button>
+          <span class="is-active" data-desk-page="0" aria-label="主界面"></span>
+          <span data-desk-page="1" aria-label="右侧小组件页"></span>
         </div>
 
         <nav class="dock" aria-label="快捷入口">
@@ -213,6 +219,7 @@ if ('caches' in window) {
         </button>
       </header>
       <div class="page-body">
+        <p class="panel-note contacts-hint">点名字 = 切换成这个角色并进入聊天；点 ✎ 单独改这个角色的回复与概率。每个角色的聊天记录互不干扰。</p>
         <div id="contact-list" class="contact-list"></div>
         <div id="contact-empty" class="empty-state" hidden>
           <p>还没有联系人。</p>
@@ -228,9 +235,7 @@ if ('caches' in window) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
         <h2>朋友圈</h2>
-        <button type="button" class="icon-btn" id="moment-focus" aria-label="发布动态">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
+        <span class="topbar-spacer"></span>
       </header>
       <div class="page-body moments-body">
         <div class="moments-hero">
@@ -257,11 +262,60 @@ if ('caches' in window) {
       </div>
     </section>
 
+    <!-- ============ 日历 ============ -->
+    <section id="view-calendar" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>日历</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body calendar-body">
+        <div class="panel cal-panel">
+          <div class="cal-head">
+            <button type="button" class="icon-btn" id="cal-prev" aria-label="上个月">‹</button>
+            <strong id="cal-title"></strong>
+            <button type="button" class="icon-btn" id="cal-next" aria-label="下个月">›</button>
+          </div>
+          <div class="cal-week">
+            <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+          </div>
+          <div id="cal-grid" class="cal-grid"></div>
+          <div class="cal-legend">
+            <span><i class="legend-dot period"></i>经期</span>
+            <span><i class="legend-dot ovulation"></i>排卵期</span>
+            <span><i class="legend-dot todo"></i>有待办</span>
+            <span><i class="legend-dot predicted"></i>虚线预测</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 id="cal-selected-title">选择一天</h3>
+          <label class="field"><span>这一天要做的事</span>
+            <textarea id="cal-todo" rows="3" maxlength="200" placeholder="记一下今天要做的事…"></textarea>
+          </label>
+          <div id="cal-cycle-panel" hidden>
+            <div class="cal-marks">
+              <button type="button" class="cal-mark-btn period" id="cal-mark-period">标记经期</button>
+              <button type="button" class="cal-mark-btn ovulation" id="cal-mark-ovulation">标记排卵期</button>
+            </div>
+            <p class="panel-note">选择要记录的类型，再点一次即可取消。</p>
+          </div>
+          <p class="panel-note">待办会自动保存。再点一次已选中的日期，可记录经期或排卵期。</p>
+          <p class="panel-note cal-prediction" id="cal-prediction"></p>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ 聊天 ============ -->
     <section id="view-chat" class="view">
       <header class="topbar chat-topbar">
         <button type="button" class="icon-btn" data-back="contacts" aria-label="返回">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button type="button" class="icon-btn" data-go="chat-settings" aria-label="第二设置" title="第二设置">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
         </button>
         <div class="chat-peer">
           <span class="avatar sm" id="c-avatar">🙂</span>
@@ -270,9 +324,7 @@ if ('caches' in window) {
             <span id="c-note"></span>
           </div>
         </div>
-        <button type="button" class="icon-btn" id="btn-clear-chat" aria-label="清空对话" title="清空对话">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
-        </button>
+        <span class="topbar-spacer"></span>
       </header>
       <div id="chat-scroll" class="chat-scroll">
         <div class="chat-hint">对话只保存在这台设备上</div>
@@ -303,6 +355,95 @@ if ('caches' in window) {
         <div id="sticker-grid" class="sticker-grid"></div>
         <div id="pat-grid" class="pat-grid" hidden></div>
         <button type="button" class="btn sticker-add" id="btn-add-sticker">+ 从本地相册添加到当前侧</button>
+      </div>
+    </section>
+
+    <!-- ============ 聊天：第二设置 ============ -->
+    <section id="view-chat-settings" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="chat" aria-label="返回聊天">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>第二设置</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="chat-settings-body">
+        <div class="chat-settings-pager" id="chat-settings-pager">
+          <section class="chat-settings-page reply-settings-page" aria-label="回复设置">
+            <div class="panel">
+              <h3>回复</h3>
+              <div class="field-row">
+                <label class="field"><span>每句话最少</span><input id="set-min" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
+                <label class="field"><span>最多</span><input id="set-max" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
+              </div>
+              <label class="field"><span>打字停顿（毫秒，400 快 / 700 正常 / 1100 慢）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-typing" data-step="-100">−</button>
+                  <input id="set-typing" type="number" min="0" max="3000" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-typing" data-step="100">+</button>
+                </span>
+              </label>
+              <label class="field"><span>拍一拍回应（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-pat-back" data-step="-5">−</button>
+                  <input id="set-pat-back" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-pat-back" data-step="5">+</button>
+                </span>
+              </label>
+              <label class="field"><span>TA 主动发表情包（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-sticker" data-step="-5">−</button>
+                  <input id="set-ta-sticker" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-sticker" data-step="5">+</button>
+                </span>
+              </label>
+              <p class="panel-note">消息里出现字卡的触发词时，那张卡会被优先说出。</p>
+              <p class="panel-note">这里的数值是新建角色的默认值；每个角色仍可在联系人页单独修改。</p>
+            </div>
+          </section>
+
+          <section class="chat-settings-page moments-settings-page" aria-label="朋友圈互动设置">
+            <div class="panel">
+              <h3>朋友圈互动</h3>
+              <label class="field"><span>TA 点赞我的动态（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-like" data-step="-5">−</button>
+                  <input id="set-ta-like" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-like" data-step="5">+</button>
+                </span>
+              </label>
+              <label class="field"><span>TA 评论我的动态（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-comment" data-step="-5">−</button>
+                  <input id="set-ta-comment" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-comment" data-step="5">+</button>
+                </span>
+              </label>
+              <label class="field"><span>TA 每条动态用几张字卡</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-moment-cards" data-step="-1">−</button>
+                  <input id="set-ta-moment-cards" type="number" min="1" max="3" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-moment-cards" data-step="1">+</button>
+                </span>
+              </label>
+              <p class="panel-note">都可以直接打字输入，也可以点 + / − 微调（概率每次 5%）。TA 发动态和评论的内容都来自字卡库。</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="settings-page-foot">
+          <span id="chat-settings-page-hint">右划进入朋友圈互动</span>
+          <div class="page-dots settings-dots" aria-label="第二设置分页">
+            <span class="is-active" data-chat-settings-page="0" aria-label="回复"></span>
+            <span data-chat-settings-page="1" aria-label="朋友圈互动"></span>
+          </div>
+        </div>
+
+        <div class="panel chat-delete-panel">
+          <h3>本次聊天</h3>
+          <p class="panel-note" id="chat-settings-delete-note">删除后，本次聊天记录将无法恢复。</p>
+          <button type="button" class="btn danger" id="btn-clear-chat">删除本次聊天</button>
+        </div>
       </div>
     </section>
 
@@ -347,7 +488,14 @@ if ('caches' in window) {
         <div class="panel">
           <h3>我的资料</h3>
           <label class="field"><span>名字</span><input id="set-name" maxlength="12" placeholder="你的名字"></label>
-          <label class="field"><span>头像</span><input id="set-avatar" maxlength="4" placeholder="一个 emoji"></label>
+          <div class="field avatar-field">
+            <span>头像</span>
+            <div class="avatar-picker">
+              <span class="avatar avatar-preview" id="set-avatar-preview"></span>
+              <button type="button" class="btn" id="btn-set-avatar">从本地相册选择</button>
+              <input type="file" id="set-avatar-file" accept="image/*" hidden>
+            </div>
+          </div>
           <label class="field"><span>纪念日</span><input id="set-since" type="date"></label>
         </div>
 
@@ -359,52 +507,6 @@ if ('caches' in window) {
             <button type="button" class="theme-chip" data-theme="rose"><i style="--sw:#dfb3bc"></i>暮粉</button>
             <button type="button" class="theme-chip" data-theme="night"><i style="--sw:#3b4252"></i>夜色</button>
           </div>
-        </div>
-
-        <div class="panel">
-          <h3>回复</h3>
-          <div class="field-row">
-            <label class="field"><span>每句话最少</span><input id="set-min" type="number" min="0" max="5" step="1"></label>
-            <label class="field"><span>最多</span><input id="set-max" type="number" min="0" max="5" step="1"></label>
-          </div>
-          <label class="field"><span>打字停顿</span>
-            <select id="set-typing">
-              <option value="400">快</option>
-              <option value="700">正常</option>
-              <option value="1100">慢</option>
-            </select>
-          </label>
-          <p class="panel-note">消息里出现字卡的触发词时，那张卡会被优先说出。</p>
-        </div>
-
-        <div class="panel">
-          <h3>朋友圈互动</h3>
-          <label class="field"><span>TA 点赞我的动态</span>
-            <select id="set-ta-like">
-              <option value="0">从不</option>
-              <option value="20">偶尔（20%）</option>
-              <option value="50">一半（50%）</option>
-              <option value="80">经常（80%）</option>
-              <option value="100">总是（100%）</option>
-            </select>
-          </label>
-          <label class="field"><span>TA 评论我的动态</span>
-            <select id="set-ta-comment">
-              <option value="0">从不</option>
-              <option value="20">偶尔（20%）</option>
-              <option value="50">一半（50%）</option>
-              <option value="80">经常（80%）</option>
-              <option value="100">总是（100%）</option>
-            </select>
-          </label>
-          <label class="field"><span>TA 每条动态字数卡</span>
-            <select id="set-ta-moment-cards">
-              <option value="1">1 张</option>
-              <option value="2">2 张</option>
-              <option value="3">3 张</option>
-            </select>
-          </label>
-          <p class="panel-note">TA 发动态和评论的内容都来自字卡库。</p>
         </div>
 
         <div class="panel">
@@ -469,8 +571,66 @@ if ('caches' in window) {
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
     <label class="field"><span>名字</span><input id="contact-name" maxlength="12" placeholder="TA 的名字" required></label>
-    <label class="field"><span>头像</span><input id="contact-avatar" maxlength="4" placeholder="一个 emoji"></label>
+    <div class="field avatar-field">
+      <span>头像</span>
+      <div class="avatar-picker">
+        <span class="avatar avatar-preview" id="contact-avatar-preview"></span>
+        <button type="button" class="btn" id="btn-contact-avatar">从本地相册选择</button>
+        <input type="file" id="contact-avatar-file" accept="image/*" hidden>
+      </div>
+    </div>
     <label class="field"><span>备注</span><input id="contact-note" maxlength="20" placeholder="一句话介绍（可选）"></label>
+
+    <div class="contact-settings">
+      <h4>这个角色的回复与互动</h4>
+      <div class="field-row">
+        <label class="field"><span>每句话最少</span><input id="ct-reply-min" type="number" min="0" max="5" step="1"></label>
+        <label class="field"><span>最多</span><input id="ct-reply-max" type="number" min="0" max="5" step="1"></label>
+      </div>
+      <label class="field"><span>打字停顿（毫秒）</span>
+        <span class="prob-input">
+          <button type="button" class="step-btn" data-step-for="ct-typing" data-step="-100">−</button>
+          <input id="ct-typing" type="number" min="0" max="3000" step="1" inputmode="numeric">
+          <button type="button" class="step-btn" data-step-for="ct-typing" data-step="100">+</button>
+        </span>
+      </label>
+      <label class="field"><span>拍一拍回应我（%）</span>
+        <span class="prob-input">
+          <button type="button" class="step-btn" data-step-for="ct-pat-back" data-step="-5">−</button>
+          <input id="ct-pat-back" type="number" min="0" max="100" step="1" inputmode="numeric">
+          <button type="button" class="step-btn" data-step-for="ct-pat-back" data-step="5">+</button>
+        </span>
+      </label>
+      <label class="field"><span>主动发表情包（%）</span>
+        <span class="prob-input">
+          <button type="button" class="step-btn" data-step-for="ct-sticker" data-step="-5">−</button>
+          <input id="ct-sticker" type="number" min="0" max="100" step="1" inputmode="numeric">
+          <button type="button" class="step-btn" data-step-for="ct-sticker" data-step="5">+</button>
+        </span>
+      </label>
+      <label class="field"><span>点赞我的动态（%）</span>
+        <span class="prob-input">
+          <button type="button" class="step-btn" data-step-for="ct-like" data-step="-5">−</button>
+          <input id="ct-like" type="number" min="0" max="100" step="1" inputmode="numeric">
+          <button type="button" class="step-btn" data-step-for="ct-like" data-step="5">+</button>
+        </span>
+      </label>
+      <label class="field"><span>评论我的动态（%）</span>
+        <span class="prob-input">
+          <button type="button" class="step-btn" data-step-for="ct-comment" data-step="-5">−</button>
+          <input id="ct-comment" type="number" min="0" max="100" step="1" inputmode="numeric">
+          <button type="button" class="step-btn" data-step-for="ct-comment" data-step="5">+</button>
+        </span>
+      </label>
+      <label class="field"><span>每条动态用几张字卡</span>
+        <span class="prob-input">
+          <button type="button" class="step-btn" data-step-for="ct-moment-cards" data-step="-1">−</button>
+          <input id="ct-moment-cards" type="number" min="1" max="3" step="1" inputmode="numeric">
+          <button type="button" class="step-btn" data-step-for="ct-moment-cards" data-step="1">+</button>
+        </span>
+      </label>
+      <p class="panel-note">都可以直接打字输入，也可以点 + / − 微调（概率每次 5%）。</p>
+    </div>
     <div class="sheet-actions">
       <button type="button" class="btn danger ghost" id="contact-delete" hidden>删除</button>
       <span class="sheet-spacer"></span>
@@ -482,13 +642,14 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261113-6"></script>
-<script src="js/store.js?v=20261113-6"></script>
-<script src="js/desktop.js?v=20261113-6"></script>
-<script src="js/chat.js?v=20261113-6"></script>
-<script src="js/cards.js?v=20261113-6"></script>
-<script src="js/settings.js?v=20261113-6"></script>
-<script src="js/moments.js?v=20261113-6"></script>
-<script src="js/app.js?v=20261113-6"></script>
+<script src="js/seed.js?v=20261113-11"></script>
+<script src="js/store.js?v=20261113-11"></script>
+<script src="js/desktop.js?v=20261113-11"></script>
+<script src="js/chat.js?v=20261113-11"></script>
+<script src="js/cards.js?v=20261113-11"></script>
+<script src="js/settings.js?v=20261113-11"></script>
+<script src="js/moments.js?v=20261113-11"></script>
+<script src="js/calendar.js?v=20261113-11"></script>
+<script src="js/app.js?v=20261113-11"></script>
 </body>
 </html>

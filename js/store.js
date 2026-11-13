@@ -50,6 +50,7 @@
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];
+    if (!s.calendar || typeof s.calendar !== 'object' || Array.isArray(s.calendar)) s.calendar = {};
     if (!s.stickers || typeof s.stickers !== 'object') s.stickers = { mine: [], ta: [] };
     if (!Array.isArray(s.stickers.mine)) s.stickers.mine = [];
     if (!Array.isArray(s.stickers.ta)) s.stickers.ta = [];
@@ -67,9 +68,86 @@
     s.contacts.forEach(function (c) {
       if (!c.id) c.id = App.uid('c');
       if (!s.chats[c.id]) s.chats[c.id] = [];
+      if (!c.settings || typeof c.settings !== 'object') c.settings = {};
     });
+    if (!s.contacts.some(function (c) { return c.id === s.currentContactId; })) {
+      s.currentContactId = s.contacts.length ? s.contacts[0].id : null;
+    }
 
     App.state = s;
+  };
+
+  /* 每个角色独立的回复/互动设置，未单独设置的项回落到全局默认值 */
+  App.contactSettings = function (contact) {
+    const base = (App.state && App.state.settings) || {};
+    const own = contact && contact.settings ? contact.settings : {};
+    function pick(key, fallback) {
+      if (own[key] != null) return own[key];
+      return base[key] != null ? base[key] : fallback;
+    }
+    return {
+      replyMin: pick('replyMin', 1),
+      replyMax: pick('replyMax', 2),
+      typingMs: pick('typingMs', 700),
+      taLikeProb: pick('taLikeProb', 60),
+      taCommentProb: pick('taCommentProb', 40),
+      taMomentCards: pick('taMomentCards', 1),
+      patBackProb: pick('patBackProb', 50),
+      taStickerProb: pick('taStickerProb', 30),
+    };
+  };
+
+  /* 头像：本地图片（dataURL）优先，兼容旧的 emoji */
+  App.avatarHtml = function (src) {
+    const value = String(src || '');
+    if (/^(data:image\/|https?:|blob:)/.test(value)) {
+      return '<img class="avatar-img" src="' + App.esc(value) + '" alt="">';
+    }
+    return '<span class="avatar-emoji">' + App.esc(value || '🙂') + '</span>';
+  };
+
+  /* 数字输入 + 步进按钮（可手动输入，也可 +/- 微调） */
+  App.bindStepper = function (selector, onCommit, options) {
+    const opts = options || {};
+    const min = opts.min != null ? opts.min : 0;
+    const max = opts.max != null ? opts.max : 100;
+    const step = opts.step != null ? opts.step : 5;
+    const input = document.querySelector(selector);
+    if (!input) return;
+
+    function commit(raw) {
+      const num = Number(raw);
+      let v = isNaN(num) ? min : Math.round(num);
+      v = Math.max(min, Math.min(max, v));
+      if (input.value !== String(v)) input.value = String(v);
+      onCommit(v);
+    }
+
+    input.addEventListener('change', function () { commit(input.value); });
+    document.querySelectorAll('[data-step-for="' + selector.slice(1) + '"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        commit((Number(input.value) || 0) + Number(btn.dataset.step));
+      });
+    });
+  };
+
+  /* 下拉框赋值：没有完全匹配的选项时取数值最接近的一项 */
+  App.setSelect = function (selector, value) {
+    const node = document.querySelector(selector);
+    if (!node) return;
+    const str = String(value);
+    const options = Array.from(node.options);
+    if (options.some(function (o) { return o.value === str; })) {
+      node.value = str;
+      return;
+    }
+    let best = null;
+    let bestDiff = Infinity;
+    options.forEach(function (o) {
+      const diff = Math.abs(Number(o.value) - Number(value));
+      if (diff < bestDiff) { bestDiff = diff; best = o.value; }
+    });
+    if (best != null) node.value = best;
   };
 
   /* 分类迁移与字段补全（聊天/拍一拍/情绪/语音） */
@@ -210,6 +288,35 @@
     a.click();
     a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  };
+
+  /* 本地图片压缩为 dataURL（头像、表情包共用） */
+  App.compressImage = function (file, maxSize) {
+    const max = maxSize || 240;
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > max) { height = Math.round(height * max / width); width = max; }
+          } else if (height > max) {
+            width = Math.round(width * max / height); height = max;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = function () { reject(new Error('图片读取失败')); };
+        img.src = reader.result;
+      };
+      reader.onerror = function () { reject(new Error('图片读取失败')); };
+      reader.readAsDataURL(file);
+    });
   };
 
   App.readJSONFile = function (file) {

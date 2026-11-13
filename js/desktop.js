@@ -65,7 +65,14 @@
     let html = '';
     for (let i = 0; i < firstDay; i++) html += '<span class="is-outside"></span>';
     for (let day = 1; day <= total; day++) {
-      html += '<span' + (day === now.getDate() ? ' class="is-today"' : '') + '>' + day + '</span>';
+      const key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+      const cls = [];
+      if (day === now.getDate()) cls.push('is-today');
+      if (App.calendarDayClass) {
+        const extra = App.calendarDayClass(key);
+        if (extra) cls.push(extra);
+      }
+      html += '<span' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' + day + '</span>';
     }
     el('#w-calendar').innerHTML = html;
   }
@@ -208,11 +215,13 @@
       const snippet = last
         ? (last.role === 'me' ? '我：' : '') + App.messagePreview(last)
         : (c.note || '还没有聊天记录');
-      return '<div class="contact-row">' +
+      const isCurrent = c.id === App.state.currentContactId;
+      return '<div class="contact-row' + (isCurrent ? ' is-current' : '') + '">' +
         '<button type="button" class="contact-hit" data-open-chat="' + c.id + '">' +
-          '<span class="avatar">' + App.esc(c.avatar || '🙂') + '</span>' +
+          '<span class="avatar">' + App.avatarHtml(c.avatar) + '</span>' +
           '<span class="contact-info">' +
             '<span class="contact-line"><strong>' + App.esc(c.name) + '</strong>' +
+            (isCurrent ? '<span class="current-tag">当前角色</span>' : '') +
             '<span class="contact-time">' + (last ? App.fmtTime(last.ts) : '') + '</span></span>' +
             '<span class="contact-snippet">' + App.esc(snippet) + '</span>' +
           '</span>' +
@@ -225,15 +234,30 @@
 
   /* ---------- 联系人弹窗 ---------- */
   let editingContact = null;
+  let dialogAvatar = '';
   const dialog = el('#contact-dialog');
   const form = el('#contact-form');
 
+  function renderDialogAvatar() {
+    el('#contact-avatar-preview').innerHTML = App.avatarHtml(dialogAvatar);
+  }
+
   function openContactDialog(contact) {
     editingContact = contact || null;
-    el('#contact-dialog-title').textContent = contact ? '编辑联系人' : '新建联系人';
+    el('#contact-dialog-title').textContent = contact ? '编辑角色' : '新建角色';
     el('#contact-name').value = contact ? contact.name : '';
-    el('#contact-avatar').value = contact ? (contact.avatar || '') : '🙂';
+    dialogAvatar = contact ? (contact.avatar || '') : '';
+    renderDialogAvatar();
     el('#contact-note').value = contact ? (contact.note || '') : '';
+    const cs = App.contactSettings(contact);
+    el('#ct-reply-min').value = cs.replyMin;
+    el('#ct-reply-max').value = cs.replyMax;
+    el('#ct-typing').value = cs.typingMs;
+    el('#ct-pat-back').value = cs.patBackProb;
+    el('#ct-sticker').value = cs.taStickerProb;
+    el('#ct-like').value = cs.taLikeProb;
+    el('#ct-comment').value = cs.taCommentProb;
+    el('#ct-moment-cards').value = cs.taMomentCards;
     el('#contact-delete').hidden = !contact;
     dialog.showModal();
     setTimeout(function () { el('#contact-name').focus(); }, 60);
@@ -246,17 +270,32 @@
       el('#contact-name').focus();
       return;
     }
-    const avatar = el('#contact-avatar').value.trim() || '🙂';
+    const avatar = dialogAvatar || '🙂';
     const note = el('#contact-note').value.trim();
+    let min = Math.max(0, Math.min(5, Number(el('#ct-reply-min').value) || 0));
+    let max = Math.max(0, Math.min(5, Number(el('#ct-reply-max').value) || 0));
+    if (max < min) max = min;
+    const settings = {
+      replyMin: min,
+      replyMax: max,
+      typingMs: Number(el('#ct-typing').value) || 700,
+      patBackProb: Number(el('#ct-pat-back').value) || 0,
+      taStickerProb: Math.max(0, Math.min(100, Number(el('#ct-sticker').value) || 0)),
+      taLikeProb: Number(el('#ct-like').value) || 0,
+      taCommentProb: Number(el('#ct-comment').value) || 0,
+      taMomentCards: Math.max(1, Math.min(3, Number(el('#ct-moment-cards').value) || 1)),
+    };
 
     if (editingContact) {
       editingContact.name = name;
       editingContact.avatar = avatar;
       editingContact.note = note;
+      editingContact.settings = settings;
     } else {
-      const contact = { id: App.uid('c'), name: name, avatar: avatar, note: note };
+      const contact = { id: App.uid('c'), name: name, avatar: avatar, note: note, settings: settings };
       App.state.contacts.push(contact);
       App.state.chats[contact.id] = [];
+      App.state.currentContactId = contact.id;
     }
 
     App.save();
@@ -274,6 +313,9 @@
     delete App.state.chats[id];
     delete App.unread[id];
     if (App.chatContactId === id) App.chatContactId = null;
+    if (App.state.currentContactId === id) {
+      App.state.currentContactId = App.state.contacts.length ? App.state.contacts[0].id : null;
+    }
     App.save();
     dialog.close();
     editingContact = null;
@@ -350,9 +392,6 @@
       e.stopPropagation();
     }, true);
 
-    document.querySelectorAll('[data-desk-page]').forEach(function (btn) {
-      btn.addEventListener('click', function () { jumpToDeskPage(Number(btn.dataset.deskPage)); });
-    });
   }
 
   App.initDesktop = function () {
@@ -399,11 +438,40 @@
     form.addEventListener('submit', saveContact);
     el('#contact-delete').addEventListener('click', deleteContact);
 
+    el('#btn-contact-avatar').addEventListener('click', function () {
+      el('#contact-avatar-file').click();
+    });
+    el('#contact-avatar-file').addEventListener('change', function (e) {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      App.compressImage(file, 192).then(function (src) {
+        dialogAvatar = src;
+        renderDialogAvatar();
+      }).catch(function (err) {
+        App.toast(err.message || '图片读取失败');
+      });
+    });
+
+    // 角色弹窗里的数字/概率：手动输入或 −/+ 微调，保存时统一读取
+    const noop = function () {};
+    App.bindStepper('#ct-typing', noop, { min: 0, max: 3000, step: 100 });
+    App.bindStepper('#ct-pat-back', noop);
+    App.bindStepper('#ct-sticker', noop);
+    App.bindStepper('#ct-like', noop);
+    App.bindStepper('#ct-comment', noop);
+    App.bindStepper('#ct-moment-cards', noop, { min: 1, max: 3, step: 1 });
+
     document.addEventListener('click', function (e) {
       const edit = e.target.closest('[data-edit-contact]');
       if (edit) {
         const contact = App.state.contacts.find(function (c) { return c.id === edit.dataset.editContact; });
         if (contact) openContactDialog(contact);
+        return;
+      }
+      const current = e.target.closest('[data-open-current-chat]');
+      if (current) {
+        App.openCurrentChat();
         return;
       }
       const person = e.target.closest('[data-open-chat]');

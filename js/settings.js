@@ -12,22 +12,102 @@
     }
   }
 
+  let chatSettingsPage = 0;
+
+  function showChatSettingsPage(index) {
+    const pager = el('#chat-settings-pager');
+    if (!pager) return;
+    chatSettingsPage = index === 1 ? 1 : 0;
+    pager.classList.toggle('show-moments', chatSettingsPage === 1);
+
+    const reply = pager.querySelector('.reply-settings-page');
+    const moments = pager.querySelector('.moments-settings-page');
+    reply.inert = chatSettingsPage === 1;
+    moments.inert = chatSettingsPage === 0;
+    reply.setAttribute('aria-hidden', String(chatSettingsPage === 1));
+    moments.setAttribute('aria-hidden', String(chatSettingsPage === 0));
+
+    document.querySelectorAll('[data-chat-settings-page]').forEach(function (dot) {
+      dot.classList.toggle('is-active', Number(dot.dataset.chatSettingsPage) === chatSettingsPage);
+    });
+    el('#chat-settings-page-hint').textContent = chatSettingsPage === 0
+      ? '右划进入朋友圈互动'
+      : '左划返回回复设置';
+  }
+
+  function initChatSettingsPager() {
+    const pager = el('#chat-settings-pager');
+    let gesture = null;
+    let suppressClick = false;
+    showChatSettingsPage(0);
+
+    pager.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.target.closest('textarea, input, select')) return;
+      gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, horizontal: false };
+    });
+
+    pager.addEventListener('pointermove', function (e) {
+      if (!gesture || gesture.id !== e.pointerId) return;
+      const dx = e.clientX - gesture.x;
+      const dy = e.clientY - gesture.y;
+      if (!gesture.horizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        gesture.horizontal = true;
+        pager.setPointerCapture(e.pointerId);
+      }
+    });
+
+    function finishGesture(e) {
+      if (!gesture || gesture.id !== e.pointerId) return;
+      const dx = e.clientX - gesture.x;
+      const wasHorizontal = gesture.horizontal;
+      gesture = null;
+      if (!wasHorizontal || Math.abs(dx) < 55) return;
+
+      if (chatSettingsPage === 0 && dx > 0) showChatSettingsPage(1);
+      else if (chatSettingsPage === 1 && dx < 0) showChatSettingsPage(0);
+      else return;
+
+      suppressClick = true;
+      setTimeout(function () { suppressClick = false; }, 100);
+    }
+
+    pager.addEventListener('pointerup', finishGesture);
+    pager.addEventListener('pointercancel', function () { gesture = null; });
+    pager.addEventListener('click', function (e) {
+      if (!suppressClick) return;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+  }
+
   App.renderSettings = function () {
     const st = App.state;
     el('#set-name').value = st.profile.userName || '';
-    el('#set-avatar').value = st.profile.userAvatar || '';
+    el('#set-avatar-preview').innerHTML = App.avatarHtml(st.profile.userAvatar);
     el('#set-since').value = st.profile.since || '';
     el('#set-min').value = st.settings.replyMin;
     el('#set-max').value = st.settings.replyMax;
-    el('#set-typing').value = String(st.settings.typingMs || 700);
-    el('#set-ta-like').value = String(st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb);
-    el('#set-ta-comment').value = String(st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb);
-    el('#set-ta-moment-cards').value = String(st.settings.taMomentCards == null ? 1 : st.settings.taMomentCards);
+    el('#set-typing').value = st.settings.typingMs || 700;
+    el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
+    el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
+    el('#set-ta-moment-cards').value = st.settings.taMomentCards == null ? 1 : st.settings.taMomentCards;
+    el('#set-pat-back').value = st.settings.patBackProb == null ? 50 : st.settings.patBackProb;
+    el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
 
     document.querySelectorAll('#theme-row [data-theme]').forEach(function (btn) {
       btn.classList.toggle('is-on', btn.dataset.theme === st.theme);
     });
     storageSize();
+  };
+
+  App.renderChatSettings = function () {
+    App.renderSettings();
+    const contact = App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
+    el('#chat-settings-delete-note').textContent = contact
+      ? '删除你与「' + contact.name + '」的本次聊天记录，删除后无法恢复。'
+      : '删除后，本次聊天记录将无法恢复。';
+    showChatSettingsPage(0);
   };
 
   function markDirty() {
@@ -37,14 +117,29 @@
   }
 
   App.initSettings = function () {
+    initChatSettingsPager();
+
     el('#set-name').addEventListener('input', function (e) {
       App.state.profile.userName = e.target.value;
       markDirty();
     });
 
-    el('#set-avatar').addEventListener('input', function (e) {
-      App.state.profile.userAvatar = e.target.value;
-      markDirty();
+    el('#btn-set-avatar').addEventListener('click', function () {
+      el('#set-avatar-file').click();
+    });
+
+    el('#set-avatar-file').addEventListener('change', function (e) {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      App.compressImage(file, 192).then(function (src) {
+        App.state.profile.userAvatar = src;
+        markDirty();
+        App.renderSettings();
+        App.toast('头像已更新');
+      }).catch(function (err) {
+        App.toast(err.message || '图片读取失败');
+      });
     });
 
     el('#set-since').addEventListener('change', function (e) {
@@ -74,23 +169,33 @@
       markDirty();
     });
 
-    el('#set-typing').addEventListener('change', function (e) {
-      App.state.settings.typingMs = Number(e.target.value) || 700;
+    App.bindStepper('#set-typing', function (v) {
+      App.state.settings.typingMs = v;
+      markDirty();
+    }, { min: 0, max: 3000, step: 100 });
+
+    App.bindStepper('#set-ta-like', function (v) {
+      App.state.settings.taLikeProb = v;
       markDirty();
     });
 
-    el('#set-ta-like').addEventListener('change', function (e) {
-      App.state.settings.taLikeProb = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+    App.bindStepper('#set-ta-comment', function (v) {
+      App.state.settings.taCommentProb = v;
       markDirty();
     });
 
-    el('#set-ta-comment').addEventListener('change', function (e) {
-      App.state.settings.taCommentProb = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+    App.bindStepper('#set-ta-moment-cards', function (v) {
+      App.state.settings.taMomentCards = v;
+      markDirty();
+    }, { min: 1, max: 3, step: 1 });
+
+    App.bindStepper('#set-pat-back', function (v) {
+      App.state.settings.patBackProb = v;
       markDirty();
     });
 
-    el('#set-ta-moment-cards').addEventListener('change', function (e) {
-      App.state.settings.taMomentCards = Math.max(1, Math.min(3, Number(e.target.value) || 1));
+    App.bindStepper('#set-ta-sticker', function (v) {
+      App.state.settings.taStickerProb = v;
       markDirty();
     });
 
@@ -131,6 +236,7 @@
 
         if (!data.chats || typeof data.chats !== 'object' || Array.isArray(data.chats)) data.chats = {};
         if (!Array.isArray(data.moments)) data.moments = [];
+        if (!data.calendar || typeof data.calendar !== 'object') data.calendar = {};
         if (!data.stickers || typeof data.stickers !== 'object') data.stickers = { mine: [], ta: [] };
         if (!Array.isArray(data.stickers.mine)) data.stickers.mine = [];
         if (!Array.isArray(data.stickers.ta)) data.stickers.ta = [];
@@ -143,7 +249,11 @@
         data.contacts.forEach(function (c) {
           if (!c.id) c.id = App.uid('c');
           if (!data.chats[c.id]) data.chats[c.id] = [];
+          if (!c.settings || typeof c.settings !== 'object') c.settings = {};
         });
+        if (!data.contacts.some(function (c) { return c.id === data.currentContactId; })) {
+          data.currentContactId = data.contacts.length ? data.contacts[0].id : null;
+        }
         App.normalizeCards(data);
         App.state = data;
         App.chatContactId = null;
