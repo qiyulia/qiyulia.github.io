@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-19">
+<link rel="stylesheet" href="css/style.css?v=20261114-25">
 </head>
 <body>
 <div class="stage">
@@ -394,8 +394,38 @@ if ('caches' in window) {
             <span id="c-note"></span>
           </div>
         </div>
-        <span class="topbar-spacer"></span>
+        <button type="button" class="icon-btn" id="btn-call" aria-label="发起语音通话" title="语音通话">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.8l3 4.2-2 2c1.2 2.5 3.2 4.5 5.7 5.7l2-2 4.3 3c.5.4.7 1 .4 1.6-.7 1.4-2 2.2-3.6 2.1C10 19.5 4.4 14 3.6 7c-.2-1.6.7-2.9 2.1-3.6.6-.3 1.2-.1 1.5.4z"/></svg>
+        </button>
       </header>
+      <section id="chat-music-float" class="music-float" aria-label="悬浮音乐播放器">
+        <div class="music-float-top" data-music-float-drag>
+          <span class="music-float-grip" aria-hidden="true"></span>
+          <span class="music-float-heading">一起听</span>
+          <span class="music-float-hint">按住卡片可拖动</span>
+        </div>
+        <span class="music-float-disc" id="chat-music-disc" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 9l10-2"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
+        </span>
+        <div class="music-float-copy" data-music-float-drag>
+          <strong id="chat-music-title">晚风</strong>
+          <span id="chat-music-artist">絮语电台 · 轻柔旋律</span>
+          <span id="chat-music-time" class="music-float-time">00:00</span>
+        </div>
+        <div class="music-float-controls">
+          <button type="button" class="music-float-btn" id="chat-music-prev" aria-label="上一首"><svg viewBox="0 0 24 24"><path d="M7 5v14M18 6l-9 6 9 6V6z"/></svg></button>
+          <button type="button" class="music-float-btn music-float-play" id="chat-music-play" aria-label="播放音乐"><svg id="chat-music-play-icon" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7V5z"/></svg></button>
+          <button type="button" class="music-float-btn" id="chat-music-next" aria-label="下一首"><svg viewBox="0 0 24 24"><path d="M17 5v14M6 6l9 6-9 6V6z"/></svg></button>
+        </div>
+        <button type="button" class="music-float-toggle" id="chat-music-toggle" aria-label="缩小音乐卡片" aria-expanded="true" title="缩小">
+          <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>
+        </button>
+        <div class="music-float-progress" aria-hidden="true"><span id="chat-music-progress"></span></div>
+        <div class="music-float-foot">
+          <span id="chat-music-status">点一下，听首小曲</span>
+          <button type="button" id="chat-music-favorite" aria-label="收藏当前歌曲">♡ 收藏</button>
+        </div>
+      </section>
       <div id="chat-scroll" class="chat-scroll">
         <div class="chat-hint">对话只保存在这台设备上</div>
         <div id="chat-list" class="chat-list"></div>
@@ -454,7 +484,8 @@ if ('caches' in window) {
       <div class="chat-settings-body">
         <div class="chat-settings-tabs" role="tablist" aria-label="设置分类">
           <button type="button" class="chat-settings-tab is-on" role="tab" id="chat-tab-reply" aria-selected="true" aria-controls="reply-settings-panel" data-chat-settings-page="0">回复</button>
-          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-moments" aria-selected="false" aria-controls="moments-settings-panel" data-chat-settings-page="1">朋友圈互动</button>
+          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-music" aria-selected="false" aria-controls="music-settings-panel" data-chat-settings-page="1" tabindex="-1">音乐互动</button>
+          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-moments" aria-selected="false" aria-controls="moments-settings-panel" data-chat-settings-page="2" tabindex="-1">朋友圈互动</button>
         </div>
         <div class="chat-settings-pager" id="chat-settings-pager">
           <section class="chat-settings-page reply-settings-page" id="reply-settings-panel" role="tabpanel" aria-labelledby="chat-tab-reply" aria-label="回复设置">
@@ -518,6 +549,9 @@ if ('caches' in window) {
                 </span>
               </label>
             </div>
+          </section>
+
+          <section class="chat-settings-page music-settings-page" id="music-settings-panel" role="tabpanel" aria-labelledby="chat-tab-music" aria-label="音乐互动设置" aria-hidden="true" hidden inert>
             <div class="panel">
               <h3 class="settings-subtitle">音乐互动</h3>
               <label class="field"><span>TA 暂停音乐（%）</span>
@@ -682,6 +716,46 @@ if ('caches' in window) {
       </div>
     </section>
 
+    <!-- ============ 本机模拟语音通话 ============ -->
+    <section id="call-overlay" class="call-overlay" role="dialog" aria-modal="false" aria-labelledby="call-name" hidden>
+      <div class="call-head">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.8l3 4.2-2 2c1.2 2.5 3.2 4.5 5.7 5.7l2-2 4.3 3c.5.4.7 1 .4 1.6-.7 1.4-2 2.2-3.6 2.1C10 19.5 4.4 14 3.6 7c-.2-1.6.7-2.9 2.1-3.6.6-.3 1.2-.1 1.5.4z"/></svg>
+        <span>絮语语音通话</span>
+        <button type="button" class="call-minimize" id="call-minimize" aria-label="缩小通话" title="缩小通话">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+      <div id="call-main" class="call-main">
+        <div id="call-avatar-wrap" class="call-avatar-wrap is-ringing">
+          <div id="call-avatar" class="call-avatar"></div>
+        </div>
+        <h2 id="call-name">TA</h2>
+        <p id="call-status">正在呼叫…</p>
+        <p id="call-timer">等待对方接听</p>
+      </div>
+      <div class="call-controls">
+        <div class="call-control-item">
+          <button type="button" class="call-control" id="call-mute" aria-label="静音" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0012 0M12 17v4M9 21h6"/></svg>
+          </button>
+          <span id="call-mute-label">静音</span>
+        </div>
+        <div class="call-control-item">
+          <button type="button" class="call-control call-end" id="call-end" aria-label="结束通话">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.8l3 4.2-2 2c1.2 2.5 3.2 4.5 5.7 5.7l2-2 4.3 3c.5.4.7 1 .4 1.6-.7 1.4-2 2.2-3.6 2.1C10 19.5 4.4 14 3.6 7c-.2-1.6.7-2.9 2.1-3.6.6-.3 1.2-.1 1.5.4z"/></svg>
+          </button>
+          <span>结束</span>
+        </div>
+        <div class="call-control-item">
+          <button type="button" class="call-control" id="call-speaker" aria-label="免提" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h4l5 4V6l-5 4H5zM17 9c1.5 1.7 1.5 4.3 0 6M19.5 6.5c3 3 3 8 0 11"/></svg>
+          </button>
+          <span id="call-speaker-label">免提</span>
+        </div>
+      </div>
+      <p class="call-note">本机模拟通话，不会启用麦克风或拨出电话</p>
+    </section>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <!-- ============ 日历经期 / 排卵期弹窗 ============ -->
@@ -833,15 +907,15 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261114-19"></script>
-<script src="js/store.js?v=20261114-19"></script>
-<script src="js/desktop.js?v=20261114-19"></script>
-<script src="js/chat.js?v=20261114-19"></script>
-<script src="js/cards.js?v=20261114-19"></script>
-<script src="js/settings.js?v=20261114-19"></script>
-<script src="js/moments.js?v=20261114-19"></script>
-<script src="js/calendar.js?v=20261114-19"></script>
-<script src="js/music.js?v=20261114-19"></script>
-<script src="js/app.js?v=20261114-19"></script>
+<script src="js/seed.js?v=20261114-25"></script>
+<script src="js/store.js?v=20261114-25"></script>
+<script src="js/desktop.js?v=20261114-25"></script>
+<script src="js/chat.js?v=20261114-25"></script>
+<script src="js/cards.js?v=20261114-25"></script>
+<script src="js/settings.js?v=20261114-25"></script>
+<script src="js/moments.js?v=20261114-25"></script>
+<script src="js/calendar.js?v=20261114-25"></script>
+<script src="js/music.js?v=20261114-25"></script>
+<script src="js/app.js?v=20261114-25"></script>
 </body>
 </html>

@@ -59,9 +59,11 @@
     const progress = progressValues(track);
     const ratio = Math.max(0, Math.min(1, progress.ratio));
     el('#music-current-time').textContent = formatTime(progress.current);
+    el('#chat-music-time').textContent = formatTime(progress.current);
     el('#music-duration').textContent = formatTime(progress.duration);
     el('#music-progress-fill').style.width = (ratio * 100) + '%';
     el('#w-progress').style.width = (ratio * 100) + '%';
+    el('#chat-music-progress').style.width = (ratio * 100) + '%';
   }
 
   App.renderMusic = function () {
@@ -93,6 +95,16 @@
     el('#music-favorite').setAttribute('aria-label', mine ? '取消收藏当前歌曲' : '收藏当前歌曲');
     el('#music-ta-favorite').textContent = (ta ? '♥' : '♡') + ' TA';
     el('#music-ta-favorite').classList.toggle('is-active', ta);
+
+    el('#chat-music-title').textContent = track.title;
+    el('#chat-music-artist').textContent = track.artist;
+    el('#chat-music-play-icon').innerHTML = icon;
+    el('#chat-music-play').setAttribute('aria-label', playing ? '暂停音乐' : '播放音乐');
+    el('#chat-music-disc').classList.toggle('is-playing', playing);
+    el('#chat-music-status').textContent = status;
+    el('#chat-music-favorite').textContent = mine ? '♥ 已收藏' : '♡ 收藏';
+    el('#chat-music-favorite').classList.toggle('is-active', mine);
+    el('#chat-music-favorite').setAttribute('aria-label', mine ? '取消收藏当前歌曲' : '收藏当前歌曲');
 
     const source = el('#music-open-source');
     const pageUrl = safeUrl(track.pageUrl || (track.source === 'netease' || track.source === 'kugou' ? track.url : ''));
@@ -547,6 +559,73 @@
     el('#music-edit-dialog').showModal();
   }
 
+  function keepMusicFloatInside() {
+    const box = el('#chat-music-float');
+    if (!box.style.left) return;
+    const viewRect = el('#view-chat').getBoundingClientRect();
+    const rect = box.getBoundingClientRect();
+    const minTop = el('.chat-topbar').getBoundingClientRect().bottom - viewRect.top + 8;
+    const maxTop = Math.max(minTop, el('#composer').getBoundingClientRect().top - viewRect.top - rect.height - 8);
+    const maxLeft = Math.max(8, viewRect.width - rect.width - 8);
+    const left = Math.max(8, Math.min(maxLeft, parseFloat(box.style.left) || 0));
+    const top = Math.max(minTop, Math.min(maxTop, parseFloat(box.style.top) || minTop));
+    box.style.left = left + 'px';
+    box.style.top = top + 'px';
+  }
+
+  function setMusicFloatMinimized(minimized) {
+    const box = el('#chat-music-float');
+    const toggle = el('#chat-music-toggle');
+    box.classList.toggle('is-minimized', minimized);
+    el('#view-chat').classList.toggle('music-is-minimized', minimized);
+    toggle.setAttribute('aria-expanded', String(!minimized));
+    toggle.setAttribute('aria-label', minimized ? '展开音乐卡片' : '缩小音乐卡片');
+    toggle.title = minimized ? '展开' : '缩小';
+    toggle.innerHTML = '<svg viewBox="0 0 24 24"><path d="' + (minimized ? 'M6 9l6 6 6-6' : 'M6 15l6-6 6 6') + '"/></svg>';
+    keepMusicFloatInside();
+  }
+
+  function initMusicFloatDrag() {
+    const box = el('#chat-music-float');
+    let drag = null;
+
+    box.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || e.target.closest('button')) return;
+      const viewRect = el('#view-chat').getBoundingClientRect();
+      const rect = box.getBoundingClientRect();
+      drag = { pointerId: e.pointerId, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top, viewRect: viewRect };
+      box.style.left = (rect.left - viewRect.left) + 'px';
+      box.style.top = (rect.top - viewRect.top) + 'px';
+      box.style.transform = 'none';
+      box.classList.add('is-dragging');
+      box.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    box.addEventListener('pointermove', function (e) {
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      const rect = box.getBoundingClientRect();
+      const viewRect = drag.viewRect;
+      const minTop = el('.chat-topbar').getBoundingClientRect().bottom - viewRect.top + 8;
+      const maxTop = Math.max(minTop, el('#composer').getBoundingClientRect().top - viewRect.top - rect.height - 8);
+      const maxLeft = Math.max(8, viewRect.width - rect.width - 8);
+      const left = Math.max(8, Math.min(maxLeft, e.clientX - viewRect.left - drag.offsetX));
+      const top = Math.max(minTop, Math.min(maxTop, e.clientY - viewRect.top - drag.offsetY));
+      box.style.left = left + 'px';
+      box.style.top = top + 'px';
+    });
+
+    function endDrag(e) {
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      if (box.hasPointerCapture(e.pointerId)) box.releasePointerCapture(e.pointerId);
+      drag = null;
+      box.classList.remove('is-dragging');
+    }
+    box.addEventListener('pointerup', endDrag);
+    box.addEventListener('pointercancel', endDrag);
+    window.addEventListener('resize', keepMusicFloatInside);
+  }
+
   App.initMusic = function () {
     el('#w-play').addEventListener('click', togglePlay);
     el('#w-prev').addEventListener('click', function () { changeTrack(-1, playing, false); });
@@ -554,6 +633,14 @@
     el('#music-play').addEventListener('click', togglePlay);
     el('#music-prev').addEventListener('click', function () { changeTrack(-1, playing, false); });
     el('#music-next').addEventListener('click', function () { changeTrack(1, playing, App.state.music.mode === 'shuffle'); });
+    el('#chat-music-play').addEventListener('click', togglePlay);
+    el('#chat-music-prev').addEventListener('click', function () { changeTrack(-1, playing, false); });
+    el('#chat-music-next').addEventListener('click', function () { changeTrack(1, playing, App.state.music.mode === 'shuffle'); });
+    el('#chat-music-favorite').addEventListener('click', function () { toggleFavorite(currentTrack().id, 'mine'); });
+    el('#chat-music-toggle').addEventListener('click', function () {
+      setMusicFloatMinimized(!el('#chat-music-float').classList.contains('is-minimized'));
+    });
+    initMusicFloatDrag();
     el('#music-mode').addEventListener('click', function () {
       const modes = ['sequence', 'repeat', 'shuffle'];
       const next = (modes.indexOf(App.state.music.mode) + 1) % modes.length;

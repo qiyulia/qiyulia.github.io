@@ -9,6 +9,9 @@
 
   let quoteDraft = null;
   let actionMsgId = null;
+  let callState = null;
+  let callDrag = null;
+  let suppressCallClick = false;
 
   function currentContact() {
     return App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
@@ -56,6 +59,9 @@
     const mine = m.role === 'me';
     const contact = currentContact();
     const taName = contact ? contact.name : 'TA';
+    if (m.type === 'call') {
+      return '<div class="call-log" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.8l3 4.2-2 2c1.2 2.5 3.2 4.5 5.7 5.7l2-2 4.3 3c.5.4.7 1 .4 1.6-.7 1.4-2 2.2-3.6 2.1C10 19.5 4.4 14 3.6 7c-.2-1.6.7-2.9 2.1-3.6.6-.3 1.2-.1 1.5.4z"/></svg><span>' + App.esc(m.text) + '</span></div>';
+    }
     if (m.type === 'pat') {
       return '<div class="pat-line" role="status">' + App.esc(m.text) + '</div>';
     }
@@ -101,10 +107,12 @@
       ? '<span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>'
       : '<button type="button" class="msg-avatar msg-avatar-button" data-pat-current="1" aria-label="拍一拍 ' + App.esc(contact ? contact.name : 'TA') + '" title="拍一拍">' + App.avatarHtml(avatarSrc) + '</button>';
     return '<div class="msg ' + (mine ? 'me' : 'ta') + '" data-msg-id="' + App.esc(m.id) + '">' +
-      avatarHtml +
       '<div class="msg-main">' +
         quote +
-        '<div class="msg-bubble-hit" data-msg-bubble="1">' + body + '</div>' +
+        '<div class="msg-content">' +
+          avatarHtml +
+          '<div class="msg-bubble-hit" data-msg-bubble="1">' + body + '</div>' +
+        '</div>' +
         marksHtml +
         '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
       '</div>' +
@@ -599,6 +607,166 @@
     App.toast('已添加 ' + added + ' 张表情包');
   }
 
+  /* ---------- 本机模拟语音通话 ---------- */
+  function formatCallDuration(totalSeconds) {
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    return String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+  }
+
+  function updateCallTimer() {
+    if (!callState || !callState.connected) return;
+    el('#call-timer').textContent = formatCallDuration((Date.now() - callState.startedAt) / 1000);
+  }
+
+  function renderCallToggle(kind) {
+    const active = !!(callState && (kind === 'mute' ? callState.muted : callState.speaker));
+    const button = el(kind === 'mute' ? '#call-mute' : '#call-speaker');
+    const label = el(kind === 'mute' ? '#call-mute-label' : '#call-speaker-label');
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+    label.textContent = kind === 'mute' ? (active ? '已静音' : '静音') : (active ? '免提已开' : '免提');
+  }
+
+  function setCallMinimized(minimized) {
+    if (!callState) return;
+    callState.minimized = minimized;
+    const overlay = el('#call-overlay');
+    const main = el('#call-main');
+    overlay.classList.toggle('is-mini', minimized);
+    overlay.classList.remove('is-dragging');
+    if (minimized && callState.miniPosition) {
+      overlay.style.left = callState.miniPosition.left + 'px';
+      overlay.style.top = callState.miniPosition.top + 'px';
+      overlay.style.bottom = 'auto';
+      overlay.style.transform = 'none';
+    } else {
+      overlay.style.left = '';
+      overlay.style.top = '';
+      overlay.style.bottom = '';
+      overlay.style.transform = '';
+    }
+    if (minimized) {
+      main.setAttribute('role', 'button');
+      main.setAttribute('tabindex', '0');
+      main.setAttribute('aria-label', '展开通话');
+      main.focus();
+    } else {
+      main.removeAttribute('role');
+      main.removeAttribute('tabindex');
+      main.removeAttribute('aria-label');
+      if (!overlay.hidden) el('#call-minimize').focus();
+    }
+  }
+
+  function startCallDrag(e) {
+    if (!callState || !callState.minimized || !e.isPrimary || e.button !== 0 || e.target.closest('#call-end')) return;
+    const overlay = el('#call-overlay');
+    const rect = overlay.getBoundingClientRect();
+    const appRect = el('#app').getBoundingClientRect();
+    callDrag = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      left: rect.left - appRect.left,
+      top: rect.top - appRect.top,
+      maxLeft: appRect.width - rect.width - 8,
+      maxTop: appRect.height - rect.height - 8,
+      moved: false,
+    };
+    overlay.classList.add('is-dragging');
+    overlay.setPointerCapture(e.pointerId);
+  }
+
+  function moveCallDrag(e) {
+    if (!callDrag || e.pointerId !== callDrag.pointerId || !callState || !callState.minimized) return;
+    const dx = e.clientX - callDrag.startX;
+    const dy = e.clientY - callDrag.startY;
+    if (!callDrag.moved && Math.hypot(dx, dy) < 5) return;
+    callDrag.moved = true;
+    e.preventDefault();
+    const left = Math.max(8, Math.min(callDrag.maxLeft, callDrag.left + dx));
+    const top = Math.max(8, Math.min(callDrag.maxTop, callDrag.top + dy));
+    const overlay = el('#call-overlay');
+    callState.miniPosition = { left: left, top: top };
+    overlay.style.left = left + 'px';
+    overlay.style.top = top + 'px';
+    overlay.style.bottom = 'auto';
+    overlay.style.transform = 'none';
+  }
+
+  function endCallDrag(e) {
+    if (!callDrag || e.pointerId !== callDrag.pointerId) return;
+    const overlay = el('#call-overlay');
+    const moved = callDrag.moved;
+    callDrag = null;
+    overlay.classList.remove('is-dragging');
+    if (overlay.hasPointerCapture(e.pointerId)) overlay.releasePointerCapture(e.pointerId);
+    suppressCallClick = moved;
+    if (moved) setTimeout(function () { suppressCallClick = false; }, 0);
+  }
+
+  function startCall() {
+    const contact = currentContact();
+    if (!contact || callState) return;
+    closeStickerPanel();
+    closeMsgActions();
+    callState = {
+      contactId: contact.id,
+      connected: false,
+      startedAt: 0,
+      muted: false,
+      speaker: false,
+      minimized: false,
+      miniPosition: null,
+      answerTimer: null,
+      ticker: null,
+    };
+    el('#call-avatar').innerHTML = App.avatarHtml(contact.avatar);
+    el('#call-name').textContent = contact.name;
+    el('#call-status').textContent = '正在呼叫…';
+    el('#call-timer').textContent = '等待对方接听';
+    el('#call-avatar-wrap').classList.add('is-ringing');
+    renderCallToggle('mute');
+    renderCallToggle('speaker');
+    setCallMinimized(false);
+    el('#call-overlay').hidden = false;
+    el('#call-end').focus();
+
+    const session = callState;
+    session.answerTimer = setTimeout(function () {
+      if (callState !== session) return;
+      session.connected = true;
+      session.startedAt = Date.now();
+      el('#call-avatar-wrap').classList.remove('is-ringing');
+      el('#call-status').textContent = '正在通话';
+      updateCallTimer();
+      session.ticker = setInterval(updateCallTimer, 1000);
+    }, 1500);
+  }
+
+  function finishCall() {
+    if (!callState) return;
+    const session = callState;
+    callState = null;
+    clearTimeout(session.answerTimer);
+    clearInterval(session.ticker);
+    const duration = session.connected ? Math.max(1, Math.floor((Date.now() - session.startedAt) / 1000)) : 0;
+    el('#call-overlay').hidden = true;
+
+    const chat = App.state.chats[session.contactId] || (App.state.chats[session.contactId] = []);
+    chat.push({
+      id: App.uid('m'),
+      role: 'me',
+      type: 'call',
+      text: session.connected ? '语音通话 · ' + formatCallDuration(duration) : '语音通话已取消',
+      ts: Date.now(),
+    });
+    App.save();
+    if (App.chatContactId === session.contactId) App.renderChat();
+    App.renderContacts();
+    el('#btn-call').focus();
+  }
+
   App.initChat = function () {
     const input = el('#msg-input');
     const form = el('#composer');
@@ -689,6 +857,42 @@
       if (!e.target.closest('#composer, #sticker-panel, #btn-sticker')) closeStickerPanel();
     });
 
+    el('#btn-call').addEventListener('click', startCall);
+    el('#call-minimize').addEventListener('click', function () { setCallMinimized(true); });
+    el('#call-overlay').addEventListener('pointerdown', startCallDrag);
+    el('#call-overlay').addEventListener('pointermove', moveCallDrag);
+    el('#call-overlay').addEventListener('pointerup', endCallDrag);
+    el('#call-overlay').addEventListener('pointercancel', endCallDrag);
+    el('#call-overlay').addEventListener('click', function (e) {
+      if (suppressCallClick) {
+        suppressCallClick = false;
+        return;
+      }
+      if (callState && callState.minimized && !e.target.closest('#call-end, #call-minimize')) setCallMinimized(false);
+    });
+    el('#call-main').addEventListener('keydown', function (e) {
+      if (callState && callState.minimized && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        setCallMinimized(false);
+      }
+    });
+    el('#call-end').addEventListener('click', finishCall);
+    el('#call-mute').addEventListener('click', function () {
+      if (!callState) return;
+      callState.muted = !callState.muted;
+      renderCallToggle('mute');
+    });
+    el('#call-speaker').addEventListener('click', function () {
+      if (!callState) return;
+      callState.speaker = !callState.speaker;
+      renderCallToggle('speaker');
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && callState) {
+        e.preventDefault();
+        finishCall();
+      }
+    });
     el('#btn-sticker').addEventListener('click', toggleStickerPanel);
     el('#composer-quote-close').addEventListener('click', function () {
       quoteDraft = null;

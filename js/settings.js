@@ -17,16 +17,15 @@
   function showChatSettingsPage(index) {
     const pager = el('#chat-settings-pager');
     if (!pager) return;
-    chatSettingsPage = index === 1 ? 1 : 0;
+    const pages = Array.from(pager.querySelectorAll('.chat-settings-page'));
+    chatSettingsPage = Math.max(0, Math.min(pages.length - 1, Number(index) || 0));
 
-    const reply = pager.querySelector('.reply-settings-page');
-    const moments = pager.querySelector('.moments-settings-page');
-    reply.hidden = chatSettingsPage === 1;
-    moments.hidden = chatSettingsPage === 0;
-    reply.inert = chatSettingsPage === 1;
-    moments.inert = chatSettingsPage === 0;
-    reply.setAttribute('aria-hidden', String(chatSettingsPage === 1));
-    moments.setAttribute('aria-hidden', String(chatSettingsPage === 0));
+    pages.forEach(function (page, pageIndex) {
+      const inactive = pageIndex !== chatSettingsPage;
+      page.hidden = inactive;
+      page.inert = inactive;
+      page.setAttribute('aria-hidden', String(inactive));
+    });
 
     document.querySelectorAll('[data-chat-settings-page]').forEach(function (tab) {
       const active = Number(tab.dataset.chatSettingsPage) === chatSettingsPage;
