@@ -137,26 +137,22 @@
     if (!contact) return;
     const picked = card || App.pickPatCard();
     const raw = picked ? picked.text : '拍了拍{name}';
-    const target = App.sendAs === 'me' ? contact.name : '你';
-    const subject = App.sendAs === 'me' ? '你' : contact.name;
     const action = raw.indexOf('{name}') !== -1
-      ? raw.split('{name}').join(target)
-      : raw + ' ' + target;
+      ? raw.split('{name}').join(contact.name)
+      : raw + ' ' + contact.name;
     pushMessage({
       id: App.uid('m'),
-      role: App.sendAs,
+      role: 'me',
       type: 'pat',
-      text: subject + action,
+      text: '你' + action,
       ts: Date.now(),
       cardId: picked ? picked.id : undefined,
     });
     closeStickerPanel();
 
-    if (App.sendAs === 'me') {
-      schedulePatBack(contact.id);
-      scheduleReply(contact.id, '');
-      maybeTaSticker(contact.id);
-    }
+    schedulePatBack(contact.id);
+    scheduleReply(contact.id, '');
+    maybeTaSticker(contact.id);
   }
 
   /* 我拍了 TA 之后，TA 按概率回拍我 */
