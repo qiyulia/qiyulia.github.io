@@ -2263,6 +2263,17 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 .switch-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 
+/* 隐藏的文件选择框：部分手机浏览器对 display:none 的 input 兼容不好 */
+.file-input-ghost {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ============ 朋友圈：表情包 ============ */
 .moment-sticker { margin: 2px 0 4px; }
 .moment-sticker img {

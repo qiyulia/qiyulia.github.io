@@ -3,7 +3,19 @@
   const App = window.App;
   const app = document.getElementById('app');
 
+  /* 记住离开前的聊天页，手机相册选图后如果页面被系统重载，仍能回到聊天 */
+  function rememberView(view) {
+    try {
+      if (view === 'desktop') {
+        sessionStorage.removeItem('xuyu.view');
+      } else if (view === 'chat' && App.chatContactId) {
+        sessionStorage.setItem('xuyu.view', JSON.stringify({ view: 'chat', contactId: App.chatContactId }));
+      }
+    } catch (e) {}
+  }
+
   App.go = function (view) {
+    rememberView(view);
     if (App.closeMsgActions) App.closeMsgActions();
     document.querySelectorAll('.view').forEach(function (v) {
       v.classList.toggle('is-active', v.id === 'view-' + view);
@@ -118,5 +130,14 @@
   App.initMarket();
   App.initMail();
 
+  let lastView = null;
+  try { lastView = JSON.parse(sessionStorage.getItem('xuyu.view') || 'null'); } catch (e) { lastView = null; }
+
   App.go('desktop');
+
+  /* 手机选图时页面可能被系统重载，重载后回到原来的聊天 */
+  if (lastView && lastView.view === 'chat' && lastView.contactId &&
+      App.state.contacts.some(function (c) { return c.id === lastView.contactId; })) {
+    App.openChat(lastView.contactId);
+  }
 })();

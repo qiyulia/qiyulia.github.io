@@ -418,32 +418,73 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
   };
 
-  /* 本地图片压缩为 dataURL（头像、表情包共用） */
+  /* 本地图片压缩为 dataURL（头像、表情包共用）
+     使用 objectURL + createImageBitmap 缩放解码，避免大图在手机上占用过多内存导致页面重载 */
   App.compressImage = function (file, maxSize) {
     const max = maxSize || 240;
+
+    function drawToDataUrl(source, width, height) {
+      let w = width;
+      let h = height;
+      if (w > h) {
+        if (w > max) { h = Math.round(h * max / w); w = max; }
+      } else if (h > max) {
+        w = Math.round(w * max / h); h = max;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, w);
+      canvas.height = Math.max(1, h);
+      canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    }
+
     return new Promise(function (resolve, reject) {
-      const reader = new FileReader();
-      reader.onload = function () {
+      const url = URL.createObjectURL(file);
+      let settled = false;
+
+      function finish(ok, value) {
+        if (settled) return;
+        settled = true;
+        URL.revokeObjectURL(url);
+        if (ok) resolve(value);
+        else reject(value);
+      }
+
+      function fromImage() {
         const img = new Image();
         img.onload = function () {
-          let width = img.width;
-          let height = img.height;
-          if (width > height) {
-            if (width > max) { height = Math.round(height * max / width); width = max; }
-          } else if (height > max) {
-            width = Math.round(width * max / height); height = max;
+          try {
+            finish(true, drawToDataUrl(img, img.naturalWidth || img.width, img.naturalHeight || img.height));
+          } catch (e) {
+            finish(false, e);
           }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.85));
         };
-        img.onerror = function () { reject(new Error('图片读取失败')); };
-        img.src = reader.result;
-      };
-      reader.onerror = function () { reject(new Error('图片读取失败')); };
-      reader.readAsDataURL(file);
+        img.onerror = function () { finish(false, new Error('图片读取失败')); };
+        img.src = url;
+      }
+
+      if (typeof createImageBitmap === 'function') {
+        const opts = { resizeWidth: max, resizeQuality: 'medium' };
+        let pending;
+        try {
+          pending = createImageBitmap(file, opts);
+        } catch (e) {
+          fromImage();
+          return;
+        }
+        pending.then(function (bitmap) {
+          try {
+            const src = drawToDataUrl(bitmap, bitmap.width, bitmap.height);
+            if (bitmap.close) bitmap.close();
+            finish(true, src);
+          } catch (e) {
+            if (bitmap.close) bitmap.close();
+            fromImage();
+          }
+        }).catch(fromImage);
+      } else {
+        fromImage();
+      }
     });
   };
 
