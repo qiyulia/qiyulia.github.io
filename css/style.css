@@ -2659,6 +2659,11 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   .tool-overlay-card { width: calc(100vw - 20px); }
 }
 
+/* 问卷表单：隐藏项与分段选择 */
+.field[hidden] { display: none; }
+.survey-mode-field { display: flex; flex-direction: column; gap: 6px; }
+.survey-mode-field .segmented { display: flex; }
+
 /* 问卷编辑 */
 .survey-compose { display: flex; align-items: center; gap: 8px; }
 .survey-compose input {

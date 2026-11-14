@@ -191,7 +191,7 @@
     { text: '最近有什么想被我知道的小事？', mode: 'card', options: [] },
   ];
 
-  let surveyDraft = [];
+  let surveyMode = 'card';
 
   function parseSurveyOptions(text) {
     const parts = String(text || '').split(/[/／、,，\n]+/);
@@ -209,65 +209,46 @@
     return '字卡回答';
   }
 
-  function renderSurveyQuestions() {
-    const list = el('#survey-question-list');
-    if (!list) return;
-    list.innerHTML = surveyDraft.map(function (item, index) {
-      const modes = ['card', 'single', 'multi'].map(function (mode) {
-        return '<button type="button" class="' + (item.mode === mode ? 'is-active' : '') +
-          '" data-survey-mode="' + index + ':' + mode + '">' + surveyModeLabel(mode) + '</button>';
-      }).join('');
-      const extra = (item.mode === 'single' || item.mode === 'multi')
-        ? '<input class="survey-option-input" data-survey-options="' + index + '" maxlength="120" placeholder="选项用 / 分隔，2~6 个" value="' + App.esc(item.optionsText) + '">'
-        : '<label class="survey-scope"><span>字卡范围</span><select data-survey-scope="' + index + '">' +
-            '<option value="all"' + (item.scope === 'all' ? ' selected' : '') + '>整个字卡库</option>' +
-            '<option value="聊天"' + (item.scope === '聊天' ? ' selected' : '') + '>只选聊天字卡</option>' +
-            '<option value="情绪"' + (item.scope === '情绪' ? ' selected' : '') + '>只选情绪字卡</option>' +
-          '</select></label>';
-      return '<div class="survey-editor-item">' +
-        '<div class="survey-editor-top">' +
-          '<span class="survey-index">' + (index + 1) + '</span>' +
-          '<input class="survey-editor-title" data-survey-title="' + index + '" maxlength="80" value="' + App.esc(item.text) + '" placeholder="题目">' +
-          '<button type="button" class="mini-btn" data-survey-del="' + index + '" aria-label="删除这个问题">×</button>' +
-        '</div>' +
-        '<div class="segmented survey-mode" role="group" aria-label="回答方式">' + modes + '</div>' +
-        extra +
-      '</div>';
-    }).join('');
-    const empty = el('#survey-empty');
-    if (empty) empty.hidden = surveyDraft.length > 0;
+  function renderSurveyForm() {
+    document.querySelectorAll('#survey-mode [data-survey-mode]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.surveyMode === surveyMode);
+    });
+    const optionsWrap = el('#survey-options-wrap');
+    if (optionsWrap) optionsWrap.hidden = surveyMode === 'card';
+    const scopeWrap = el('#survey-scope-wrap');
+    if (scopeWrap) scopeWrap.hidden = surveyMode !== 'card';
   }
 
-  function addSurveyQuestion() {
+  function resetSurveyForm() {
+    surveyMode = 'card';
     const input = el('#survey-question-input');
-    if (!input) return;
-    const text = input.value.trim();
-    if (!text) { App.toast('先写一个问题'); return; }
-    if (surveyDraft.length >= 8) { App.toast('一份问卷最多 8 个问题'); return; }
-    surveyDraft.push({ text: text, mode: 'card', optionsText: '', scope: 'all' });
-    input.value = '';
-    renderSurveyQuestions();
-    input.focus();
+    if (input) input.value = '';
+    const options = el('#survey-options');
+    if (options) options.value = '';
+    const scope = el('#survey-scope');
+    if (scope) scope.value = 'all';
+    renderSurveyForm();
   }
 
-  function collectSurveyQuestions() {
-    if (!surveyDraft.length) return { error: '先添加一个问题' };
-    const questions = [];
-    for (let i = 0; i < surveyDraft.length; i++) {
-      const item = surveyDraft[i];
-      const text = String(item.text || '').trim();
-      if (!text) return { error: '第 ' + (i + 1) + ' 题还没写问题' };
-      if (item.mode === 'single' || item.mode === 'multi') {
-        const options = parseSurveyOptions(item.optionsText);
-        if (options.length < 2 || options.length > 6) {
-          return { error: '第 ' + (i + 1) + ' 题需要 2~6 个选项' };
-        }
-        questions.push({ text: text, mode: item.mode, options: options });
-      } else {
-        questions.push({ text: text, mode: 'card', options: [], scope: item.scope || 'all' });
-      }
+  function collectSurveyQuestion() {
+    const input = el('#survey-question-input');
+    const text = input ? String(input.value || '').trim() : '';
+    if (!text) return { error: '先写一个问题' };
+    if (surveyMode === 'single' || surveyMode === 'multi') {
+      const optionsInput = el('#survey-options');
+      const options = parseSurveyOptions(optionsInput ? optionsInput.value : '');
+      if (options.length < 2 || options.length > 6) return { error: '需要 2~6 个选项' };
+      return { question: { text: text, mode: surveyMode, options: options } };
     }
-    return { questions: questions };
+    const scopeSel = el('#survey-scope');
+    return {
+      question: {
+        text: text,
+        mode: 'card',
+        options: [],
+        scope: scopeSel ? scopeSel.value : 'all',
+      },
+    };
   }
 
   function surveyScopeCats(scope) {
@@ -403,21 +384,20 @@
   function sendSurvey() {
     const contactId = reminderContactId();
     if (!contactId) { App.toast('先添加一个角色吧'); return; }
-    const collected = collectSurveyQuestions();
+    const collected = collectSurveyQuestion();
     if (collected.error) { App.toast(collected.error); return; }
     const message = {
       id: App.uid('m'),
       role: 'me',
       type: 'survey',
       text: '发来一份小问卷',
-      questions: collected.questions,
+      questions: [collected.question],
       answered: false,
       ts: Date.now(),
     };
     deliverMessage(contactId, message);
     hideToolPanel('#survey-dialog');
-    surveyDraft = [];
-    renderSurveyQuestions();
+    resetSurveyForm();
     App.toast('问卷已发出');
     scheduleSurveyAnswers(contactId, message.id);
   }
@@ -926,7 +906,7 @@
         const more = el('#more-dialog');
         if (more) more.close();
         if (btn.dataset.tool === 'survey') {
-          renderSurveyQuestions();
+          renderSurveyForm();
           showToolPanel('#survey-dialog');
         } else if (btn.dataset.tool === 'divine') {
           resetDivine(true);
@@ -938,58 +918,22 @@
       });
     });
 
-    /* 问卷：手动添加问题、切换回答方式、编辑选项、发送 */
+    /* 问卷：写一个问题、选回答方式、直接发送 */
     const surveyInput = el('#survey-question-input');
     if (surveyInput) {
       surveyInput.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
           e.preventDefault();
-          addSurveyQuestion();
+          sendSurvey();
         }
       });
     }
-    const surveyAdd = el('#survey-add-question');
-    if (surveyAdd) surveyAdd.addEventListener('click', addSurveyQuestion);
-
-    const surveyList = el('#survey-question-list');
-    if (surveyList) {
-      surveyList.addEventListener('click', function (e) {
-        const del = e.target.closest('[data-survey-del]');
-        if (del) {
-          surveyDraft.splice(Number(del.dataset.surveyDel), 1);
-          renderSurveyQuestions();
-          return;
-        }
-        const mode = e.target.closest('[data-survey-mode]');
-        if (mode) {
-          const parts = mode.dataset.surveyMode.split(':');
-          const item = surveyDraft[Number(parts[0])];
-          if (item) {
-            item.mode = parts[1];
-            renderSurveyQuestions();
-          }
-        }
+    document.querySelectorAll('#survey-mode [data-survey-mode]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        surveyMode = btn.dataset.surveyMode || 'card';
+        renderSurveyForm();
       });
-      surveyList.addEventListener('input', function (e) {
-        const title = e.target.closest('[data-survey-title]');
-        if (title) {
-          const item = surveyDraft[Number(title.dataset.surveyTitle)];
-          if (item) item.text = title.value;
-          return;
-        }
-        const options = e.target.closest('[data-survey-options]');
-        if (options) {
-          const item = surveyDraft[Number(options.dataset.surveyOptions)];
-          if (item) item.optionsText = options.value;
-        }
-      });
-      surveyList.addEventListener('change', function (e) {
-        const scope = e.target.closest('[data-survey-scope]');
-        if (!scope) return;
-        const item = surveyDraft[Number(scope.dataset.surveyScope)];
-        if (item) item.scope = scope.value;
-      });
-    }
+    });
     const surveySend = el('#survey-send');
     if (surveySend) surveySend.addEventListener('click', sendSurvey);
 

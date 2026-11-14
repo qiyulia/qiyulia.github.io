@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-68">
+<link rel="stylesheet" href="css/style.css?v=20261114-69">
 </head>
 <body>
 <div class="stage">
@@ -1159,13 +1159,27 @@ if ('caches' in window) {
     <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
   </div>
   <div class="tool-sheet-body">
-    <div class="survey-compose">
+    <label class="field"><span>问题</span>
       <input id="survey-question-input" maxlength="80" placeholder="写一个问题，比如：今天最想和我做什么？">
-      <button type="button" class="btn ghost" id="survey-add-question">添加问题</button>
+    </label>
+    <div class="field survey-mode-field"><span>回答方式</span>
+      <div class="segmented" id="survey-mode" role="group" aria-label="回答方式">
+        <button type="button" class="is-active" data-survey-mode="card">字卡回答</button>
+        <button type="button" data-survey-mode="single">单选</button>
+        <button type="button" data-survey-mode="multi">多选</button>
+      </div>
     </div>
-    <p class="field-hint">每题可选「字卡回答 / 单选 / 多选」；单选和多选用 / 分隔 2~6 个选项。</p>
-    <div id="survey-question-list" class="survey-question-list"></div>
-    <p class="field-hint" id="survey-empty">还没有问题，先在上面写一个。</p>
+    <label class="field" id="survey-options-wrap" hidden><span>选项</span>
+      <input id="survey-options" maxlength="120" placeholder="用 / 分隔 2~6 个选项，如：吃饭 / 散步 / 看电影">
+    </label>
+    <label class="field" id="survey-scope-wrap"><span>字卡范围</span>
+      <select id="survey-scope">
+        <option value="all">整个字卡库</option>
+        <option value="聊天">只选聊天字卡</option>
+        <option value="情绪">只选情绪字卡</option>
+      </select>
+    </label>
+    <p class="field-hint">选好回答方式后直接发送，TA 会在聊天里回一份答案卡。</p>
   </div>
   <div class="sheet-actions tool-sheet-actions">
     <button type="button" class="btn ghost" data-tool-close>取消</button>
@@ -1336,18 +1350,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-68"></script>
-<script src="js/store.js?v=20261114-68"></script>
-<script src="js/desktop.js?v=20261114-68"></script>
-<script src="js/chat.js?v=20261114-68"></script>
-<script src="js/cards.js?v=20261114-68"></script>
-<script src="js/settings.js?v=20261114-68"></script>
-<script src="js/moments.js?v=20261114-68"></script>
-<script src="js/calendar.js?v=20261114-68"></script>
-<script src="js/music.js?v=20261114-68"></script>
-<script src="js/market.js?v=20261114-68"></script>
-<script src="js/mail.js?v=20261114-68"></script>
-<script src="js/extras.js?v=20261114-68"></script>
-<script src="js/app.js?v=20261114-68"></script>
+<script src="js/seed.js?v=20261114-69"></script>
+<script src="js/store.js?v=20261114-69"></script>
+<script src="js/desktop.js?v=20261114-69"></script>
+<script src="js/chat.js?v=20261114-69"></script>
+<script src="js/cards.js?v=20261114-69"></script>
+<script src="js/settings.js?v=20261114-69"></script>
+<script src="js/moments.js?v=20261114-69"></script>
+<script src="js/calendar.js?v=20261114-69"></script>
+<script src="js/music.js?v=20261114-69"></script>
+<script src="js/market.js?v=20261114-69"></script>
+<script src="js/mail.js?v=20261114-69"></script>
+<script src="js/extras.js?v=20261114-69"></script>
+<script src="js/app.js?v=20261114-69"></script>
 </body>
 </html>
