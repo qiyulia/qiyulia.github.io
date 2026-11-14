@@ -218,7 +218,13 @@
     App.toast('已删除字卡');
   }
 
-  function importCards(file) {
+  function importCards(file, fallbackCategory) {
+    const pickedCat = App.CATEGORIES.indexOf(fallbackCategory) !== -1 && fallbackCategory !== '语音'
+      ? fallbackCategory
+      : '';
+    const filterCat = pickedCat || (App.cardFilter && App.cardFilter.cat !== '全部' && App.cardFilter.cat !== '语音'
+      ? App.cardFilter.cat
+      : '');
     App.readJSONFile(file).then(function (data) {
       const incoming = Array.isArray(data) ? data : (data && data.cards);
       if (!Array.isArray(incoming)) throw new Error('文件里没有找到字卡');
@@ -231,7 +237,7 @@
         if (!item || typeof item !== 'object') return;
         const text = String(item.text || '').trim();
         if (!text) return;
-        const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : '聊天';
+        const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : (filterCat || '聊天');
         const audio = category === '语音' && typeof item.audio === 'string' && item.audio.indexOf('data:audio') === 0
           ? item.audio
           : '';
@@ -484,7 +490,8 @@
     });
 
     el('#btn-import-cards').addEventListener('click', function () {
-      openCardDialog(null);
+      const cat = App.cardFilter && App.cardFilter.cat !== '全部' ? App.cardFilter.cat : '';
+      openCardDialog(null, cat || undefined);
     });
 
     el('#card-import-file-btn').addEventListener('click', function () {
@@ -494,7 +501,7 @@
     el('#file-import-cards').addEventListener('change', function (e) {
       const file = e.target.files && e.target.files[0];
       const dialog = el('#card-dialog');
-      if (file) importCards(file);
+      if (file) importCards(file, el('#card-cat') ? el('#card-cat').value : '');
       e.target.value = '';
       if (dialog && dialog.open) dialog.close();
     });
