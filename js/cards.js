@@ -74,6 +74,40 @@
     return App.state.cards.find(function (c) { return c.id === id; });
   }
 
+  function cardTextKey(card) {
+    return String(card.text || '').trim();
+  }
+
+  function existingTextKeys() {
+    const keys = {};
+    App.state.cards.forEach(function (c) {
+      const key = cardTextKey(c);
+      if (key) keys[key] = true;
+    });
+    return keys;
+  }
+
+  function dedupeCards() {
+    const seen = {};
+    let removed = 0;
+    App.state.cards = App.state.cards.filter(function (c) {
+      const key = cardTextKey(c);
+      if (!key) return true;
+      if (seen[key]) {
+        removed++;
+        return false;
+      }
+      seen[key] = true;
+      return true;
+    });
+    if (removed) {
+      App.save();
+      App.renderCards();
+      App.renderDesktop();
+    }
+    return removed;
+  }
+
   function toggleExtraFields(category, card) {
     const emotionBox = el('#card-emotion-fields');
     const voiceBox = el('#card-voice-fields');
@@ -121,14 +155,18 @@
       const incoming = Array.isArray(data) ? data : (data && data.cards);
       if (!Array.isArray(incoming)) throw new Error('文件里没有找到字卡');
 
-      const existing = {};
-      App.state.cards.forEach(function (c) { existing[c.text.trim()] = true; });
+      const existing = existingTextKeys();
 
       let added = 0;
+      let duplicated = 0;
       incoming.forEach(function (item) {
         if (!item || typeof item !== 'object') return;
         const text = String(item.text || '').trim();
-        if (!text || existing[text]) return;
+        if (!text) return;
+        if (existing[text]) {
+          duplicated++;
+          return;
+        }
         const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : '聊天';
         const card = {
           id: App.uid('card'),
@@ -153,7 +191,7 @@
       App.save();
       App.renderCards();
       App.renderDesktop();
-      App.toast(added ? '已导入 ' + added + ' 张字卡' : '没有新的字卡可导入');
+      App.toast('已导入 ' + added + ' 条，去重 ' + duplicated + ' 条');
     }).catch(function (err) {
       App.toast(err.message || '导入失败');
     });
@@ -236,13 +274,29 @@
         if (category !== '语音') delete card.audio;
       }
 
+      let added = 0;
+      let duplicated = 0;
       if (editingCard) {
         fillCard(editingCard, texts[0]);
       } else {
-        texts.slice().reverse().forEach(function (text) {
+        const existing = existingTextKeys();
+        const fresh = texts.filter(function (text) {
+          if (existing[text]) {
+            duplicated++;
+            return false;
+          }
+          existing[text] = true;
+          return true;
+        });
+        if (!fresh.length) {
+          App.toast('这些字卡都已经存在了');
+          return;
+        }
+        fresh.slice().reverse().forEach(function (text) {
           const card = { id: App.uid('card'), enabled: true, builtin: false };
           fillCard(card, text);
           App.state.cards.unshift(card);
+          added++;
         });
       }
 
@@ -250,7 +304,7 @@
       dialog.close();
       App.renderCards();
       App.renderDesktop();
-      App.toast(editingCard ? '已更新字卡' : (texts.length > 1 ? '已添加 ' + texts.length + ' 张字卡' : '已添加字卡'));
+      App.toast(editingCard ? '已更新字卡' : '已添加 ' + added + ' 张字卡' + (duplicated ? '，去重 ' + duplicated + ' 张' : ''));
       editingCard = null;
     });
 
@@ -261,6 +315,11 @@
         exportedAt: new Date().toISOString(),
         cards: App.state.cards,
       }, 'xuyu-cards-' + App.stamp() + '.json');
+    });
+
+    el('#btn-dedupe-cards').addEventListener('click', function () {
+      const removed = dedupeCards();
+      App.toast(removed ? '已删除 ' + removed + ' 张重复字卡' : '没有重复的字卡');
     });
 
     el('#btn-import-cards').addEventListener('click', function () {
