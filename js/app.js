@@ -39,7 +39,13 @@
       if (App.maybeTaPosts) App.maybeTaPosts();
       App.renderMoments();
     }
-    else if (view === 'cards') App.renderCards();
+    else if (view === 'cards') {
+      /* 每次进入字卡库都回到「全部」，避免上次停留的分类或搜索词把列表清空 */
+      App.cardFilter = { q: '', cat: '全部' };
+      const search = document.getElementById('card-search');
+      if (search) search.value = '';
+      App.renderCards();
+    }
     else if (view === 'settings') App.renderSettings();
     else if (view === 'chat-settings') App.renderChatSettings();
     else if (view === 'calendar') App.renderCalendar();
