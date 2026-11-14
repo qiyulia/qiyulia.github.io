@@ -77,9 +77,17 @@
       }
     });
     const list = el('#chat-list');
+    /* 重绘前记住已经在屏上的消息，重绘后让它们不再播放入场动画，避免整屏闪一下 */
+    const seen = {};
+    Array.prototype.forEach.call(list.querySelectorAll('[data-msg-id]'), function (node) {
+      seen[node.getAttribute('data-msg-id')] = true;
+    });
     list.innerHTML = chat.length
       ? chat.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
+    Array.prototype.forEach.call(list.querySelectorAll('.msg[data-msg-id]'), function (node) {
+      if (seen[node.getAttribute('data-msg-id')]) node.classList.add('is-static');
+    });
     bindVoiceBubbles(list);
     /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
     if (typingAllowed(id)) list.appendChild(typingRow());
