@@ -36,6 +36,7 @@
     if (App.chatContactId !== contactId) {
       quoteDraft = null;
       closeMsgActions();
+      stopVoice();
     }
     App.chatContactId = contactId;
     App.state.currentContactId = contactId;
@@ -76,13 +77,10 @@
       }
     });
     const list = el('#chat-list');
-    captureVoicePlayback(list);
     list.innerHTML = chat.length
       ? chat.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
-    if (App.hydrateMedia) App.hydrateMedia(list);
     bindVoiceBubbles(list);
-    restoreVoicePlayback(list);
     /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
     if (typingAllowed(id)) list.appendChild(typingRow());
     updateSideButtons();
@@ -92,72 +90,108 @@
     requestAnimationFrame(function () { scrollBottom(true); });
   };
 
-  /* 微信式语音气泡：点击播放，气泡宽度随时长变化 */
+  /* 微信式语音气泡：只用一个播放器，列表重绘、来新消息都不会打断 */
   function voiceBubbleWidth(seconds) {
     return Math.round(74 + Math.min(seconds, 30) * 3.6);
   }
 
-  /* 重新渲染聊天列表前记录正在播放的语音，渲染后续播，避免来新消息就断掉 */
-  let voiceResume = null;
+  const voicePlayer = new Audio();
+  voicePlayer.preload = 'metadata';
+  let voicePlayingId = '';
+  const voiceDurations = {};
+  const voiceUrls = {};
 
-  function captureVoicePlayback(root) {
-    const audio = root.querySelector('.bubble-audio audio');
-    if (!audio) {
-      voiceResume = null;
-      return;
+  function voiceRefKey(ref) {
+    const value = String(ref || '');
+    return value.length + ':' + value.slice(-40);
+  }
+
+  function resolveVoiceUrl(ref) {
+    const value = String(ref || '');
+    const key = voiceRefKey(value);
+    if (voiceUrls[key]) return Promise.resolve(voiceUrls[key]);
+    if (!App.voiceSrc || value.indexOf('data:') === 0) return Promise.resolve(value);
+    return App.voiceSrc(value).then(function (url) {
+      if (url) voiceUrls[key] = url;
+      return url || '';
+    });
+  }
+
+  function paintVoiceBubble(bubble) {
+    if (!bubble) return;
+    const btn = bubble.querySelector('.voice-bubble');
+    const label = bubble.querySelector('.voice-dur');
+    if (!btn || !label) return;
+    const wrap = bubble.closest('[data-msg-id]');
+    const id = wrap ? wrap.dataset.msgId : '';
+    btn.classList.toggle('is-playing', !!voicePlayingId && id === voicePlayingId);
+    const seconds = voiceDurations[voiceRefKey(bubble.dataset.voiceRef)];
+    if (seconds) {
+      label.textContent = seconds + '″';
+      btn.style.width = voiceBubbleWidth(seconds) + 'px';
     }
-    const wrap = audio.closest('[data-msg-id]');
-    voiceResume = {
-      id: wrap ? wrap.dataset.msgId : '',
-      time: audio.currentTime || 0,
-      playing: !audio.paused
-    };
-    if (!voiceResume.id || (!voiceResume.playing && !voiceResume.time)) voiceResume = null;
   }
 
-  function restoreVoicePlayback(root) {
-    const saved = voiceResume;
-    voiceResume = null;
-    if (!saved) return;
-    const wrap = root.querySelector('.msg[data-msg-id="' + saved.id + '"]');
-    const audio = wrap && wrap.querySelector('.bubble-audio audio');
-    if (!audio) return;
-    const apply = function () {
-      try {
-        if (saved.time > 0.2) audio.currentTime = saved.time;
-      } catch (e) {}
-      if (saved.playing && audio.paused) audio.play().catch(function () {});
-    };
-    if (audio.readyState >= 1) apply();
-    else audio.addEventListener('loadedmetadata', apply, { once: true });
+  function paintVoiceBubbles() {
+    document.querySelectorAll('#chat-list .bubble-audio').forEach(paintVoiceBubble);
   }
+
+  function stopVoice() {
+    voicePlayingId = '';
+    try { voicePlayer.pause(); } catch (e) {}
+    paintVoiceBubbles();
+  }
+
+  voicePlayer.addEventListener('play', paintVoiceBubbles);
+  voicePlayer.addEventListener('pause', paintVoiceBubbles);
+  voicePlayer.addEventListener('ended', function () {
+    voicePlayingId = '';
+    paintVoiceBubbles();
+  });
 
   function bindVoiceBubbles(root) {
     root.querySelectorAll('.bubble-audio').forEach(function (bubble) {
-      const audio = bubble.querySelector('.voice-audio');
       const btn = bubble.querySelector('.voice-bubble');
-      const label = bubble.querySelector('.voice-dur');
-      if (!audio || !btn || !label) return;
-      const sync = function () {
-        if (!isFinite(audio.duration) || audio.duration <= 0) return;
-        const seconds = Math.max(1, Math.round(audio.duration));
-        label.textContent = seconds + '″';
-        btn.style.width = voiceBubbleWidth(seconds) + 'px';
-      };
-      if (audio.readyState >= 1) sync();
-      else audio.addEventListener('loadedmetadata', sync);
-      audio.addEventListener('play', function () { btn.classList.add('is-playing'); });
-      audio.addEventListener('pause', function () { btn.classList.remove('is-playing'); });
-      audio.addEventListener('ended', function () { btn.classList.remove('is-playing'); });
-      btn.addEventListener('click', function () {
-        if (audio.paused) {
-          document.querySelectorAll('#chat-list audio').forEach(function (other) {
-            if (other !== audio) other.pause();
+      if (!btn) return;
+      paintVoiceBubble(bubble);
+      const ref = bubble.dataset.voiceRef || '';
+      const key = voiceRefKey(ref);
+      if (!bubble.dataset.voiceReady) {
+        bubble.dataset.voiceReady = '1';
+        resolveVoiceUrl(ref).then(function (url) {
+          if (!url || voiceDurations[key]) return;
+          const probe = new Audio();
+          probe.preload = 'metadata';
+          probe.addEventListener('loadedmetadata', function () {
+            if (!isFinite(probe.duration) || probe.duration <= 0) return;
+            voiceDurations[key] = Math.max(1, Math.round(probe.duration));
+            paintVoiceBubbles();
           });
-          audio.play().catch(function () {});
-        } else {
-          audio.pause();
+          probe.src = url;
+        });
+      }
+      btn.addEventListener('click', function () {
+        const wrap = btn.closest('[data-msg-id]');
+        const id = wrap ? wrap.dataset.msgId : '';
+        if (!id) return;
+        if (voicePlayingId === id) {
+          stopVoice();
+          return;
         }
+        resolveVoiceUrl(ref).then(function (url) {
+          if (!url) {
+            App.toast('这段语音暂时无法播放');
+            return;
+          }
+          voicePlayingId = id;
+          if (voicePlayer.src !== url) voicePlayer.src = url;
+          try { voicePlayer.currentTime = 0; } catch (e) {}
+          voicePlayer.play().catch(function () {
+            voicePlayingId = '';
+            paintVoiceBubbles();
+          });
+          paintVoiceBubbles();
+        });
       });
     });
   }
@@ -423,15 +457,11 @@
     } else if (m.type === 'audio') {
       const showTranscript = m.text && (!App.state.settings || App.state.settings.voiceTranscript !== false);
       const media = String(m.src || '');
-      const audioSrc = media.indexOf('voice:') === 0
-        ? ' data-media="' + App.esc(media) + '"'
-        : ' src="' + App.esc(media) + '"';
-      body = '<div class="bubble bubble-audio' + (hasEmotion ? ' bubble-emotion' : '') + '">' +
+      body = '<div class="bubble bubble-audio' + (hasEmotion ? ' bubble-emotion' : '') + '" data-voice-ref="' + App.esc(media) + '">' +
         '<button type="button" class="voice-bubble" aria-label="播放语音">' +
           '<span class="voice-icon" aria-hidden="true"><i></i><i></i><i></i></span>' +
           '<span class="voice-dur">···</span>' +
         '</button>' +
-        '<audio class="voice-audio" preload="metadata"' + audioSrc + '></audio>' +
         (showTranscript ? '<p class="audio-transcript">' + App.esc(m.text) + '</p>' : '') +
         meta +
         '</div>';
