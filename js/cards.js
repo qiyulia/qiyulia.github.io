@@ -230,8 +230,8 @@
     el('#card-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       const rawText = el('#card-text').value;
-      /* 新建时按空行拆分，一次可以写入多张字卡；编辑时只改当前这一张。 */
-      const texts = (editingCard ? [rawText] : rawText.split(/\n[ \t]*\n+/))
+      /* 新建时一行一张字卡，一次可粘贴多行批量添加；编辑时只改当前这一张。 */
+      const texts = (editingCard ? [rawText] : rawText.split(/\r?\n/))
         .map(function (t) { return t.trim(); })
         .filter(Boolean);
       if (!texts.length) {
