@@ -59,12 +59,23 @@
     return true;
   }
 
+  const SUBSIDY_MAX = 1000000000;
+
   function subsidy(side) {
-    const amount = 20 + Math.floor(Math.random() * 181);
+    const input = el('#market-subsidy-amount');
+    const raw = input ? String(input.value || '').trim() : '';
+    const parsed = Math.round(Number(raw));
+    if (!raw || !Number.isFinite(parsed) || parsed <= 0) {
+      App.toast('先输入补贴金额');
+      if (input) input.focus();
+      return;
+    }
+    const amount = Math.min(SUBSIDY_MAX, parsed);
     App.state.wallet[side] += amount;
     App.save();
+    if (input) input.value = '';
     App.renderMarket();
-    postSystem('次元银行为' + (side === 'me' ? '你' : '他') + '补贴 ' + amount + ' 同心币');
+    postSystem('次元银行为' + who(side) + '补贴 ' + amount + ' 同心币');
     App.toast('次元银行补贴 ' + amount + ' 同心币');
   }
 

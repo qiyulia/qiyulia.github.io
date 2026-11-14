@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-114">
+<link rel="stylesheet" href="css/style.css?v=20261114-115">
 </head>
 <body>
 <div class="stage">
@@ -845,8 +845,11 @@ if ('caches' in window) {
             <button type="button" data-market-as="ta">TA</button>
           </div>
           <div class="market-subsidy">
-            <button type="button" class="btn ghost" id="market-subsidy-me">为我补贴</button>
-            <button type="button" class="btn ghost" id="market-subsidy-ta">为 TA 补贴</button>
+            <input id="market-subsidy-amount" class="market-subsidy-input" type="number" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="输入补贴金额（1 ~ 1000000000）">
+            <div class="market-subsidy-actions">
+              <button type="button" class="btn ghost" id="market-subsidy-me">补贴我</button>
+              <button type="button" class="btn ghost" id="market-subsidy-ta">补贴 TA</button>
+            </div>
           </div>
           <p class="field-hint">补贴会以「次元银行」的名义在聊天里弹出。</p>
         </section>
@@ -995,6 +998,13 @@ if ('caches' in window) {
           <label class="field"><span>TA 给我改名字的概率（%）</span><input id="set-name-me-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
           <label class="field"><span>改名字冷却时间（分钟）</span><input id="set-name-cooldown" inputmode="numeric" maxlength="4" placeholder="120"></label>
           <p class="field-hint">TA 会从「头像」工具里「名字」分类保存过的名字中挑一个换上，改过一次后要等冷却时间结束才会再改。</p>
+        </div>
+
+        <div class="panel">
+          <h3>TA 补贴同心币</h3>
+          <label class="field"><span>TA 主动补贴的概率（%）</span><input id="set-ta-subsidy-prob" inputmode="numeric" maxlength="3" placeholder="8"></label>
+          <label class="field"><span>补贴冷却时间（分钟）</span><input id="set-ta-subsidy-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
+          <p class="field-hint">TA 会随机补贴你或 TA 自己，金额在 1 ~ 1000000000 之间随机，偶尔还会出现红包式的特殊数字。</p>
         </div>
 
         <div class="panel">
@@ -1618,18 +1628,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-114"></script>
-<script src="js/store.js?v=20261114-114"></script>
-<script src="js/desktop.js?v=20261114-114"></script>
-<script src="js/chat.js?v=20261114-114"></script>
-<script src="js/cards.js?v=20261114-114"></script>
-<script src="js/settings.js?v=20261114-114"></script>
-<script src="js/moments.js?v=20261114-114"></script>
-<script src="js/calendar.js?v=20261114-114"></script>
-<script src="js/music.js?v=20261114-114"></script>
-<script src="js/market.js?v=20261114-114"></script>
-<script src="js/mail.js?v=20261114-114"></script>
-<script src="js/extras.js?v=20261114-114"></script>
-<script src="js/app.js?v=20261114-114"></script>
+<script src="js/seed.js?v=20261114-115"></script>
+<script src="js/store.js?v=20261114-115"></script>
+<script src="js/desktop.js?v=20261114-115"></script>
+<script src="js/chat.js?v=20261114-115"></script>
+<script src="js/cards.js?v=20261114-115"></script>
+<script src="js/settings.js?v=20261114-115"></script>
+<script src="js/moments.js?v=20261114-115"></script>
+<script src="js/calendar.js?v=20261114-115"></script>
+<script src="js/music.js?v=20261114-115"></script>
+<script src="js/market.js?v=20261114-115"></script>
+<script src="js/mail.js?v=20261114-115"></script>
+<script src="js/extras.js?v=20261114-115"></script>
+<script src="js/app.js?v=20261114-115"></script>
 </body>
 </html>

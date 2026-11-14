@@ -2616,8 +2616,18 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   font-variant-numeric: tabular-nums;
 }
 .market-identity { margin-top: 10px; }
-.market-subsidy { display: flex; gap: 8px; margin-top: 10px; }
-.market-subsidy .btn { flex: 1 1 0; }
+.market-subsidy { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.market-subsidy-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.market-subsidy-actions { display: flex; gap: 8px; }
+.market-subsidy-actions .btn { flex: 1 1 0; }
 .market-add-form { display: flex; flex-direction: column; gap: 10px; }
 .market-list { display: flex; flex-direction: column; gap: 10px; }
 .market-item {

@@ -495,6 +495,8 @@
     if (s.settings.avatarMeProb == null) s.settings.avatarMeProb = 25;
     if (s.settings.nameSelfProb == null) s.settings.nameSelfProb = 20;
     if (s.settings.nameMeProb == null) s.settings.nameMeProb = 10;
+    if (s.settings.taSubsidyProb == null) s.settings.taSubsidyProb = 8;
+    if (s.settings.taSubsidyCooldownMin == null) s.settings.taSubsidyCooldownMin = 30;
     if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
     if (s.settings.taVoiceProb == null) s.settings.taVoiceProb = 20;
     if (s.settings.taIgnoreProb == null) s.settings.taIgnoreProb = 15;

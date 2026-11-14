@@ -944,6 +944,7 @@
   setInterval(function () {
     maybeTaStartsChat();
     if (App.maybeTaSurvey) App.maybeTaSurvey();
+    if (App.maybeTaSubsidy) App.maybeTaSubsidy();
     if (document.hidden || callState) return;
     const st = App.state;
     if (!st || !st.contacts.length) return;
