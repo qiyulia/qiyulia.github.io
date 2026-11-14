@@ -122,7 +122,7 @@
     const textHint = el('#card-text-hint');
     if (textHint) {
       textHint.textContent = isVoice
-        ? '导入时先试听，校对这句文字有没有错别字；保存后直接复用，不再二次转换。'
+        ? '自己写下这段语音的内容，可以边试听边改；保存后直接复用。'
         : '一行一张字卡，可一次粘贴多行批量添加。';
     }
     const textArea = el('#card-text');
