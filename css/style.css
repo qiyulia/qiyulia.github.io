@@ -2548,22 +2548,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .more-item:active { transform: scale(.97); }
 
 /* “其他”弹窗：横向分类 + 应用图标 */
-.more-sheet {
-  width: min(calc(100vw - 20px), 410px);
-  max-width: none;
-  height: 52vh;
-  max-height: 52vh;
-  padding: 38px 14px 12px;
-  display: flex;
-  flex-direction: column;
-}
-.more-sheet #more-apps {
-  flex: 1;
-  align-content: start;
-  overflow-y: auto;
-  margin: 14px 0 8px;
-}
-.more-sheet .sheet-actions { margin-top: auto; }
+.more-sheet { padding-top: 38px; }
 .more-sheet .sheet-head {
   position: absolute;
   top: 6px;
