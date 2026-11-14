@@ -197,7 +197,8 @@
   }
 
   function readChip(m) {
-    return '<span class="msg-read' + (m.read ? ' is-read' : '') + '">' + (m.read ? '已读' : '未读') + '</span>';
+    const label = m.read ? (m.noReply ? '已读不回' : '已读') : '未读';
+    return '<span class="msg-read' + (m.read ? ' is-read' : '') + (m.noReply ? ' is-noreply' : '') + '">' + label + '</span>';
   }
 
   /* 我发出的消息约两秒后变成已读 */
@@ -452,8 +453,6 @@
     let body = '';
     if (m.type === 'image') {
       body = '<div class="bubble sticker"><img class="sticker-img" loading="lazy" decoding="async" src="' + App.esc(m.src) + '" alt="表情包"></div>';
-    } else if (m.type === 'ignore') {
-      body = '<div class="bubble bubble-ignore"><span class="bubble-text">已读不回</span></div>';
     } else if (m.type === 'audio') {
       const showTranscript = m.text && (!App.state.settings || App.state.settings.voiceTranscript !== false);
       const media = String(m.src || '');
@@ -692,13 +691,9 @@
     return row;
   }
 
-  /* 最新一条是已读不回、或根本没有待发消息时，不显示正在输入 */
+  /* 没有待发消息时不显示正在输入 */
   function typingAllowed(contactId) {
-    if (!(typingContacts[contactId] > 0)) return false;
-    const chat = App.state.chats[contactId] || [];
-    const last = chat[chat.length - 1];
-    if (last && last.role === 'ta' && last.type === 'ignore') return false;
-    return true;
+    return typingContacts[contactId] > 0;
   }
 
   function syncTypingRow(contactId) {
@@ -1086,28 +1081,21 @@
     const count = min + Math.floor(Math.random() * (max - min + 1));
     if (count <= 0) return;
 
-    /* 按概率已读不回：不接话，只留一张「已读不回」的字卡 */
+    /* 按概率已读不回：不接话，把我刚发的那条消息标成「已读不回」 */
     const ignoreProb = Math.max(0, Math.min(100, Number(cs.taIgnoreProb) || 0));
     if (Math.random() * 100 < ignoreProb) {
       await sleep(1600 + Math.random() * 2400);
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
-      const ignored = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      ignored.push({
-        id: App.uid('m'),
-        role: 'ta',
-        type: 'ignore',
-        text: '已读不回',
-        ts: Date.now(),
-        read: true,
-      });
-      App.save();
-      if (App.chatOpen(contactId)) {
-        App.renderChat();
-      } else {
-        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
-        App.updateBadges();
-        App.renderContacts();
+      const chat = App.state.chats[contactId] || [];
+      let target = null;
+      for (let i = chat.length - 1; i >= 0; i--) {
+        if (chat[i].role === 'me') { target = chat[i]; break; }
       }
+      if (!target) return;
+      target.read = true;
+      target.noReply = true;
+      App.save();
+      if (App.chatOpen(contactId)) App.renderChat();
       return;
     }
 

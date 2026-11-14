@@ -462,6 +462,25 @@
 
     if (!Array.isArray(s.contacts)) s.contacts = [];
     if (!s.chats || typeof s.chats !== 'object' || Array.isArray(s.chats)) s.chats = {};
+    /* 旧版「已读不回」是一条独立消息，改为标在我那条消息的已读状态上 */
+    Object.keys(s.chats).forEach(function (id) {
+      const list = Array.isArray(s.chats[id]) ? s.chats[id] : [];
+      const out = [];
+      list.forEach(function (m) {
+        if (m && m.type === 'ignore') {
+          for (let i = out.length - 1; i >= 0; i--) {
+            if (out[i].role === 'me') {
+              out[i].read = true;
+              out[i].noReply = true;
+              break;
+            }
+          }
+          return;
+        }
+        out.push(m);
+      });
+      s.chats[id] = out;
+    });
     if (!Array.isArray(s.cards)) s.cards = App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); });
     if (!s.profile) s.profile = { userName: '我', userAvatar: App.DEFAULT_AVATAR, since: '' };
     /* 旧版默认形象（阿眠 / 🌙 / 🍊）换成中性 ta 与灰底人像，用户自己选的图片不受影响 */

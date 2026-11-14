@@ -1314,13 +1314,6 @@ button.widget:active { transform: scale(.99); }
   border-radius: 14px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .1);
 }
-.bubble.bubble-ignore {
-  background: transparent;
-  border: 1px dashed var(--line);
-  color: var(--muted);
-  font-style: italic;
-  letter-spacing: .06em;
-}
 .pat-line {
   align-self: center;
   margin: 2px 0;
