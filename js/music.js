@@ -474,31 +474,125 @@
   function neteaseAudioUrl(id) {
     return id ? 'https://music.163.com/song/media/outer/url?id=' + id + '.mp3' : '';
   }
+  function isNeteaseUrl(url) {
+    try { return /(^|\.)(163cn\.tv|163\.com)$/.test(new URL(url).hostname); } catch (e) { return false; }
+  }
+  function fetchTextViaProxy(url) {
+    const enc = encodeURIComponent;
+    const proxies = [
+      function (u, signal) { return fetch('https://api.allorigins.win/raw?url=' + enc(u), { signal: signal }).then(function (res) { return res.ok ? res.text() : Promise.reject(new Error('raw ' + res.status)); }); },
+      function (u, signal) { return fetch('https://api.allorigins.win/get?url=' + enc(u), { signal: signal }).then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('get ' + res.status)); }).then(function (data) { return data.contents || ''; }); },
+      function (u, signal) { return fetch('https://corsproxy.io/?url=' + enc(u), { signal: signal }).then(function (res) { return res.ok ? res.text() : Promise.reject(new Error('corsproxy ' + res.status)); }); },
+      function (u, signal) { return fetch('https://api.codetabs.com/v1/proxy/?quest=' + enc(u), { signal: signal }).then(function (res) { return res.ok ? res.text() : Promise.reject(new Error('codetabs ' + res.status)); }); }
+    ];
+    const run = function (fetchOne) {
+      const controller = window.AbortController ? new AbortController() : null;
+      const timer = controller ? setTimeout(function () { controller.abort(); }, 12000) : null;
+      return fetchOne(url, controller ? controller.signal : undefined).then(function (text) {
+        if (!text) throw new Error('empty');
+        return text;
+      }).finally(function () { if (timer) clearTimeout(timer); });
+    };
+    return proxies.reduce(function (chain, fetchOne) {
+      return chain.catch(function () { return run(fetchOne); });
+    }, Promise.reject(new Error('start'))).catch(function () { return ''; });
+  }
+  function decodeHtml(value) {
+    const span = document.createElement('span');
+    span.innerHTML = String(value || '');
+    return span.textContent || '';
+  }
+  function parseMeta(html, property) {
+    const tags = (html || '').match(/<meta\b[^>]*>/gi) || [];
+    const propertyRe = new RegExp('property\\s*=\\s*"' + property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"', 'i');
+    for (let i = 0; i < tags.length; i++) {
+      if (propertyRe.test(tags[i])) {
+        const content = tags[i].match(/content\s*=\s*"([^"]*)"/i);
+        return content ? decodeHtml(content[1]) : '';
+      }
+    }
+    return '';
+  }
+  function parseNeteaseHtml(html) {
+    if (!html) return {};
+    const ogUrl = parseMeta(html, 'og:url');
+    const result = { id: ogUrl ? neteaseId(ogUrl) : '', title: parseMeta(html, 'og:title'), artist: parseMeta(html, 'og:music:artist'), pageUrl: ogUrl || '' };
+    if (!result.title || !result.artist) {
+      const titleTag = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      if (titleTag) {
+        const raw = decodeHtml(titleTag[1]).replace(/\s*[-–—]\s*网易云音乐[\s\S]*$/, '').trim();
+        const parts = raw.split(/\s*[-–—]\s*/);
+        if (!result.title && parts[0]) result.title = parts[0].trim();
+        if (!result.artist && parts[1]) result.artist = parts[1].trim();
+      }
+    }
+    return result;
+  }
+  function resolveNetease(url) {
+    const directId = neteaseId(url);
+    const pageUrl = directId ? 'https://music.163.com/song?id=' + directId : url;
+    return fetchTextViaProxy(pageUrl).then(function (html) {
+      const meta = parseNeteaseHtml(html);
+      return {
+        id: meta.id || directId || '',
+        pageUrl: meta.pageUrl || pageUrl,
+        title: meta.title || '',
+        artist: meta.artist || ''
+      };
+    });
+  }
   function isAudioFileUrl(url) {
     return /\.(mp3|m4a|aac|ogg|wav|flac)(\?|#|$)/i.test(url || '');
   }
   function importLink(e) {
     e.preventDefault();
     const input = el('#music-url');
+    const titleInput = el('#music-track-title');
+    const artistInput = el('#music-track-artist');
+    const status = el('#music-link-status');
     const url = safeUrl(input.value.trim());
     if (!url) {
-      el('#music-link-status').textContent = '请输入有效的 http 或 https 音频直链。';
+      status.textContent = '请输入有效的 http 或 https 音频链接。';
       input.focus();
       return;
     }
-    const track = {
+    if (isNeteaseUrl(url)) {
+      status.textContent = '正在识别网易云歌曲信息…';
+      resolveNetease(url).then(function (info) {
+        if (!info.id) throw new Error('未识别到网易云歌曲，请粘贴歌曲页面链接。');
+        tracks().push({
+          id: App.uid('track'),
+          title: titleInput.value.trim() || info.title || '网易云音乐',
+          artist: artistInput.value.trim() || info.artist || '未知歌手',
+          source: 'netease',
+          url: url,
+          pageUrl: info.pageUrl,
+          audioUrl: neteaseAudioUrl(info.id),
+          createdAt: Date.now(),
+        });
+        App.save();
+        App.renderMusic();
+        el('#music-link-form').reset();
+        status.textContent = '已识别网易云歌曲并加入播放列表；受版权或会员限制的歌曲可能无法站外播放。';
+        App.toast('网易云歌曲已加入播放列表');
+      }).catch(function (err) {
+        status.textContent = err && err.message ? err.message : '网易云链接识别失败，请粘贴歌曲页面链接或导入本地音频。';
+      });
+      return;
+    }
+    const parts = urlNameParts(url);
+    tracks().push({
       id: App.uid('track'),
-      title: el('#music-track-title').value.trim() || urlNameParts(url).title,
-      artist: el('#music-track-artist').value.trim() || '未知歌手',
+      title: titleInput.value.trim() || parts.title,
+      artist: artistInput.value.trim() || parts.artist || '未知歌手',
       source: 'url',
       url: url,
       createdAt: Date.now(),
-    };
-    tracks().push(track);
+    });
     App.save();
     App.renderMusic();
     el('#music-link-form').reset();
-    el('#music-link-status').textContent = '已加入播放列表，点击歌曲即可播放；若加载失败，请检查直链是否有效。';
+    status.textContent = '已加入播放列表，点击歌曲即可播放；若加载失败，请检查直链是否有效。';
     App.toast('歌曲已加入播放列表');
   }
 

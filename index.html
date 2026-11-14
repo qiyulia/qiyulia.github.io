@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-25">
+<link rel="stylesheet" href="css/style.css?v=20261114-27">
 </head>
 <body>
 <div class="stage">
@@ -351,22 +351,22 @@ if ('caches' in window) {
         <section class="panel music-import-panel">
           <h3>导入音乐</h3>
           <form id="music-link-form" class="music-link-form">
-            <label class="field"><span>音频直链</span><input id="music-url" type="url" inputmode="url" placeholder="粘贴可直接播放的 MP3、M4A、OGG 等地址" required></label>
+            <label class="field"><span>歌曲链接</span><input id="music-url" type="url" inputmode="url" placeholder="网易云歌曲链接或音频直链" required></label>
             <div class="field-row">
-              <label class="field"><span>歌名</span><input id="music-track-title" maxlength="60" placeholder="留空则使用文件名"></label>
-              <label class="field"><span>歌手</span><input id="music-track-artist" maxlength="60" placeholder="歌手名"></label>
+              <label class="field"><span>歌名</span><input id="music-track-title" maxlength="60" placeholder="留空自动识别"></label>
+              <label class="field"><span>歌手</span><input id="music-track-artist" maxlength="60" placeholder="留空自动识别"></label>
             </div>
             <div class="btn-row music-import-actions">
               <button type="submit" class="btn primary">导入直链</button>
+              <button type="button" class="btn" id="music-local-button">选择本地文件</button>
             </div>
-            <p class="field-hint" id="music-link-status">粘贴音频直链，确认歌名和歌手后即可导入。</p>
-          </form>
-          <div class="music-local-import">
-            <button type="button" class="btn" id="music-local-button">选择本地音频文件</button>
             <input type="file" id="music-local-file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" multiple hidden>
-            <p class="field-hint" id="music-local-status">支持多选，音频仅保存在当前浏览器，刷新后仍可播放。</p>
-          </div>
-          <p class="panel-note">直链需可公开访问且未受防盗链限制；备份不包含本地音频文件。</p>
+            <div class="music-import-status">
+              <p class="field-hint" id="music-link-status">支持网易云歌曲链接自动识别歌名和歌手。</p>
+              <p class="field-hint" id="music-local-status">支持多选，会从文件名自动识别歌名和歌手。</p>
+            </div>
+          </form>
+          <p class="panel-note">网易云会员或受版权限制的歌曲可能无法站外播放；备份不包含本地音频文件。</p>
         </section>
 
         <section class="panel music-playlist-panel">
@@ -907,15 +907,15 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261114-25"></script>
-<script src="js/store.js?v=20261114-25"></script>
-<script src="js/desktop.js?v=20261114-25"></script>
-<script src="js/chat.js?v=20261114-25"></script>
-<script src="js/cards.js?v=20261114-25"></script>
-<script src="js/settings.js?v=20261114-25"></script>
-<script src="js/moments.js?v=20261114-25"></script>
-<script src="js/calendar.js?v=20261114-25"></script>
-<script src="js/music.js?v=20261114-25"></script>
-<script src="js/app.js?v=20261114-25"></script>
+<script src="js/seed.js?v=20261114-27"></script>
+<script src="js/store.js?v=20261114-27"></script>
+<script src="js/desktop.js?v=20261114-27"></script>
+<script src="js/chat.js?v=20261114-27"></script>
+<script src="js/cards.js?v=20261114-27"></script>
+<script src="js/settings.js?v=20261114-27"></script>
+<script src="js/moments.js?v=20261114-27"></script>
+<script src="js/calendar.js?v=20261114-27"></script>
+<script src="js/music.js?v=20261114-27"></script>
+<script src="js/app.js?v=20261114-27"></script>
 </body>
 </html>

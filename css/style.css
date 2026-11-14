@@ -1837,9 +1837,10 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .music-now-foot { min-height: 18px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--muted); }
 #music-status { line-height: 1.5; }
 #music-open-source { flex: 0 0 auto; color: var(--accent); text-decoration: none; white-space: nowrap; }
-.music-link-form, .music-local-import { display: flex; flex-direction: column; gap: 10px; }
+.music-link-form { display: flex; flex-direction: column; gap: 10px; }
+.music-import-actions { display: flex; gap: 10px; }
 .music-import-actions .btn { flex: 1; }
-.music-local-import { padding-top: 12px; border-top: 1px dashed var(--line); }
+.music-import-status { display: flex; flex-direction: column; gap: 4px; }
 .music-list { display: flex; flex-direction: column; gap: 7px; }
 .music-track-row { display: flex; align-items: center; gap: 3px; min-width: 0; padding: 5px 4px 5px 5px; border: 1px solid transparent; border-radius: 13px; background: var(--field); }
 .music-track-row.is-current { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
