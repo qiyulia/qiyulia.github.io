@@ -480,8 +480,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .app-section { margin-top: 2px; }
 .app-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
   padding: 4px 2px;
 }
 .app-entry {
@@ -2079,3 +2079,136 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
     justify-content: space-around;
   }
 }
+
+/* ============ 聊天气泡：头像下时间 / 已读状态 ============ */
+.msg-side { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 0 0 auto; }
+.msg-side .msg-time { padding: 0; font-size: 9px; line-height: 1; }
+.msg-read {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.msg-read.is-read { color: color-mix(in srgb, var(--accent) 72%, var(--muted)); }
+.msg.me .msg-read { color: rgba(255, 255, 255, .72); }
+.msg.me .msg-read.is-read { color: rgba(255, 255, 255, .92); }
+.bubble-with-read { display: flex; align-items: flex-end; gap: 6px; }
+.bubble-with-read .bubble-text { min-width: 0; }
+.composer-packet-btn { font-size: 19px; line-height: 1; }
+
+/* ============ 同心币红包 / 礼物气泡 ============ */
+.bubble-packet, .bubble-gift {
+  min-width: 186px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(150deg, #f0574f, #d63a35);
+  color: #fff5ea;
+  box-shadow: 0 8px 20px rgba(198, 57, 52, .28);
+}
+.bubble-gift { background: linear-gradient(150deg, #e8a05b, #d07b3e); }
+.packet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px 0;
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+.packet-head em { font-style: normal; opacity: .85; }
+.packet-amount {
+  padding: 6px 12px 0;
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.packet-amount small { font-size: 10px; font-weight: 400; }
+.packet-note { padding: 4px 12px 0; font-size: 10.5px; opacity: .92; }
+.packet-actions { display: flex; gap: 6px; padding: 9px 12px 11px; }
+.packet-actions button {
+  flex: 1 1 0;
+  padding: 6px 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .92);
+  color: #b7352f;
+  font-size: 11px;
+}
+.packet-actions button + button { background: rgba(255, 255, 255, .18); color: #fff5ea; }
+.bubble-gift .packet-actions button { color: #8c4a15; }
+.bubble-gift .packet-actions button + button { color: #fff5ea; }
+.bubble-packet.is-done, .bubble-gift.is-done { opacity: .88; }
+.gift-title { padding: 8px 12px 0; font-size: 14px; font-weight: 600; }
+
+/* ============ 集市 ============ */
+.market-body { gap: 12px; }
+.market-balances { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.market-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.market-balance span { font-size: 10.5px; color: var(--muted); }
+.market-balance strong {
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 22px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.market-identity { margin-top: 10px; }
+.market-subsidy { display: flex; gap: 8px; margin-top: 10px; }
+.market-subsidy .btn { flex: 1 1 0; }
+.market-add-form { display: flex; flex-direction: column; gap: 10px; }
+.market-list { display: flex; flex-direction: column; gap: 10px; }
+.market-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--field);
+}
+.market-item-icon {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  font-size: 21px;
+}
+.market-item-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.market-item-main strong { font-size: 12.5px; font-weight: 600; }
+.market-item-price { font-size: 10.5px; color: var(--accent); font-weight: 600; }
+.market-item-favs { display: flex; gap: 6px; margin-top: 2px; }
+.market-fav {
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-size: 9px;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.market-fav.is-on { color: #d9536f; background: rgba(217, 83, 111, .12); }
+.market-item-actions { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.market-item-actions button {
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--ink);
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+.market-item-actions button:hover { background: var(--accent-soft); color: var(--accent); }
+.market-item-actions .market-remove { color: var(--muted); }
+.market-empty { font-size: 12px; color: var(--muted); padding: 8px 2px; }
+.market-app-icon { background: linear-gradient(160deg, #f2b26b, #d97f4b); }

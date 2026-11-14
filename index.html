@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-33">
+<link rel="stylesheet" href="css/style.css?v=20261114-34">
 </head>
 <body>
 <div class="stage">
@@ -172,6 +172,12 @@ if ('caches' in window) {
                     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 23V8l13-3v15M12 12l13-3"/><circle cx="8" cy="23" r="4"/><circle cx="21" cy="20" r="4"/></svg>
                   </span>
                   <span class="app-entry-label">音乐</span>
+                </button>
+                <button type="button" class="app-entry" data-go="market">
+                  <span class="software-icon market-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 11h20l-2 15H8L6 11z"/><path d="M11 11V8a5 5 0 0 1 10 0v3"/><path d="M12 18h8" stroke-width="2.2"/></svg>
+                  </span>
+                  <span class="app-entry-label">集市</span>
                 </button>
               </div>
             </div>
@@ -438,6 +444,7 @@ if ('caches' in window) {
         <button type="button" class="composer-quote-close" id="composer-quote-close" aria-label="取消引用">×</button>
       </div>
       <form id="composer" class="composer">
+        <button type="button" class="composer-icon-btn composer-packet-btn" id="btn-redpacket" aria-label="发红包" title="发同心币红包">🧧</button>
         <button type="button" class="composer-icon-btn" id="btn-sticker" aria-label="表情包" title="表情包">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14.5c1.4 1.8 2.6 2.5 4 2.5s2.6-.7 4-2.5"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
         </button>
@@ -651,6 +658,51 @@ if ('caches' in window) {
       </div>
     </section>
 
+    <!-- ============ 集市 ============ -->
+    <section id="view-market" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>集市</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body market-body">
+        <section class="panel market-wallet">
+          <div class="market-balances">
+            <div class="market-balance"><span>我的同心币</span><strong id="market-balance-me">0</strong></div>
+            <div class="market-balance"><span id="market-balance-ta-label">TA 的同心币</span><strong id="market-balance-ta">0</strong></div>
+          </div>
+          <div class="segmented market-identity" id="market-identity" aria-label="选择身份">
+            <button type="button" data-market-as="me">我</button>
+            <button type="button" data-market-as="ta">TA</button>
+          </div>
+          <div class="market-subsidy">
+            <button type="button" class="btn ghost" id="market-subsidy-me">为我补贴</button>
+            <button type="button" class="btn ghost" id="market-subsidy-ta">为 TA 补贴</button>
+          </div>
+          <p class="field-hint">补贴会以「次元银行」的名义在聊天里弹出。</p>
+        </section>
+
+        <section class="panel">
+          <h3>上架商品</h3>
+          <form id="market-add-form" class="market-add-form">
+            <label class="field"><span>商品名</span><input id="market-name" maxlength="20" placeholder="比如：月光抱枕" required></label>
+            <div class="field-row">
+              <label class="field"><span>价格（同心币）</span><input id="market-price" type="number" min="1" max="99999" step="1" placeholder="88" required></label>
+              <label class="field"><span>图标</span><input id="market-icon" maxlength="4" placeholder="🎁"></label>
+            </div>
+            <button type="submit" class="btn primary">上架</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h3>商品</h3>
+          <div id="market-list" class="market-list"></div>
+        </section>
+      </div>
+    </section>
+
     <!-- ============ 设置 ============ -->
     <section id="view-settings" class="view">
       <header class="topbar">
@@ -829,6 +881,23 @@ if ('caches' in window) {
   </form>
 </dialog>
 
+<!-- ============ 红包弹窗 ============ -->
+<dialog id="redpacket-dialog" class="sheet">
+  <form id="redpacket-form">
+    <div class="sheet-head">
+      <h3>发同心币红包</h3>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    </div>
+    <p class="field-hint" id="redpacket-side-hint">以「我」的身份发出</p>
+    <label class="field"><span>金额（同心币）</span><input id="redpacket-amount" type="number" min="1" max="99999" step="1" inputmode="numeric" placeholder="比如 88" required></label>
+    <label class="field"><span>备注（可选）</span><input id="redpacket-note" maxlength="20" placeholder="恭喜发财，大吉大利"></label>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="submit" class="btn primary">塞进红包</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- ============ 联系人弹窗 ============ -->
 <dialog id="contact-dialog" class="sheet">
   <form id="contact-form">
@@ -909,15 +978,16 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261114-33"></script>
-<script src="js/store.js?v=20261114-33"></script>
-<script src="js/desktop.js?v=20261114-33"></script>
-<script src="js/chat.js?v=20261114-33"></script>
-<script src="js/cards.js?v=20261114-33"></script>
-<script src="js/settings.js?v=20261114-33"></script>
-<script src="js/moments.js?v=20261114-33"></script>
-<script src="js/calendar.js?v=20261114-33"></script>
-<script src="js/music.js?v=20261114-33"></script>
-<script src="js/app.js?v=20261114-33"></script>
+<script src="js/seed.js?v=20261114-34"></script>
+<script src="js/store.js?v=20261114-34"></script>
+<script src="js/desktop.js?v=20261114-34"></script>
+<script src="js/chat.js?v=20261114-34"></script>
+<script src="js/cards.js?v=20261114-34"></script>
+<script src="js/settings.js?v=20261114-34"></script>
+<script src="js/moments.js?v=20261114-34"></script>
+<script src="js/calendar.js?v=20261114-34"></script>
+<script src="js/music.js?v=20261114-34"></script>
+<script src="js/market.js?v=20261114-34"></script>
+<script src="js/app.js?v=20261114-34"></script>
 </body>
 </html>

@@ -25,6 +25,7 @@
     else if (view === 'chat-settings') App.renderChatSettings();
     else if (view === 'calendar') App.renderCalendar();
     else if (view === 'music') App.renderMusic();
+    else if (view === 'market') App.renderMarket();
   };
 
   App.toast = function (message) {
@@ -112,6 +113,7 @@
   App.initMoments();
   App.initCalendar();
   App.initMusic();
+  App.initMarket();
 
   App.go('desktop');
 })();

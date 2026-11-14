@@ -103,6 +103,23 @@
     }
     App.normalizeCards(s);
     App.normalizeMusic(s);
+    if (!s.wallet || typeof s.wallet !== 'object' || Array.isArray(s.wallet)) s.wallet = App.WALLET_SEED();
+    ['me', 'ta'].forEach(function (side) {
+      const value = Math.round(Number(s.wallet[side]));
+      s.wallet[side] = Number.isFinite(value) ? Math.max(0, value) : 520;
+    });
+    if (!s.market || typeof s.market !== 'object' || Array.isArray(s.market)) s.market = {};
+    if (!Array.isArray(s.market.products)) s.market.products = App.MARKET_SEED();
+    s.market.products = s.market.products.filter(function (p) {
+      return p && typeof p === 'object' && String(p.name || '').trim();
+    }).map(function (p) {
+      if (!p.id) p.id = App.uid('p');
+      p.name = String(p.name).trim().slice(0, 20);
+      p.price = Math.max(1, Math.round(Number(p.price) || 1));
+      p.icon = String(p.icon || '🎁').slice(0, 4);
+      p.fav = p.fav && typeof p.fav === 'object' ? p.fav : { me: false, ta: false };
+      return p;
+    });
     if (!s.iconStyle || typeof s.iconStyle !== 'object') s.iconStyle = { shape: 'rounded', color: 'blue' };
     if (!['rounded', 'circle', 'square'].includes(s.iconStyle.shape)) s.iconStyle.shape = 'rounded';
     if (!['blue', 'lilac', 'sage', 'apricot'].includes(s.iconStyle.color)) s.iconStyle.color = 'blue';
@@ -265,6 +282,8 @@
     if (m.type === 'image') return '[图片]';
     if (m.type === 'audio') return '[语音]';
     if (m.type === 'pat') return m.text || '拍了拍';
+    if (m.type === 'redpacket') return '[红包] ' + (m.amount || 0) + ' 同心币';
+    if (m.type === 'gift') return '[礼物] ' + (m.productName || '');
     return m.text || '';
   };
 

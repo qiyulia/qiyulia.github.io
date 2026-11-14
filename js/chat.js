@@ -12,6 +12,7 @@
   let callState = null;
   let callDrag = null;
   let suppressCallClick = false;
+  const readTimers = {};
 
   function currentContact() {
     return App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
@@ -45,6 +46,11 @@
     el('#c-note').textContent = contact.note || '字卡传讯';
 
     const chat = App.state.chats[id] || [];
+    const now = Date.now();
+    chat.forEach(function (m) {
+      if (m.read === undefined) m.read = now - m.ts > 2400;
+      if (!m.read) scheduleRead(id, m);
+    });
     const list = el('#chat-list');
     list.innerHTML = chat.length
       ? chat.map(messageHtml).join('')
@@ -54,6 +60,53 @@
     renderComposerQuote();
     scrollBottom();
   };
+
+  function readChip(m) {
+    return '<span class="msg-read' + (m.read ? ' is-read' : '') + '">' + (m.read ? '已读' : '未读') + '</span>';
+  }
+
+  /* 新消息先显示未读，两三秒后自动转为已读 */
+  function scheduleRead(contactId, message) {
+    if (readTimers[message.id]) return;
+    readTimers[message.id] = setTimeout(function () {
+      delete readTimers[message.id];
+      const target = (App.state.chats[contactId] || []).find(function (m) { return m.id === message.id; });
+      if (!target || target.read) return;
+      target.read = true;
+      App.save();
+      const node = document.querySelector('.msg[data-msg-id="' + message.id + '"] .msg-read');
+      if (node) {
+        node.textContent = '已读';
+        node.classList.add('is-read');
+      }
+    }, 2200 + Math.random() * 900);
+  }
+
+  function packetHtml(m) {
+    const pending = m.status === 'pending';
+    const statusText = m.status === 'accepted' ? '已领取' : (m.status === 'returned' ? '已退回' : '待领取');
+    return '<div class="bubble bubble-packet' + (pending ? '' : ' is-done') + '">' +
+      '<div class="packet-head"><span class="packet-tag">同心币红包</span><em>' + statusText + '</em></div>' +
+      '<p class="packet-amount">' + Number(m.amount || 0) + '<small> 同心币</small></p>' +
+      (m.note ? '<p class="packet-note">' + App.esc(m.note) + '</p>' : '<p class="packet-note">恭喜发财，大吉大利</p>') +
+      (pending
+        ? '<div class="packet-actions"><button type="button" data-rp-accept="' + App.esc(m.id) + '">接受</button><button type="button" data-rp-return="' + App.esc(m.id) + '">退回</button></div>'
+        : '') +
+      '</div>';
+  }
+
+  function giftHtml(m) {
+    const pending = m.status === 'pending';
+    const statusText = m.status === 'accepted' ? '已收下' : (m.status === 'returned' ? '已退回' : '待领取');
+    return '<div class="bubble bubble-gift' + (pending ? '' : ' is-done') + '">' +
+      '<div class="packet-head"><span class="packet-tag">礼物</span><em>' + statusText + '</em></div>' +
+      '<p class="gift-title">🎁 ' + App.esc(m.productName || '礼物') + '</p>' +
+      '<p class="packet-note">' + Number(m.price || 0) + ' 同心币</p>' +
+      (pending
+        ? '<div class="packet-actions"><button type="button" data-gift-accept="' + App.esc(m.id) + '">收下</button><button type="button" data-gift-return="' + App.esc(m.id) + '">退回</button></div>'
+        : '') +
+      '</div>';
+  }
 
   function messageHtml(m) {
     const mine = m.role === 'me';
@@ -68,6 +121,22 @@
     if (m.recalled) {
       return '<div class="msg-recall">' + App.esc(mine ? '你' : taName) + '撤回了一条消息</div>';
     }
+    if (m.type === 'redpacket' || m.type === 'gift') {
+      const avatarSrc = mine ? App.state.profile.userAvatar : (contact && contact.avatar);
+      const avatarHtml = mine
+        ? '<span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>'
+        : '<button type="button" class="msg-avatar msg-avatar-button" data-pat-current="1" aria-label="拍一拍 ' + App.esc(taName) + '" title="拍一拍">' + App.avatarHtml(avatarSrc) + '</button>';
+      return '<div class="msg ' + (mine ? 'me' : 'ta') + '" data-msg-id="' + App.esc(m.id) + '">' +
+        '<div class="msg-main">' +
+          '<div class="msg-content">' +
+            '<div class="msg-side">' + avatarHtml +
+              '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
+            '</div>' +
+            '<div class="msg-bubble-hit" data-msg-bubble="1">' + (m.type === 'redpacket' ? packetHtml(m) : giftHtml(m)) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '</div>';
+    }
     const hasFrequency = m.strength != null || m.percent != null || m.type === 'emotion';
     const hasEmotion = !!m.emotion || m.type === 'emotion';
     const strength = ['强', '中', '弱'].indexOf(m.strength) !== -1 ? m.strength : '中';
@@ -77,7 +146,7 @@
         (hasEmotion
           ? '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span></div>'
           : '') +
-        '<div class="emotion-row"><span class="emotion-chip">频率</span><span class="emotion-value">链接度' + App.esc(strength) + ' ' + percent + '%</span></div>'
+        '<div class="emotion-row"><span class="emotion-chip">频率</span><span class="emotion-value">链接度' + App.esc(strength) + ' ' + percent + '%</span>' + readChip(m) + '</div>'
       : '';
     let body = '';
     if (m.type === 'image') {
@@ -91,7 +160,7 @@
         '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta +
         '</div>';
     } else {
-      body = '<div class="bubble">' + App.esc(m.text) + '</div>';
+      body = '<div class="bubble bubble-with-read"><span class="bubble-text">' + App.esc(m.text) + '</span>' + readChip(m) + '</div>';
     }
     const quote = m.quote && m.quote.text
       ? '<span class="msg-quote"><strong>' + App.esc(m.quote.name || '') + '</strong>' + App.esc(m.quote.text) + '</span>'
@@ -110,11 +179,12 @@
       '<div class="msg-main">' +
         quote +
         '<div class="msg-content">' +
-          avatarHtml +
+          '<div class="msg-side">' + avatarHtml +
+            '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
+          '</div>' +
           '<div class="msg-bubble-hit" data-msg-bubble="1">' + body + '</div>' +
         '</div>' +
         marksHtml +
-        '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
       '</div>' +
       '</div>';
   }
@@ -249,6 +319,81 @@
     chat.push(message);
     App.save();
     App.renderChat();
+  }
+
+  function sendRedPacket(amount, note) {
+    const contact = currentContact();
+    if (!contact) return false;
+    const role = App.sendAs;
+    const wallet = App.state.wallet;
+    if (!(amount > 0)) {
+      App.toast('金额要大于 0');
+      return false;
+    }
+    if (wallet[role] < amount) {
+      App.toast('同心币不够，去集市领点补贴吧');
+      return false;
+    }
+    wallet[role] -= amount;
+    pushMessage({
+      id: App.uid('m'),
+      role: role,
+      type: 'redpacket',
+      amount: amount,
+      note: note,
+      status: 'pending',
+      ts: Date.now(),
+    });
+    closeStickerPanel();
+    App.toast('红包已发出');
+    return true;
+  }
+
+  /* 红包与礼物的接受、退回结算 */
+  function settlePacket(kind, messageId, action) {
+    const message = findChatMessage(messageId);
+    if (!message || message.status !== 'pending') return;
+    const contact = currentContact();
+    const taName = contact ? contact.name : 'TA';
+    const sender = message.role;
+    const receiver = sender === 'me' ? 'ta' : 'me';
+    const wallet = App.state.wallet;
+    const coin = Number(kind === 'redpacket' ? message.amount : message.price) || 0;
+
+    if (action === 'accept') {
+      message.status = 'accepted';
+      if (kind === 'redpacket') wallet[receiver] += coin;
+    } else {
+      message.status = 'returned';
+      wallet[sender] += coin;
+    }
+
+    let line;
+    if (kind === 'redpacket') {
+      line = action === 'accept'
+        ? (receiver === 'me'
+            ? '你领取了' + taName + '的红包 ' + coin + ' 同心币'
+            : taName + '领取了你的红包 ' + coin + ' 同心币')
+        : (sender === 'me'
+            ? '红包退回了，' + coin + ' 同心币已回到你手里'
+            : '红包退回给' + taName + '了，' + coin + ' 同心币已退还');
+    } else {
+      const name = message.productName || '礼物';
+      line = action === 'accept'
+        ? (receiver === 'me'
+            ? '你收下了' + taName + '送的「' + name + '」'
+            : taName + '收下了你送的「' + name + '」')
+        : (sender === 'me'
+            ? '「' + name + '」被退回了，' + coin + ' 同心币已退回'
+            : '你把「' + name + '」退回去了，' + coin + ' 同心币已退给' + taName);
+    }
+
+    const chat = App.state.chats[App.chatContactId] || [];
+    chat.push({ id: App.uid('m'), role: 'ta', type: 'pat', text: line, ts: Date.now() });
+    App.save();
+    App.renderChat();
+    App.renderContacts();
+    if (typeof App.renderMarket === 'function') App.renderMarket();
   }
 
   function sendMessage() {
@@ -789,6 +934,16 @@
     });
 
     document.addEventListener('click', function (e) {
+      const packetBtn = e.target.closest('[data-rp-accept], [data-rp-return], [data-gift-accept], [data-gift-return]');
+      if (packetBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (packetBtn.dataset.rpAccept) settlePacket('redpacket', packetBtn.dataset.rpAccept, 'accept');
+        else if (packetBtn.dataset.rpReturn) settlePacket('redpacket', packetBtn.dataset.rpReturn, 'return');
+        else if (packetBtn.dataset.giftAccept) settlePacket('gift', packetBtn.dataset.giftAccept, 'accept');
+        else if (packetBtn.dataset.giftReturn) settlePacket('gift', packetBtn.dataset.giftReturn, 'return');
+        return;
+      }
       const actionBtn = e.target.closest('[data-msg-action]');
       if (actionBtn) {
         e.preventDefault();
@@ -894,6 +1049,23 @@
       }
     });
     el('#btn-sticker').addEventListener('click', toggleStickerPanel);
+    el('#btn-redpacket').addEventListener('click', function () {
+      closeStickerPanel();
+      const hint = el('#redpacket-side-hint');
+      if (hint) hint.textContent = (App.sendAs === 'me' ? '以「我」的身份发出' : '以「TA」的身份发出') +
+        ' · 余额 ' + App.state.wallet[App.sendAs] + ' 同心币';
+      el('#redpacket-amount').value = '';
+      el('#redpacket-note').value = '';
+      el('#redpacket-dialog').showModal();
+      el('#redpacket-amount').focus();
+    });
+    el('#redpacket-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const amount = Math.round(Number(el('#redpacket-amount').value));
+      if (sendRedPacket(amount, el('#redpacket-note').value.trim())) {
+        el('#redpacket-dialog').close();
+      }
+    });
     el('#composer-quote-close').addEventListener('click', function () {
       quoteDraft = null;
       renderComposerQuote();

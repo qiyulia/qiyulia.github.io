@@ -166,6 +166,20 @@
       },
       cards: App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); }),
       stickers: App.DEFAULT_STICKERS,
+      wallet: App.WALLET_SEED(),
+      market: { products: App.MARKET_SEED() },
     };
+  };
+
+  /* 同心币钱包与集市默认商品 */
+  App.WALLET_SEED = function () {
+    return { me: 520, ta: 520 };
+  };
+
+  App.MARKET_SEED = function () {
+    return [
+      { id: 'p-moon', name: '月亮抱枕', price: 120, icon: '🌙', fav: { me: false, ta: false } },
+      { id: 'p-cocoa', name: '深夜热可可', price: 48, icon: '☕️', fav: { me: false, ta: false } },
+    ];
   };
 })();
