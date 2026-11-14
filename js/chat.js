@@ -1361,8 +1361,13 @@
 
   function toggleStickerPanel() {
     const panel = el('#sticker-panel');
+    const opening = panel.hidden;
     panel.hidden = !panel.hidden;
-    if (!panel.hidden) renderStickerPanel();
+    if (opening) {
+      /* 每次打开表情包面板都从「公共」分类开始 */
+      App.stickerTab = 'public';
+      renderStickerPanel();
+    }
   }
 
   function compressImage(file) {
