@@ -80,6 +80,7 @@
       ? chat.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
     if (App.hydrateMedia) App.hydrateMedia(list);
+    bindVoiceBubbles(list);
     /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
     if (typingAllowed(id)) list.appendChild(typingRow());
     updateSideButtons();
@@ -88,6 +89,41 @@
     scrollBottom(true);
     requestAnimationFrame(function () { scrollBottom(true); });
   };
+
+  /* 微信式语音气泡：点击播放，气泡宽度随时长变化 */
+  function voiceBubbleWidth(seconds) {
+    return Math.round(74 + Math.min(seconds, 30) * 3.6);
+  }
+
+  function bindVoiceBubbles(root) {
+    root.querySelectorAll('.bubble-audio').forEach(function (bubble) {
+      const audio = bubble.querySelector('.voice-audio');
+      const btn = bubble.querySelector('.voice-bubble');
+      const label = bubble.querySelector('.voice-dur');
+      if (!audio || !btn || !label) return;
+      const sync = function () {
+        if (!isFinite(audio.duration) || audio.duration <= 0) return;
+        const seconds = Math.max(1, Math.round(audio.duration));
+        label.textContent = seconds + '″';
+        btn.style.width = voiceBubbleWidth(seconds) + 'px';
+      };
+      if (audio.readyState >= 1) sync();
+      else audio.addEventListener('loadedmetadata', sync);
+      audio.addEventListener('play', function () { btn.classList.add('is-playing'); });
+      audio.addEventListener('pause', function () { btn.classList.remove('is-playing'); });
+      audio.addEventListener('ended', function () { btn.classList.remove('is-playing'); });
+      btn.addEventListener('click', function () {
+        if (audio.paused) {
+          document.querySelectorAll('#chat-list audio').forEach(function (other) {
+            if (other !== audio) other.pause();
+          });
+          audio.play().catch(function () {});
+        } else {
+          audio.pause();
+        }
+      });
+    });
+  }
 
   function readChip(m) {
     return '<span class="msg-read' + (m.read ? ' is-read' : '') + '">' + (m.read ? '已读' : '未读') + '</span>';
@@ -354,7 +390,11 @@
         ? ' data-media="' + App.esc(media) + '"'
         : ' src="' + App.esc(media) + '"';
       body = '<div class="bubble bubble-audio' + (hasEmotion ? ' bubble-emotion' : '') + '">' +
-        '<audio controls preload="metadata"' + audioSrc + '></audio>' +
+        '<button type="button" class="voice-bubble" aria-label="播放语音">' +
+          '<span class="voice-icon" aria-hidden="true"><i></i><i></i><i></i></span>' +
+          '<span class="voice-dur">···</span>' +
+        '</button>' +
+        '<audio class="voice-audio" preload="metadata"' + audioSrc + '></audio>' +
         (showTranscript ? '<p class="audio-transcript">' + App.esc(m.text) + '</p>' : '') +
         meta +
         '</div>';
@@ -858,10 +898,15 @@
     const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
     if (Math.random() * 100 >= prob) return;
 
-    const pool = (st.cards || []).filter(function (c) {
-      return c.enabled !== false && c.text &&
-        (c.category === '聊天' || c.category === '情绪' || c.category === '语音');
+    const voicePool = (st.cards || []).filter(function (c) {
+      return c.enabled !== false && c.text && c.category === '语音' && c.audio;
     });
+    const textPool = (st.cards || []).filter(function (c) {
+      return c.enabled !== false && c.text && (c.category === '聊天' || c.category === '情绪');
+    });
+    const voiceProb = Math.max(0, Math.min(100, Number(cs.taVoiceProb) || 0));
+    const wantVoice = voicePool.length && Math.random() * 100 < voiceProb;
+    const pool = wantVoice ? voicePool : (textPool.length ? textPool : voicePool);
     if (!pool.length) return;
     const card = pool[Math.floor(Math.random() * pool.length)];
     const isVoice = card.category === '语音' && card.audio;
@@ -998,7 +1043,25 @@
       return;
     }
 
-    const cards = App.pickCards(userText, count, contactId, ['聊天', '情绪', '语音']);
+    /* 语音字卡：按概率决定这一轮是否发语音，没命中就避开语音卡 */
+    const voiceProb = Math.max(0, Math.min(100, Number(cs.taVoiceProb) || 0));
+    const wantVoice = Math.random() * 100 < voiceProb;
+    const cats = wantVoice ? ['聊天', '情绪', '语音'] : ['聊天', '情绪'];
+    let cards = App.pickCards(userText, count, contactId, cats);
+    /* 只有语音卡时，仍然让它回一句，避免 TA 完全不说话 */
+    if (!cards.length && !wantVoice) {
+      cards = App.pickCards(userText, count, contactId, ['聊天', '情绪', '语音']);
+    }
+    if (wantVoice && !cards.some(function (c) { return c.category === '语音' && c.audio; })) {
+      const voicePool = (App.state.cards || []).filter(function (c) {
+        return c.enabled !== false && c.text && c.category === '语音' && c.audio;
+      });
+      if (voicePool.length) {
+        const voiceCard = voicePool[Math.floor(Math.random() * voicePool.length)];
+        if (cards.length) cards[cards.length - 1] = voiceCard;
+        else cards.push(voiceCard);
+      }
+    }
     if (!cards.length) {
       App.toast('字卡库是空的，先去添加几张字卡');
       return;

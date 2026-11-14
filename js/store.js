@@ -496,6 +496,7 @@
     if (s.settings.nameSelfProb == null) s.settings.nameSelfProb = 20;
     if (s.settings.nameMeProb == null) s.settings.nameMeProb = 10;
     if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
+    if (s.settings.taVoiceProb == null) s.settings.taVoiceProb = 20;
     if (s.settings.taIgnoreProb == null) s.settings.taIgnoreProb = 15;
     if (s.settings.mergeProb == null) s.settings.mergeProb = 15;
     if (s.settings.mergeMin == null) s.settings.mergeMin = 2;
@@ -704,6 +705,7 @@
       taMomentCardMax: pick('taMomentCardMax', 3),
       taPatProb: pick('taPatProb', 10),
       taStickerProb: pick('taStickerProb', 30),
+      taVoiceProb: pick('taVoiceProb', 20),
       taRecallProb: pick('taRecallProb', 5),
       taQuoteProb: pick('taQuoteProb', 20),
       taFavProb: pick('taFavProb', 15),

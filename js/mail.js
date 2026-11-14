@@ -151,6 +151,9 @@
     const name = senderName(mail);
     const contact = contactOf(mail.contactId);
     const target = contact ? contact.name : 'TA';
+    const quoted = mail.replyTo
+      ? mailList().find(function (m) { return m.id === mail.replyTo; })
+      : null;
     el('#mail-list-pane').hidden = true;
     const detail = el('#mail-detail');
     detail.hidden = false;
@@ -168,6 +171,12 @@
             '</div>' +
           '</div>' +
           '<div class="letter-paper">' +
+            (quoted
+              ? '<div class="letter-quote">' +
+                  '<p class="letter-quote-head">『' + App.esc(senderName(quoted)) + ' 的信 · ' + App.esc(mailTime(quoted.ts)) + '』</p>' +
+                  '<p class="letter-quote-text">' + App.esc(quoted.text) + '</p>' +
+                '</div>'
+              : '') +
             '<p class="letter-body">' + App.esc(mail.text) + '</p>' +
             '<p class="letter-sign">—— ' + App.esc(mine ? (App.state.profile.userName || '我') : name) + '</p>' +
           '</div>' +
@@ -263,6 +272,12 @@
     const contact = contactOf(mail.contactId) || fallbackContact();
     const title = el('#mail-reply-title');
     if (title) title.textContent = contact ? '回信给 ' + contact.name : '回信';
+    const quote = el('#mail-reply-quote');
+    if (quote) {
+      quote.innerHTML = '<p class="mail-quote-head">回的是 ' + App.esc(senderName(mail)) + ' 的信 · ' + App.esc(mailTime(mail.ts)) + '</p>' +
+        '<p class="mail-quote-text">' + App.esc(mail.text) + '</p>';
+      quote.scrollTop = 0;
+    }
     const input = el('#mail-reply-text');
     if (input) input.value = '';
     const dialog = el('#mail-reply-dialog');
@@ -278,6 +293,8 @@
     if (dialog) dialog.hidden = true;
     const input = el('#mail-reply-text');
     if (input) input.value = '';
+    const quote = el('#mail-reply-quote');
+    if (quote) quote.innerHTML = '';
   }
 
   function sendReply() {
@@ -300,6 +317,7 @@
       text: text,
       cardId: null,
       cardIds: [],
+      replyTo: mail ? mail.id : null,
       ts: Date.now(),
       read: true,
       fav: false,

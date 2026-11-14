@@ -15,23 +15,37 @@
     }).join('');
   }
 
+  let listToken = 0;
+  const LIST_CHUNK = 80;
+
   App.renderCards = function () {
     const filter = App.cardFilter;
+    const cards = App.state.cards;
     const cats = ['全部'].concat(App.CATEGORIES);
 
+    /* 分类数量和启用数量一次遍历算完，避免每个分类都扫一遍全部字卡 */
+    const counts = {};
+    let enabled = 0;
+    cards.forEach(function (c) {
+      counts[c.category || ''] = (counts[c.category || ''] || 0) + 1;
+      if (c.enabled) enabled += 1;
+    });
+
     el('#card-cats').innerHTML = cats.map(function (c) {
-      const count = c === '全部'
-        ? App.state.cards.length
-        : App.state.cards.filter(function (x) { return x.category === c; }).length;
+      const count = c === '全部' ? cards.length : (counts[c] || 0);
       return '<button type="button" class="chip' + (c === filter.cat ? ' is-on' : '') +
         '" data-cat="' + c + '">' + c + ' ' + count + '</button>';
     }).join('');
 
     const q = filter.q.trim().toLowerCase();
-    const list = App.state.cards.filter(function (c) {
-      const matchCat = filter.cat === '全部' || c.category === filter.cat;
-      const haystack = (c.text + ' ' + (c.trigger || '') + ' ' + (c.category || '')).toLowerCase();
-      return matchCat && (!q || haystack.indexOf(q) !== -1);
+    const list = [];
+    cards.forEach(function (c) {
+      if (filter.cat !== '全部' && c.category !== filter.cat) return;
+      if (q) {
+        const haystack = (c.text + ' ' + (c.trigger || '') + ' ' + (c.category || '')).toLowerCase();
+        if (haystack.indexOf(q) === -1) return;
+      }
+      list.push(c);
     });
 
     const importTile = filter.cat === '语音'
@@ -44,9 +58,26 @@
       ? '<p class="empty-note">还没有语音卡，点上面的卡片导入一段 mp3。</p>'
       : '<p class="empty-note">没有符合条件的字卡。</p>';
 
-    el('#card-list').innerHTML = importTile + (list.length
-      ? list.map(cardRow).join('')
+    /* 先渲染一批，剩下的分帧补上，字卡很多时点进字卡库也不会卡住 */
+    const box = el('#card-list');
+    const token = ++listToken;
+    box.innerHTML = importTile + (list.length
+      ? list.slice(0, LIST_CHUNK).map(cardRow).join('')
       : empty);
+    if (list.length > LIST_CHUNK) {
+      box.insertAdjacentHTML('beforeend', '<p class="card-more" id="card-more">正在加载…</p>');
+      let index = LIST_CHUNK;
+      const step = function () {
+        if (token !== listToken) return;
+        const more = el('#card-more');
+        if (!more) return;
+        more.insertAdjacentHTML('beforebegin', list.slice(index, index + LIST_CHUNK).map(cardRow).join(''));
+        index += LIST_CHUNK;
+        if (index < list.length) setTimeout(step, 16);
+        else more.remove();
+      };
+      setTimeout(step, 16);
+    }
 
     const bar = el('#card-batch-bar');
     if (bar) {
@@ -58,8 +89,7 @@
     const batchBtn = el('#btn-batch-trigger');
     if (batchBtn) batchBtn.classList.toggle('is-on', batchMode);
 
-    const enabled = App.state.cards.filter(function (c) { return c.enabled; }).length;
-    el('#card-count').textContent = '共 ' + App.state.cards.length + ' 张，已启用 ' + enabled + ' 张';
+    el('#card-count').textContent = '共 ' + cards.length + ' 张，已启用 ' + enabled + ' 张';
   };
 
   function cardRow(c) {
@@ -358,9 +388,14 @@
       }
     });
 
+    let searchTimer = 0;
     el('#card-search').addEventListener('input', function (e) {
-      App.cardFilter.q = e.target.value;
-      App.renderCards();
+      const value = e.target.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        App.cardFilter.q = value;
+        App.renderCards();
+      }, 120);
     });
 
     el('#card-cat').addEventListener('change', function (e) {

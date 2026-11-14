@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-113">
+<link rel="stylesheet" href="css/style.css?v=20261114-114">
 </head>
 <body>
 <div class="stage">
@@ -579,6 +579,13 @@ if ('caches' in window) {
                   <button type="button" class="step-btn" data-step-for="set-ta-sticker" data-step="-5">−</button>
                   <input id="set-ta-sticker" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-sticker" data-step="5">+</button>
+                </span>
+              </label>
+              <label class="field"><span>TA 发语音字卡（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-voice-prob" data-step="-5">−</button>
+                  <input id="set-ta-voice-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-voice-prob" data-step="5">+</button>
                 </span>
               </label>
               <label class="field"><span>已读不回（%）</span>
@@ -1587,7 +1594,7 @@ if ('caches' in window) {
       <button type="button" class="icon-btn" data-mail-reply-close aria-label="关闭">×</button>
     </div>
     <div class="tool-sheet-body mail-reply-body">
-      <div class="mail-reply-blank"></div>
+      <div class="mail-reply-quote" id="mail-reply-quote"></div>
       <textarea id="mail-reply-text" class="mail-reply-input" rows="4" placeholder="写点什么…"></textarea>
     </div>
     <div class="sheet-actions tool-sheet-actions">
@@ -1611,18 +1618,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-113"></script>
-<script src="js/store.js?v=20261114-113"></script>
-<script src="js/desktop.js?v=20261114-113"></script>
-<script src="js/chat.js?v=20261114-113"></script>
-<script src="js/cards.js?v=20261114-113"></script>
-<script src="js/settings.js?v=20261114-113"></script>
-<script src="js/moments.js?v=20261114-113"></script>
-<script src="js/calendar.js?v=20261114-113"></script>
-<script src="js/music.js?v=20261114-113"></script>
-<script src="js/market.js?v=20261114-113"></script>
-<script src="js/mail.js?v=20261114-113"></script>
-<script src="js/extras.js?v=20261114-113"></script>
-<script src="js/app.js?v=20261114-113"></script>
+<script src="js/seed.js?v=20261114-114"></script>
+<script src="js/store.js?v=20261114-114"></script>
+<script src="js/desktop.js?v=20261114-114"></script>
+<script src="js/chat.js?v=20261114-114"></script>
+<script src="js/cards.js?v=20261114-114"></script>
+<script src="js/settings.js?v=20261114-114"></script>
+<script src="js/moments.js?v=20261114-114"></script>
+<script src="js/calendar.js?v=20261114-114"></script>
+<script src="js/music.js?v=20261114-114"></script>
+<script src="js/market.js?v=20261114-114"></script>
+<script src="js/mail.js?v=20261114-114"></script>
+<script src="js/extras.js?v=20261114-114"></script>
+<script src="js/app.js?v=20261114-114"></script>
 </body>
 </html>

@@ -1413,14 +1413,45 @@ button.widget:active { transform: scale(.99); }
   background: color-mix(in srgb, var(--accent-ink) 18%, transparent);
 }
 
-/* 语音字卡气泡 */
-.bubble-audio { padding: 7px; }
-.bubble-audio audio {
-  display: block;
-  width: 216px;
-  max-width: 60vw;
-  height: 34px;
+/* 语音字卡气泡（微信式） */
+.bubble-audio { padding: 9px 13px; }
+.voice-audio { display: none; }
+.voice-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: 82px;
+  min-width: 64px;
+  max-width: 62vw;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: width .2s ease;
 }
+.msg.me .voice-bubble { flex-direction: row-reverse; }
+.voice-icon { display: inline-flex; align-items: center; gap: 2px; height: 14px; }
+.voice-icon i {
+  width: 3px;
+  height: 7px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: .8;
+}
+.voice-icon i:nth-child(2) { height: 13px; }
+.voice-icon i:nth-child(3) { height: 9px; }
+.voice-bubble.is-playing .voice-icon i { animation: voice-wave .8s ease-in-out infinite; }
+.voice-bubble.is-playing .voice-icon i:nth-child(2) { animation-delay: .15s; }
+.voice-bubble.is-playing .voice-icon i:nth-child(3) { animation-delay: .3s; }
+@keyframes voice-wave {
+  0%, 100% { transform: scaleY(.55); }
+  50% { transform: scaleY(1.3); }
+}
+.voice-dur { opacity: .85; letter-spacing: .5px; }
 .audio-transcript {
   margin: 7px 4px 2px;
   padding: 0 2px;
@@ -1430,7 +1461,16 @@ button.widget:active { transform: scale(.99); }
   opacity: .82;
   word-break: break-word;
 }
+.msg.me .audio-transcript { color: var(--accent-ink); }
 .bubble-audio .emotion-divider { margin-top: 6px; }
+
+/* 字卡列表分批加载提示 */
+.card-more {
+  padding: 10px 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+}
 
 /* 设置里的开关行 */
 .setting-switch-row {
@@ -2792,10 +2832,31 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 #btn-mail-compose-3[hidden],
 #mail-compose-wrap[hidden] { display: none; }
 
-/* 回信：上面留白，下面输入 */
+/* 回信：上面引用原信，下面输入 */
 .mail-reply-card { height: 58vh; max-height: 58vh; }
 .mail-reply-body { gap: 10px; }
-.mail-reply-blank { flex: 1 1 auto; min-height: 20px; }
+.mail-reply-quote {
+  flex: 1 1 auto;
+  min-height: 64px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.mail-quote-head {
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.mail-quote-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .mail-reply-input {
   flex: 0 0 auto;
   width: 100%;
@@ -2880,6 +2941,30 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   word-break: break-word;
 }
 .letter-sign { margin-top: 10px; text-align: right; font-size: 12.5px; color: var(--muted); }
+
+/* 回信引用的原信 */
+.letter-quote {
+  margin: -4px 0 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+}
+.letter-quote-head {
+  margin: 0 0 4px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.letter-quote-text {
+  margin: 0;
+  max-height: 132px;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 .letter-actions { display: flex; gap: 8px; }
 .letter-btn {
