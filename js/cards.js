@@ -275,6 +275,17 @@
     App.renderCards();
   }
 
+  function mergeTriggers(existing, incoming) {
+    const parts = [];
+    function push(value) {
+      const text = String(value || '').trim();
+      if (text && parts.indexOf(text) === -1) parts.push(text);
+    }
+    String(existing || '').split(/[/／]/).forEach(push);
+    String(incoming || '').split(/[/／]/).forEach(push);
+    return parts.join('/').slice(0, 40);
+  }
+
   function applyBatchTrigger() {
     const input = el('#card-batch-trigger');
     const value = input ? input.value.trim().slice(0, 40) : '';
@@ -292,13 +303,13 @@
     ids.forEach(function (id) {
       const card = findCard(id);
       if (!card) return;
-      card.trigger = value;
+      card.trigger = mergeTriggers(card.trigger, value);
       count++;
     });
     App.save();
     App.renderDesktop();
     exitBatch();
-    App.toast('已为 ' + count + ' 张字卡设置触发词');
+    App.toast('已为 ' + count + ' 张字卡追加触发词');
   }
 
   function restoreBuiltins() {
