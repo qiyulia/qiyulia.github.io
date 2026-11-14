@@ -122,7 +122,7 @@
     const textHint = el('#card-text-hint');
     if (textHint) {
       textHint.textContent = isVoice
-        ? '自己写下这段语音的内容，可以边试听边改；保存后直接复用。'
+        ? '自己写下这段语音的内容，会显示在语音下方。'
         : '一行一张字卡，可一次粘贴多行批量添加。';
     }
     const textArea = el('#card-text');
@@ -276,7 +276,7 @@
       }
       preview.src = URL.createObjectURL(file);
       preview.hidden = false;
-      el('#card-audio-hint').textContent = '正在试听 ' + file.name + '，确认「语音文字」没有错别字后再保存。';
+      el('#card-audio-hint').textContent = '已选择 ' + file.name + '，可以试听。';
     });
 
     el('#card-form').addEventListener('submit', async function (e) {
