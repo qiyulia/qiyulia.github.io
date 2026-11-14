@@ -227,7 +227,16 @@
     if (options) options.value = '';
     const scope = el('#survey-scope');
     if (scope) scope.value = 'all';
+    const delay = el('#survey-answer-delay');
+    if (delay) delay.value = '4';
     renderSurveyForm();
+  }
+
+  function surveyAnswerDelay() {
+    const input = el('#survey-answer-delay');
+    const value = input ? parseInt(String(input.value || '').trim(), 10) : NaN;
+    if (!isFinite(value) || value <= 0) return 4;
+    return Math.min(120, value);
   }
 
   function collectSurveyQuestion() {
@@ -293,7 +302,8 @@
     };
   }
 
-  function scheduleSurveyAnswers(contactId, surveyId) {
+  function scheduleSurveyAnswers(contactId, surveyId, delaySec) {
+    const waitMs = Math.max(1, Math.min(120, delaySec || 4)) * 1000;
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       const chat = App.state.chats[contactId] || [];
@@ -314,7 +324,7 @@
         read: App.chatOpen(contactId),
       });
       maybeTaSurveyBack(contactId);
-    }, 2400 + Math.random() * 2400);
+    }, waitMs);
   }
 
   function maybeTaSurveyBack(contactId) {
@@ -392,6 +402,7 @@
       type: 'survey',
       text: '发来一份小问卷',
       questions: [collected.question],
+      answerDelay: surveyAnswerDelay(),
       answered: false,
       ts: Date.now(),
     };
@@ -399,7 +410,7 @@
     hideToolPanel('#survey-dialog');
     resetSurveyForm();
     App.toast('问卷已发出');
-    scheduleSurveyAnswers(contactId, message.id);
+    scheduleSurveyAnswers(contactId, message.id, message.answerDelay);
   }
 
   /* ---------------- 工具：占卜 ---------------- */
