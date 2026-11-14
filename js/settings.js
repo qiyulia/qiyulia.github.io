@@ -272,6 +272,9 @@
     el('#set-avatar-self-prob').value = st.settings.avatarSelfProb == null ? 40 : st.settings.avatarSelfProb;
     el('#set-avatar-me-prob').value = st.settings.avatarMeProb == null ? 25 : st.settings.avatarMeProb;
     el('#set-avatar-cooldown').value = st.settings.avatarCooldownMin == null ? 30 : st.settings.avatarCooldownMin;
+    el('#set-name-self-prob').value = st.settings.nameSelfProb == null ? 20 : st.settings.nameSelfProb;
+    el('#set-name-me-prob').value = st.settings.nameMeProb == null ? 10 : st.settings.nameMeProb;
+    el('#set-name-cooldown').value = st.settings.nameCooldownMin == null ? 120 : st.settings.nameCooldownMin;
     el('#set-ta-mail-prob').value = st.settings.taMailProb == null ? 12 : st.settings.taMailProb;
     el('#set-ta-mail-cooldown').value = st.settings.taMailCooldownMin == null ? 30 : st.settings.taMailCooldownMin;
     el('#set-mail-card-min').value = st.settings.mailCardMin == null ? 1 : st.settings.mailCardMin;
@@ -373,6 +376,8 @@
     }
     bindAvatarProb('#set-avatar-self-prob', 'avatarSelfProb');
     bindAvatarProb('#set-avatar-me-prob', 'avatarMeProb');
+    bindAvatarProb('#set-name-self-prob', 'nameSelfProb');
+    bindAvatarProb('#set-name-me-prob', 'nameMeProb');
     bindAvatarProb('#set-ta-quote', 'taQuoteProb');
     bindAvatarProb('#set-ta-mail-prob', 'taMailProb');
     bindAvatarProb('#set-card-offer-prob', 'cardOfferProb');
@@ -390,6 +395,7 @@
       });
     }
     bindMinutes('#set-avatar-cooldown', 'avatarCooldownMin', 1440);
+    bindMinutes('#set-name-cooldown', 'nameCooldownMin', 2880);
     bindMinutes('#set-ta-mail-cooldown', 'taMailCooldownMin', 1440);
     bindMinutes('#set-ta-survey-cooldown', 'taSurveyCooldownMin', 1440);
 

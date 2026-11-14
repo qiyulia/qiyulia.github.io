@@ -476,8 +476,25 @@
     if (!s.avatarPool || typeof s.avatarPool !== 'object') s.avatarPool = { mine: [], ta: [] };
     if (!Array.isArray(s.avatarPool.mine)) s.avatarPool.mine = [];
     if (!Array.isArray(s.avatarPool.ta)) s.avatarPool.ta = [];
+    if (!s.namePool || typeof s.namePool !== 'object') s.namePool = { mine: [], ta: [] };
+    ['mine', 'ta'].forEach(function (side) {
+      if (!Array.isArray(s.namePool[side])) s.namePool[side] = [];
+      s.namePool[side] = s.namePool[side].filter(function (name) {
+        return typeof name === 'string' && name.trim();
+      }).map(function (name) { return name.trim().slice(0, 16); });
+    });
+    if (s.profile.userName && s.namePool.mine.indexOf(s.profile.userName) === -1) {
+      s.namePool.mine.unshift(s.profile.userName);
+    }
+    s.contacts.forEach(function (contact) {
+      if (contact && contact.name && s.namePool.ta.indexOf(contact.name) === -1) {
+        s.namePool.ta.push(contact.name);
+      }
+    });
     if (s.settings.avatarSelfProb == null) s.settings.avatarSelfProb = 40;
     if (s.settings.avatarMeProb == null) s.settings.avatarMeProb = 25;
+    if (s.settings.nameSelfProb == null) s.settings.nameSelfProb = 20;
+    if (s.settings.nameMeProb == null) s.settings.nameMeProb = 10;
     if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
     if (s.settings.taIgnoreProb == null) s.settings.taIgnoreProb = 15;
     if (s.settings.mergeProb == null) s.settings.mergeProb = 15;

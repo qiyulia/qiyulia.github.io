@@ -953,8 +953,10 @@
   App.hideToolPanels = hideAllToolPanels;
   App.resumePendingSurveys = resumePendingSurveys;
 
-  /* ---------------- 工具：互换头像 ---------------- */
+  /* ---------------- 工具：头像与名字 ---------------- */
   let avatarPoolSide = 'mine';
+  let avatarToolView = 'avatar';
+  let nameSide = 'mine';
   const avatarSwapTimers = {};
 
   function avatarPoolData() {
@@ -975,6 +977,15 @@
     if (side === 'mine') return App.state.profile.userAvatar;
     const contact = avatarToolContact();
     return contact ? contact.avatar : '';
+  }
+
+  function renderAvatarToolView() {
+    document.querySelectorAll('#avatar-tool-tabs [data-avatar-view]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.avatarView === avatarToolView);
+    });
+    document.querySelectorAll('#avatar-dialog [data-avatar-panel]').forEach(function (panel) {
+      panel.hidden = panel.dataset.avatarPanel !== avatarToolView;
+    });
   }
 
   function renderAvatarPool() {
@@ -1042,6 +1053,153 @@
     list.splice(index, 1);
     App.save();
     renderAvatarPool();
+  }
+
+  /* ---------------- 工具：名字 ---------------- */
+  function namePoolData() {
+    const st = App.state;
+    if (!st.namePool || typeof st.namePool !== 'object') st.namePool = { mine: [], ta: [] };
+    if (!Array.isArray(st.namePool.mine)) st.namePool.mine = [];
+    if (!Array.isArray(st.namePool.ta)) st.namePool.ta = [];
+    return st.namePool;
+  }
+
+  function currentNameOf(side) {
+    if (side === 'mine') return App.state.profile.userName || '我';
+    const contact = avatarToolContact();
+    return contact ? contact.name : '';
+  }
+
+  function refreshNameViews() {
+    App.save();
+    renderNamePool();
+    App.renderChat();
+    App.renderContacts();
+    App.renderSettings();
+    if (App.renderDesktop) App.renderDesktop();
+  }
+
+  function applyName(value) {
+    if (nameSide === 'mine') {
+      App.state.profile.userName = value;
+    } else {
+      const contact = avatarToolContact();
+      if (!contact) return;
+      contact.name = value;
+    }
+    refreshNameViews();
+  }
+
+  function renderNamePool() {
+    document.querySelectorAll('#name-pool-tabs [data-name-side]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.nameSide === nameSide);
+    });
+    const input = el('#name-input');
+    if (input) input.value = currentNameOf(nameSide);
+    const box = el('#name-chip-list');
+    if (!box) return;
+    const list = namePoolData()[nameSide];
+    const current = currentNameOf(nameSide);
+    if (current && list.indexOf(current) === -1) list.push(current);
+    box.innerHTML = list.length
+      ? list.map(function (name) {
+          return '<span class="name-chip' + (name === current ? ' is-current' : '') + '" data-name-use="' + App.esc(name) + '">' +
+            '<span>' + App.esc(name) + '</span>' +
+            '<button type="button" class="name-chip-del" data-name-del="' + App.esc(name) + '" aria-label="删除这个名字">×</button>' +
+            '</span>';
+        }).join('')
+      : '<p class="field-hint avatar-pool-empty">还没有保存过名字。</p>';
+  }
+
+  function saveNameFromInput() {
+    const input = el('#name-input');
+    if (!input) return;
+    const value = String(input.value || '').trim().slice(0, 16);
+    if (!value) {
+      App.toast('先写一个名字');
+      return;
+    }
+    const list = namePoolData()[nameSide];
+    if (list.indexOf(value) === -1) {
+      if (list.length >= 40) {
+        App.toast('名字已经够多了，先删掉几个吧');
+        return;
+      }
+      list.push(value);
+    }
+    applyName(value);
+    renderNamePool();
+    App.toast('名字已保存');
+  }
+
+  function usePoolName(name) {
+    if (!name) return;
+    applyName(name);
+    App.toast('名字已更新');
+  }
+
+  function removePoolName(name) {
+    const list = namePoolData()[nameSide];
+    const index = list.indexOf(name);
+    if (index === -1) return;
+    if (name === currentNameOf(nameSide)) {
+      App.toast('这是当前名字，换一个再删');
+      return;
+    }
+    list.splice(index, 1);
+    App.save();
+    renderNamePool();
+  }
+
+  function nameProb(key, fallback) {
+    const value = Number(App.state.settings && App.state.settings[key]);
+    return isFinite(value) ? Math.max(0, Math.min(100, value)) : fallback;
+  }
+
+  function nameCooldownMs() {
+    const raw = Number(App.state.settings && App.state.settings.nameCooldownMin);
+    const minutes = isFinite(raw) ? Math.max(0, Math.min(2880, raw)) : 120;
+    return minutes * 60000;
+  }
+
+  /* TA 按概率从名字列表里给自己或我改名 */
+  function runNameChange(auto) {
+    const pool = namePoolData();
+    const contact = avatarToolContact();
+    const myName = App.state.profile.userName || '我';
+    const taName = contact ? contact.name : '';
+    const myCandidates = pool.mine.filter(function (name) { return name !== myName; });
+    const taCandidates = contact
+      ? pool.ta.filter(function (name) { return name !== taName; })
+      : [];
+    if (!myCandidates.length && !taCandidates.length) return;
+    if (auto && Date.now() - (Number(App.state.nameLastChange) || 0) < nameCooldownMs()) return;
+    const selfOn = taCandidates.length > 0 && Math.random() * 100 < nameProb('nameSelfProb', 20);
+    const meOn = myCandidates.length > 0 && Math.random() * 100 < nameProb('nameMeProb', 10);
+    if (!selfOn && !meOn) return;
+    let selfName = '';
+    let newMyName = '';
+    if (selfOn) {
+      selfName = taCandidates[Math.floor(Math.random() * taCandidates.length)];
+      contact.name = selfName;
+    }
+    if (meOn) {
+      newMyName = myCandidates[Math.floor(Math.random() * myCandidates.length)];
+      App.state.profile.userName = newMyName;
+    }
+    App.state.nameLastChange = Date.now();
+    App.save();
+    renderNamePool();
+    App.renderChat();
+    App.renderContacts();
+    App.renderSettings();
+    if (App.renderDesktop) App.renderDesktop();
+    const who = contact ? contact.name : 'TA';
+    let text = '';
+    if (selfName && newMyName) text = who + ' 把名字改成了「' + selfName + '」，也把你的名字改成了「' + newMyName + '」';
+    else if (selfName) text = who + ' 把名字改成了「' + selfName + '」';
+    else text = who + ' 把你的名字改成了「' + newMyName + '」';
+    pushAvatarNotice(text);
   }
 
   function avatarProb(key, fallback) {
@@ -1416,7 +1574,10 @@
           resetDivine(true);
           showToolPanel('#divine-dialog');
         } else if (btn.dataset.tool === 'avatar') {
+          avatarToolView = 'avatar';
+          renderAvatarToolView();
           renderAvatarPool();
+          renderNamePool();
           showToolPanel('#avatar-dialog');
         } else if (btn.dataset.tool === 'mine') {
           resetMine();
@@ -1501,6 +1662,16 @@
         if (card) toggleDivinePick(card);
       });
     }
+    const avatarToolTabs = el('#avatar-tool-tabs');
+    if (avatarToolTabs) {
+      avatarToolTabs.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-avatar-view]');
+        if (!btn) return;
+        avatarToolView = btn.dataset.avatarView;
+        renderAvatarToolView();
+        renderNamePool();
+      });
+    }
     const avatarTabs = el('#avatar-pool-tabs');
     if (avatarTabs) {
       avatarTabs.addEventListener('click', function (e) {
@@ -1529,6 +1700,38 @@
       avatarFile.addEventListener('change', function () {
         importAvatarPool(avatarFile.files);
         avatarFile.value = '';
+      });
+    }
+
+    const nameTabs = el('#name-pool-tabs');
+    if (nameTabs) {
+      nameTabs.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-name-side]');
+        if (!btn) return;
+        nameSide = btn.dataset.nameSide;
+        renderNamePool();
+      });
+    }
+    const nameSave = el('#name-save');
+    if (nameSave) nameSave.addEventListener('click', saveNameFromInput);
+    const nameInput = el('#name-input');
+    if (nameInput) {
+      nameInput.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        saveNameFromInput();
+      });
+    }
+    const nameList = el('#name-chip-list');
+    if (nameList) {
+      nameList.addEventListener('click', function (e) {
+        const del = e.target.closest('[data-name-del]');
+        if (del) {
+          removePoolName(del.dataset.nameDel);
+          return;
+        }
+        const use = e.target.closest('[data-name-use]');
+        if (use) usePoolName(use.dataset.nameUse);
       });
     }
 
@@ -1598,5 +1801,14 @@
       }, 90000 + Math.random() * 150000);
     }
     scheduleAutoAvatarSwap();
+
+    /* TA 也隔一阵子按概率给自己或我改名字 */
+    function scheduleAutoNameChange() {
+      setTimeout(function () {
+        if (!document.hidden) runNameChange(true);
+        scheduleAutoNameChange();
+      }, 120000 + Math.random() * 180000);
+    }
+    scheduleAutoNameChange();
   };
 })();

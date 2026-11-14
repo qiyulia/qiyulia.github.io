@@ -2999,6 +2999,35 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 .avatar-pool-empty { grid-column: 1 / -1; }
 
+/* 头像与名字：分类面板与名字列表 */
+#avatar-dialog [data-avatar-panel] { display: flex; flex-direction: column; gap: 10px; }
+#avatar-dialog [data-avatar-panel][hidden] { display: none; }
+#avatar-pool-import { width: 50%; align-self: center; }
+.name-chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.name-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 4px 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+}
+.name-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name-chip.is-current { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.name-chip-del {
+  width: 18px; height: 18px;
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+}
+
 /* ============ 问卷 / 占卜 / 扫雷：普通浮层（不用 dialog，避免关不掉） ============ */
 .tool-overlay {
   position: absolute;
