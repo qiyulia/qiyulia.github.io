@@ -528,17 +528,40 @@
     }
     return result;
   }
+  function parseNeteaseTitle(title) {
+    const parts = String(title || '').split(/\s+-\s+/).filter(Boolean);
+    const clean = function (value) { return value.replace(/(单曲|专辑|歌单|MV|视频|网易云音乐)$/g, '').trim(); };
+    return { title: clean(parts[0] || ''), artist: clean(parts[1] || '') };
+  }
+  /* Microlink 支持跨域并会跟随短链跳转，可直接拿到最终歌曲页和标题。 */
+  function fetchMicrolink(url) {
+    const controller = window.AbortController ? new AbortController() : null;
+    const timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
+    return fetch('https://api.microlink.io/?url=' + encodeURIComponent(url), { signal: controller ? controller.signal : undefined })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('microlink ' + res.status)); })
+      .then(function (data) {
+        if (timer) clearTimeout(timer);
+        if (!data || data.status !== 'success' || !data.data) return {};
+        const names = parseNeteaseTitle(data.data.title);
+        const finalUrl = data.data.url || '';
+        return { id: neteaseId(finalUrl), pageUrl: finalUrl, title: names.title, artist: names.artist };
+      })
+      .catch(function () { if (timer) clearTimeout(timer); return {}; });
+  }
   function resolveNetease(url) {
     const directId = neteaseId(url);
     const pageUrl = directId ? 'https://music.163.com/song?id=' + directId : url;
-    return fetchTextViaProxy(pageUrl).then(function (html) {
-      const meta = parseNeteaseHtml(html);
-      return {
-        id: meta.id || directId || '',
-        pageUrl: meta.pageUrl || pageUrl,
-        title: meta.title || '',
-        artist: meta.artist || ''
-      };
+    return fetchMicrolink(url).then(function (info) {
+      if (info.id) return info;
+      return fetchTextViaProxy(pageUrl).then(function (html) {
+        const meta = parseNeteaseHtml(html);
+        return {
+          id: meta.id || directId || '',
+          pageUrl: meta.pageUrl || pageUrl,
+          title: meta.title || '',
+          artist: meta.artist || ''
+        };
+      });
     });
   }
   function isAudioFileUrl(url) {
