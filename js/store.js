@@ -56,6 +56,7 @@
       });
     });
     if (['sequence', 'repeat', 'shuffle'].indexOf(music.mode) === -1) music.mode = 'sequence';
+    if (typeof music.chatFloat !== 'boolean') music.chatFloat = true;
     if (!music.tracks.some(function (track) { return track.id === music.currentId; })) {
       music.currentId = music.tracks.length ? music.tracks[0].id : '';
     }

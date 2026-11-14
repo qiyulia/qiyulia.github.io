@@ -2212,3 +2212,44 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .market-item-actions .market-remove { color: var(--muted); }
 .market-empty { font-size: 12px; color: var(--muted); padding: 8px 2px; }
 .market-app-icon { background: linear-gradient(160deg, #f2b26b, #d97f4b); }
+
+/* ============ 音乐小窗开关与关闭 ============ */
+#chat-music-float[hidden] { display: none; }
+#view-chat.music-is-closed .chat-scroll { padding-top: 12px; }
+.music-float-close {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+}
+.music-float-close:hover { background: var(--accent-soft); color: var(--accent); }
+.music-float-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--field);
+}
+.music-float-switch-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.music-float-switch-copy strong { font-size: 12px; font-weight: 600; }
+.music-float-switch-copy span { color: var(--muted); font-size: 10px; }
+.switch-btn {
+  flex: 0 0 auto;
+  min-width: 58px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+}
+.switch-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }

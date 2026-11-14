@@ -13,6 +13,7 @@
   let callDrag = null;
   let suppressCallClick = false;
   const readTimers = {};
+  const decisionTimers = {};
 
   function currentContact() {
     return App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
@@ -50,6 +51,9 @@
     chat.forEach(function (m) {
       if (m.read === undefined) m.read = now - m.ts > 2400;
       if (!m.read) scheduleRead(id, m);
+      if ((m.type === 'redpacket' || m.type === 'gift') && m.role === 'me' && m.status === 'pending') {
+        scheduleTaDecision(id, m);
+      }
     });
     const list = el('#chat-list');
     list.innerHTML = chat.length
@@ -82,14 +86,27 @@
     }, 2200 + Math.random() * 900);
   }
 
+  /* 我发出的红包 / 礼物由 TA 自行决定收下或退回 */
+  function scheduleTaDecision(contactId, message) {
+    if (decisionTimers[message.id]) return;
+    decisionTimers[message.id] = setTimeout(function () {
+      delete decisionTimers[message.id];
+      const chat = App.state.chats[contactId] || [];
+      const target = chat.find(function (m) { return m.id === message.id; });
+      if (!target || target.status !== 'pending') return;
+      settlePacket(target.type, contactId, target.id, Math.random() < 0.7 ? 'accept' : 'return');
+    }, 3000 + Math.random() * 3000);
+  }
+
   function packetHtml(m) {
     const pending = m.status === 'pending';
-    const statusText = m.status === 'accepted' ? '已领取' : (m.status === 'returned' ? '已退回' : '待领取');
+    const waiting = pending && m.role === 'me';
+    const statusText = m.status === 'accepted' ? '已领取' : (m.status === 'returned' ? '已退回' : (waiting ? '等待对方领取' : '待领取'));
     return '<div class="bubble bubble-packet' + (pending ? '' : ' is-done') + '">' +
       '<div class="packet-head"><span class="packet-tag">同心币红包</span><em>' + statusText + '</em></div>' +
       '<p class="packet-amount">' + Number(m.amount || 0) + '<small> 同心币</small></p>' +
       (m.note ? '<p class="packet-note">' + App.esc(m.note) + '</p>' : '<p class="packet-note">恭喜发财，大吉大利</p>') +
-      (pending
+      (pending && m.role === 'ta'
         ? '<div class="packet-actions"><button type="button" data-rp-accept="' + App.esc(m.id) + '">接受</button><button type="button" data-rp-return="' + App.esc(m.id) + '">退回</button></div>'
         : '') +
       '</div>';
@@ -97,12 +114,13 @@
 
   function giftHtml(m) {
     const pending = m.status === 'pending';
-    const statusText = m.status === 'accepted' ? '已收下' : (m.status === 'returned' ? '已退回' : '待领取');
+    const waiting = pending && m.role === 'me';
+    const statusText = m.status === 'accepted' ? '已收下' : (m.status === 'returned' ? '已退回' : (waiting ? '等待对方领取' : '待领取'));
     return '<div class="bubble bubble-gift' + (pending ? '' : ' is-done') + '">' +
       '<div class="packet-head"><span class="packet-tag">礼物</span><em>' + statusText + '</em></div>' +
       '<p class="gift-title">🎁 ' + App.esc(m.productName || '礼物') + '</p>' +
       '<p class="packet-note">' + Number(m.price || 0) + ' 同心币</p>' +
-      (pending
+      (pending && m.role === 'ta'
         ? '<div class="packet-actions"><button type="button" data-gift-accept="' + App.esc(m.id) + '">收下</button><button type="button" data-gift-return="' + App.esc(m.id) + '">退回</button></div>'
         : '') +
       '</div>';
@@ -350,11 +368,12 @@
   }
 
   /* 红包与礼物的接受、退回结算 */
-  function settlePacket(kind, messageId, action) {
-    const message = findChatMessage(messageId);
+  function settlePacket(kind, contactId, messageId, action) {
+    const chat = App.state.chats[contactId] || [];
+    const message = chat.find(function (m) { return m.id === messageId; });
     if (!message || message.status !== 'pending') return;
-    const contact = currentContact();
-    const taName = contact ? contact.name : 'TA';
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    const partnerName = contact ? contact.name : 'TA';
     const sender = message.role;
     const receiver = sender === 'me' ? 'ta' : 'me';
     const wallet = App.state.wallet;
@@ -372,26 +391,29 @@
     if (kind === 'redpacket') {
       line = action === 'accept'
         ? (receiver === 'me'
-            ? '你领取了' + taName + '的红包 ' + coin + ' 同心币'
-            : taName + '领取了你的红包 ' + coin + ' 同心币')
+            ? '你领取了' + partnerName + '的红包 ' + coin + ' 同心币'
+            : partnerName + '领取了你的红包 ' + coin + ' 同心币')
         : (sender === 'me'
             ? '红包退回了，' + coin + ' 同心币已回到你手里'
-            : '红包退回给' + taName + '了，' + coin + ' 同心币已退还');
+            : '红包退回给' + partnerName + '了，' + coin + ' 同心币已退还');
     } else {
       const name = message.productName || '礼物';
       line = action === 'accept'
         ? (receiver === 'me'
-            ? '你收下了' + taName + '送的「' + name + '」'
-            : taName + '收下了你送的「' + name + '」')
+            ? '你收下了' + partnerName + '送的「' + name + '」'
+            : partnerName + '收下了你送的「' + name + '」')
         : (sender === 'me'
             ? '「' + name + '」被退回了，' + coin + ' 同心币已退回'
-            : '你把「' + name + '」退回去了，' + coin + ' 同心币已退给' + taName);
+            : '你把「' + name + '」退回去了，' + coin + ' 同心币已退给' + partnerName);
     }
 
-    const chat = App.state.chats[App.chatContactId] || [];
     chat.push({ id: App.uid('m'), role: 'ta', type: 'pat', text: line, ts: Date.now() });
     App.save();
-    App.renderChat();
+    if (App.chatContactId === contactId) App.renderChat();
+    else {
+      App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+      App.updateBadges();
+    }
     App.renderContacts();
     if (typeof App.renderMarket === 'function') App.renderMarket();
   }
@@ -938,10 +960,10 @@
       if (packetBtn) {
         e.preventDefault();
         e.stopPropagation();
-        if (packetBtn.dataset.rpAccept) settlePacket('redpacket', packetBtn.dataset.rpAccept, 'accept');
-        else if (packetBtn.dataset.rpReturn) settlePacket('redpacket', packetBtn.dataset.rpReturn, 'return');
-        else if (packetBtn.dataset.giftAccept) settlePacket('gift', packetBtn.dataset.giftAccept, 'accept');
-        else if (packetBtn.dataset.giftReturn) settlePacket('gift', packetBtn.dataset.giftReturn, 'return');
+        if (packetBtn.dataset.rpAccept) settlePacket('redpacket', App.chatContactId, packetBtn.dataset.rpAccept, 'accept');
+        else if (packetBtn.dataset.rpReturn) settlePacket('redpacket', App.chatContactId, packetBtn.dataset.rpReturn, 'return');
+        else if (packetBtn.dataset.giftAccept) settlePacket('gift', App.chatContactId, packetBtn.dataset.giftAccept, 'accept');
+        else if (packetBtn.dataset.giftReturn) settlePacket('gift', App.chatContactId, packetBtn.dataset.giftReturn, 'return');
         return;
       }
       const actionBtn = e.target.closest('[data-msg-action]');

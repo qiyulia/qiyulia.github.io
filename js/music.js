@@ -94,8 +94,31 @@
     el('#chat-music-progress').style.width = '0%';
   }
 
+  /* 聊天页音乐小窗的开启 / 关闭状态 */
+  function applyMusicFloatState() {
+    const box = el('#chat-music-float');
+    if (!box) return;
+    const open = App.state.music.chatFloat !== false;
+    const view = el('#view-chat');
+    const scroller = el('#chat-scroll');
+    const beforeHeight = scroller ? scroller.scrollHeight : 0;
+    const beforeTop = scroller ? scroller.scrollTop : 0;
+    box.hidden = !open;
+    view.classList.toggle('music-is-closed', !open);
+    if (scroller) {
+      const delta = scroller.scrollHeight - beforeHeight;
+      if (delta) scroller.scrollTop = beforeTop + delta;
+    }
+    const btn = el('#music-float-switch');
+    if (btn) {
+      btn.textContent = open ? '已开启' : '开启';
+      btn.setAttribute('aria-pressed', String(open));
+    }
+  }
+
   App.renderMusic = function () {
     if (!App.state || !App.state.music) return;
+    applyMusicFloatState();
     const track = currentTrack();
     if (!track) {
       renderMusicEmpty();
@@ -806,6 +829,18 @@
     });
     el('#chat-music-toggle').addEventListener('click', function () {
       setMusicFloatMinimized(!el('#chat-music-float').classList.contains('is-minimized'));
+    });
+    el('#chat-music-close').addEventListener('click', function () {
+      App.state.music.chatFloat = false;
+      App.save();
+      applyMusicFloatState();
+      App.toast('已关闭聊天音乐小窗，可在音乐页重新开启');
+    });
+    el('#music-float-switch').addEventListener('click', function () {
+      App.state.music.chatFloat = !(App.state.music.chatFloat !== false);
+      App.save();
+      applyMusicFloatState();
+      App.toast(App.state.music.chatFloat ? '聊天音乐小窗已开启' : '聊天音乐小窗已关闭');
     });
     initMusicFloatDrag();
     el('#music-mode').addEventListener('click', function () {
