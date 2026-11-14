@@ -82,15 +82,12 @@
     renderCalendar(now);
 
     el('#w-days').textContent = App.daysSince(st.profile.since);
-    const anniversary = nextAnniversary(st.profile.since);
-    el('#w-next').textContent = anniversary
-      ? (anniversary.days === 0 ? '就是今天，纪念日快乐。' : '距 ' + anniversary.label + ' 还有 ' + anniversary.days + ' 天')
+    const anniversary = (App.nearestAnniversary && App.nearestAnniversary()) || nextAnniversary(st.profile.since);
+    el('#w-anniv').textContent = anniversary
+      ? (anniversary.days === 0 ? '就是今天，' + anniversary.label + '快乐。' : '距 ' + anniversary.label + ' 还有 ' + anniversary.days + ' 天')
       : '在设置里写下你们的纪念日。';
     el('#w-since').textContent = st.profile.since ? '始于 ' + st.profile.since.replace(/-/g, '.') : '';
 
-    const notes = el('#w-notes');
-    if (document.activeElement !== notes) notes.value = st.notes;
-    el('#w-notes-count').textContent = st.notes.length + ' / 500';
     App.applyIconStyle();
     if (App.renderMusic) App.renderMusic();
   }
@@ -396,15 +393,6 @@
 
   App.initDesktop = function () {
     initPager();
-
-    el('#w-notes').addEventListener('input', function (e) {
-      App.state.notes = e.target.value;
-      el('#w-notes-count').textContent = App.state.notes.length + ' / 500';
-      el('#w-notes-status').textContent = '已保存';
-      App.save();
-      clearTimeout(notesTimer);
-      notesTimer = setTimeout(function () { el('#w-notes-status').textContent = '自动保存'; }, 1200);
-    });
 
     document.querySelectorAll('[data-icon-shape]').forEach(function (btn) {
       btn.addEventListener('click', function () {

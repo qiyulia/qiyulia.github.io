@@ -134,6 +134,9 @@
       theme: 'mist',
       notes: '',
       iconStyle: { shape: 'rounded', color: 'blue' },
+      anniversaries: [],
+      reminders: [],
+      look: { bgImage: '', chatBg: '', callBg: '', bubbleCss: '', opacity: 80 },
       music: App.MUSIC_SEED(),
       profile: {
         userName: '我',

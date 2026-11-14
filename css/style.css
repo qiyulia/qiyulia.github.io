@@ -400,7 +400,9 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .anniversary-days { display: flex; align-items: baseline; gap: 5px; margin-top: 5px; }
 .anniversary-days strong { font-family: "Songti SC", "Noto Serif SC", serif; font-size: 40px; line-height: 1; font-weight: 600; }
 .anniversary-days span { font-size: 12px; color: var(--muted); }
-.anniversary-copy { font-size: 11px; line-height: 1.5; color: var(--ink); }
+.anniversary-copy { display: block; font-size: 11px; line-height: 1.5; color: var(--ink); }
+button.widget { font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.widget:active { transform: scale(.99); }
 .anniversary-widget .widget-foot { line-height: 1.5; }
 
 .music-main { display: flex; align-items: center; gap: 12px; }
@@ -2470,3 +2472,161 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   color: var(--accent);
 }
+
+/* ============ 4 个应用一行 ============ */
+.app-grid { grid-template-columns: repeat(4, 1fr); }
+.anniversary-app-icon { background: linear-gradient(145deg, #f0b3bb, #d1808e); }
+.notes-app-icon { background: linear-gradient(145deg, #b6c8d9, #7d96ad); }
+
+/* ============ 纪念日 / 笔记 ============ */
+.anniv-list, .reminder-list { display: flex; flex-direction: column; gap: 10px; }
+.anniv-item, .reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.anniv-item main, .reminder-item main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.anniv-item strong, .reminder-item strong { font-size: 14px; color: var(--ink); }
+.anniv-item span, .reminder-item span { font-size: 12px; color: var(--muted); }
+.anniv-item .mini-btn, .reminder-item .mini-btn { flex: 0 0 auto; }
+.reminder-item.is-off { opacity: .55; }
+
+/* ============ 其他：工具 / 游戏 ============ */
+.more-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 14px; }
+.more-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 13px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  text-align: left;
+}
+.more-item span { font-size: 14px; font-weight: 600; }
+.more-item small { font-size: 11.5px; color: var(--muted); }
+.more-item:active { transform: scale(.97); }
+
+.survey-body { display: flex; flex-direction: column; gap: 12px; }
+.survey-q { display: flex; flex-direction: column; gap: 6px; }
+.survey-q > span { font-size: 13px; color: var(--ink); font-weight: 600; }
+.survey-scale { display: flex; gap: 6px; }
+.survey-scale button {
+  flex: 1 1 0;
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--muted);
+  font-size: 12px;
+}
+.survey-scale button.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.divine-result {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+.divine-result strong { display: block; font-size: 18px; margin-bottom: 6px; }
+
+.mine-board { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin: 10px 0; }
+.mine-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+}
+.mine-cell.is-open { background: var(--surface); color: var(--muted); }
+.mine-cell.is-flag { color: #d07c7c; }
+.mine-cell.is-boom { background: #f3c9c9; color: #a94a4a; }
+.mine-cell[data-n="1"] { color: #5b87b8; }
+.mine-cell[data-n="2"] { color: #5f9a79; }
+.mine-cell[data-n="3"] { color: #c08a58; }
+.mine-cell[data-n="4"] { color: #a06fa8; }
+
+/* ============ 美化 ============ */
+.look-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 13px;
+  color: var(--ink);
+}
+.look-row:last-of-type { border-bottom: 0; }
+.look-actions { display: flex; gap: 6px; }
+.look-settings-page .segmented { width: 100%; }
+#look-opacity { width: 100%; accent-color: var(--accent); }
+
+/* 界面透明度（默认 80%） */
+.panel, .widget, .composer, .sticker-panel, .msg .bubble, .chat-topbar { opacity: var(--ui-opacity, 1); }
+
+/* 自定义背景 */
+.wallpaper.has-look-bg { background-size: cover; background-position: center; }
+.wallpaper.has-look-bg::after { background: rgba(255, 255, 255, .18); }
+#view-chat.has-look-chat-bg { background-size: cover; background-position: center; }
+#view-chat.has-look-chat-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, .55);
+  pointer-events: none;
+}
+#view-chat.has-look-chat-bg > * { position: relative; }
+.call-overlay.has-look-call-bg { background-size: cover; background-position: center; }
+.call-overlay.has-look-call-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 26, 40, .55);
+  pointer-events: none;
+}
+
+/* 聊天里的笔记提醒卡片 */
+.bubble-reminder {
+  border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.rem-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.rem-actions button {
+  padding: 7px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.rem-actions button:first-child { color: var(--muted); }
+.rem-actions button:last-child {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+

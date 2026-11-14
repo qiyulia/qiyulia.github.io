@@ -155,6 +155,30 @@
     if (m.recalled) {
       return '<div class="msg-recall">' + App.esc(mine ? '你' : taName) + '撤回了一条消息</div>';
     }
+    if (m.type === 'reminder') {
+      const contact = currentContact();
+      const avatarSrc = contact && contact.avatar;
+      const quote = m.quote && m.quote.text
+        ? '<span class="msg-quote"><strong>' + App.esc(m.quote.name || '') + '</strong>' + App.esc(m.quote.text) + '</span>'
+        : '';
+      const actions = m.reminderDone ? '' :
+        '<div class="rem-actions">' +
+          '<button type="button" data-rem-cancel="' + App.esc(m.reminderId) + '" data-rem-cancel-msg="' + App.esc(m.id) + '">取消提醒，还没做完</button>' +
+          '<button type="button" data-rem-keep="' + App.esc(m.reminderId) + '" data-rem-keep-msg="' + App.esc(m.id) + '">还没做完</button>' +
+        '</div>';
+      return '<div class="msg ta" data-msg-id="' + App.esc(m.id) + '">' +
+        '<div class="msg-main">' +
+          '<div class="msg-content">' +
+            '<div class="msg-side"><span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>' +
+              '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
+            '</div>' +
+            '<div class="msg-bubble-hit" data-msg-bubble="1">' + quote +
+              '<div class="bubble bubble-reminder"><p class="bubble-text">' + App.esc(m.text) + '</p>' + actions + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '</div>';
+    }
     if (m.type === 'redpacket' || m.type === 'gift') {
       const avatarSrc = mine ? App.state.profile.userAvatar : (contact && contact.avatar);
       const avatarHtml = mine
@@ -474,6 +498,19 @@
     pushMessage({ id: App.uid('m'), role: role, type: 'image', src: src, ts: Date.now() });
     closeStickerPanel();
     if (role === 'me') scheduleReply(App.chatContactId, '');
+  }
+
+  function openRedPacketDialog() {
+    closeStickerPanel();
+    const hint = el('#redpacket-side-hint');
+    if (hint) {
+      hint.textContent = (App.sendAs === 'me' ? '以「我」的身份发出' : '以「TA」的身份发出') +
+        ' · 余额 ' + App.state.wallet[App.sendAs] + ' 同心币';
+    }
+    el('#redpacket-amount').value = '';
+    el('#redpacket-note').value = '';
+    el('#redpacket-dialog').showModal();
+    el('#redpacket-amount').focus();
   }
 
   App.sendPat = function (card) {
@@ -810,17 +847,9 @@
   }
 
   function renderStickerPanel() {
-    const kind = App.panelKind || 'sticker';
-    const isPat = kind === 'pat';
     document.querySelectorAll('[data-panel-kind]').forEach(function (btn) {
-      btn.classList.toggle('is-on', btn.dataset.panelKind === kind);
+      btn.classList.toggle('is-on', btn.dataset.panelKind === (App.panelKind || 'sticker'));
     });
-    el('#sticker-side-head').hidden = isPat;
-    el('#sticker-grid').hidden = isPat;
-    el('#pat-grid').hidden = !isPat;
-    el('#btn-add-sticker').hidden = isPat;
-
-    if (isPat) { renderPatGrid(); return; }
 
     setStickerStatus('');
     const stickers = stickerList();
@@ -842,7 +871,9 @@
     const cards = (App.state.cards || []).filter(function (c) {
       return c.category === '拍一拍' && c.enabled !== false && c.text;
     });
-    el('#pat-grid').innerHTML = cards.length
+    const grid = el('#pat-grid');
+    if (!grid) return;
+    grid.innerHTML = cards.length
       ? cards.map(function (c) {
           return '<button type="button" class="pat-item" data-send-pat="' + c.id + '">' +
             App.esc(c.text.split('{name}').join(name)) +
@@ -850,6 +881,14 @@
         }).join('')
       : '<p class="sticker-empty">字卡库里还没有拍一拍字卡，去「字卡」添加。</p>';
   }
+
+  function openPatPicker() {
+    if (!currentContact()) return;
+    renderPatGrid();
+    const dialog = el('#pat-picker-dialog');
+    if (dialog) dialog.showModal();
+  }
+  App.openPatPicker = openPatPicker;
 
   function closeStickerPanel() {
     const panel = el('#sticker-panel');
@@ -1321,6 +1360,7 @@
       const bubbleHit = e.target.closest('[data-msg-id] [data-msg-bubble]');
       if (bubbleHit) {
         if (e.target.closest('audio')) return;
+        if (e.target.closest('.rem-actions')) return;
         closeStickerPanel();
         openMsgActions(bubbleHit.closest('[data-msg-id]'));
         return;
@@ -1329,12 +1369,16 @@
 
       const patAvatar = e.target.closest('[data-pat-current]');
       if (patAvatar) {
-        App.sendPat();
+        openPatPicker();
         return;
       }
 
       const kindBtn = e.target.closest('[data-panel-kind]');
       if (kindBtn) {
+        if (kindBtn.dataset.panelKind === 'redpacket') {
+          openRedPacketDialog();
+          return;
+        }
         App.panelKind = kindBtn.dataset.panelKind;
         renderStickerPanel();
         return;
@@ -1345,6 +1389,8 @@
         const card = (App.state.cards || []).find(function (c) {
           return c.id === patItem.dataset.sendPat;
         });
+        const dialog = el('#pat-picker-dialog');
+        if (dialog) dialog.close();
         if (card) App.sendPat(card);
         return;
       }
@@ -1419,16 +1465,6 @@
       }
     });
     el('#btn-sticker').addEventListener('click', toggleStickerPanel);
-    el('#btn-redpacket').addEventListener('click', function () {
-      closeStickerPanel();
-      const hint = el('#redpacket-side-hint');
-      if (hint) hint.textContent = (App.sendAs === 'me' ? '以「我」的身份发出' : '以「TA」的身份发出') +
-        ' · 余额 ' + App.state.wallet[App.sendAs] + ' 同心币';
-      el('#redpacket-amount').value = '';
-      el('#redpacket-note').value = '';
-      el('#redpacket-dialog').showModal();
-      el('#redpacket-amount').focus();
-    });
     el('#redpacket-form').addEventListener('submit', function (e) {
       e.preventDefault();
       const amount = Math.round(Number(el('#redpacket-amount').value));

@@ -39,6 +39,9 @@
     else if (view === 'music') App.renderMusic();
     else if (view === 'market') App.renderMarket();
     else if (view === 'mail') App.renderMail();
+    else if (view === 'anniversary') App.renderAnniversaries();
+    else if (view === 'notes') App.renderReminders();
+    if (App.applyLook && (view === 'chat-settings' || view === 'desktop' || view === 'chat')) App.applyLook();
   };
 
   App.toast = function (message) {
@@ -129,6 +132,7 @@
   App.initMusic();
   App.initMarket();
   App.initMail();
+  if (App.initExtras) App.initExtras();
 
   let lastView = null;
   try { lastView = JSON.parse(sessionStorage.getItem('xuyu.view') || 'null'); } catch (e) { lastView = null; }

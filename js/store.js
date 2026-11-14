@@ -163,6 +163,43 @@
     if (!['rounded', 'circle', 'square'].includes(s.iconStyle.shape)) s.iconStyle.shape = 'rounded';
     if (!['blue', 'lilac', 'sage', 'apricot'].includes(s.iconStyle.color)) s.iconStyle.color = 'blue';
 
+    /* 纪念日：自定义名称 + 日期 */
+    if (!Array.isArray(s.anniversaries)) s.anniversaries = [];
+    s.anniversaries = s.anniversaries.filter(function (a) {
+      return a && typeof a === 'object' && String(a.name || '').trim() && /^\d{4}-\d{2}-\d{2}$/.test(String(a.date || ''));
+    }).map(function (a) {
+      if (!a.id) a.id = App.uid('an');
+      a.name = String(a.name).trim().slice(0, 12);
+      a.date = String(a.date);
+      return a;
+    });
+
+    /* 笔记：每天按开始 / 结束时间提醒 */
+    if (!Array.isArray(s.reminders)) s.reminders = [];
+    s.reminders = s.reminders.filter(function (r) {
+      return r && typeof r === 'object' && String(r.title || '').trim();
+    }).map(function (r) {
+      if (!r.id) r.id = App.uid('rem');
+      r.title = String(r.title).trim().slice(0, 40);
+      r.start = /^\d{2}:\d{2}$/.test(String(r.start || '')) ? String(r.start) : '09:00';
+      r.end = /^\d{2}:\d{2}$/.test(String(r.end || '')) ? String(r.end) : '18:00';
+      r.active = r.active !== false;
+      r.lastStart = String(r.lastStart || '');
+      r.lastEnd = String(r.lastEnd || '');
+      r.snoozeAt = Number(r.snoozeAt) || 0;
+      return r;
+    });
+
+    /* 外观：背景图、透明度、自定义气泡 CSS */
+    if (!s.look || typeof s.look !== 'object') s.look = {};
+    const look = s.look;
+    ['bgImage', 'chatBg', 'callBg', 'bubbleCss'].forEach(function (k) {
+      if (typeof look[k] !== 'string') look[k] = '';
+    });
+    look.opacity = Number(look.opacity);
+    if (!Number.isFinite(look.opacity)) look.opacity = 80;
+    look.opacity = Math.max(20, Math.min(100, Math.round(look.opacity)));
+
     s.contacts.forEach(function (c) {
       if (!c.id) c.id = App.uid('c');
       if (!s.chats[c.id]) s.chats[c.id] = [];
