@@ -2098,7 +2098,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .msg.me .msg-read.is-read { color: rgba(255, 255, 255, .92); }
 .bubble-with-read { display: flex; align-items: flex-end; gap: 6px; }
 .bubble-with-read .bubble-text { min-width: 0; }
-.composer-packet-btn { color: #d2554d; }
+.composer-packet-btn { color: var(--ink); }
 
 /* ============ 同心币红包 / 礼物气泡 ============ */
 .msg .bubble.bubble-packet,
