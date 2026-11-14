@@ -84,8 +84,17 @@
     return App.state.cards.find(function (c) { return c.id === id; });
   }
 
+  function cardKey(category, text, audio) {
+    const value = String(text || '').trim();
+    if (!value) return '';
+    const cat = category || '';
+    if (cat !== '语音') return value;
+    const src = String(audio || '');
+    return cat + '\u0001' + value + '\u0001' + src.length + ':' + src.slice(-48);
+  }
+
   function cardTextKey(card) {
-    return String(card.text || '').trim();
+    return cardKey(card.category, card.text, card.audio);
   }
 
   function existingTextKeys() {
@@ -202,11 +211,15 @@
         if (!item || typeof item !== 'object') return;
         const text = String(item.text || '').trim();
         if (!text) return;
-        if (existing[text]) {
+        const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : '聊天';
+        const audio = category === '语音' && typeof item.audio === 'string' && item.audio.indexOf('data:audio') === 0
+          ? item.audio
+          : '';
+        const key = cardKey(category, text, audio);
+        if (existing[key]) {
           duplicated++;
           return;
         }
-        const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : '聊天';
         const card = {
           id: App.uid('card'),
           text: text,
@@ -219,11 +232,9 @@
           card.emotion = String(item.emotion || '平常').slice(0, 12);
           card.strength = ['强', '中', '弱'].indexOf(item.strength) !== -1 ? item.strength : '中';
         }
-        if (category === '语音' && typeof item.audio === 'string' && item.audio.indexOf('data:audio') === 0) {
-          card.audio = item.audio;
-        }
+        if (audio) card.audio = audio;
         App.state.cards.unshift(card);
-        existing[text] = true;
+        existing[key] = true;
         added++;
       });
 
@@ -343,11 +354,12 @@
       } else {
         const existing = existingTextKeys();
         const fresh = texts.filter(function (text) {
-          if (existing[text]) {
+          const key = cardKey(category, text, audio);
+          if (existing[key]) {
             duplicated++;
             return false;
           }
-          existing[text] = true;
+          existing[key] = true;
           return true;
         });
         if (!fresh.length) {
