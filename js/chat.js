@@ -842,7 +842,8 @@
   }
 
   function compressImage(file) {
-    return App.compressImage(file, 160);
+    /* 表情包尽量保留画质：400px、JPEG 0.9，超出约 190KB 再逐级压缩 */
+    return App.compressImage(file, 400, { quality: 0.9, maxLength: 260000 });
   }
 
   App.stickerNotice = function (text, isError) { setStickerStatus(text, isError); };

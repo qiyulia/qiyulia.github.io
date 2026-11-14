@@ -420,8 +420,11 @@
 
   /* 本地图片压缩为 dataURL（头像、表情包共用）
      使用 objectURL + createImageBitmap 缩放解码，避免大图在手机上占用过多内存导致页面重载 */
-  App.compressImage = function (file, maxSize) {
+  App.compressImage = function (file, maxSize, options) {
     const max = maxSize || 240;
+    const opts = options || {};
+    const maxLength = opts.maxLength || 90000;
+    const startQuality = opts.quality || 0.82;
 
     function drawToDataUrl(source, width, height, limit, quality) {
       let w = width;
@@ -441,13 +444,13 @@
     /* 逐步缩小，保证存进表情包的图片足够小，避免手机内存被撑爆 */
     function encode(source, width, height) {
       let limit = max;
-      let quality = 0.82;
+      let quality = startQuality;
       let out = '';
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 5; i++) {
         out = drawToDataUrl(source, width, height, limit, quality);
-        if (out.length <= 90000) break;
-        limit = Math.max(64, Math.round(limit * 0.72));
-        quality = Math.max(0.5, quality - 0.08);
+        if (out.length <= maxLength) break;
+        limit = Math.max(96, Math.round(limit * 0.78));
+        quality = Math.max(0.6, quality - 0.06);
       }
       return out;
     }
