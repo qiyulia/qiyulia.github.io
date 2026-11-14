@@ -692,7 +692,7 @@
       App.readJSONFile(file).then(function (payload) {
         const data = payload && payload.data ? payload.data : payload;
         if (!data || typeof data !== 'object') {
-          throw new Error('这不是絮语的备份文件');
+          throw new Error('这不是拾忆的备份文件');
         }
         const scopes = selectedBackupScopes().filter(function (scope) {
           return scope.fields.some(function (field) { return data[field] !== undefined; });
