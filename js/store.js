@@ -131,6 +131,12 @@
     if (!Array.isArray(s.stickers.mine)) s.stickers.mine = [];
     if (!Array.isArray(s.stickers.ta)) s.stickers.ta = [];
     if (!Array.isArray(s.stickers.public)) s.stickers.public = [];
+    /* 清理旧版本内置的默认表情包（矢量图），用户自己导入的图片不受影响 */
+    ['mine', 'ta', 'public'].forEach(function (side) {
+      s.stickers[side] = s.stickers[side].filter(function (src) {
+        return typeof src === 'string' && src && !/^data:image\/svg/i.test(src);
+      });
+    });
     /* 兼容旧版本误存到 stickers.me 的表情，迁移到 mine */
     if (Array.isArray(s.stickers.me) && s.stickers.me.length) {
       s.stickers.mine = s.stickers.mine.concat(s.stickers.me);

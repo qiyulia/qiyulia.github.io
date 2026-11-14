@@ -16,6 +16,10 @@
   const readTimers = {};
   const decisionTimers = {};
 
+  function sendRole() {
+    return App.stickerTab === 'ta' ? 'ta' : 'me';
+  }
+
   function currentContact() {
     return App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
   }
@@ -404,7 +408,7 @@
   function sendRedPacket(amount, note) {
     const contact = currentContact();
     if (!contact) return false;
-    const role = App.sendAs;
+    const role = sendRole();
     const wallet = App.state.wallet;
     if (!(amount > 0)) {
       App.toast('金额要大于 0');
@@ -485,7 +489,7 @@
     const text = input.value.trim();
     if (!App.chatContactId || !text) return;
 
-    const role = App.sendAs;
+    const role = 'me';
     const message = { id: App.uid('m'), role: role, type: 'text', text: text, ts: Date.now() };
     if (quoteDraft) message.quote = quoteDraft;
     quoteDraft = null;
@@ -503,7 +507,7 @@
 
   function sendSticker(src) {
     if (!App.chatContactId || !src) return;
-    const role = App.sendAs;
+    const role = sendRole();
     pushMessage({ id: App.uid('m'), role: role, type: 'image', src: src, ts: Date.now() });
     closeStickerPanel();
     if (role === 'me') scheduleReply(App.chatContactId, '');
@@ -513,8 +517,9 @@
     closeStickerPanel();
     const hint = el('#redpacket-side-hint');
     if (hint) {
-      hint.textContent = (App.sendAs === 'me' ? '以「我」的身份发出' : '以「TA」的身份发出') +
-        ' · 余额 ' + App.state.wallet[App.sendAs] + ' 同心币';
+      const role = sendRole();
+      hint.textContent = (role === 'me' ? '以「我」的身份发出' : '以「TA」的身份发出') +
+        ' · 余额 ' + App.state.wallet[role] + ' 同心币';
     }
     el('#redpacket-amount').value = '';
     el('#redpacket-note').value = '';
@@ -850,7 +855,7 @@
     const hint = el('#sticker-side-hint');
     if (hint) {
       hint.textContent = App.stickerTab === 'public'
-        ? '公共表情包 · 以「' + (App.sendAs === 'ta' ? 'TA' : '我') + '」身份发送'
+        ? '公共表情包 · 以「' + (sendRole() === 'ta' ? 'TA' : '我') + '」身份发送'
         : '当前：' + (App.stickerTab === 'ta' ? 'TA' : '我') + '的表情包';
     }
   }
@@ -1424,7 +1429,6 @@
       const stickerTab = e.target.closest('[data-sticker-side]');
       if (stickerTab) {
         App.stickerTab = stickerTab.dataset.stickerSide;
-        if (App.stickerTab !== 'public') App.sendAs = App.stickerTab;
         updateSideButtons();
         renderStickerPanel();
         return;
