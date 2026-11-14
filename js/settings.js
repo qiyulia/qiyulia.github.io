@@ -43,6 +43,29 @@
     });
   }
 
+  /* 设置页：资料 / 美化 两个分类 */
+  function initSettingsPager() {
+    const tabs = document.querySelectorAll('[data-settings-page]');
+    const pages = document.querySelectorAll('[data-settings-panel]');
+
+    function show(name) {
+      pages.forEach(function (page) {
+        const active = page.dataset.settingsPanel === name;
+        page.hidden = !active;
+      });
+      tabs.forEach(function (tab) {
+        const active = tab.dataset.settingsPage === name;
+        tab.classList.toggle('is-on', active);
+        tab.setAttribute('aria-selected', String(active));
+      });
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { show(tab.dataset.settingsPage); });
+    });
+    show('profile');
+  }
+
   App.renderSettings = function () {
     const st = App.state;
     el('#set-name').value = st.profile.userName || '';
@@ -115,6 +138,7 @@
 
   App.initSettings = function () {
     initChatSettingsPager();
+    initSettingsPager();
 
     el('#set-name').addEventListener('input', function (e) {
       App.state.profile.userName = e.target.value;

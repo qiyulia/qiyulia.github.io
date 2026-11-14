@@ -1620,6 +1620,28 @@ button.widget:active { transform: scale(.99); }
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* 设置页分类：资料 / 美化 */
+.settings-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--surface-2);
+  border-radius: 16px;
+}
+.settings-tab {
+  flex: 1 1 0;
+  min-height: 40px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: background .18s ease, color .18s ease;
+}
+.settings-tab.is-on { background: var(--accent); color: var(--accent-ink); }
+.settings-page { display: flex; flex-direction: column; gap: 12px; }
+.settings-page[hidden] { display: none; }
 .chat-delete-panel { flex: 0 0 auto; padding: 12px 14px; gap: 8px; }
 
 .btn-row { display: flex; gap: 8px; }
