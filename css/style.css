@@ -2158,9 +2158,6 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
     max-width: 100%;
     border-radius: 22px 22px 0 0;
   }
-  /* 导入字卡弹窗和新建字卡保持同样的尺寸与内边距 */
-  #card-import-dialog form { min-height: 52vh; }
-  #card-import-dialog .sheet-actions { margin-top: auto; }
 }
 /* ============ 本机模拟语音通话 ============ */
 .call-overlay {

@@ -484,23 +484,19 @@
     });
 
     el('#btn-import-cards').addEventListener('click', function () {
-      el('#card-import-dialog').showModal();
-    });
-
-    el('#card-import-manual').addEventListener('click', function () {
-      el('#card-import-dialog').close();
       openCardDialog(null);
     });
 
-    el('#card-import-file').addEventListener('click', function () {
-      el('#card-import-dialog').close();
+    el('#card-import-file-btn').addEventListener('click', function () {
       el('#file-import-cards').click();
     });
 
     el('#file-import-cards').addEventListener('change', function (e) {
       const file = e.target.files && e.target.files[0];
+      const dialog = el('#card-dialog');
       if (file) importCards(file);
       e.target.value = '';
+      if (dialog && dialog.open) dialog.close();
     });
 
     el('#btn-restore-cards').addEventListener('click', restoreBuiltins);
