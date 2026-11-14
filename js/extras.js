@@ -302,9 +302,17 @@
     };
   }
 
+  const surveyTimers = {};
+
   function scheduleSurveyAnswers(contactId, surveyId, delaySec) {
-    const waitMs = Math.max(1, Math.min(120, delaySec || 4)) * 1000;
-    setTimeout(function () {
+    if (surveyTimers[surveyId]) return;
+    const chat = App.state.chats[contactId] || [];
+    const survey = chat.find(function (m) { return m.id === surveyId; });
+    let waitMs = Math.max(1, Math.min(120, delaySec || 4)) * 1000;
+    if (survey && survey.answerDueAt) {
+      waitMs = Math.max(1000, survey.answerDueAt - Date.now());
+    }
+    surveyTimers[surveyId] = setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       const chat = App.state.chats[contactId] || [];
       const survey = chat.find(function (m) { return m.id === surveyId; });
@@ -324,6 +332,7 @@
         read: App.chatOpen(contactId),
       });
       maybeTaSurveyBack(contactId);
+      delete surveyTimers[surveyId];
     }, waitMs);
   }
 
@@ -391,6 +400,17 @@
     }
   };
 
+  /* 页面被关掉或切走时，已回答时间仍然按发送时刻计算 */
+  function resumePendingSurveys() {
+    Object.keys(App.state.chats || {}).forEach(function (contactId) {
+      (App.state.chats[contactId] || []).forEach(function (m) {
+        if (m.type !== 'survey' || m.role !== 'me' || m.answered) return;
+        if (!m.answerDueAt) return;
+        scheduleSurveyAnswers(contactId, m.id, (m.answerDueAt - Date.now()) / 1000);
+      });
+    });
+  }
+
   function sendSurvey() {
     const contactId = reminderContactId();
     if (!contactId) { App.toast('先添加一个角色吧'); return; }
@@ -403,6 +423,7 @@
       text: '发来一份小问卷',
       questions: [collected.question],
       answerDelay: surveyAnswerDelay(),
+      answerDueAt: Date.now() + surveyAnswerDelay() * 1000,
       answered: false,
       ts: Date.now(),
     };
@@ -711,6 +732,7 @@
   }
 
   App.hideToolPanels = hideAllToolPanels;
+  App.resumePendingSurveys = resumePendingSurveys;
 
   App.initExtras = function () {
     document.addEventListener('click', function (e) {
@@ -947,6 +969,7 @@
     });
     const surveySend = el('#survey-send');
     if (surveySend) surveySend.addEventListener('click', sendSurvey);
+    resumePendingSurveys();
 
     /* 占卜：选牌种 / 张数、翻牌、重新开始、发送 */
     document.querySelectorAll('[data-divine-type]').forEach(function (btn) {
