@@ -463,7 +463,17 @@
     if (!Array.isArray(s.contacts)) s.contacts = [];
     if (!s.chats || typeof s.chats !== 'object' || Array.isArray(s.chats)) s.chats = {};
     if (!Array.isArray(s.cards)) s.cards = App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); });
-    if (!s.profile) s.profile = { userName: '我', userAvatar: '🍊', since: '' };
+    if (!s.profile) s.profile = { userName: '我', userAvatar: App.DEFAULT_AVATAR, since: '' };
+    /* 旧版默认形象（阿眠 / 🌙 / 🍊）换成中性 ta 与灰底人像，用户自己选的图片不受影响 */
+    const legacyAvatar = function (src) {
+      return src === '🌙' || src === '🍊';
+    };
+    if (!s.profile.userAvatar || legacyAvatar(s.profile.userAvatar)) s.profile.userAvatar = App.DEFAULT_AVATAR;
+    s.contacts.forEach(function (contact) {
+      if (!contact) return;
+      if (contact.name === '阿眠') contact.name = 'ta';
+      if (!contact.avatar || legacyAvatar(contact.avatar)) contact.avatar = App.DEFAULT_AVATAR;
+    });
     if (!s.settings) s.settings = { replyMin: 1, replyMax: 2, typingMin: 0.1 };
     /* 打字停顿由毫秒改为分钟 */
     if (s.settings.typingMin == null) {
@@ -490,6 +500,10 @@
       if (contact && contact.name && s.namePool.ta.indexOf(contact.name) === -1) {
         s.namePool.ta.push(contact.name);
       }
+    });
+    /* 旧默认名不再参与 TA 改名 */
+    ['mine', 'ta'].forEach(function (side) {
+      s.namePool[side] = s.namePool[side].filter(function (name) { return name !== '阿眠'; });
     });
     if (s.settings.avatarSelfProb == null) s.settings.avatarSelfProb = 40;
     if (s.settings.avatarMeProb == null) s.settings.avatarMeProb = 25;

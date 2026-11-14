@@ -8,7 +8,7 @@
     const contacts = App.state.contacts || [];
     const current = contacts.find(function (c) { return c.id === App.state.currentContactId; });
     const found = current || contacts[0];
-    return found || { name: 'TA', avatar: '🌙' };
+    return found || { name: 'TA', avatar: App.DEFAULT_AVATAR };
   }
 
   function contactOf(id) {
@@ -78,7 +78,7 @@
       const mine = isMine(moment);
       const owner = mine ? null : (contactOf(moment.contactId) || ta);
       const name = mine ? (profile.userName || '我') : owner.name;
-      const avatar = mine ? (profile.userAvatar || '🍊') : (owner.avatar || '🌙');
+      const avatar = mine ? (profile.userAvatar || App.DEFAULT_AVATAR) : (owner.avatar || App.DEFAULT_AVATAR);
 
       // 点赞行：用户点赞 + TA 点赞
       const likeParts = [];

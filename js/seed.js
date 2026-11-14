@@ -4,6 +4,15 @@
 
   App.CATEGORIES = ['聊天', '拍一拍', '情绪', '语音'];
 
+  /* 默认头像：灰底人物剪影 */
+  App.DEFAULT_AVATAR = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">' +
+      '<rect width="96" height="96" fill="#e8eaee"/>' +
+      '<circle cx="48" cy="37" r="16" fill="#c2c6cd"/>' +
+      '<path d="M16 96c0-17.7 14.3-32 32-32s32 14.3 32 32z" fill="#c2c6cd"/>' +
+    '</svg>'
+  );
+
   /* 聊天：普通回复，可用于聊天、朋友圈等地 */
   const CHAT_RAW = [
     ['今天路过一家面包店，闻到黄油味就想起你了。', ''],
@@ -138,7 +147,7 @@
       music: App.MUSIC_SEED(),
       profile: {
         userName: '我',
-        userAvatar: '🍊',
+        userAvatar: App.DEFAULT_AVATAR,
         since: localDate(d),
       },
       settings: {
@@ -166,7 +175,7 @@
         musicSwitchProb: 30,
       },
       contacts: [
-        { id: contactId, name: 'ta', avatar: '🌙', note: '住在隔壁的夜猫子', birthday: '' },
+        { id: contactId, name: 'ta', avatar: App.DEFAULT_AVATAR, note: '住在隔壁的夜猫子', birthday: '' },
       ],
       avatarPool: { mine: [], ta: [] },
       chats: {

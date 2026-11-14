@@ -82,9 +82,9 @@
   }
 
   function senderAvatar(mail) {
-    if (mail.from === 'me') return App.state.profile.userAvatar || '🍊';
+    if (mail.from === 'me') return App.state.profile.userAvatar || App.DEFAULT_AVATAR;
     const contact = contactOf(mail.contactId);
-    return contact ? contact.avatar : '🌙';
+    return contact ? contact.avatar : App.DEFAULT_AVATAR;
   }
 
   function mailTime(ts) {

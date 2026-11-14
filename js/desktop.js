@@ -189,7 +189,7 @@
       el('#contact-name').focus();
       return;
     }
-    const avatar = dialogAvatar || '🙂';
+    const avatar = dialogAvatar || App.DEFAULT_AVATAR;
     const note = el('#contact-note').value.trim();
     const birthday = el('#contact-birthday').value;
     let min = Math.max(0, Math.min(5, Number(el('#ct-reply-min').value) || 0));
