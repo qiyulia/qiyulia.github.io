@@ -2571,10 +2571,10 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   cursor: pointer;
 }
 .more-tab.is-on { background: #5b8fc9; color: #fff; }
-.more-apps { display: grid; grid-template-columns: repeat(4, 56px); gap: 14px 12px; margin: 14px 0 6px; }
+.more-apps { display: grid; grid-template-columns: repeat(4, 44px); gap: 14px 8px; margin: 14px 0 6px; justify-content: start; }
 .more-app {
   display: flex; flex-direction: column; align-items: center; gap: 5px;
-  border: 0; background: none; padding: 0; font-size: 11px; color: var(--ink); cursor: pointer;
+  width: 44px; border: 0; background: none; padding: 0; font-size: 11px; color: var(--ink); cursor: pointer;
 }
 .more-app[hidden] { display: none; }
 .more-app-icon {
