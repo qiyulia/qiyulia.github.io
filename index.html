@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-96">
+<link rel="stylesheet" href="css/style.css?v=20261114-97">
 </head>
 <body>
 <div class="stage">
@@ -537,6 +537,7 @@ if ('caches' in window) {
           <button type="button" class="chat-settings-tab is-on" role="tab" id="chat-tab-reply" aria-selected="true" aria-controls="reply-settings-panel" data-chat-settings-page="0">回复</button>
           <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-music" aria-selected="false" aria-controls="music-settings-panel" data-chat-settings-page="1" tabindex="-1">音乐互动</button>
           <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-moments" aria-selected="false" aria-controls="moments-settings-panel" data-chat-settings-page="2" tabindex="-1">朋友圈互动</button>
+          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-data" aria-selected="false" aria-controls="data-settings-panel" data-chat-settings-page="3" tabindex="-1">数据</button>
         </div>
         <div class="chat-settings-pager" id="chat-settings-pager">
           <section class="chat-settings-page reply-settings-page" id="reply-settings-panel" role="tabpanel" aria-labelledby="chat-tab-reply" aria-label="回复设置">
@@ -735,12 +736,14 @@ if ('caches' in window) {
               <p class="panel-note">TA 的朋友圈会从字卡库（聊天 / 情绪）、内置颜文字和表情包里随机取内容。超过最长间隔时会保底发一条。</p>
             </div>
           </section>
-        </div>
 
-        <div class="panel chat-delete-panel">
-          <h3>本次聊天</h3>
-          <p class="panel-note" id="chat-settings-delete-note">删除后，本次聊天记录将无法恢复。</p>
-          <button type="button" class="btn danger" id="btn-clear-chat">删除本次聊天</button>
+          <section class="chat-settings-page" id="data-settings-panel" role="tabpanel" aria-labelledby="chat-tab-data" aria-label="聊天数据设置" hidden>
+            <div class="panel">
+              <h3>本次聊天</h3>
+              <p class="panel-note" id="chat-settings-delete-note">删除后，本次聊天记录将无法恢复。</p>
+              <button type="button" class="btn danger" id="btn-clear-chat">删除本次聊天</button>
+            </div>
+          </section>
         </div>
       </div>
     </section>
@@ -1481,18 +1484,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-96"></script>
-<script src="js/store.js?v=20261114-96"></script>
-<script src="js/desktop.js?v=20261114-96"></script>
-<script src="js/chat.js?v=20261114-96"></script>
-<script src="js/cards.js?v=20261114-96"></script>
-<script src="js/settings.js?v=20261114-96"></script>
-<script src="js/moments.js?v=20261114-96"></script>
-<script src="js/calendar.js?v=20261114-96"></script>
-<script src="js/music.js?v=20261114-96"></script>
-<script src="js/market.js?v=20261114-96"></script>
-<script src="js/mail.js?v=20261114-96"></script>
-<script src="js/extras.js?v=20261114-96"></script>
-<script src="js/app.js?v=20261114-96"></script>
+<script src="js/seed.js?v=20261114-97"></script>
+<script src="js/store.js?v=20261114-97"></script>
+<script src="js/desktop.js?v=20261114-97"></script>
+<script src="js/chat.js?v=20261114-97"></script>
+<script src="js/cards.js?v=20261114-97"></script>
+<script src="js/settings.js?v=20261114-97"></script>
+<script src="js/moments.js?v=20261114-97"></script>
+<script src="js/calendar.js?v=20261114-97"></script>
+<script src="js/music.js?v=20261114-97"></script>
+<script src="js/market.js?v=20261114-97"></script>
+<script src="js/mail.js?v=20261114-97"></script>
+<script src="js/extras.js?v=20261114-97"></script>
+<script src="js/app.js?v=20261114-97"></script>
 </body>
 </html>
