@@ -79,6 +79,8 @@
     list.innerHTML = chat.length
       ? chat.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
+    /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
+    if (typingContacts[id]) list.appendChild(typingRow());
     updateSideButtons();
     renderStickerPanel();
     renderComposerQuote();
@@ -545,17 +547,33 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  function setTyping(on) {
-    if (App.chatContactId === null) return;
+  /* 正在输入的状态按联系人记住，离开聊天页再回来不会丢，计时也不会重置 */
+  const typingContacts = {};
+  App.typingContacts = typingContacts;
+
+  function typingRow() {
+    const row = document.createElement('div');
+    row.className = 'typing-row';
+    row.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+    return row;
+  }
+
+  function setTyping(contactId, on) {
+    if (typeof contactId === 'boolean') {
+      on = contactId;
+      contactId = App.chatContactId;
+    }
+    if (!contactId) return;
+    if (on) typingContacts[contactId] = true;
+    else delete typingContacts[contactId];
+
+    if (!App.chatOpen(contactId)) return;
     const list = el('#chat-list');
     if (!list) return;
-    let row = list.querySelector('.typing-row');
+    const row = list.querySelector('.typing-row');
     if (on) {
       if (!row) {
-        row = document.createElement('div');
-        row.className = 'typing-row';
-        row.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-        list.appendChild(row);
+        list.appendChild(typingRow());
         scrollBottom();
       }
     } else if (row) {
@@ -947,14 +965,14 @@
       if (!stillThere()) return;
 
       const active = function () { return App.chatOpen(contactId); };
-      if (active()) setTyping(true);
+      setTyping(contactId, true);
 
       const base = Math.max(0, Math.min(5, Number(cs.typingMin) || 0)) * 60000;
       const extra = card.category === '语音' ? 900 : 0;
       const wait = Math.min(300000, base + extra + card.text.length * 22 + Math.random() * 260);
       await sleep(wait);
 
-      if (active()) setTyping(false);
+      setTyping(contactId, false);
       if (!stillThere()) return;
 
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
