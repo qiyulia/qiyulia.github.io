@@ -1333,6 +1333,22 @@ button.widget:active { transform: scale(.99); }
 
 /* 字卡征询卡片 */
 .bubble-card-offer { min-width: 214px; }
+/* 字卡征询：居中卡片，不带头像 */
+.msg-center {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 2px 0;
+}
+.msg-center .bubble-card-offer {
+  width: min(88%, 330px);
+  min-width: 0;
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .04);
+}
 .card-offer-text {
   margin: 8px 0 2px;
   padding: 10px 12px;
@@ -2320,8 +2336,9 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 
 .msg-notice {
-  align-self: flex-start;
-  max-width: 86%;
+  align-self: center;
+  text-align: center;
+  max-width: 92%;
   padding: 3px 9px;
   border-radius: 9px;
   background: var(--accent-soft);

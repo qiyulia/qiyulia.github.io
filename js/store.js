@@ -21,13 +21,36 @@
     });
   };
 
-  App.save = function () {
+  let saveTimer = 0;
+
+  function writeState() {
     try {
       localStorage.setItem(KEY, JSON.stringify(App.state));
     } catch (e) {
       if (App.toast) App.toast('保存失败：浏览器存储不可用');
     }
+  }
+
+  /* 合并短时间内的多次保存，避免每次点击都同步序列化整份数据造成卡顿 */
+  App.save = function () {
+    if (saveTimer) return;
+    saveTimer = setTimeout(function () {
+      saveTimer = 0;
+      writeState();
+    }, 200);
   };
+
+  App.flushSave = function () {
+    if (!saveTimer) return;
+    clearTimeout(saveTimer);
+    saveTimer = 0;
+    writeState();
+  };
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') App.flushSave();
+  });
+  window.addEventListener('pagehide', function () { App.flushSave(); });
 
   App.normalizeMusic = function (s) {
     const defaults = App.MUSIC_SEED();

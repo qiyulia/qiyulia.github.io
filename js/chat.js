@@ -309,7 +309,7 @@
       return messageCardShell(m, contact, surveyMineAnswerCardHtml(m));
     }
     if (m.type === 'cardOffer') {
-      return messageCardShell(m, contact, cardOfferHtml(m));
+      return '<div class="msg-center" data-msg-id="' + App.esc(m.id) + '">' + cardOfferHtml(m) + '</div>';
     }
     if (m.type === 'divine') {
       return messageCardShell(m, contact, divineCardHtml(m));
@@ -349,7 +349,7 @@
         : '');
     let body = '';
     if (m.type === 'image') {
-      body = '<div class="bubble sticker"><img class="sticker-img" src="' + App.esc(m.src) + '" alt="表情包"></div>';
+      body = '<div class="bubble sticker"><img class="sticker-img" loading="lazy" decoding="async" src="' + App.esc(m.src) + '" alt="表情包"></div>';
     } else if (m.type === 'ignore') {
       body = '<div class="bubble bubble-ignore"><span class="bubble-text">已读不回</span></div>';
     } else if (m.type === 'audio') {
@@ -1201,7 +1201,7 @@
       ? stickers.map(function (src, index) {
           return '<div class="sticker-cell">' +
             '<button type="button" class="sticker-item" data-send-sticker="' + index + '" aria-label="发送表情包">' +
-              '<img src="' + App.esc(src) + '" alt="表情包">' +
+              '<img loading="lazy" decoding="async" src="' + App.esc(src) + '" alt="表情包">' +
             '</button>' +
             '<button type="button" class="sticker-delete" data-del-sticker="' + index + '" aria-label="删除表情包">×</button>' +
           '</div>';

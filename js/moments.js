@@ -127,7 +127,7 @@
           '<strong>' + App.esc(name) + '</strong>' +
         '</div>' +
         (moment.text ? '<p class="moment-card-text">' + App.esc(moment.text) + '</p>' : '') +
-        (moment.sticker ? '<div class="moment-sticker"><img src="' + App.esc(moment.sticker) + '" alt="表情包"></div>' : '') +
+        (moment.sticker ? '<div class="moment-sticker"><img loading="lazy" decoding="async" src="' + App.esc(moment.sticker) + '" alt="表情包"></div>' : '') +
         likeLine +
         (commentHtml ? '<div class="moment-comments">' + commentHtml + '</div>' : '') +
         commentForm +
