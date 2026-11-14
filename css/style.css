@@ -2808,6 +2808,29 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .more-app-icon.is-tool { background: linear-gradient(160deg, #8fb7de, #5b8fc9); }
 .more-app-icon.is-divine { background: linear-gradient(160deg, #b9a6dd, #8d73bd); }
 .more-app-icon.is-game { background: linear-gradient(160deg, #f0b489, #d98b5a); }
+.more-app-icon.is-avatar { background: linear-gradient(160deg, #9fd2b8, #5ea383); }
+
+/* 互换头像：头像池 */
+.avatar-pool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.avatar-pool-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.avatar-pool-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-pool-item.is-current { box-shadow: inset 0 0 0 2px var(--accent); }
+.avatar-pool-del {
+  position: absolute; top: 0; right: 0;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 0 12px 0 10px;
+  background: rgba(20, 18, 16, .55);
+  color: #fff; font-size: 13px; line-height: 1;
+}
+.avatar-pool-empty { grid-column: 1 / -1; }
 
 /* ============ 问卷 / 占卜 / 扫雷：普通浮层（不用 dialog，避免关不掉） ============ */
 .tool-overlay {

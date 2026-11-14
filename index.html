@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-91">
+<link rel="stylesheet" href="css/style.css?v=20261114-92">
 </head>
 <body>
 <div class="stage">
@@ -871,7 +871,7 @@ if ('caches' in window) {
         <div class="settings-tabs" role="tablist" aria-label="设置分类">
           <button type="button" class="settings-tab is-on" role="tab" data-settings-page="profile">资料</button>
           <button type="button" class="settings-tab" role="tab" data-settings-page="look">美化</button>
-          <button type="button" class="settings-tab" role="tab" data-settings-page="backup">备份</button>
+          <button type="button" class="settings-tab" role="tab" data-settings-page="backup">数据</button>
         </div>
 
         <div class="settings-page" data-settings-panel="profile">
@@ -917,6 +917,13 @@ if ('caches' in window) {
               <span class="slider"></span>
             </label>
           </div>
+        </div>
+
+        <div class="panel">
+          <h3>换头像概率</h3>
+          <label class="field"><span>TA 给自己换头像的概率（%）</span><input id="set-avatar-self-prob" inputmode="numeric" maxlength="3" placeholder="40"></label>
+          <label class="field"><span>TA 给我换头像的概率（%）</span><input id="set-avatar-me-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
+          <p class="field-hint">在「其他 → 互换头像」里让 TA 换头像时，按这两个概率决定换不换。</p>
         </div>
         </div>
 
@@ -1218,11 +1225,34 @@ if ('caches' in window) {
   <div id="more-apps" class="more-apps">
     <button type="button" class="more-app" data-tool="survey" data-cat="tool" title="写一份小问卷"><span class="more-app-icon is-tool">问</span><span>问卷</span></button>
     <button type="button" class="more-app" data-tool="divine" data-cat="tool" title="塔罗牌 / 雷诺曼占卜"><span class="more-app-icon is-divine">签</span><span>占卜</span></button>
+    <button type="button" class="more-app" data-tool="avatar" data-cat="tool" title="互换头像"><span class="more-app-icon is-avatar">换</span><span>头像</span></button>
     <button type="button" class="more-app" data-tool="mine" data-cat="game" title="9 × 9，10 颗雷" hidden><span class="more-app-icon is-game">雷</span><span>扫雷</span></button>
   </div>
 </dialog>
 
 <!-- ============ 工具：问卷 ============ -->
+<div id="avatar-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card survey-sheet">
+    <div class="sheet-head">
+      <h3>互换头像</h3>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body">
+      <div class="segmented" id="avatar-pool-tabs">
+        <button type="button" class="is-active" data-avatar-side="mine">我的头像</button>
+        <button type="button" data-avatar-side="ta">他的头像</button>
+      </div>
+      <p class="field-hint">点一张图片设为当前头像；点右上角的 × 删除这张。</p>
+      <div class="avatar-pool-grid" id="avatar-pool-grid"></div>
+      <button type="button" class="btn ghost" id="avatar-pool-import">＋ 从相册导入</button>
+      <input type="file" id="avatar-pool-file" accept="image/*" multiple hidden>
+      <button type="button" class="btn primary" id="avatar-swap-run">让 TA 换一次头像</button>
+      <p class="field-hint">TA 换头像时按设置里的概率决定换不换，大概率换成和你同一个位置的图。</p>
+    </div>
+  </div>
+</div>
+
 <div id="survey-dialog" class="tool-overlay" hidden>
   <div class="tool-overlay-backdrop" data-tool-close></div>
   <div class="tool-overlay-card survey-sheet">
@@ -1441,18 +1471,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-91"></script>
-<script src="js/store.js?v=20261114-91"></script>
-<script src="js/desktop.js?v=20261114-91"></script>
-<script src="js/chat.js?v=20261114-91"></script>
-<script src="js/cards.js?v=20261114-91"></script>
-<script src="js/settings.js?v=20261114-91"></script>
-<script src="js/moments.js?v=20261114-91"></script>
-<script src="js/calendar.js?v=20261114-91"></script>
-<script src="js/music.js?v=20261114-91"></script>
-<script src="js/market.js?v=20261114-91"></script>
-<script src="js/mail.js?v=20261114-91"></script>
-<script src="js/extras.js?v=20261114-91"></script>
-<script src="js/app.js?v=20261114-91"></script>
+<script src="js/seed.js?v=20261114-92"></script>
+<script src="js/store.js?v=20261114-92"></script>
+<script src="js/desktop.js?v=20261114-92"></script>
+<script src="js/chat.js?v=20261114-92"></script>
+<script src="js/cards.js?v=20261114-92"></script>
+<script src="js/settings.js?v=20261114-92"></script>
+<script src="js/moments.js?v=20261114-92"></script>
+<script src="js/calendar.js?v=20261114-92"></script>
+<script src="js/music.js?v=20261114-92"></script>
+<script src="js/market.js?v=20261114-92"></script>
+<script src="js/mail.js?v=20261114-92"></script>
+<script src="js/extras.js?v=20261114-92"></script>
+<script src="js/app.js?v=20261114-92"></script>
 </body>
 </html>

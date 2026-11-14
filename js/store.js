@@ -86,6 +86,11 @@
         : 0.1;
     }
     delete s.settings.typingMs;
+    if (!s.avatarPool || typeof s.avatarPool !== 'object') s.avatarPool = { mine: [], ta: [] };
+    if (!Array.isArray(s.avatarPool.mine)) s.avatarPool.mine = [];
+    if (!Array.isArray(s.avatarPool.ta)) s.avatarPool.ta = [];
+    if (s.settings.avatarSelfProb == null) s.settings.avatarSelfProb = 40;
+    if (s.settings.avatarMeProb == null) s.settings.avatarMeProb = 25;
     if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
     if (s.settings.taIgnoreProb == null) s.settings.taIgnoreProb = 15;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;

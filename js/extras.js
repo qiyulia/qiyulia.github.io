@@ -891,6 +891,177 @@
   App.hideToolPanels = hideAllToolPanels;
   App.resumePendingSurveys = resumePendingSurveys;
 
+  /* ---------------- 工具：互换头像 ---------------- */
+  let avatarPoolSide = 'mine';
+  const avatarSwapTimers = {};
+
+  function avatarPoolData() {
+    const st = App.state;
+    if (!st.avatarPool || typeof st.avatarPool !== 'object') st.avatarPool = { mine: [], ta: [] };
+    if (!Array.isArray(st.avatarPool.mine)) st.avatarPool.mine = [];
+    if (!Array.isArray(st.avatarPool.ta)) st.avatarPool.ta = [];
+    return st.avatarPool;
+  }
+
+  function avatarToolContact() {
+    const st = App.state;
+    const id = st.currentContactId || (st.contacts[0] && st.contacts[0].id);
+    return st.contacts.find(function (c) { return c.id === id; }) || st.contacts[0] || null;
+  }
+
+  function currentAvatarOf(side) {
+    if (side === 'mine') return App.state.profile.userAvatar;
+    const contact = avatarToolContact();
+    return contact ? contact.avatar : '';
+  }
+
+  function renderAvatarPool() {
+    document.querySelectorAll('#avatar-pool-tabs [data-avatar-side]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.avatarSide === avatarPoolSide);
+    });
+    const grid = el('#avatar-pool-grid');
+    if (!grid) return;
+    const list = avatarPoolData()[avatarPoolSide];
+    const current = currentAvatarOf(avatarPoolSide);
+    grid.innerHTML = list.length
+      ? list.map(function (src, index) {
+          return '<div class="avatar-pool-item' + (src === current ? ' is-current' : '') + '" data-avatar-use="' + index + '">' +
+            '<img src="' + src + '" alt="">' +
+            '<button type="button" class="avatar-pool-del" data-avatar-del="' + index + '" aria-label="删除">×</button>' +
+            '</div>';
+        }).join('')
+      : '<p class="field-hint avatar-pool-empty">还没有图片，点下面的按钮从相册导入。</p>';
+  }
+
+  function importAvatarPool(files) {
+    const list = avatarPoolData()[avatarPoolSide];
+    const picked = Array.prototype.slice.call(files || []);
+    if (!picked.length) return;
+    let chain = Promise.resolve();
+    let added = 0;
+    picked.forEach(function (file) {
+      chain = chain.then(function () {
+        return App.compressImage(file, 192).then(function (src) {
+          if (list.indexOf(src) === -1 && list.length < 40) {
+            list.push(src);
+            added += 1;
+          }
+        }).catch(function () {});
+      });
+    });
+    chain.then(function () {
+      App.save();
+      renderAvatarPool();
+      App.toast(added ? '已导入 ' + added + ' 张头像' : '这些头像已经导入过了');
+    });
+  }
+
+  function usePoolAvatar(index) {
+    const src = avatarPoolData()[avatarPoolSide][index];
+    if (!src) return;
+    if (avatarPoolSide === 'mine') {
+      App.state.profile.userAvatar = src;
+    } else {
+      const contact = avatarToolContact();
+      if (!contact) return;
+      contact.avatar = src;
+    }
+    App.save();
+    renderAvatarPool();
+    App.renderChat();
+    App.renderContacts();
+    App.renderSettings();
+    App.toast('已设为当前头像');
+  }
+
+  function removePoolAvatar(index) {
+    const list = avatarPoolData()[avatarPoolSide];
+    if (index < 0 || index >= list.length) return;
+    list.splice(index, 1);
+    App.save();
+    renderAvatarPool();
+  }
+
+  function avatarProb(key, fallback) {
+    const value = Number(App.state.settings && App.state.settings[key]);
+    return isFinite(value) ? Math.max(0, Math.min(100, value)) : fallback;
+  }
+
+  function pickIndexBySameSlot(list, prefer, sameChance) {
+    if (!list.length) return -1;
+    if (list.length === 1) return 0;
+    const base = Math.max(0, Math.min(prefer, list.length - 1));
+    if (Math.random() < sameChance) return base;
+    const others = [];
+    for (let i = 0; i < list.length; i += 1) {
+      if (i !== base) others.push(i);
+    }
+    return others[Math.floor(Math.random() * others.length)];
+  }
+
+  function changeContactAvatar(index) {
+    const contact = avatarToolContact();
+    const list = avatarPoolData().ta;
+    if (!contact || !list[index]) return false;
+    contact.avatar = list[index];
+    App.save();
+    App.renderChat();
+    App.renderContacts();
+    App.renderSettings();
+    return true;
+  }
+
+  function changeMyAvatar(index) {
+    if (!avatarPoolData().mine[index]) return false;
+    App.state.profile.userAvatar = avatarPoolData().mine[index];
+    App.save();
+    App.renderChat();
+    App.renderSettings();
+    return true;
+  }
+
+  function runAvatarSwap() {
+    const pool = avatarPoolData();
+    if (!pool.mine.length && !pool.ta.length) {
+      App.toast('先导入几张头像');
+      return;
+    }
+    const selfOn = pool.ta.length > 0 && Math.random() * 100 < avatarProb('avatarSelfProb', 40);
+    const meOn = pool.mine.length > 0 && Math.random() * 100 < avatarProb('avatarMeProb', 25);
+    if (!selfOn && !meOn) {
+      App.toast('这次 TA 没换头像');
+      return;
+    }
+    /* 以我当前头像在「我的头像」里的位置为基准，TA 大概率换到同一位置 */
+    const mySlot = pool.mine.indexOf(App.state.profile.userAvatar);
+    let selfSlot = -1;
+    if (selfOn) {
+      const prefer = mySlot === -1 ? Math.floor(Math.random() * pool.ta.length) : mySlot;
+      selfSlot = pickIndexBySameSlot(pool.ta, prefer, 0.75);
+      if (changeContactAvatar(selfSlot)) {
+        App.toast('TA 换成了他的第 ' + (selfSlot + 1) + ' 张头像');
+      }
+    }
+    if (!meOn) {
+      renderAvatarPool();
+      return;
+    }
+    const doMine = function () {
+      const base = selfSlot >= 0
+        ? selfSlot
+        : (mySlot === -1 ? Math.floor(Math.random() * pool.mine.length) : mySlot);
+      const slot = pickIndexBySameSlot(pool.mine, base, 0.78);
+      if (changeMyAvatar(slot)) App.toast('TA 把你的头像换成了第 ' + (slot + 1) + ' 张');
+      renderAvatarPool();
+    };
+    if (selfOn) {
+      clearTimeout(avatarSwapTimers.mine);
+      avatarSwapTimers.mine = setTimeout(doMine, 4000 + Math.random() * 5000);
+    } else {
+      doMine();
+    }
+  }
+
   App.initExtras = function () {
     document.addEventListener('click', function (e) {
       const closer = e.target.closest('[data-tool-close]');
@@ -1101,6 +1272,9 @@
         } else if (btn.dataset.tool === 'divine') {
           resetDivine(true);
           showToolPanel('#divine-dialog');
+        } else if (btn.dataset.tool === 'avatar') {
+          renderAvatarPool();
+          showToolPanel('#avatar-dialog');
         } else if (btn.dataset.tool === 'mine') {
           resetMine();
           showToolPanel('#mine-dialog');
@@ -1184,6 +1358,39 @@
         if (card) toggleDivinePick(card);
       });
     }
+    const avatarTabs = el('#avatar-pool-tabs');
+    if (avatarTabs) {
+      avatarTabs.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-avatar-side]');
+        if (!btn) return;
+        avatarPoolSide = btn.dataset.avatarSide;
+        renderAvatarPool();
+      });
+    }
+    const avatarGrid = el('#avatar-pool-grid');
+    if (avatarGrid) {
+      avatarGrid.addEventListener('click', function (e) {
+        const del = e.target.closest('[data-avatar-del]');
+        if (del) {
+          removePoolAvatar(Number(del.dataset.avatarDel));
+          return;
+        }
+        const use = e.target.closest('[data-avatar-use]');
+        if (use) usePoolAvatar(Number(use.dataset.avatarUse));
+      });
+    }
+    const avatarImportBtn = el('#avatar-pool-import');
+    const avatarFile = el('#avatar-pool-file');
+    if (avatarImportBtn && avatarFile) {
+      avatarImportBtn.addEventListener('click', function () { avatarFile.click(); });
+      avatarFile.addEventListener('change', function () {
+        importAvatarPool(avatarFile.files);
+        avatarFile.value = '';
+      });
+    }
+    const avatarRun = el('#avatar-swap-run');
+    if (avatarRun) avatarRun.addEventListener('click', runAvatarSwap);
+
     const mineReset = el('#mine-reset');
     if (mineReset) mineReset.addEventListener('click', resetMine);
     const mineBoard = el('#mine-board');

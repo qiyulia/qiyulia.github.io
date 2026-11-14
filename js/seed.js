@@ -168,6 +168,7 @@
       contacts: [
         { id: contactId, name: 'ta', avatar: '🌙', note: '住在隔壁的夜猫子', birthday: '' },
       ],
+      avatarPool: { mine: [], ta: [] },
       chats: {
         [contactId]: [
           { id: 'm-welcome', role: 'ta', text: '你来啦。今天过得怎么样？', ts: Date.now() },

@@ -14,7 +14,7 @@
 
   /* 备份分类：可勾选导出哪些内容，导入时只覆盖勾选的分类 */
   const BACKUP_SCOPES = [
-    { key: 'profile', label: '资料与联系人', fields: ['profile', 'contacts', 'currentContactId'] },
+    { key: 'profile', label: '资料与联系人', fields: ['profile', 'contacts', 'currentContactId', 'avatarPool'] },
     { key: 'chats', label: '聊天记录', fields: ['chats'] },
     { key: 'cards', label: '字卡库', fields: ['cards'] },
     { key: 'stickers', label: '表情包', fields: ['stickers'] },
@@ -218,6 +218,8 @@
     el('#set-call-reject').value = st.settings.callRejectProb == null ? 15 : st.settings.callRejectProb;
     el('#set-call-hangup').value = st.settings.callHangupProb == null ? 10 : st.settings.callHangupProb;
     el('#set-voice-transcript').checked = st.settings.voiceTranscript !== false;
+    el('#set-avatar-self-prob').value = st.settings.avatarSelfProb == null ? 40 : st.settings.avatarSelfProb;
+    el('#set-avatar-me-prob').value = st.settings.avatarMeProb == null ? 25 : st.settings.avatarMeProb;
 
     const partnerSelect = el('#set-partner');
     partnerSelect.innerHTML = st.contacts.length
@@ -298,6 +300,20 @@
       markDirty();
       if (App.renderChat) App.renderChat();
     });
+
+    function bindAvatarProb(id, key) {
+      const input = el(id);
+      if (!input) return;
+      input.addEventListener('input', function () {
+        const raw = String(input.value || '').trim();
+        if (!raw) return;
+        const value = Math.max(0, Math.min(100, parseInt(raw, 10) || 0));
+        App.state.settings[key] = value;
+        App.save();
+      });
+    }
+    bindAvatarProb('#set-avatar-self-prob', 'avatarSelfProb');
+    bindAvatarProb('#set-avatar-me-prob', 'avatarMeProb');
 
     el('#btn-edit-partner').addEventListener('click', function () {
       const partner = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
