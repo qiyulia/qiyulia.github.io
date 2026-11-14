@@ -230,6 +230,8 @@
     el('#set-avatar-cooldown').value = st.settings.avatarCooldownMin == null ? 30 : st.settings.avatarCooldownMin;
     el('#set-ta-mail-prob').value = st.settings.taMailProb == null ? 12 : st.settings.taMailProb;
     el('#set-ta-mail-cooldown').value = st.settings.taMailCooldownMin == null ? 30 : st.settings.taMailCooldownMin;
+    el('#set-mail-card-min').value = st.settings.mailCardMin == null ? 1 : st.settings.mailCardMin;
+    el('#set-mail-card-max').value = st.settings.mailCardMax == null ? 3 : st.settings.mailCardMax;
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
 
     const partnerSelect = el('#set-partner');
@@ -342,6 +344,18 @@
     }
     bindMinutes('#set-avatar-cooldown', 'avatarCooldownMin', 1440);
     bindMinutes('#set-ta-mail-cooldown', 'taMailCooldownMin', 1440);
+
+    ['#set-mail-card-min', '#set-mail-card-max'].forEach(function (sel) {
+      const node = el(sel);
+      if (!node) return;
+      node.addEventListener('change', function () {
+        const key = sel === '#set-mail-card-min' ? 'mailCardMin' : 'mailCardMax';
+        const v = Math.max(0, Math.min(15, Math.round(Number(node.value) || 0)));
+        node.value = v;
+        App.state.settings[key] = v;
+        markDirty();
+      });
+    });
     bindMinutes('#set-ta-moment-cooldown', 'taMomentCooldownMin', 1440);
 
     el('#btn-edit-partner').addEventListener('click', function () {

@@ -7,6 +7,7 @@
   let composeMode = 'new';
   let composeContactId = null;
   let selectedCardId = null;
+  let mailTab = 'ta';
 
   function contactOf(id) {
     return (App.state.contacts || []).find(function (c) { return c.id === id; }) || null;
@@ -28,10 +29,39 @@
     });
   }
 
-  function pickTaCard() {
+  function clampCount(value, fallback) {
+    const n = Number(value);
+    if (!isFinite(n)) return fallback;
+    return Math.max(0, Math.min(15, Math.round(n)));
+  }
+
+  /* TA 写信时从字卡库随机取 0~15 条拼成一封 */
+  function composeTaMail() {
+    const st = App.state.settings || {};
+    let min = st.mailCardMin == null ? 1 : clampCount(st.mailCardMin, 1);
+    let max = st.mailCardMax == null ? 3 : clampCount(st.mailCardMax, 3);
+    if (max < min) { const tmp = min; min = max; max = tmp; }
+    const count = min + Math.floor(Math.random() * (max - min + 1));
     const pool = mailCards();
-    if (!pool.length) return null;
-    return pool[Math.floor(Math.random() * pool.length)];
+    const picked = [];
+    const copy = pool.slice();
+    while (picked.length < count && copy.length) {
+      const index = Math.floor(Math.random() * copy.length);
+      const card = copy.splice(index, 1)[0];
+      if (card && card.text) picked.push(card);
+    }
+    if (!picked.length) {
+      const lines = [
+        '今天没什么事，就是忽然想给你写封信。',
+        '窗外的风很好，想让你也看看。',
+        '不知道你那边天气怎么样，记得照顾好自己。',
+      ];
+      return { text: lines[Math.floor(Math.random() * lines.length)], cardIds: [] };
+    }
+    return {
+      text: picked.map(function (c) { return c.text; }).join('\n'),
+      cardIds: picked.map(function (c) { return c.id; }),
+    };
   }
 
   App.updateMailBadge = function () {
@@ -64,12 +94,25 @@
   }
 
   function renderList() {
-    const items = mailList().slice().sort(function (a, b) { return b.ts - a.ts; });
-    const unread = items.filter(function (m) { return m.from === 'ta' && !m.read; }).length;
+    const all = mailList().slice().sort(function (a, b) { return b.ts - a.ts; });
+    const items = all.filter(function (m) {
+      return mailTab === 'mine' ? m.from === 'me' : m.from === 'ta';
+    });
+    const unread = all.filter(function (m) { return m.from === 'ta' && !m.read; }).length;
     el('#mail-summary').textContent = items.length
-      ? '共 ' + items.length + ' 封' + (unread ? ' · ' + unread + ' 封未读' : '')
-      : '写信给 TA，也可以等 TA 的来信';
+      ? '共 ' + items.length + ' 封' + (mailTab === 'ta' && unread ? ' · ' + unread + ' 封未读' : '')
+      : (mailTab === 'ta' ? '还没有他的来信' : '还没写过信');
+    el('#mail-empty-text').textContent = mailTab === 'ta'
+      ? 'TA 还没有寄信来，再等等吧。'
+      : '在我的信里写一封给 TA，TA 会回信的。';
     el('#mail-empty').hidden = items.length > 0;
+    el('#btn-mail-compose').hidden = mailTab !== 'mine';
+    el('#btn-mail-compose-2').hidden = mailTab !== 'mine';
+    document.querySelectorAll('[data-mail-tab]').forEach(function (btn) {
+      const on = btn.dataset.mailTab === mailTab;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-selected', String(on));
+    });
 
     el('#mail-list').innerHTML = items.map(function (m) {
       const mine = m.from === 'me';
@@ -109,20 +152,24 @@
     const detail = el('#mail-detail');
     detail.hidden = false;
     detail.innerHTML =
-      '<button type="button" class="mail-back" data-mail-back="1">‹ 返回信箱</button>' +
-      '<article class="letter">' +
-        '<div class="letter-meta">' +
-          '<span class="avatar letter-avatar">' + App.avatarHtml(senderAvatar(mail)) + '</span>' +
-          '<div class="letter-address">' +
-            '<strong>' + (mine ? '寄给：' + App.esc(target) : '来自：' + App.esc(name)) + '</strong>' +
-            '<span>' + App.esc(mailTime(mail.ts)) + '</span>' +
+      '<div class="mail-letter-bar">' +
+        '<button type="button" class="mail-back" data-mail-back="1">‹ 退出</button>' +
+      '</div>' +
+      '<div class="mail-letter-scroll">' +
+        '<article class="letter">' +
+          '<div class="letter-meta">' +
+            '<span class="avatar letter-avatar">' + App.avatarHtml(senderAvatar(mail)) + '</span>' +
+            '<div class="letter-address">' +
+              '<strong>' + (mine ? '寄给：' + App.esc(target) : '来自：' + App.esc(name)) + '</strong>' +
+              '<span>' + App.esc(mailTime(mail.ts)) + '</span>' +
+            '</div>' +
           '</div>' +
-        '</div>' +
-        '<div class="letter-paper">' +
-          '<p class="letter-body">' + App.esc(mail.text) + '</p>' +
-          '<p class="letter-sign">—— ' + App.esc(mine ? (App.state.profile.userName || '我') : name) + '</p>' +
-        '</div>' +
-      '</article>' +
+          '<div class="letter-paper">' +
+            '<p class="letter-body">' + App.esc(mail.text) + '</p>' +
+            '<p class="letter-sign">—— ' + App.esc(mine ? (App.state.profile.userName || '我') : name) + '</p>' +
+          '</div>' +
+        '</article>' +
+      '</div>' +
       '<div class="letter-actions">' +
         '<button type="button" class="letter-btn' + (mail.fav ? ' is-on' : '') + '" data-mail-fav="' + App.esc(mail.id) + '">' +
           (mail.fav ? '★ 已收藏' : '☆ 收藏') + '</button>' +
@@ -191,6 +238,7 @@
       contactId: contact.id,
       text: card.text,
       cardId: card.id,
+      cardIds: [card.id],
       ts: Date.now(),
       read: true,
       fav: false,
@@ -199,23 +247,24 @@
     App.updateMailBadge();
     el('#mail-dialog').close();
     App.toast('信已寄出');
+    mailTab = 'mine';
     if (el('#view-mail').classList.contains('is-active')) showList();
     scheduleTaReply(contact.id);
     return true;
   }
 
-  /* TA 收到信后会用一张字卡回信 */
+  /* TA 收到信后用 0~15 条字卡回信 */
   function scheduleTaReply(contactId) {
-    const card = pickTaCard();
-    if (!card) return;
+    const letter = composeTaMail();
     setTimeout(function () {
       if (!contactOf(contactId)) return;
       mailList().unshift({
         id: App.uid('mail'),
         from: 'ta',
         contactId: contactId,
-        text: card.text,
-        cardId: card.id,
+        text: letter.text,
+        cardId: letter.cardIds[0] || null,
+        cardIds: letter.cardIds,
         ts: Date.now(),
         read: false,
         fav: false,
@@ -245,14 +294,15 @@
     if (Math.random() * 100 >= prob) return;
 
     const contact = fallbackContact();
-    const card = pickTaCard();
-    if (!contact || !card) return;
+    if (!contact) return;
+    const letter = composeTaMail();
     mailList().unshift({
       id: App.uid('mail'),
       from: 'ta',
       contactId: contact.id,
-      text: card.text,
-      cardId: card.id,
+      text: letter.text,
+      cardId: letter.cardIds[0] || null,
+      cardIds: letter.cardIds,
       ts: Date.now(),
       read: false,
       fav: false,
@@ -268,9 +318,15 @@
   };
 
   App.initMail = function () {
-    el('#btn-write-mail').addEventListener('click', function () { openCompose('new'); });
     el('#btn-mail-compose').addEventListener('click', function () { openCompose('new'); });
     el('#btn-mail-compose-2').addEventListener('click', function () { openCompose('new'); });
+
+    document.querySelectorAll('[data-mail-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        mailTab = btn.dataset.mailTab === 'mine' ? 'mine' : 'ta';
+        showList();
+      });
+    });
 
     el('#mail-list').addEventListener('click', function (e) {
       const item = e.target.closest('[data-mail-id]');

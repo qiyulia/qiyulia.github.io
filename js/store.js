@@ -124,6 +124,8 @@
     if (s.settings.redpacketAcceptProb == null) s.settings.redpacketAcceptProb = 70;
     if (s.settings.redpacketReturnProb == null) s.settings.redpacketReturnProb = 20;
     if (s.settings.taPatProb == null) s.settings.taPatProb = 10;
+    if (s.settings.mailCardMin == null) s.settings.mailCardMin = 1;
+    if (s.settings.mailCardMax == null) s.settings.mailCardMax = 3;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
     if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
     if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;

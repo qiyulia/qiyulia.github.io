@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-102">
+<link rel="stylesheet" href="css/style.css?v=20261114-103">
 </head>
 <body>
 <div class="stage">
@@ -871,24 +871,25 @@ if ('caches' in window) {
         </button>
         <h2>信箱</h2>
         <span class="topbar-spacer"></span>
-        <button type="button" class="icon-btn" id="btn-write-mail" aria-label="写信" title="写信">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M14 4l6 6-9 9H5v-6l9-9z"/></svg>
-        </button>
       </header>
       <div class="page-body mail-body">
+        <div class="settings-tabs mail-tabs" role="tablist" aria-label="信箱分类">
+          <button type="button" class="settings-tab is-on" role="tab" data-mail-tab="ta" aria-selected="true">他的信</button>
+          <button type="button" class="settings-tab" role="tab" data-mail-tab="mine" aria-selected="false">我的信</button>
+        </div>
         <div id="mail-list-pane" class="mail-list-pane">
           <div class="mail-toolbar">
             <span id="mail-summary" class="mail-summary"></span>
-            <button type="button" class="btn primary mail-write-btn" id="btn-mail-compose">写信</button>
+            <button type="button" class="btn primary mail-write-btn" id="btn-mail-compose" hidden>写信</button>
           </div>
           <div id="mail-list" class="mail-list"></div>
           <div id="mail-empty" class="empty-state" hidden>
-            <p>信箱还是空的，写一封信给 TA 吧。</p>
-            <button type="button" class="btn primary" id="btn-mail-compose-2">写下第一封信</button>
+            <p id="mail-empty-text">信箱还是空的，写一封信给 TA 吧。</p>
+            <button type="button" class="btn primary" id="btn-mail-compose-2" hidden>写下第一封信</button>
           </div>
         </div>
-        <div id="mail-detail" class="mail-detail" hidden></div>
       </div>
+      <div id="mail-detail" class="mail-detail" hidden></div>
     </section>
 
     <!-- ============ 设置 ============ -->
@@ -962,7 +963,11 @@ if ('caches' in window) {
           <h3>信</h3>
           <label class="field"><span>TA 主动写信（%）</span><input id="set-ta-mail-prob" inputmode="numeric" maxlength="3" placeholder="12"></label>
           <label class="field"><span>写信冷却时间（分钟）</span><input id="set-ta-mail-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
-          <p class="field-hint">冷却时间内 TA 不会再主动寄信。</p>
+          <div class="field-row">
+            <label class="field"><span>信里字卡最少</span><input id="set-mail-card-min" type="number" min="0" max="15" step="1" inputmode="numeric" placeholder="1"></label>
+            <label class="field"><span>最多</span><input id="set-mail-card-max" type="number" min="0" max="15" step="1" inputmode="numeric" placeholder="3"></label>
+          </div>
+          <p class="field-hint">冷却时间内 TA 不会再主动寄信；TA 写信时会从字卡库随机取这么多条拼成一封，设成 0 就是不带字卡。</p>
         </div>
 
         <div class="panel">
@@ -1524,18 +1529,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-102"></script>
-<script src="js/store.js?v=20261114-102"></script>
-<script src="js/desktop.js?v=20261114-102"></script>
-<script src="js/chat.js?v=20261114-102"></script>
-<script src="js/cards.js?v=20261114-102"></script>
-<script src="js/settings.js?v=20261114-102"></script>
-<script src="js/moments.js?v=20261114-102"></script>
-<script src="js/calendar.js?v=20261114-102"></script>
-<script src="js/music.js?v=20261114-102"></script>
-<script src="js/market.js?v=20261114-102"></script>
-<script src="js/mail.js?v=20261114-102"></script>
-<script src="js/extras.js?v=20261114-102"></script>
-<script src="js/app.js?v=20261114-102"></script>
+<script src="js/seed.js?v=20261114-103"></script>
+<script src="js/store.js?v=20261114-103"></script>
+<script src="js/desktop.js?v=20261114-103"></script>
+<script src="js/chat.js?v=20261114-103"></script>
+<script src="js/cards.js?v=20261114-103"></script>
+<script src="js/settings.js?v=20261114-103"></script>
+<script src="js/moments.js?v=20261114-103"></script>
+<script src="js/calendar.js?v=20261114-103"></script>
+<script src="js/music.js?v=20261114-103"></script>
+<script src="js/market.js?v=20261114-103"></script>
+<script src="js/mail.js?v=20261114-103"></script>
+<script src="js/extras.js?v=20261114-103"></script>
+<script src="js/app.js?v=20261114-103"></script>
 </body>
 </html>

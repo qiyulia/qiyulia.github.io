@@ -2760,8 +2760,37 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   background: var(--accent);
 }
 
-.mail-detail { display: flex; flex-direction: column; gap: 12px; }
+.mail-list-pane[hidden] { display: none; }
+#btn-mail-compose[hidden],
+#btn-mail-compose-2[hidden] { display: none; }
+
+/* 信件详情铺满全屏，左上角退出 */
+.mail-detail {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: calc(12px + var(--safe-top)) 16px calc(14px + var(--safe-bottom));
+  background: var(--bg);
+}
 .mail-detail[hidden] { display: none; }
+.mail-letter-bar { flex: 0 0 auto; display: flex; align-items: center; }
+.mail-letter-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+}
+.mail-letter-scroll .letter {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+.mail-letter-scroll .letter-paper { flex: 1 1 auto; }
 .mail-back {
   align-self: flex-start;
   padding: 4px 10px;
