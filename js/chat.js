@@ -293,9 +293,10 @@
         '<em class="survey-card-mode">' + surveyModeText(q.mode) + '</em>' + options + '</li>';
     }).join('');
     const clickable = !mine && !m.answered;
+    const tag = (m.questions || []).length > 1 ? '多问卷' : '小问卷';
     return '<div class="bubble bubble-survey' + (clickable ? ' is-clickable' : '') + '"' +
       (clickable ? ' data-answer-survey="' + App.esc(m.id) + '" role="button" tabindex="0"' : '') + '>' +
-      '<div class="survey-card-head"><span class="survey-card-tag">小问卷</span><em>' + status + '</em></div>' +
+      '<div class="survey-card-head"><span class="survey-card-tag">' + tag + '</span><em>' + status + '</em></div>' +
       '<p class="survey-card-title">' + (mine ? '我发出的问卷' : App.esc(name) + ' 的问卷') + '</p>' +
       '<ol class="survey-card-list">' + questions + '</ol>' +
       (clickable ? '<p class="survey-card-hint">点开这张卡，直接选答案。</p>' : '') +

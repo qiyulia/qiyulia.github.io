@@ -3205,6 +3205,8 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .field[hidden] { display: none; }
 .survey-mode-field { display: flex; flex-direction: column; gap: 6px; }
 .survey-mode-field .segmented { display: flex; }
+#survey-one, #survey-many { display: flex; flex-direction: column; gap: 10px; }
+#survey-one[hidden], #survey-many[hidden] { display: none; }
 
 /* 问卷编辑 */
 .survey-compose { display: flex; align-items: center; gap: 8px; }
@@ -3244,10 +3246,12 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .survey-editor-title {
   flex: 1 1 auto;
   min-width: 0;
-  border: 0;
-  background: transparent;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
 }
 .survey-mode { padding: 3px; }

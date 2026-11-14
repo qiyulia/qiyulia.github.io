@@ -213,6 +213,8 @@
   ];
 
   let surveyMode = 'card';
+  let surveyKind = 'one';
+  const SURVEY_MAX_QUESTIONS = 10;
 
   function parseSurveyOptions(text) {
     const parts = String(text || '').split(/[/／、,，\n]+/);
@@ -232,6 +234,13 @@
   }
 
   function renderSurveyForm() {
+    document.querySelectorAll('#survey-kind [data-survey-kind]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.surveyKind === surveyKind);
+    });
+    const one = el('#survey-one');
+    if (one) one.hidden = surveyKind !== 'one';
+    const many = el('#survey-many');
+    if (many) many.hidden = surveyKind !== 'many';
     document.querySelectorAll('#survey-mode [data-survey-mode]').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.dataset.surveyMode === surveyMode);
     });
@@ -239,9 +248,49 @@
     if (optionsWrap) optionsWrap.hidden = surveyMode === 'card';
     const scopeWrap = el('#survey-scope-wrap');
     if (scopeWrap) scopeWrap.hidden = surveyMode !== 'card';
+    if (surveyKind === 'many' && !document.querySelector('#survey-question-list [data-survey-row]')) {
+      addSurveyRow();
+    }
+  }
+
+  /* 多问卷：每一行就是一道题，回答方式各自独立 */
+  function addSurveyRow() {
+    const list = el('#survey-question-list');
+    if (!list) return;
+    if (list.querySelectorAll('[data-survey-row]').length >= SURVEY_MAX_QUESTIONS) {
+      App.toast('一次最多 ' + SURVEY_MAX_QUESTIONS + ' 题');
+      return;
+    }
+    const row = document.createElement('div');
+    row.className = 'survey-editor-item';
+    row.setAttribute('data-survey-row', '');
+    row.innerHTML =
+      '<div class="survey-editor-top">' +
+        '<span class="survey-index">1</span>' +
+        '<input class="survey-editor-title" data-survey-row-q maxlength="80" placeholder="写一个问题">' +
+        '<button type="button" class="icon-btn" data-survey-row-del aria-label="删除这题">×</button>' +
+      '</div>' +
+      '<div class="survey-scope"><span>回答方式</span>' +
+        '<select data-survey-row-mode>' +
+          '<option value="card">字卡回答</option>' +
+          '<option value="single">单选</option>' +
+          '<option value="multi">多选</option>' +
+        '</select>' +
+      '</div>' +
+      '<input class="survey-option-input" data-survey-row-options maxlength="120" placeholder="用 / 分隔 2~6 个选项" hidden>';
+    list.appendChild(row);
+    renumberSurveyRows();
+  }
+
+  function renumberSurveyRows() {
+    document.querySelectorAll('#survey-question-list [data-survey-row]').forEach(function (row, index) {
+      const badge = row.querySelector('.survey-index');
+      if (badge) badge.textContent = String(index + 1);
+    });
   }
 
   function resetSurveyForm() {
+    surveyKind = 'one';
     surveyMode = 'card';
     const input = el('#survey-question-input');
     if (input) input.value = '';
@@ -251,6 +300,8 @@
     if (scope) scope.value = 'all';
     const delay = el('#survey-answer-delay');
     if (delay) delay.value = '4';
+    const list = el('#survey-question-list');
+    if (list) list.innerHTML = '';
     renderSurveyForm();
   }
 
@@ -280,6 +331,33 @@
         scope: scopeSel ? scopeSel.value : 'all',
       },
     };
+  }
+
+  function collectSurveyMany() {
+    const rows = Array.prototype.slice.call(
+      document.querySelectorAll('#survey-question-list [data-survey-row]')
+    );
+    if (!rows.length) return { error: '先添加一道题' };
+    const questions = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const input = row.querySelector('[data-survey-row-q]');
+      const text = input ? String(input.value || '').trim() : '';
+      if (!text) return { error: '第 ' + (i + 1) + ' 题还没写问题' };
+      const modeSel = row.querySelector('[data-survey-row-mode]');
+      const mode = modeSel ? modeSel.value : 'card';
+      if (mode === 'single' || mode === 'multi') {
+        const optionsInput = row.querySelector('[data-survey-row-options]');
+        const options = parseSurveyOptions(optionsInput ? optionsInput.value : '');
+        if (options.length < 2 || options.length > 6) {
+          return { error: '第 ' + (i + 1) + ' 题需要 2~6 个选项' };
+        }
+        questions.push({ text: text, mode: mode, options: options });
+      } else {
+        questions.push({ text: text, mode: 'card', options: [], scope: 'all' });
+      }
+    }
+    return { questions: questions };
   }
 
   function surveyScopeCats(scope) {
@@ -580,14 +658,15 @@
   function sendSurvey() {
     const contactId = reminderContactId();
     if (!contactId) { App.toast('先添加一个角色吧'); return; }
-    const collected = collectSurveyQuestion();
+    const collected = surveyKind === 'many' ? collectSurveyMany() : collectSurveyQuestion();
     if (collected.error) { App.toast(collected.error); return; }
+    const questions = surveyKind === 'many' ? collected.questions : [collected.question];
     const message = {
       id: App.uid('m'),
       role: 'me',
       type: 'survey',
-      text: '发来一份小问卷',
-      questions: [collected.question],
+      text: questions.length > 1 ? '发来一份多问卷' : '发来一份小问卷',
+      questions: questions,
       answerDelay: surveyAnswerDelay(),
       answerDueAt: Date.now() + surveyAnswerDelay() * 1000,
       answered: false,
@@ -1646,6 +1725,31 @@
         renderSurveyForm();
       });
     });
+    document.querySelectorAll('#survey-kind [data-survey-kind]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        surveyKind = btn.dataset.surveyKind || 'one';
+        renderSurveyForm();
+      });
+    });
+    const surveyAddQuestion = el('#survey-add-question');
+    if (surveyAddQuestion) surveyAddQuestion.addEventListener('click', addSurveyRow);
+    const surveyQuestionList = el('#survey-question-list');
+    if (surveyQuestionList) {
+      surveyQuestionList.addEventListener('click', function (e) {
+        const del = e.target.closest('[data-survey-row-del]');
+        if (!del) return;
+        const row = del.closest('[data-survey-row]');
+        if (row) row.remove();
+        renumberSurveyRows();
+      });
+      surveyQuestionList.addEventListener('change', function (e) {
+        const modeSel = e.target.closest('[data-survey-row-mode]');
+        if (!modeSel) return;
+        const row = modeSel.closest('[data-survey-row]');
+        const optionsInput = row ? row.querySelector('[data-survey-row-options]') : null;
+        if (optionsInput) optionsInput.hidden = modeSel.value === 'card';
+      });
+    }
     const surveySend = el('#survey-send');
     if (surveySend) surveySend.addEventListener('click', sendSurvey);
 
