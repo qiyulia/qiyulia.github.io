@@ -172,7 +172,7 @@
           id: App.uid('card'),
           text: text,
           category: category,
-          trigger: String(item.trigger || '').slice(0, 10),
+          trigger: String(item.trigger || '').slice(0, 40),
           enabled: item.enabled !== false,
           builtin: false,
         };
@@ -237,7 +237,7 @@
         return;
       }
       const category = el('#card-cat').value;
-      const trigger = el('#card-trigger').value.trim().slice(0, 10);
+      const trigger = el('#card-trigger').value.trim().slice(0, 40);
       const emotion = el('#card-emotion').value.trim().slice(0, 12) || '平常';
       const strength = el('#card-strength').value;
 
