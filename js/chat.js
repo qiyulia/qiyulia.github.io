@@ -407,11 +407,12 @@
 
     const rect = msgEl.getBoundingClientRect();
     const box = menu.getBoundingClientRect();
-    let left = mine ? rect.right - box.width : rect.left;
-    left = Math.max(8, Math.min(window.innerWidth - box.width - 8, left));
-    let top = rect.top - box.height - 8;
-    if (top < 8) top = rect.bottom + 8;
-    top = Math.max(8, Math.min(window.innerHeight - box.height - 8, top));
+    const appRect = (document.getElementById('app') || document.body).getBoundingClientRect();
+    let left = (mine ? rect.right - box.width : rect.left) - appRect.left;
+    left = Math.max(8, Math.min(appRect.width - box.width - 8, left));
+    let top = rect.top - box.height - 8 - appRect.top;
+    if (top < 8) top = rect.bottom + 8 - appRect.top;
+    top = Math.max(8, Math.min(appRect.height - box.height - 8, top));
     menu.style.left = left + 'px';
     menu.style.top = top + 'px';
   }

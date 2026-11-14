@@ -2270,7 +2270,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 
 .msg-actions {
-  position: fixed;
+  position: absolute;
   z-index: 60;
   display: flex;
   gap: 2px;
@@ -2322,17 +2322,6 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   padding: 0 2px;
 }
 .composer-quote:not([hidden]) + .composer { border-top: none; }
-
-@media (max-width: 420px) {
-  .msg-actions {
-    left: 50% !important;
-    transform: translateX(-50%);
-    bottom: calc(84px + var(--safe-bottom));
-    top: auto !important;
-    width: calc(100% - 40px);
-    justify-content: space-around;
-  }
-}
 
 /* ============ 聊天气泡：头像下时间 / 已读状态 ============ */
 .msg-side { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 0 0 auto; }
