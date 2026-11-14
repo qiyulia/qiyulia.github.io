@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-76">
+<link rel="stylesheet" href="css/style.css?v=20261114-77">
 </head>
 <body>
 <div class="stage">
@@ -764,6 +764,7 @@ if ('caches' in window) {
         <div id="card-cats" class="chips"></div>
         <div class="card-tools">
           <button type="button" class="tool-btn" id="btn-import-cards">导入</button>
+          <button type="button" class="tool-btn" id="btn-import-voice">导入语音</button>
           <button type="button" class="tool-btn" id="btn-export-cards">导出</button>
           <button type="button" class="tool-btn" id="btn-dedupe-cards">去重</button>
           <button type="button" class="tool-btn" id="btn-restore-cards">恢复内置</button>
@@ -894,6 +895,20 @@ if ('caches' in window) {
             <button type="button" class="theme-chip" data-theme="mist"><i style="--sw:#bfdcf4"></i>淡蓝</button>
             <button type="button" class="theme-chip" data-theme="rose"><i style="--sw:#dfb3bc"></i>暮粉</button>
             <button type="button" class="theme-chip" data-theme="night"><i style="--sw:#3b4252"></i>夜色</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>语音</h3>
+          <div class="setting-switch-row">
+            <div class="setting-switch-copy">
+              <strong>语音转文字</strong>
+              <span class="field-hint">TA 发语音时，在播放器下方显示文字</span>
+            </div>
+            <label class="switch" title="语音转文字">
+              <input type="checkbox" id="set-voice-transcript" checked>
+              <span class="slider"></span>
+            </label>
           </div>
         </div>
 
@@ -1057,10 +1072,10 @@ if ('caches' in window) {
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
     <label class="field">
-      <span>内容</span>
+      <span id="card-text-label">内容</span>
       <textarea id="card-text" rows="5" maxlength="20000" placeholder="写一句想被随机说出口的话…" required></textarea>
     </label>
-    <p class="field-hint">一行一张字卡，可一次粘贴多行批量添加。</p>
+    <p class="field-hint" id="card-text-hint">一行一张字卡，可一次粘贴多行批量添加。</p>
     <label class="field"><span>分类</span><select id="card-cat"></select></label>
     <div class="field-row" id="card-emotion-fields">
       <label class="field"><span>情绪</span><input id="card-emotion" maxlength="12" placeholder="如：高兴"></label>
@@ -1073,10 +1088,11 @@ if ('caches' in window) {
       </label>
     </div>
     <div class="card-voice-fields" id="card-voice-fields">
-      <label class="field"><span>语音（mp3，建议 1.5MB 以内）</span>
+      <label class="field"><span>语音文件（mp3，建议 1.5MB 以内）</span>
         <input id="card-audio-file" type="file" accept="audio/mpeg,audio/mp3,audio/*">
       </label>
       <p class="field-hint" id="card-audio-hint">还没有语音，请选择一段 mp3 文件</p>
+      <audio id="card-audio-preview" controls preload="metadata" hidden></audio>
     </div>
     <label class="field"><span>触发词（可选）</span><input id="card-trigger" maxlength="40" placeholder="多个用 / 分隔，如：想你/晚安/在吗"></label>
     <div class="sheet-actions">
@@ -1371,18 +1387,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-76"></script>
-<script src="js/store.js?v=20261114-76"></script>
-<script src="js/desktop.js?v=20261114-76"></script>
-<script src="js/chat.js?v=20261114-76"></script>
-<script src="js/cards.js?v=20261114-76"></script>
-<script src="js/settings.js?v=20261114-76"></script>
-<script src="js/moments.js?v=20261114-76"></script>
-<script src="js/calendar.js?v=20261114-76"></script>
-<script src="js/music.js?v=20261114-76"></script>
-<script src="js/market.js?v=20261114-76"></script>
-<script src="js/mail.js?v=20261114-76"></script>
-<script src="js/extras.js?v=20261114-76"></script>
-<script src="js/app.js?v=20261114-76"></script>
+<script src="js/seed.js?v=20261114-77"></script>
+<script src="js/store.js?v=20261114-77"></script>
+<script src="js/desktop.js?v=20261114-77"></script>
+<script src="js/chat.js?v=20261114-77"></script>
+<script src="js/cards.js?v=20261114-77"></script>
+<script src="js/settings.js?v=20261114-77"></script>
+<script src="js/moments.js?v=20261114-77"></script>
+<script src="js/calendar.js?v=20261114-77"></script>
+<script src="js/music.js?v=20261114-77"></script>
+<script src="js/market.js?v=20261114-77"></script>
+<script src="js/mail.js?v=20261114-77"></script>
+<script src="js/extras.js?v=20261114-77"></script>
+<script src="js/app.js?v=20261114-77"></script>
 </body>
 </html>

@@ -321,8 +321,11 @@
     } else if (m.type === 'ignore') {
       body = '<div class="bubble bubble-ignore"><span class="bubble-text">已读不回</span></div>';
     } else if (m.type === 'audio') {
+      const showTranscript = m.text && (!App.state.settings || App.state.settings.voiceTranscript !== false);
       body = '<div class="bubble bubble-audio' + (hasFrequency ? ' bubble-emotion' : '') + '">' +
-        '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' + meta +
+        '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' +
+        (showTranscript ? '<p class="audio-transcript">' + App.esc(m.text) + '</p>' : '') +
+        meta +
         '</div>';
     } else if (m.surveyAppend) {
       body = '<div class="bubble bubble-emotion survey-append-bubble">' +

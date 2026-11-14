@@ -110,6 +110,7 @@
     if (s.settings.callBusyProb == null) s.settings.callBusyProb = 15;
     if (s.settings.callRejectProb == null) s.settings.callRejectProb = 15;
     if (s.settings.callHangupProb == null) s.settings.callHangupProb = 10;
+    if (s.settings.voiceTranscript == null) s.settings.voiceTranscript = true;
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];

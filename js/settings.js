@@ -76,6 +76,7 @@
     el('#set-call-busy').value = st.settings.callBusyProb == null ? 15 : st.settings.callBusyProb;
     el('#set-call-reject').value = st.settings.callRejectProb == null ? 15 : st.settings.callRejectProb;
     el('#set-call-hangup').value = st.settings.callHangupProb == null ? 10 : st.settings.callHangupProb;
+    el('#set-voice-transcript').checked = st.settings.voiceTranscript !== false;
 
     const partnerSelect = el('#set-partner');
     partnerSelect.innerHTML = st.contacts.length
@@ -148,6 +149,12 @@
       App.state.currentContactId = e.target.value;
       App.save();
       App.renderAll();
+    });
+
+    el('#set-voice-transcript').addEventListener('change', function (e) {
+      App.state.settings.voiceTranscript = !!e.target.checked;
+      markDirty();
+      if (App.renderChat) App.renderChat();
     });
 
     el('#btn-edit-partner').addEventListener('click', function () {

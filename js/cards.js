@@ -111,21 +111,50 @@
   function toggleExtraFields(category, card) {
     const emotionBox = el('#card-emotion-fields');
     const voiceBox = el('#card-voice-fields');
+    const isVoice = category === '语音';
     emotionBox.style.display = category === '情绪' ? '' : 'none';
-    voiceBox.style.display = category === '语音' ? '' : 'none';
+    voiceBox.style.display = isVoice ? '' : 'none';
     el('#card-emotion').value = card && card.emotion ? card.emotion : '';
     el('#card-strength').value = card && card.strength ? card.strength : '中';
-    el('#card-audio-file').value = '';
+
+    const textLabel = el('#card-text-label');
+    if (textLabel) textLabel.textContent = isVoice ? '语音文字（显示在语音下方）' : '内容';
+    const textHint = el('#card-text-hint');
+    if (textHint) {
+      textHint.textContent = isVoice
+        ? '导入时先试听，校对这句文字有没有错别字；保存后直接复用，不再二次转换。'
+        : '一行一张字卡，可一次粘贴多行批量添加。';
+    }
+    const textArea = el('#card-text');
+    if (textArea) {
+      textArea.placeholder = isVoice
+        ? '写下这段语音说的话，TA 发语音时会显示在下方…'
+        : '写一句想被随机说出口的话…';
+    }
+
+    const fileInput = el('#card-audio-file');
+    if (fileInput) fileInput.value = '';
+    const preview = el('#card-audio-preview');
+    if (preview) {
+      preview.pause();
+      preview.hidden = true;
+      preview.removeAttribute('src');
+      if (isVoice && card && card.audio) {
+        preview.src = card.audio;
+        preview.hidden = false;
+      }
+      preview.load();
+    }
     el('#card-audio-hint').textContent = card && card.audio
-      ? '已保存一段语音（重新选择可替换）'
+      ? '已保存一段语音（重新选择可替换），下面是试听。'
       : '还没有语音，请选择一段 mp3 文件';
   }
 
-  function openCardDialog(card) {
+  function openCardDialog(card, presetCategory) {
     editingCard = card || null;
-    el('#card-dialog-title').textContent = card ? '编辑字卡' : '新建字卡';
+    el('#card-dialog-title').textContent = card ? '编辑字卡' : (presetCategory === '语音' ? '导入语音' : '新建字卡');
     el('#card-text').value = card ? card.text : '';
-    el('#card-cat').value = card ? card.category : '聊天';
+    el('#card-cat').value = card ? card.category : (presetCategory || '聊天');
     el('#card-trigger').value = card ? (card.trigger || '') : '';
     toggleExtraFields(el('#card-cat').value, card);
     dialog.showModal();
@@ -216,6 +245,16 @@
   App.initCards = function () {
     fillCategories();
 
+    dialog.addEventListener('close', function () {
+      const preview = el('#card-audio-preview');
+      if (preview) {
+        preview.pause();
+        preview.removeAttribute('src');
+        preview.hidden = true;
+        preview.load();
+      }
+    });
+
     el('#card-search').addEventListener('input', function (e) {
       App.cardFilter.q = e.target.value;
       App.renderCards();
@@ -225,18 +264,33 @@
       toggleExtraFields(e.target.value, editingCard);
     });
 
+    el('#card-audio-file').addEventListener('change', function (e) {
+      const file = e.target.files && e.target.files[0];
+      const preview = el('#card-audio-preview');
+      if (!preview) return;
+      if (!file) {
+        preview.hidden = true;
+        preview.removeAttribute('src');
+        preview.load();
+        return;
+      }
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+      el('#card-audio-hint').textContent = '正在试听 ' + file.name + '，确认「语音文字」没有错别字后再保存。';
+    });
+
     el('#card-form').addEventListener('submit', async function (e) {
       e.preventDefault();
+      const category = el('#card-cat').value;
       const rawText = el('#card-text').value;
-      /* 新建时一行一张字卡，一次可粘贴多行批量添加；编辑时只改当前这一张。 */
-      const texts = (editingCard ? [rawText] : rawText.split(/\r?\n/))
+      /* 新建时一行一张字卡，一次可粘贴多行批量添加；编辑或语音卡只处理当前这一张。 */
+      const texts = (editingCard || category === '语音' ? [rawText] : rawText.split(/\r?\n/))
         .map(function (t) { return t.trim(); })
         .filter(Boolean);
       if (!texts.length) {
         el('#card-text').focus();
         return;
       }
-      const category = el('#card-cat').value;
       const trigger = el('#card-trigger').value.trim().slice(0, 40);
       const emotion = el('#card-emotion').value.trim().slice(0, 12) || '平常';
       const strength = el('#card-strength').value;
@@ -322,6 +376,10 @@
 
     el('#btn-import-cards').addEventListener('click', function () {
       el('#card-import-dialog').showModal();
+    });
+
+    el('#btn-import-voice').addEventListener('click', function () {
+      openCardDialog(null, '语音');
     });
 
     el('#card-import-manual').addEventListener('click', function () {
