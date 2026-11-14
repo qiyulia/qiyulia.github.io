@@ -1423,6 +1423,34 @@ button.widget:active { transform: scale(.99); }
   border-radius: var(--radius-md);
 }
 
+/* 语音分类里的导入小卡片 */
+.card-voice-import {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--field);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+.card-voice-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.card-voice-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.card-voice-copy strong { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.card-voice-copy em { font-style: normal; font-size: 11.5px; color: var(--muted); }
+
 .card-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 
 .card-text {

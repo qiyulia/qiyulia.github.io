@@ -32,9 +32,19 @@
       return matchCat && (!q || haystack.indexOf(q) !== -1);
     });
 
-    el('#card-list').innerHTML = list.length
-      ? list.map(cardRow).join('')
+    const importTile = filter.cat === '语音'
+      ? '<button type="button" class="card-voice-import" data-import-voice>' +
+          '<span class="card-voice-icon">＋</span>' +
+          '<span class="card-voice-copy"><strong>导入语音</strong><em>选择一段 mp3，写下它说的话</em></span>' +
+        '</button>'
+      : '';
+    const empty = filter.cat === '语音'
+      ? '<p class="empty-note">还没有语音卡，点上面的卡片导入一段 mp3。</p>'
       : '<p class="empty-note">没有符合条件的字卡。</p>';
+
+    el('#card-list').innerHTML = importTile + (list.length
+      ? list.map(cardRow).join('')
+      : empty);
 
     const enabled = App.state.cards.filter(function (c) { return c.enabled; }).length;
     el('#card-count').textContent = '共 ' + App.state.cards.length + ' 张，已启用 ' + enabled + ' 张';
@@ -378,10 +388,6 @@
       el('#card-import-dialog').showModal();
     });
 
-    el('#btn-import-voice').addEventListener('click', function () {
-      openCardDialog(null, '语音');
-    });
-
     el('#card-import-manual').addEventListener('click', function () {
       el('#card-import-dialog').close();
       openCardDialog(null);
@@ -405,6 +411,10 @@
       if (chip) {
         App.cardFilter.cat = chip.dataset.cat;
         App.renderCards();
+        return;
+      }
+      if (e.target.closest('[data-import-voice]')) {
+        openCardDialog(null, '语音');
         return;
       }
       const edit = e.target.closest('[data-edit-card]');
