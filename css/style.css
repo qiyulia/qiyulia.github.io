@@ -2589,19 +2589,61 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 /* 工具分类的两个应用整体略微左移，避免离右边太远 */
 .more-apps [data-cat="tool"] { transform: translateX(-10px); }
 
-/* ============ 问卷 / 占卜弹窗（尺寸对齐表情面板） ============ */
-dialog.sheet.tool-sheet {
+/* ============ 问卷 / 占卜 / 扫雷：普通浮层（不用 dialog，避免关不掉） ============ */
+.tool-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 96;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.tool-overlay[hidden] { display: none; }
+.tool-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 16, 14, .45);
+  backdrop-filter: blur(3px);
+}
+.tool-overlay-card {
+  position: relative;
   width: min(430px, calc(100vw - 20px));
   height: 52vh;
   max-height: 52vh;
+  margin: 0 auto calc(76px + var(--safe-bottom));
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 18px;
   padding: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 26px 60px rgba(0, 0, 0, .32);
 }
-.tool-sheet .sheet-head {
+.tool-overlay-card .sheet-head {
   flex: 0 0 auto;
   padding: 14px 14px 6px;
+}
+.tool-overlay-card .tool-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tool-overlay-card .tool-sheet-actions {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 14px calc(12px + var(--safe-bottom));
+  border-top: 1px solid var(--line);
+}
+.tool-overlay-card > .sheet-actions {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 14px calc(12px + var(--safe-bottom));
 }
 .tool-sheet-body {
   flex: 1 1 auto;
@@ -2613,19 +2655,8 @@ dialog.sheet.tool-sheet {
   flex-direction: column;
   gap: 10px;
 }
-.tool-sheet .tool-sheet-actions {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 8px 14px calc(12px + var(--safe-bottom));
-  border-top: 1px solid var(--line);
-}
 @media (max-width: 520px) {
-  dialog.sheet.tool-sheet {
-    inset: auto 0 calc(76px + var(--safe-bottom)) 0;
-    width: calc(100vw - 20px);
-    margin: 0 auto;
-    border-radius: 18px;
-  }
+  .tool-overlay-card { width: calc(100vw - 20px); }
 }
 
 /* 问卷编辑 */

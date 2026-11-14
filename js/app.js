@@ -20,6 +20,7 @@
       try { d.close(); } catch (err) {}
     });
     if (App.closePatPicker) App.closePatPicker();
+    if (App.hideToolPanels) App.hideToolPanels();
     rememberView(view);
     if (App.closeMsgActions) App.closeMsgActions();
     document.querySelectorAll('.view').forEach(function (v) {

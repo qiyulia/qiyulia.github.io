@@ -415,8 +415,7 @@
       ts: Date.now(),
     };
     deliverMessage(contactId, message);
-    const dialog = el('#survey-dialog');
-    if (dialog) dialog.close();
+    hideToolPanel('#survey-dialog');
     surveyDraft = [];
     renderSurveyQuestions();
     App.toast('问卷已发出');
@@ -598,8 +597,7 @@
       ts: Date.now(),
     };
     deliverMessage(contactId, message);
-    const dialog = el('#divine-dialog');
-    if (dialog) dialog.close();
+    hideToolPanel('#divine-dialog');
     App.toast('牌阵已发出');
     scheduleDivineReply(contactId, message.id);
   }
@@ -701,7 +699,39 @@
   }
 
   /* ---------------- 事件绑定 ---------------- */
+  function hideAllToolPanels() {
+    document.querySelectorAll('.tool-overlay').forEach(function (layer) {
+      layer.hidden = true;
+    });
+  }
+
+  function hideToolPanel(sel) {
+    const layer = document.querySelector(sel);
+    if (layer) layer.hidden = true;
+  }
+
+  function showToolPanel(sel) {
+    hideAllToolPanels();
+    const layer = document.querySelector(sel);
+    if (!layer) return;
+    layer.hidden = false;
+    const body = layer.querySelector('.tool-sheet-body');
+    if (body) body.scrollTop = 0;
+  }
+
+  App.hideToolPanels = hideAllToolPanels;
+
   App.initExtras = function () {
+    document.addEventListener('click', function (e) {
+      const closer = e.target.closest('[data-tool-close]');
+      if (!closer) return;
+      const layer = closer.closest('.tool-overlay');
+      if (layer) layer.hidden = true;
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') hideAllToolPanels();
+    });
+
     const annivForm = el('#anniv-form');
     if (annivForm) {
       annivForm.addEventListener('submit', function (e) {
@@ -897,16 +927,13 @@
         if (more) more.close();
         if (btn.dataset.tool === 'survey') {
           renderSurveyQuestions();
-          const d = el('#survey-dialog');
-          if (d) d.showModal();
+          showToolPanel('#survey-dialog');
         } else if (btn.dataset.tool === 'divine') {
           resetDivine(true);
-          const d = el('#divine-dialog');
-          if (d) d.showModal();
+          showToolPanel('#divine-dialog');
         } else if (btn.dataset.tool === 'mine') {
           resetMine();
-          const d = el('#mine-dialog');
-          if (d) d.showModal();
+          showToolPanel('#mine-dialog');
         }
       });
     });

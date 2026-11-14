@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-67">
+<link rel="stylesheet" href="css/style.css?v=20261114-68">
 </head>
 <body>
 <div class="stage">
@@ -1151,10 +1151,12 @@ if ('caches' in window) {
 </dialog>
 
 <!-- ============ 工具：问卷 ============ -->
-<dialog id="survey-dialog" class="sheet tool-sheet survey-sheet">
+<div id="survey-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card survey-sheet">
   <div class="sheet-head">
     <h3>小问卷</h3>
-    <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
   </div>
   <div class="tool-sheet-body">
     <div class="survey-compose">
@@ -1166,16 +1168,19 @@ if ('caches' in window) {
     <p class="field-hint" id="survey-empty">还没有问题，先在上面写一个。</p>
   </div>
   <div class="sheet-actions tool-sheet-actions">
-    <button type="button" class="btn ghost" data-close>取消</button>
+    <button type="button" class="btn ghost" data-tool-close>取消</button>
     <button type="button" class="btn primary" id="survey-send">发送问卷</button>
   </div>
-</dialog>
+  </div>
+</div>
 
 <!-- ============ 工具：占卜 ============ -->
-<dialog id="divine-dialog" class="sheet tool-sheet divine-sheet">
+<div id="divine-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card divine-sheet">
   <div class="sheet-head">
     <h3>占卜</h3>
-    <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
   </div>
   <div class="tool-sheet-body">
     <div class="divine-block">
@@ -1201,21 +1206,25 @@ if ('caches' in window) {
     <button type="button" class="btn primary" id="divine-draw" disabled>开始抽牌</button>
     <button type="button" class="btn primary" id="divine-send" disabled>发给 TA</button>
   </div>
-</dialog>
+  </div>
+</div>
 
 <!-- ============ 游戏：扫雷 ============ -->
-<dialog id="mine-dialog" class="sheet">
+<div id="mine-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card">
   <div class="sheet-head">
     <h3>扫雷</h3>
-    <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
   </div>
   <p class="field-hint" id="mine-status">点格子翻开，长按插旗。9 × 9，10 颗雷。</p>
   <div id="mine-board" class="mine-board" role="grid" aria-label="扫雷棋盘"></div>
   <div class="sheet-actions">
     <button type="button" class="btn ghost" id="mine-reset">重新开始</button>
-    <button type="button" class="btn primary" data-close>关闭</button>
+    <button type="button" class="btn primary" data-tool-close>关闭</button>
   </div>
-</dialog>
+  </div>
+</div>
 
 <!-- ============ 联系人弹窗 ============ -->
 <dialog id="contact-dialog" class="sheet">
@@ -1327,18 +1336,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-67"></script>
-<script src="js/store.js?v=20261114-67"></script>
-<script src="js/desktop.js?v=20261114-67"></script>
-<script src="js/chat.js?v=20261114-67"></script>
-<script src="js/cards.js?v=20261114-67"></script>
-<script src="js/settings.js?v=20261114-67"></script>
-<script src="js/moments.js?v=20261114-67"></script>
-<script src="js/calendar.js?v=20261114-67"></script>
-<script src="js/music.js?v=20261114-67"></script>
-<script src="js/market.js?v=20261114-67"></script>
-<script src="js/mail.js?v=20261114-67"></script>
-<script src="js/extras.js?v=20261114-67"></script>
-<script src="js/app.js?v=20261114-67"></script>
+<script src="js/seed.js?v=20261114-68"></script>
+<script src="js/store.js?v=20261114-68"></script>
+<script src="js/desktop.js?v=20261114-68"></script>
+<script src="js/chat.js?v=20261114-68"></script>
+<script src="js/cards.js?v=20261114-68"></script>
+<script src="js/settings.js?v=20261114-68"></script>
+<script src="js/moments.js?v=20261114-68"></script>
+<script src="js/calendar.js?v=20261114-68"></script>
+<script src="js/music.js?v=20261114-68"></script>
+<script src="js/market.js?v=20261114-68"></script>
+<script src="js/mail.js?v=20261114-68"></script>
+<script src="js/extras.js?v=20261114-68"></script>
+<script src="js/app.js?v=20261114-68"></script>
 </body>
 </html>
