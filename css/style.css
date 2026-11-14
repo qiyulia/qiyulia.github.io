@@ -1331,6 +1331,29 @@ button.widget:active { transform: scale(.99); }
   font-size: 12px;
 }
 
+/* 字卡征询卡片 */
+.bubble-card-offer { min-width: 214px; }
+.card-offer-text {
+  margin: 8px 0 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.card-offer-actions { display: flex; gap: 8px; margin-top: 12px; }
+.card-offer-actions button {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13px;
+}
+.card-offer-actions button.is-ghost { background: var(--surface-2); color: var(--ink); }
+
 /* 情绪字卡气泡 */
 .bubble-emotion {
   padding: 12px 14px;

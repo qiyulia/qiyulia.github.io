@@ -202,6 +202,23 @@
       '</div>';
   }
 
+  function cardOfferHtml(m) {
+    const status = m.status || 'pending';
+    const label = status === 'accepted' ? '已同意' : (status === 'rejected' ? '已拒绝' : '等你决定');
+    const actions = status === 'pending'
+      ? '<div class="card-offer-actions">' +
+          '<button type="button" class="is-ghost" data-card-offer-act="reject" data-card-offer-msg="' + App.esc(m.id) + '">拒绝</button>' +
+          '<button type="button" data-card-offer-act="accept" data-card-offer-msg="' + App.esc(m.id) + '">同意</button>' +
+        '</div>'
+      : '';
+    return '<div class="bubble bubble-card-offer">' +
+      '<div class="survey-card-head"><span class="survey-card-tag">字卡征询</span><em>' + label + '</em></div>' +
+      '<p class="survey-card-title">TA 想把这句话加入字卡</p>' +
+      '<p class="card-offer-text">“' + App.esc(m.text) + '”</p>' +
+      actions +
+      '</div>';
+  }
+
   function divineCardHtml(m) {
     const cards = (m.cards || []).map(function (card) {
       return '<span class="divine-chat-card">' +
@@ -283,6 +300,9 @@
     }
     if (m.type === 'surveyAnswerMine') {
       return messageCardShell(m, contact, surveyMineAnswerCardHtml(m));
+    }
+    if (m.type === 'cardOffer') {
+      return messageCardShell(m, contact, cardOfferHtml(m));
     }
     if (m.type === 'divine') {
       return messageCardShell(m, contact, divineCardHtml(m));
@@ -687,6 +707,7 @@
     if (role === 'me') {
       scheduleReply(App.chatContactId, text);
       maybeTaSticker(App.chatContactId);
+      maybeOfferCard(App.chatContactId, text);
     }
   }
 
@@ -957,19 +978,37 @@
     const emotionProb = Math.max(0, Math.min(100, Number(cs.emotionProb) || 0));
     const strengths = ['强', '中', '弱'];
 
+    /* 多字卡拼接：按概率把这一次回复的多张字卡挤进同一个气泡 */
+    const mergeProb = Math.max(0, Math.min(100, Number(cs.mergeProb) || 0));
+    const mergeMin = Math.max(2, Math.min(6, Number(cs.mergeMin) || 2));
+    const mergeMax = Math.max(mergeMin, Math.min(6, Number(cs.mergeMax) || 3));
+    let mergeTake = 0;
+    if (cards.length >= 2 && Math.random() * 100 < mergeProb) {
+      const want = mergeMin + Math.floor(Math.random() * (mergeMax - mergeMin + 1));
+      const take = Math.min(want, cards.length);
+      if (take >= 2 && cards.slice(0, take).every(function (c) { return c.category !== '语音'; })) {
+        mergeTake = take;
+      }
+    }
+
     for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
+      let group = [cards[i]];
+      if (mergeTake >= 2 && i === 0) {
+        group = cards.slice(0, mergeTake);
+        i = mergeTake - 1;
+      }
+      const card = group[0];
+      const mergedText = group.map(function (c) { return c.text; }).join('\n');
       const stillThere = function () {
         return App.state.contacts.some(function (c) { return c.id === contactId; });
       };
       if (!stillThere()) return;
 
-      const active = function () { return App.chatOpen(contactId); };
       setTyping(contactId, true);
 
       const base = Math.max(0, Math.min(5, Number(cs.typingMin) || 0)) * 60000;
-      const extra = card.category === '语音' ? 900 : 0;
-      const wait = Math.min(300000, base + extra + card.text.length * 22 + Math.random() * 260);
+      const extra = group.length === 1 && card.category === '语音' ? 900 : 0;
+      const wait = Math.min(300000, base + extra + mergedText.length * 22 + Math.random() * 260);
       await sleep(wait);
 
       setTyping(contactId, false);
@@ -980,14 +1019,15 @@
       const message = {
         id: App.uid('m'),
         role: 'ta',
-        type: card.category === '语音' ? 'audio' : 'text',
-        text: card.text,
+        type: group.length === 1 && card.category === '语音' ? 'audio' : 'text',
+        text: mergedText,
         ts: Date.now(),
         cardId: card.id,
         strength: strength,
         percent: App.emotionPercent(strength),
       };
-      if (card.category === '语音') message.src = card.audio;
+      if (group.length > 1) message.cardIds = group.map(function (c) { return c.id; });
+      if (group.length === 1 && card.category === '语音') message.src = card.audio;
       if (Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
 
       const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
@@ -1014,7 +1054,7 @@
       App.save();
       scheduleTaMessageExtras(contactId, contact, message, cs);
 
-      if (active()) {
+      if (App.chatOpen(contactId)) {
         App.renderChat();
       } else {
         App.unread[contactId] = (App.unread[contactId] || 0) + 1;
@@ -1025,6 +1065,69 @@
       await sleep(240);
     }
     maybeTaCall(contactId, contact, cs);
+  }
+
+  /* TA 偶尔会问：这句话能不能收进字卡库 */
+  function maybeOfferCard(contactId, text) {
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact) return;
+    const cs = App.contactSettings(contact);
+    const prob = Math.max(0, Math.min(100, Number(cs.cardOfferProb) || 0));
+    const value = String(text || '').trim();
+    if (value.length < 2 || value.length > 60) return;
+    if (Math.random() * 100 >= prob) return;
+    const exists = (App.state.cards || []).some(function (c) {
+      return String(c.text || '').trim() === value;
+    });
+    if (exists) return;
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+      chat.push({
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'cardOffer',
+        text: value,
+        status: 'pending',
+        ts: Date.now(),
+      });
+      App.save();
+      if (App.chatOpen(contactId)) {
+        App.renderChat();
+      } else {
+        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+    }, 2600 + Math.random() * 3200);
+  }
+
+  function resolveCardOffer(contactId, msgId, action) {
+    const chat = App.state.chats[contactId] || [];
+    const msg = chat.find(function (m) { return m.id === msgId; });
+    if (!msg || msg.type !== 'cardOffer' || (msg.status || 'pending') !== 'pending') return;
+    const accept = action === 'accept';
+    msg.status = accept ? 'accepted' : 'rejected';
+    if (accept) {
+      const value = String(msg.text || '').trim();
+      const exists = (App.state.cards || []).some(function (c) {
+        return String(c.text || '').trim() === value;
+      });
+      if (!exists) {
+        App.state.cards.unshift({
+          id: App.uid('card'),
+          text: value,
+          category: '聊天',
+          trigger: '',
+          enabled: true,
+          builtin: false,
+        });
+      }
+    }
+    App.save();
+    App.renderChat();
+    if (App.renderCards) App.renderCards();
+    App.toast(accept ? '已加入字卡库 · 聊天' : '已拒绝加入字卡');
   }
 
   /* ---------- 表情包 ---------- */
@@ -1579,6 +1682,14 @@
         e.stopPropagation();
         closeMsgActions();
         if (App.openSurveyAnswer) App.openSurveyAnswer(App.chatContactId, surveyOpen.dataset.answerSurvey);
+        return;
+      }
+      const offerBtn = e.target.closest('[data-card-offer-act]');
+      if (offerBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMsgActions();
+        resolveCardOffer(App.chatContactId, offerBtn.dataset.cardOfferMsg, offerBtn.dataset.cardOfferAct);
         return;
       }
       const packetBtn = e.target.closest('[data-rp-accept], [data-rp-return], [data-gift-accept], [data-gift-return]');

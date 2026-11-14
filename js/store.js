@@ -93,6 +93,10 @@
     if (s.settings.avatarMeProb == null) s.settings.avatarMeProb = 25;
     if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
     if (s.settings.taIgnoreProb == null) s.settings.taIgnoreProb = 15;
+    if (s.settings.mergeProb == null) s.settings.mergeProb = 15;
+    if (s.settings.mergeMin == null) s.settings.mergeMin = 2;
+    if (s.settings.mergeMax == null) s.settings.mergeMax = 3;
+    if (s.settings.cardOfferProb == null) s.settings.cardOfferProb = 10;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
     if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
     if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;
@@ -247,6 +251,10 @@
       typingMin: pick('typingMin', 0.1),
       taMsgProb: pick('taMsgProb', 8),
       taIgnoreProb: pick('taIgnoreProb', 15),
+      mergeProb: pick('mergeProb', 15),
+      mergeMin: pick('mergeMin', 2),
+      mergeMax: pick('mergeMax', 3),
+      cardOfferProb: pick('cardOfferProb', 10),
       emotionProb: pick('emotionProb', 30),
       taLikeProb: pick('taLikeProb', 60),
       taCommentProb: pick('taCommentProb', 40),

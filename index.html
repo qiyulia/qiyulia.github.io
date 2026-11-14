@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-98">
+<link rel="stylesheet" href="css/style.css?v=20261114-99">
 </head>
 <body>
 <div class="stage">
@@ -588,6 +588,18 @@ if ('caches' in window) {
                   <button type="button" class="step-btn" data-step-for="set-ta-ignore" data-step="5">+</button>
                 </span>
               </label>
+              <label class="field"><span>多字卡拼接（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-merge-prob" data-step="-5">−</button>
+                  <input id="set-merge-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-merge-prob" data-step="5">+</button>
+                </span>
+              </label>
+              <div class="field-row">
+                <label class="field"><span>拼接最少条</span><input id="set-merge-min" type="number" min="2" max="6" step="1" inputmode="numeric"></label>
+                <label class="field"><span>最多</span><input id="set-merge-max" type="number" min="2" max="6" step="1" inputmode="numeric"></label>
+              </div>
+              <p class="panel-note">触发多字卡拼接时，这一次回复里的多条字卡会挤进同一个气泡里说。</p>
               <p class="panel-note">消息里出现字卡的触发词时，那张卡会被优先说出。</p>
               <p class="panel-note">这里的数值是新建角色的默认值；每个角色仍可在联系人页单独修改。</p>
             </div>
@@ -937,6 +949,12 @@ if ('caches' in window) {
           <label class="field"><span>TA 给我换头像的概率（%）</span><input id="set-avatar-me-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
           <label class="field"><span>换头像冷却时间（分钟）</span><input id="set-avatar-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
           <p class="field-hint">按两个概率决定换谁的；换过一次后要等冷却时间结束，TA 才会再次换头像。</p>
+        </div>
+
+        <div class="panel">
+          <h3>字卡征询</h3>
+          <label class="field"><span>TA 想把你的话加入字卡（%）</span><input id="set-card-offer-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
+          <p class="field-hint">你发消息后，TA 有概率问你这句话能不能收进字卡库的「聊天」分类。</p>
         </div>
         </div>
 
@@ -1484,18 +1502,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-98"></script>
-<script src="js/store.js?v=20261114-98"></script>
-<script src="js/desktop.js?v=20261114-98"></script>
-<script src="js/chat.js?v=20261114-98"></script>
-<script src="js/cards.js?v=20261114-98"></script>
-<script src="js/settings.js?v=20261114-98"></script>
-<script src="js/moments.js?v=20261114-98"></script>
-<script src="js/calendar.js?v=20261114-98"></script>
-<script src="js/music.js?v=20261114-98"></script>
-<script src="js/market.js?v=20261114-98"></script>
-<script src="js/mail.js?v=20261114-98"></script>
-<script src="js/extras.js?v=20261114-98"></script>
-<script src="js/app.js?v=20261114-98"></script>
+<script src="js/seed.js?v=20261114-99"></script>
+<script src="js/store.js?v=20261114-99"></script>
+<script src="js/desktop.js?v=20261114-99"></script>
+<script src="js/chat.js?v=20261114-99"></script>
+<script src="js/cards.js?v=20261114-99"></script>
+<script src="js/settings.js?v=20261114-99"></script>
+<script src="js/moments.js?v=20261114-99"></script>
+<script src="js/calendar.js?v=20261114-99"></script>
+<script src="js/music.js?v=20261114-99"></script>
+<script src="js/market.js?v=20261114-99"></script>
+<script src="js/mail.js?v=20261114-99"></script>
+<script src="js/extras.js?v=20261114-99"></script>
+<script src="js/app.js?v=20261114-99"></script>
 </body>
 </html>

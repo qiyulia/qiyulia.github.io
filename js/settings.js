@@ -194,6 +194,9 @@
     el('#set-typing').value = st.settings.typingMin == null ? 0.1 : st.settings.typingMin;
     el('#set-ta-msg-prob').value = st.settings.taMsgProb == null ? 8 : st.settings.taMsgProb;
     el('#set-ta-ignore').value = st.settings.taIgnoreProb == null ? 15 : st.settings.taIgnoreProb;
+    el('#set-merge-prob').value = st.settings.mergeProb == null ? 15 : st.settings.mergeProb;
+    el('#set-merge-min').value = st.settings.mergeMin == null ? 2 : st.settings.mergeMin;
+    el('#set-merge-max').value = st.settings.mergeMax == null ? 3 : st.settings.mergeMax;
     el('#set-emotion-prob').value = st.settings.emotionProb == null ? 30 : st.settings.emotionProb;
     el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
     el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
@@ -224,6 +227,7 @@
     el('#set-avatar-cooldown').value = st.settings.avatarCooldownMin == null ? 30 : st.settings.avatarCooldownMin;
     el('#set-ta-mail-prob').value = st.settings.taMailProb == null ? 12 : st.settings.taMailProb;
     el('#set-ta-mail-cooldown').value = st.settings.taMailCooldownMin == null ? 30 : st.settings.taMailCooldownMin;
+    el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
 
     const partnerSelect = el('#set-partner');
     partnerSelect.innerHTML = st.contacts.length
@@ -320,6 +324,7 @@
     bindAvatarProb('#set-avatar-me-prob', 'avatarMeProb');
     bindAvatarProb('#set-ta-quote', 'taQuoteProb');
     bindAvatarProb('#set-ta-mail-prob', 'taMailProb');
+    bindAvatarProb('#set-card-offer-prob', 'cardOfferProb');
 
     function bindMinutes(id, key, max) {
       const input = el(id);
@@ -375,6 +380,33 @@
 
     App.bindStepper('#set-ta-ignore', function (v) {
       App.state.settings.taIgnoreProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-merge-prob', function (v) {
+      App.state.settings.mergeProb = v;
+      markDirty();
+    });
+
+    el('#set-merge-min').addEventListener('change', function (e) {
+      let v = Math.max(2, Math.min(6, Number(e.target.value) || 2));
+      const max = Number(App.state.settings.mergeMax) || 3;
+      if (v > max) {
+        v = max;
+        e.target.value = v;
+      }
+      App.state.settings.mergeMin = v;
+      markDirty();
+    });
+
+    el('#set-merge-max').addEventListener('change', function (e) {
+      let v = Math.max(2, Math.min(6, Number(e.target.value) || 2));
+      const min = Number(App.state.settings.mergeMin) || 2;
+      if (v < min) {
+        v = min;
+        e.target.value = v;
+      }
+      App.state.settings.mergeMax = v;
       markDirty();
     });
 
