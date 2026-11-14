@@ -188,7 +188,14 @@
   const SURVEY_TA_TEMPLATES = [
     { text: '今天的心情怎么样？', mode: 'single', options: ['很好', '还不错', '有点累', '想静静'] },
     { text: '如果今晚可以一起做一件事，你想选？', mode: 'single', options: ['散步', '看电影', '聊天', '什么都不做'] },
-    { text: '最近有什么想被我知道的小事？', mode: 'card', options: [] },
+    { text: '你更喜欢我怎么陪你？', mode: 'single', options: ['安静待着', '一起聊天', '一起做点什么', '给我空间'] },
+    { text: '最近最想让我陪你做什么？', mode: 'multi', options: ['吃饭', '散步', '看电影', '聊天', '一起发呆'] },
+    { text: '哪些小事会让你觉得被在意？', mode: 'multi', options: ['早安晚安', '记得我说过的话', '主动找我', '小惊喜', '陪我吐槽'] },
+    { text: '这周有哪些想和我分享的？', mode: 'multi', options: ['工作学习', '好吃的', '好风景', '心情起伏', '没什么特别的'] },
+    { text: '最近有什么想被我知道的小事？', mode: 'text', options: [] },
+    { text: '如果现在能对我说一句话，你最想说什么？', mode: 'text', options: [] },
+    { text: '今天最想记住的一个瞬间是什么？', mode: 'text', options: [] },
+    { text: '睡前最想听到哪句话？', mode: 'text', options: [] },
   ];
 
   let surveyMode = 'card';
@@ -206,6 +213,7 @@
   function surveyModeLabel(mode) {
     if (mode === 'single') return '单选';
     if (mode === 'multi') return '多选';
+    if (mode === 'text') return '打字回答';
     return '字卡回答';
   }
 
@@ -385,20 +393,85 @@
     }, 2600 + Math.random() * 2600);
   }
 
-  /* 我在聊天里用文字回答 TA 的问卷后调用 */
-  App.noteSurveyTextReply = function (contactId) {
-    const chat = App.state.chats[contactId] || [];
-    for (let i = chat.length - 1; i >= 0; i--) {
-      const message = chat[i];
-      if (message.type === 'survey' && message.role === 'ta' && !message.answered) {
-        message.answered = true;
-        App.save();
-        if (App.chatOpen(contactId)) App.renderChat();
-        scheduleSurveyAppend(contactId);
-        return;
+  /* TA 发来的问卷：点开卡片，直接在浮层里选 / 写答案 */
+  let surveyAnswerState = null;
+
+  function surveyAnswerFormHtml(questions) {
+    return questions.map(function (q, index) {
+      const head = '<p class="survey-answer-q">' + (index + 1) + '. ' + App.esc(q.text) +
+        '<em>' + surveyModeLabel(q.mode) + '</em></p>';
+      let body = '';
+      if (q.mode === 'single' || q.mode === 'multi') {
+        body = '<div class="survey-choices" data-q="' + index + '">' +
+          (q.options || []).map(function (opt) {
+            return '<button type="button" class="survey-choice" data-q="' + index +
+              '" data-value="' + App.esc(opt) + '">' + App.esc(opt) + '</button>';
+          }).join('') + '</div>';
+      } else {
+        body = '<input type="text" class="survey-answer-input" data-q="' + index +
+          '" maxlength="80" placeholder="写一句回答">';
       }
-    }
+      return '<div class="survey-answer-item">' + head + body + '</div>';
+    }).join('');
+  }
+
+  App.openSurveyAnswer = function (contactId, surveyId) {
+    const chat = App.state.chats[contactId] || [];
+    const survey = chat.find(function (m) { return m.id === surveyId; });
+    if (!survey || survey.answered) return;
+    const body = el('#survey-answer-body');
+    if (!body) return;
+    surveyAnswerState = {
+      contactId: contactId,
+      surveyId: surveyId,
+      questions: survey.questions || [],
+      picked: {},
+    };
+    body.innerHTML = surveyAnswerFormHtml(surveyAnswerState.questions);
+    showToolPanel('#survey-answer-dialog');
   };
+
+  function submitSurveyAnswer() {
+    if (!surveyAnswerState) return;
+    const state = surveyAnswerState;
+    const chat = App.state.chats[state.contactId] || [];
+    const survey = chat.find(function (m) { return m.id === state.surveyId; });
+    if (!survey || survey.answered) {
+      hideToolPanel('#survey-answer-dialog');
+      surveyAnswerState = null;
+      return;
+    }
+    const answers = [];
+    for (let i = 0; i < state.questions.length; i++) {
+      const q = state.questions[i];
+      let answer = '';
+      if (q.mode === 'single' || q.mode === 'multi') {
+        const chosen = state.picked[i] || [];
+        if (!chosen.length) { App.toast('第 ' + (i + 1) + ' 题还没选'); return; }
+        answer = chosen.join('、');
+      } else {
+        const input = document.querySelector('#survey-answer-body .survey-answer-input[data-q="' + i + '"]');
+        answer = input ? String(input.value || '').trim() : '';
+        if (!answer) { App.toast('第 ' + (i + 1) + ' 题还没写'); return; }
+      }
+      answers.push({ text: q.text, mode: q.mode, answer: answer });
+    }
+    survey.answered = true;
+    survey.answeredAt = Date.now();
+    deliverMessage(state.contactId, {
+      id: App.uid('m'),
+      role: 'me',
+      type: 'surveyAnswerMine',
+      text: '我的回答',
+      surveyId: state.surveyId,
+      answers: answers,
+      ts: Date.now(),
+    });
+    hideToolPanel('#survey-answer-dialog');
+    surveyAnswerState = null;
+    scheduleSurveyAppend(state.contactId);
+    App.toast('答案已提交');
+  }
 
   /* 页面被关掉或切走时，已回答时间仍然按发送时刻计算 */
   function resumePendingSurveys() {
@@ -969,6 +1042,34 @@
     });
     const surveySend = el('#survey-send');
     if (surveySend) surveySend.addEventListener('click', sendSurvey);
+
+    /* TA 问卷的答题浮层：单选 / 多选 / 打字 */
+    const answerBody = el('#survey-answer-body');
+    if (answerBody) {
+      answerBody.addEventListener('click', function (e) {
+        const btn = e.target.closest('.survey-choice');
+        if (!btn || !surveyAnswerState) return;
+        const qIndex = Number(btn.dataset.q);
+        const question = surveyAnswerState.questions[qIndex];
+        if (!question) return;
+        const group = btn.parentElement;
+        if (question.mode === 'multi') {
+          btn.classList.toggle('is-on');
+          const picked = [];
+          group.querySelectorAll('.survey-choice.is-on').forEach(function (node) {
+            picked.push(node.dataset.value);
+          });
+          surveyAnswerState.picked[qIndex] = picked;
+        } else {
+          group.querySelectorAll('.survey-choice').forEach(function (node) {
+            node.classList.toggle('is-on', node === btn);
+          });
+          surveyAnswerState.picked[qIndex] = [btn.dataset.value];
+        }
+      });
+    }
+    const answerSubmit = el('#survey-answer-submit');
+    if (answerSubmit) answerSubmit.addEventListener('click', submitSurveyAnswer);
     resumePendingSurveys();
 
     /* 占卜：选牌种 / 张数、翻牌、重新开始、发送 */

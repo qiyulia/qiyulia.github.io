@@ -150,6 +150,7 @@
   function surveyModeText(mode) {
     if (mode === 'single') return '单选';
     if (mode === 'multi') return '多选';
+    if (mode === 'text') return '打字回答';
     return '字卡回答';
   }
 
@@ -164,11 +165,13 @@
       return '<li><span class="survey-card-q">' + (index + 1) + '. ' + App.esc(q.text) + '</span>' +
         '<em class="survey-card-mode">' + surveyModeText(q.mode) + '</em>' + options + '</li>';
     }).join('');
-    return '<div class="bubble bubble-survey">' +
+    const clickable = !mine && !m.answered;
+    return '<div class="bubble bubble-survey' + (clickable ? ' is-clickable' : '') + '"' +
+      (clickable ? ' data-answer-survey="' + App.esc(m.id) + '" role="button" tabindex="0"' : '') + '>' +
       '<div class="survey-card-head"><span class="survey-card-tag">小问卷</span><em>' + status + '</em></div>' +
       '<p class="survey-card-title">' + (mine ? '我发出的问卷' : App.esc(name) + ' 的问卷') + '</p>' +
       '<ol class="survey-card-list">' + questions + '</ol>' +
-      (!mine && !m.answered ? '<p class="survey-card-hint">直接在聊天里打字回答我。</p>' : '') +
+      (clickable ? '<p class="survey-card-hint">点开这张卡，直接选答案。</p>' : '') +
       '</div>';
   }
 
@@ -181,6 +184,18 @@
     return '<div class="bubble bubble-survey-answer">' +
       '<div class="survey-card-head"><span class="survey-card-tag">问卷答案</span><em>已作答</em></div>' +
       '<p class="survey-card-title">' + App.esc(name) + ' 的回答</p>' +
+      '<ul class="survey-card-list">' + answers + '</ul>' +
+      '</div>';
+  }
+
+  function surveyMineAnswerCardHtml(m) {
+    const answers = (m.answers || []).map(function (item) {
+      return '<li><span class="survey-card-q">' + App.esc(item.text) + '</span>' +
+        '<strong class="survey-card-a">' + App.esc(item.answer) + '</strong></li>';
+    }).join('');
+    return '<div class="bubble bubble-survey-answer">' +
+      '<div class="survey-card-head"><span class="survey-card-tag">问卷答案</span><em>已作答</em></div>' +
+      '<p class="survey-card-title">我的回答</p>' +
       '<ul class="survey-card-list">' + answers + '</ul>' +
       '</div>';
   }
@@ -263,6 +278,9 @@
     }
     if (m.type === 'surveyAnswer') {
       return messageCardShell(m, contact, surveyAnswerCardHtml(m, contact));
+    }
+    if (m.type === 'surveyAnswerMine') {
+      return messageCardShell(m, contact, surveyMineAnswerCardHtml(m));
     }
     if (m.type === 'divine') {
       return messageCardShell(m, contact, divineCardHtml(m));
@@ -590,7 +608,6 @@
     input.style.height = 'auto';
 
     if (role === 'me') {
-      if (App.noteSurveyTextReply) App.noteSurveyTextReply(App.chatContactId);
       scheduleReply(App.chatContactId, text);
       maybeTaSticker(App.chatContactId);
     }
@@ -1473,6 +1490,14 @@
     if (window.visualViewport) window.visualViewport.addEventListener('resize', keepBottom);
 
     document.addEventListener('click', function (e) {
+      const surveyOpen = e.target.closest('[data-answer-survey]');
+      if (surveyOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMsgActions();
+        if (App.openSurveyAnswer) App.openSurveyAnswer(App.chatContactId, surveyOpen.dataset.answerSurvey);
+        return;
+      }
       const packetBtn = e.target.closest('[data-rp-accept], [data-rp-return], [data-gift-accept], [data-gift-return]');
       if (packetBtn) {
         e.preventDefault();

@@ -2571,7 +2571,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   cursor: pointer;
 }
 .more-tab.is-on { background: #5b8fc9; color: #fff; }
-.more-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; margin: 14px 0 6px; }
+.more-apps { display: grid; grid-template-columns: repeat(4, 56px); gap: 14px 12px; margin: 14px 0 6px; }
 .more-app {
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   border: 0; background: none; padding: 0; font-size: 11px; color: var(--ink); cursor: pointer;
@@ -2586,8 +2586,6 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .more-app-icon.is-tool { background: linear-gradient(160deg, #8fb7de, #5b8fc9); }
 .more-app-icon.is-divine { background: linear-gradient(160deg, #b9a6dd, #8d73bd); }
 .more-app-icon.is-game { background: linear-gradient(160deg, #f0b489, #d98b5a); }
-/* 工具分类的两个应用整体略微左移，避免离右边太远 */
-.more-apps [data-cat="tool"] { transform: translateX(-10px); }
 
 /* ============ 问卷 / 占卜 / 扫雷：普通浮层（不用 dialog，避免关不掉） ============ */
 .tool-overlay {
@@ -2862,6 +2860,45 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .survey-card-options { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
 .survey-card-a { font-size: 13px; font-weight: 600; color: var(--accent); line-height: 1.4; }
 .survey-card-hint { margin-top: 8px; font-size: 10.5px; color: var(--muted); }
+.msgs .bubble-survey.is-clickable,
+.bubble-survey.is-clickable { cursor: pointer; }
+.bubble-survey.is-clickable:active { transform: scale(.99); }
+.survey-answer-item {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 0;
+  border-top: 1px dashed color-mix(in srgb, var(--ink) 15%, transparent);
+}
+.survey-answer-item:first-child { padding-top: 0; border-top: 0; }
+.survey-answer-q { font-size: 12.5px; line-height: 1.45; }
+.survey-answer-q em {
+  font-style: normal;
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-left: 5px;
+}
+.survey-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.survey-choice {
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+}
+.survey-choice.is-on {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.survey-answer-input {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  font-size: 13px;
+}
 .survey-append-row .emotion-chip { color: var(--accent); background: var(--accent-soft); }
 .divine-chat-cards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .divine-chat-card {
