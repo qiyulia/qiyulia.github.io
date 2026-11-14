@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-31">
+<link rel="stylesheet" href="css/style.css?v=20261114-32">
 </head>
 <body>
 <div class="stage">
@@ -783,8 +783,9 @@ if ('caches' in window) {
     </div>
     <label class="field">
       <span>内容</span>
-      <textarea id="card-text" rows="3" maxlength="200" placeholder="写一句想被随机说出口的话…" required></textarea>
+      <textarea id="card-text" rows="5" maxlength="2000" placeholder="写一句想被随机说出口的话…" required></textarea>
     </label>
+    <p class="field-hint">回车换行；空一行写下一张字卡，可一次保存多张。</p>
     <label class="field"><span>分类</span><select id="card-cat"></select></label>
     <div class="field-row" id="card-emotion-fields">
       <label class="field"><span>情绪</span><input id="card-emotion" maxlength="12" placeholder="如：高兴"></label>
@@ -907,15 +908,15 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261114-31"></script>
-<script src="js/store.js?v=20261114-31"></script>
-<script src="js/desktop.js?v=20261114-31"></script>
-<script src="js/chat.js?v=20261114-31"></script>
-<script src="js/cards.js?v=20261114-31"></script>
-<script src="js/settings.js?v=20261114-31"></script>
-<script src="js/moments.js?v=20261114-31"></script>
-<script src="js/calendar.js?v=20261114-31"></script>
-<script src="js/music.js?v=20261114-31"></script>
-<script src="js/app.js?v=20261114-31"></script>
+<script src="js/seed.js?v=20261114-32"></script>
+<script src="js/store.js?v=20261114-32"></script>
+<script src="js/desktop.js?v=20261114-32"></script>
+<script src="js/chat.js?v=20261114-32"></script>
+<script src="js/cards.js?v=20261114-32"></script>
+<script src="js/settings.js?v=20261114-32"></script>
+<script src="js/moments.js?v=20261114-32"></script>
+<script src="js/calendar.js?v=20261114-32"></script>
+<script src="js/music.js?v=20261114-32"></script>
+<script src="js/app.js?v=20261114-32"></script>
 </body>
 </html>

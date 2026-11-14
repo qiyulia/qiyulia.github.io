@@ -191,8 +191,12 @@
 
     el('#card-form').addEventListener('submit', async function (e) {
       e.preventDefault();
-      const text = el('#card-text').value.trim();
-      if (!text) {
+      const rawText = el('#card-text').value;
+      /* 新建时按空行拆分，一次可以写入多张字卡；编辑时只改当前这一张。 */
+      const texts = (editingCard ? [rawText] : rawText.split(/\n[ \t]*\n+/))
+        .map(function (t) { return t.trim(); })
+        .filter(Boolean);
+      if (!texts.length) {
         el('#card-text').focus();
         return;
       }
@@ -201,47 +205,52 @@
       const emotion = el('#card-emotion').value.trim().slice(0, 12) || '平常';
       const strength = el('#card-strength').value;
 
-      const target = editingCard || {
-        id: App.uid('card'),
-        enabled: true,
-        builtin: false,
-      };
-
+      let audio = '';
       if (category === '语音') {
         const file = el('#card-audio-file').files && el('#card-audio-file').files[0];
         if (file) {
           try {
-            target.audio = await fileToDataURL(file);
+            audio = await fileToDataURL(file);
           } catch (err) {
             App.toast(err.message || '语音读取失败');
             return;
           }
-        } else if (!target.audio) {
+        } else if (!editingCard || !editingCard.audio) {
           App.toast('语音字卡需要选择一段 mp3 文件');
           return;
         }
       }
 
-      target.text = text;
-      target.category = category;
-      target.trigger = trigger;
-
-      if (category === '情绪') {
-        target.emotion = emotion;
-        target.strength = strength;
-      } else {
-        delete target.emotion;
-        delete target.strength;
+      function fillCard(card, text) {
+        card.text = text;
+        card.category = category;
+        card.trigger = trigger;
+        if (category === '情绪') {
+          card.emotion = emotion;
+          card.strength = strength;
+        } else {
+          delete card.emotion;
+          delete card.strength;
+        }
+        if (category === '语音' && audio) card.audio = audio;
+        if (category !== '语音') delete card.audio;
       }
-      if (category !== '语音') delete target.audio;
 
-      if (!editingCard) App.state.cards.unshift(target);
+      if (editingCard) {
+        fillCard(editingCard, texts[0]);
+      } else {
+        texts.slice().reverse().forEach(function (text) {
+          const card = { id: App.uid('card'), enabled: true, builtin: false };
+          fillCard(card, text);
+          App.state.cards.unshift(card);
+        });
+      }
 
       App.save();
       dialog.close();
       App.renderCards();
       App.renderDesktop();
-      App.toast(editingCard ? '已更新字卡' : '已添加字卡');
+      App.toast(editingCard ? '已更新字卡' : (texts.length > 1 ? '已添加 ' + texts.length + ' 张字卡' : '已添加字卡'));
       editingCard = null;
     });
 
