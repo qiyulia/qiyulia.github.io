@@ -868,15 +868,20 @@
   function renderPatGrid() {
     const contact = currentContact();
     const name = contact ? contact.name : '你';
-    const cards = (App.state.cards || []).filter(function (c) {
-      return c.category === '拍一拍' && c.enabled !== false && c.text;
-    });
     const grid = el('#pat-grid');
     if (!grid) return;
+    let cards = [];
+    try {
+      cards = (App.state.cards || []).filter(function (c) {
+        return c.category === '拍一拍' && c.enabled !== false && c.text;
+      });
+    } catch (err) {
+      cards = [];
+    }
     grid.innerHTML = cards.length
       ? cards.map(function (c) {
           return '<button type="button" class="pat-item" data-send-pat="' + c.id + '">' +
-            App.esc(c.text.split('{name}').join(name)) +
+            App.esc(String(c.text).split('{name}').join(name)) +
           '</button>';
         }).join('')
       : '<p class="sticker-empty">字卡库里还没有拍一拍字卡，去「字卡」添加。</p>';
@@ -886,9 +891,17 @@
     if (!currentContact()) return;
     renderPatGrid();
     const dialog = el('#pat-picker-dialog');
-    if (dialog) dialog.showModal();
+    if (dialog && !dialog.open) dialog.showModal();
   }
   App.openPatPicker = openPatPicker;
+
+  /* 只要拍一拍弹窗被打开，就保证字卡网格已渲染（防止其它入口直接 open） */
+  const patDialogNode = el('#pat-picker-dialog');
+  if (patDialogNode && window.MutationObserver) {
+    new MutationObserver(function () {
+      if (patDialogNode.open) renderPatGrid();
+    }).observe(patDialogNode, { attributes: true, attributeFilter: ['open'] });
+  }
 
   function closeStickerPanel() {
     const panel = el('#sticker-panel');

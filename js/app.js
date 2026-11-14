@@ -113,6 +113,26 @@
     });
   });
 
+  /* 统一的关闭兜底：任何带 data-close 的按钮都能关掉所在弹窗 */
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-close]');
+    if (!btn) return;
+    const dialog = btn.closest('dialog');
+    if (dialog) {
+      e.preventDefault();
+      dialog.close();
+    }
+  });
+
+  /* 点弹窗外的遮罩也能关闭 */
+  document.addEventListener('click', function (e) {
+    if (e.target.tagName !== 'DIALOG') return;
+    const rect = e.target.getBoundingClientRect();
+    const inside = e.clientX >= rect.left && e.clientX <= rect.right &&
+      e.clientY >= rect.top && e.clientY <= rect.bottom;
+    if (!inside) e.target.close();
+  });
+
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       document.querySelectorAll('dialog[open]').forEach(function (d) { d.close(); });
