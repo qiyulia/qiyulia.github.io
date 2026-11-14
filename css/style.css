@@ -1760,6 +1760,36 @@ button.widget:active { transform: scale(.99); }
 .settings-tab.is-on { background: var(--accent); color: var(--accent-ink); }
 .settings-page { display: flex; flex-direction: column; gap: 12px; }
 .settings-page[hidden] { display: none; }
+
+/* 设置 · 备份分类 */
+.backup-scopes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+.backup-scope {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.backup-scope input {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+.backup-scope span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .chat-delete-panel { flex: 0 0 auto; padding: 12px 14px; gap: 8px; }
 
 .btn-row { display: flex; gap: 8px; }

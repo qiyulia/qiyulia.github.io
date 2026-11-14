@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-89">
+<link rel="stylesheet" href="css/style.css?v=20261114-90">
 </head>
 <body>
 <div class="stage">
@@ -870,6 +870,7 @@ if ('caches' in window) {
         <div class="settings-tabs" role="tablist" aria-label="设置分类">
           <button type="button" class="settings-tab is-on" role="tab" data-settings-page="profile">资料</button>
           <button type="button" class="settings-tab" role="tab" data-settings-page="look">美化</button>
+          <button type="button" class="settings-tab" role="tab" data-settings-page="backup">备份</button>
         </div>
 
         <div class="settings-page" data-settings-panel="profile">
@@ -989,16 +990,42 @@ if ('caches' in window) {
           </section>
         </div>
 
-        <div class="panel">
-          <h3>数据</h3>
-          <p class="panel-note">所有内容只保存在本机浏览器，不会上传。换设备或清理缓存前，请先导出备份。备份会保留歌曲信息，但不包含导入的音频文件。</p>
-          <div class="btn-row">
-            <button type="button" class="btn" id="btn-export-all">导出备份</button>
-            <button type="button" class="btn" id="btn-import-all">导入备份</button>
+        <div class="settings-page" data-settings-panel="backup" hidden>
+          <div class="panel">
+            <h3>备份内容</h3>
+            <p class="field-hint">导出时只写入勾选的分类；导入时也只覆盖勾选的分类，没勾的保持本机原样。</p>
+            <div class="backup-scopes" id="backup-scopes">
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="profile" checked><span>资料与联系人</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="chats" checked><span>聊天记录</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="cards" checked><span>字卡库</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="stickers" checked><span>表情包</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="look" checked><span>外观美化</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="settings" checked><span>互动设置</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="anniv" checked><span>纪念日与笔记</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="moments" checked><span>朋友圈</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="mail" checked><span>信箱</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="calendar" checked><span>日历</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="music" checked><span>音乐列表</span></label>
+              <label class="backup-scope"><input type="checkbox" data-backup-scope="market" checked><span>集市与钱包</span></label>
+            </div>
+            <div class="btn-row">
+              <button type="button" class="btn ghost" id="backup-select-all">全选</button>
+              <button type="button" class="btn ghost" id="backup-select-none">全不选</button>
+            </div>
           </div>
-          <button type="button" class="btn danger" id="btn-reset">清空并重置</button>
-          <p class="list-meta" id="storage-size"></p>
-          <input type="file" id="file-import-all" accept="application/json,.json" hidden>
+
+          <div class="panel">
+            <h3>导出与导入</h3>
+            <div class="btn-row">
+              <button type="button" class="btn primary" id="btn-export-all">导出所选备份</button>
+              <button type="button" class="btn" id="btn-import-all">导入备份</button>
+            </div>
+            <button type="button" class="btn danger" id="btn-reset">清空并重置</button>
+            <p class="list-meta" id="storage-size"></p>
+            <input type="file" id="file-import-all" accept="application/json,.json" hidden>
+          </div>
+
+          <p class="panel-note">所有内容只保存在本机浏览器，不会上传。备份包含图片与语音卡数据，但不包含导入的音乐音频文件。</p>
         </div>
 
         <p class="about-note">絮语 1.0 · 字卡传讯<br>纯本地运行，安静地存放你和 TA 的对话。</p>
@@ -1413,18 +1440,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-89"></script>
-<script src="js/store.js?v=20261114-89"></script>
-<script src="js/desktop.js?v=20261114-89"></script>
-<script src="js/chat.js?v=20261114-89"></script>
-<script src="js/cards.js?v=20261114-89"></script>
-<script src="js/settings.js?v=20261114-89"></script>
-<script src="js/moments.js?v=20261114-89"></script>
-<script src="js/calendar.js?v=20261114-89"></script>
-<script src="js/music.js?v=20261114-89"></script>
-<script src="js/market.js?v=20261114-89"></script>
-<script src="js/mail.js?v=20261114-89"></script>
-<script src="js/extras.js?v=20261114-89"></script>
-<script src="js/app.js?v=20261114-89"></script>
+<script src="js/seed.js?v=20261114-90"></script>
+<script src="js/store.js?v=20261114-90"></script>
+<script src="js/desktop.js?v=20261114-90"></script>
+<script src="js/chat.js?v=20261114-90"></script>
+<script src="js/cards.js?v=20261114-90"></script>
+<script src="js/settings.js?v=20261114-90"></script>
+<script src="js/moments.js?v=20261114-90"></script>
+<script src="js/calendar.js?v=20261114-90"></script>
+<script src="js/music.js?v=20261114-90"></script>
+<script src="js/market.js?v=20261114-90"></script>
+<script src="js/mail.js?v=20261114-90"></script>
+<script src="js/extras.js?v=20261114-90"></script>
+<script src="js/app.js?v=20261114-90"></script>
 </body>
 </html>

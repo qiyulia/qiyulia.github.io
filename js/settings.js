@@ -12,6 +12,124 @@
     }
   }
 
+  /* 备份分类：可勾选导出哪些内容，导入时只覆盖勾选的分类 */
+  const BACKUP_SCOPES = [
+    { key: 'profile', label: '资料与联系人', fields: ['profile', 'contacts', 'currentContactId'] },
+    { key: 'chats', label: '聊天记录', fields: ['chats'] },
+    { key: 'cards', label: '字卡库', fields: ['cards'] },
+    { key: 'stickers', label: '表情包', fields: ['stickers'] },
+    { key: 'look', label: '外观美化', fields: ['theme', 'look', 'iconStyle'] },
+    { key: 'settings', label: '互动设置', fields: ['settings'] },
+    { key: 'anniv', label: '纪念日与笔记', fields: ['anniversaries', 'reminders'] },
+    { key: 'moments', label: '朋友圈', fields: ['moments'] },
+    { key: 'mail', label: '信箱', fields: ['mail'] },
+    { key: 'calendar', label: '日历', fields: ['calendar'] },
+    { key: 'music', label: '音乐列表', fields: ['music'] },
+    { key: 'market', label: '集市与钱包', fields: ['wallet', 'market'] },
+  ];
+
+  function backupScopeInputs() {
+    return Array.from(document.querySelectorAll('[data-backup-scope]'));
+  }
+
+  function selectedBackupScopes() {
+    return BACKUP_SCOPES.filter(function (scope) {
+      const input = document.querySelector('[data-backup-scope="' + scope.key + '"]');
+      return input && input.checked;
+    });
+  }
+
+  function applyBackupData(data, scopes) {
+    const st = App.state;
+    scopes.forEach(function (scope) {
+      switch (scope.key) {
+        case 'profile':
+          if (data.profile && typeof data.profile === 'object') {
+            st.profile = Object.assign({}, st.profile, data.profile);
+          }
+          if (Array.isArray(data.contacts) && data.contacts.length) {
+            st.contacts = data.contacts.map(function (c) {
+              const copy = Object.assign({}, c);
+              if (!copy.id) copy.id = App.uid('c');
+              if (typeof copy.birthday !== 'string') copy.birthday = '';
+              if (!copy.settings || typeof copy.settings !== 'object') copy.settings = {};
+              return copy;
+            });
+            const want = data.currentContactId;
+            st.currentContactId = st.contacts.some(function (c) { return c.id === want; })
+              ? want
+              : st.contacts[0].id;
+          }
+          break;
+        case 'chats':
+          if (data.chats && typeof data.chats === 'object' && !Array.isArray(data.chats)) {
+            st.chats = data.chats;
+          }
+          break;
+        case 'cards':
+          if (Array.isArray(data.cards)) st.cards = data.cards;
+          break;
+        case 'stickers':
+          if (data.stickers && typeof data.stickers === 'object') {
+            st.stickers = {
+              mine: Array.isArray(data.stickers.mine) ? data.stickers.mine : [],
+              ta: Array.isArray(data.stickers.ta) ? data.stickers.ta : [],
+              public: Array.isArray(data.stickers.public) ? data.stickers.public : [],
+            };
+          }
+          break;
+        case 'look':
+          if (data.theme) st.theme = data.theme;
+          if (data.look && typeof data.look === 'object') st.look = Object.assign({}, st.look, data.look);
+          if (data.iconStyle && typeof data.iconStyle === 'object') {
+            st.iconStyle = Object.assign({}, st.iconStyle, data.iconStyle);
+          }
+          break;
+        case 'settings':
+          if (data.settings && typeof data.settings === 'object') {
+            st.settings = Object.assign({}, st.settings, data.settings);
+          }
+          break;
+        case 'anniv':
+          if (Array.isArray(data.anniversaries)) st.anniversaries = data.anniversaries;
+          if (Array.isArray(data.reminders)) st.reminders = data.reminders;
+          break;
+        case 'moments':
+          if (Array.isArray(data.moments)) st.moments = data.moments;
+          break;
+        case 'mail':
+          if (Array.isArray(data.mail)) st.mail = data.mail;
+          break;
+        case 'calendar':
+          if (data.calendar && typeof data.calendar === 'object') st.calendar = data.calendar;
+          break;
+        case 'music':
+          if (data.music) st.music = data.music;
+          break;
+        case 'market':
+          if (data.wallet && typeof data.wallet === 'object') st.wallet = data.wallet;
+          if (data.market && typeof data.market === 'object') st.market = data.market;
+          break;
+        default:
+          break;
+      }
+    });
+
+    App.normalizeCards(st);
+    if (App.normalizeMusic) App.normalizeMusic(st);
+    if (App.resetMusicMedia) App.resetMusicMedia();
+    App.chatContactId = null;
+    App.unread = {};
+    App.save();
+    App.applyTheme();
+    if (App.applyLook) App.applyLook();
+    App.renderAll();
+    App.renderSettings();
+    storageSize();
+    App.updateBadges();
+    App.go('desktop');
+  }
+
   let chatSettingsPage = 0;
 
   function showChatSettingsPage(index) {
@@ -358,14 +476,40 @@
     });
 
     el('#btn-export-all').addEventListener('click', function () {
+      const scopes = selectedBackupScopes();
+      if (!scopes.length) {
+        App.toast('先勾选要备份的内容');
+        return;
+      }
+      const data = { version: 1 };
+      scopes.forEach(function (scope) {
+        scope.fields.forEach(function (field) {
+          if (App.state[field] !== undefined) data[field] = App.state[field];
+        });
+      });
       App.downloadJSON({
         app: 'xuyu',
         type: 'backup',
+        version: 1,
         exportedAt: new Date().toISOString(),
-        data: App.state,
+        scopes: scopes.map(function (scope) { return scope.key; }),
+        data: data,
       }, 'xuyu-backup-' + App.stamp() + '.json');
-      App.toast('备份已导出');
+      App.toast('已导出 ' + scopes.length + ' 项内容');
     });
+
+    const selectAllBtn = el('#backup-select-all');
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', function () {
+        backupScopeInputs().forEach(function (input) { input.checked = true; });
+      });
+    }
+    const selectNoneBtn = el('#backup-select-none');
+    if (selectNoneBtn) {
+      selectNoneBtn.addEventListener('click', function () {
+        backupScopeInputs().forEach(function (input) { input.checked = false; });
+      });
+    }
 
     el('#btn-import-all').addEventListener('click', function () {
       el('#file-import-all').click();
@@ -378,84 +522,21 @@
 
       App.readJSONFile(file).then(function (payload) {
         const data = payload && payload.data ? payload.data : payload;
-        if (!data || data.version !== 1 || !Array.isArray(data.contacts) || !Array.isArray(data.cards)) {
+        if (!data || typeof data !== 'object') {
           throw new Error('这不是絮语的备份文件');
         }
-        if (!confirm('导入会覆盖当前的全部数据，确定继续？')) return;
+        const scopes = selectedBackupScopes().filter(function (scope) {
+          return scope.fields.some(function (field) { return data[field] !== undefined; });
+        });
+        if (!scopes.length) {
+          App.toast('备份里没有勾选的内容');
+          return;
+        }
+        const names = scopes.map(function (scope) { return scope.label; }).join('、');
+        if (!confirm('将用备份里的「' + names + '」覆盖本机对应内容，其他分类保持不动，继续？')) return;
 
-        if (!data.chats || typeof data.chats !== 'object' || Array.isArray(data.chats)) data.chats = {};
-        if (!Array.isArray(data.moments)) data.moments = [];
-        if (!Array.isArray(data.mail)) data.mail = [];
-        data.mail = data.mail.filter(function (m) {
-          return m && typeof m === 'object' && m.text;
-        }).map(function (m) {
-          if (!m.id) m.id = App.uid('mail');
-          m.from = m.from === 'me' ? 'me' : 'ta';
-          m.text = String(m.text);
-          m.ts = Number(m.ts) || Date.now();
-          m.read = m.from === 'me' ? true : !!m.read;
-          m.fav = !!m.fav;
-          if (!m.contactId) m.contactId = data.currentContactId;
-          return m;
-        });
-        if (!data.calendar || typeof data.calendar !== 'object') data.calendar = {};
-        if (!data.stickers || typeof data.stickers !== 'object') data.stickers = { mine: [], ta: [] };
-        if (!Array.isArray(data.stickers.mine)) data.stickers.mine = [];
-        if (!Array.isArray(data.stickers.ta)) data.stickers.ta = [];
-        if (!data.profile) data.profile = { userName: '我', userAvatar: '🍊', since: '' };
-        if (!data.settings) data.settings = { replyMin: 1, replyMax: 2, typingMin: 0.1 };
-        if (data.settings.typingMin == null) {
-          const legacyMs = Number(data.settings.typingMs);
-          data.settings.typingMin = Number.isFinite(legacyMs)
-            ? Math.max(0.1, Math.round(legacyMs / 6000) / 10)
-            : 0.1;
-        }
-        delete data.settings.typingMs;
-        if (data.settings.taMsgProb == null) data.settings.taMsgProb = 8;
-        if (data.settings.taIgnoreProb == null) data.settings.taIgnoreProb = 15;
-        if (data.settings.taLikeProb == null) data.settings.taLikeProb = 60;
-        if (data.settings.taCommentProb == null) data.settings.taCommentProb = 40;
-        if (data.settings.taMomentCards == null) data.settings.taMomentCards = 1;
-        if (data.settings.taMomentProb == null) data.settings.taMomentProb = 25;
-        if (data.settings.taMomentDailyMax == null) data.settings.taMomentDailyMax = 3;
-        if (data.settings.taMomentGapMin == null) data.settings.taMomentGapMin = 10;
-        if (data.settings.taMomentGapMax == null) data.settings.taMomentGapMax = 60;
-        if (data.settings.taMomentCardMin == null) data.settings.taMomentCardMin = Number(data.settings.taMomentCards) || 1;
-        if (data.settings.taMomentCardMax == null) data.settings.taMomentCardMax = Math.max(Number(data.settings.taMomentCardMin) || 1, Number(data.settings.taMomentCards) || 1);
-        if (data.settings.emotionProb == null) data.settings.emotionProb = 30;
-        if (data.settings.taRecallProb == null) data.settings.taRecallProb = 5;
-        if (data.settings.taQuoteProb == null) data.settings.taQuoteProb = 20;
-        if (data.settings.taFavProb == null) data.settings.taFavProb = 15;
-        if (data.settings.musicPauseProb == null) data.settings.musicPauseProb = 15;
-        if (data.settings.musicPlayProb == null) data.settings.musicPlayProb = 60;
-        if (data.settings.musicFavProb == null) data.settings.musicFavProb = 25;
-        if (data.settings.musicSwitchProb == null) data.settings.musicSwitchProb = 30;
-        if (data.settings.callIncomingProb == null) data.settings.callIncomingProb = 12;
-        if (data.settings.callAnswerProb == null) data.settings.callAnswerProb = 70;
-        if (data.settings.callBusyProb == null) data.settings.callBusyProb = 15;
-        if (data.settings.callRejectProb == null) data.settings.callRejectProb = 15;
-        if (data.settings.callHangupProb == null) data.settings.callHangupProb = 10;
-        if (!data.theme) data.theme = 'sand';
-        data.contacts.forEach(function (c) {
-          if (!c.id) c.id = App.uid('c');
-          if (!data.chats[c.id]) data.chats[c.id] = [];
-          if (!c.settings || typeof c.settings !== 'object') c.settings = {};
-          if (typeof c.birthday !== 'string') c.birthday = '';
-        });
-        if (!data.contacts.some(function (c) { return c.id === data.currentContactId; })) {
-          data.currentContactId = data.contacts.length ? data.contacts[0].id : null;
-        }
-        App.normalizeCards(data);
-        App.normalizeMusic(data);
-        if (App.resetMusicMedia) App.resetMusicMedia();
-        App.state = data;
-        App.chatContactId = null;
-        App.unread = {};
-        App.save();
-        App.applyTheme();
-        App.renderAll();
-        App.go('desktop');
-        App.toast('备份已导入');
+        applyBackupData(data, scopes);
+        App.toast('已导入：' + names);
       }).catch(function (err) {
         App.toast(err.message || '导入失败');
       });
