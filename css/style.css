@@ -3114,21 +3114,55 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 
 /* 占卜 */
+.divine-sheet {
+  height: 80vh;
+  max-height: 80vh;
+  margin-bottom: calc(16px + var(--safe-bottom));
+}
 .divine-block { display: flex; flex-direction: column; gap: 6px; }
 .tool-label { font-size: 11.5px; color: var(--muted); }
 .divine-types button, .divine-counts button { font-size: 12px; padding: 7px 4px; }
 .divine-board {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 250px;
+  padding: 2px 0 6px;
+}
+.divine-row {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 8px 0;
-  flex-wrap: nowrap;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.divine-row::-webkit-scrollbar { display: none; }
+.divine-picked {
+  flex: 0 0 auto;
+  min-height: 136px;
+  padding: 10px 2px 10px;
+  justify-content: safe center;
+  border-bottom: 1px dashed var(--line);
+}
+.divine-picked:empty::after {
+  content: '抽出的牌会出现在这里';
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.divine-deck {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 2px;
 }
 .divine-card {
   position: relative;
   flex: 0 0 auto;
-  width: 100px;
+  width: 58px;
   aspect-ratio: 2 / 3;
   padding: 0;
   border: 0;
@@ -3136,9 +3170,10 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   perspective: 700px;
   transition: transform .18s ease;
 }
-.divine-board.count-1 .divine-card { width: 112px; }
-.divine-board.count-3 .divine-card { width: calc((100% - 20px) / 3); }
-.divine-board.count-5 .divine-card { width: calc((100% - 40px) / 5); }
+.divine-picked .divine-card { width: 84px; }
+.divine-picked.count-1 .divine-card { width: 132px; }
+.divine-picked.count-3 .divine-card { width: 96px; }
+.divine-picked.count-5 .divine-card { width: 64px; }
 .divine-card-inner {
   position: relative;
   display: block;
@@ -3185,27 +3220,12 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 .divine-card-front em { font-style: normal; font-size: 10px; color: var(--muted); }
 .divine-card-front em.is-reversed { color: #b46449; }
-.divine-board.count-5 .divine-card-front strong { font-size: 11px; }
-.divine-board.count-5 .divine-card-front em { font-size: 9px; }
-/* 整副牌横向铺开，滑动手选 */
-.divine-board.is-deck {
-  justify-content: flex-start;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  gap: 8px;
-  padding: 12px 2px 16px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.divine-board.is-deck::-webkit-scrollbar { display: none; }
-.divine-board.is-deck .divine-card { width: 58px; }
-.divine-board.is-deck .divine-card-front { padding: 4px; }
-.divine-board.is-deck .divine-card-front strong { font-size: 10.5px; line-height: 1.25; }
-.divine-board.is-deck .divine-card-front em { font-size: 9px; }
-.divine-card.is-picked { transform: translateY(-5px); }
+.divine-picked.count-5 .divine-card-front strong { font-size: 10.5px; }
+.divine-picked.count-5 .divine-card-front em { font-size: 9px; }
+/* 下面这排是还没抽出来的牌，横向滑动选牌 */
+.divine-deck .divine-card-front { padding: 4px; }
+.divine-deck .divine-card-front strong { font-size: 10.5px; line-height: 1.25; }
+.divine-deck .divine-card-front em { font-size: 9px; }
 .divine-card.is-picked .divine-card-back {
   box-shadow: 0 10px 20px rgba(22, 50, 79, .38), 0 0 0 2px var(--accent);
 }

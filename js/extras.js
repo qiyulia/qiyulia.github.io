@@ -591,6 +591,19 @@
     });
   }
 
+  /* 把牌放回牌堆里它原来的位置（按牌的序号插回去） */
+  function returnCardToDeck(button) {
+    const deck = el('#divine-deck');
+    if (!deck || !button) return;
+    const index = Number(button.dataset.divinePick);
+    let next = null;
+    Array.prototype.forEach.call(deck.children, function (node) {
+      if (next) return;
+      if (Number(node.dataset.divinePick) > index) next = node;
+    });
+    deck.insertBefore(button, next || null);
+  }
+
   /* 点牌：选中 / 取消选中，选满数量后可以翻牌，也能随时重选 */
   function toggleDivinePick(button) {
     if (!button || divine.phase === 'idle') return;
@@ -603,6 +616,7 @@
       button.classList.remove('is-picked', 'is-flipped');
       const front = button.querySelector('.divine-card-front');
       if (front) front.innerHTML = '';
+      returnCardToDeck(button);
       if (divine.phase === 'revealed') divine.phase = 'pick';
     } else {
       if (divine.picks.length >= divine.count) {
@@ -611,6 +625,8 @@
       }
       divine.picks.push(index);
       button.classList.add('is-picked');
+      const picked = el('#divine-picked');
+      if (picked) picked.appendChild(button);
     }
     renderDivineOrder();
     updateDivineControls();
@@ -643,6 +659,7 @@
       node.classList.remove('is-picked', 'is-flipped');
       const front = node.querySelector('.divine-card-front');
       if (front) front.innerHTML = '';
+      returnCardToDeck(node);
     });
     renderDivineOrder();
     updateDivineControls();
@@ -704,11 +721,15 @@
       divine.type = '';
       divine.count = 0;
     }
-    const board = el('#divine-board');
-    if (board) {
-      board.innerHTML = '';
-      board.className = 'divine-board';
+    const picked = el('#divine-picked');
+    if (picked) {
+      picked.innerHTML = '';
+      picked.className = 'divine-row divine-picked';
     }
+    const deck = el('#divine-deck');
+    if (deck) deck.innerHTML = '';
+    const board = el('#divine-board');
+    if (board) board.className = 'divine-board';
     updateDivineControls();
   }
 
@@ -719,14 +740,20 @@
     divine.picks = [];
     divine.cards = {};
     divine.phase = 'pick';
-    const board = el('#divine-board');
-    if (board) {
-      board.className = 'divine-board is-deck';
-      board.innerHTML = divine.deck.map(function (name, i) {
+    const picked = el('#divine-picked');
+    if (picked) {
+      picked.innerHTML = '';
+      picked.className = 'divine-row divine-picked count-' + divine.count;
+    }
+    const deck = el('#divine-deck');
+    if (deck) {
+      deck.innerHTML = divine.deck.map(function (name, i) {
         return divineCardHtml(i);
       }).join('');
-      board.scrollLeft = 0;
+      deck.scrollLeft = 0;
     }
+    const board = el('#divine-board');
+    if (board) board.className = 'divine-board is-deck';
     updateDivineControls();
   }
 
