@@ -1020,16 +1020,81 @@
     return true;
   }
 
+  function avatarNoticeContactId() {
+    const st = App.state;
+    if (st.currentContactId && st.contacts.some(function (c) { return c.id === st.currentContactId; })) {
+      return st.currentContactId;
+    }
+    return st.contacts.length ? st.contacts[0].id : null;
+  }
+
+  function pushAvatarNotice(text) {
+    const contactId = avatarNoticeContactId();
+    if (!contactId) return;
+    const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+    chat.push({ id: App.uid('m'), role: 'ta', type: 'avatarNotice', text: text, ts: Date.now(), read: true });
+    App.save();
+    if (App.chatOpen(contactId)) App.renderChat();
+  }
+
+  function taDisplayName() {
+    const contact = avatarToolContact();
+    return contact ? contact.name : 'TA';
+  }
+
+  let avatarRequest = null;
+  let avatarRequestTimer = 0;
+
+  function closeAvatarRequest() {
+    if (avatarRequestTimer) clearTimeout(avatarRequestTimer);
+    avatarRequestTimer = 0;
+    avatarRequest = null;
+    const dialog = el('#avatar-request-dialog');
+    if (dialog) dialog.hidden = true;
+  }
+
+  function openAvatarRequest(slot, src) {
+    if (avatarRequest || !src) return;
+    avatarRequest = { slot: slot, src: src };
+    const img = el('#avatar-request-img');
+    if (img) img.src = src;
+    const title = el('#avatar-request-title');
+    if (title) title.textContent = taDisplayName() + ' 想给你换个头像';
+    const note = el('#avatar-request-note');
+    if (note) note.textContent = '他挑的是「我的头像」里的第 ' + (slot + 1) + ' 张，同意就换成这张。';
+    const dialog = el('#avatar-request-dialog');
+    if (dialog) dialog.hidden = false;
+    avatarRequestTimer = setTimeout(function () {
+      if (!avatarRequest) return;
+      closeAvatarRequest();
+      pushAvatarNotice(taDisplayName() + ' 等了一会儿，先不换了');
+    }, 90000);
+  }
+
+  function rejectAvatarRequest() {
+    if (!avatarRequest) return;
+    const name = taDisplayName();
+    closeAvatarRequest();
+    pushAvatarNotice('你拒绝了换头像，' + name + ' 说那就下次再问');
+  }
+
   function runAvatarSwap(auto) {
     const pool = avatarPoolData();
     if (!pool.mine.length && !pool.ta.length) {
       if (!auto) App.toast('先导入几张头像');
       return;
     }
-    const selfOn = pool.ta.length > 0 && Math.random() * 100 < avatarProb('avatarSelfProb', 40);
+    const name = taDisplayName();
+    let selfOn = pool.ta.length > 0 && Math.random() * 100 < avatarProb('avatarSelfProb', 40);
     const meOn = pool.mine.length > 0 && Math.random() * 100 < avatarProb('avatarMeProb', 25);
+    let refused = false;
+    if (selfOn && Math.random() < 0.3) {
+      selfOn = false;
+      refused = true;
+    }
     if (!selfOn && !meOn) {
-      if (!auto) App.toast('这次 TA 没换头像');
+      if (refused) pushAvatarNotice(name + ' 想了想，这次没换自己的头像');
+      else if (!auto) App.toast('这次 TA 没换头像');
       return;
     }
     /* 以我当前头像在「我的头像」里的位置为基准，TA 大概率换到同一位置 */
@@ -1039,27 +1104,30 @@
       const prefer = mySlot === -1 ? Math.floor(Math.random() * pool.ta.length) : mySlot;
       selfSlot = pickIndexBySameSlot(pool.ta, prefer, 0.75);
       if (changeContactAvatar(selfSlot)) {
-        App.toast('TA 换成了他的第 ' + (selfSlot + 1) + ' 张头像');
+        pushAvatarNotice(name + ' 换成了他的第 ' + (selfSlot + 1) + ' 张头像');
+      } else {
+        selfOn = false;
       }
     }
+    if (refused) pushAvatarNotice(name + ' 想了想，这次没换自己的头像');
     if (!meOn) {
       renderAvatarPool();
       return;
     }
-    const doMine = function () {
-      const base = selfSlot >= 0
-        ? selfSlot
-        : (mySlot === -1 ? Math.floor(Math.random() * pool.mine.length) : mySlot);
-      const slot = pickIndexBySameSlot(pool.mine, base, 0.78);
-      if (changeMyAvatar(slot)) App.toast('TA 把你的头像换成了第 ' + (slot + 1) + ' 张');
+    if (avatarRequest) {
       renderAvatarPool();
-    };
-    if (selfOn) {
-      clearTimeout(avatarSwapTimers.mine);
-      avatarSwapTimers.mine = setTimeout(doMine, 4000 + Math.random() * 5000);
-    } else {
-      doMine();
+      return;
     }
+    const base = selfSlot >= 0
+      ? selfSlot
+      : (mySlot === -1 ? Math.floor(Math.random() * pool.mine.length) : mySlot);
+    const slot = pickIndexBySameSlot(pool.mine, base, 0.78);
+    const src = pool.mine[slot];
+    clearTimeout(avatarSwapTimers.mine);
+    avatarSwapTimers.mine = setTimeout(function () {
+      openAvatarRequest(slot, src);
+    }, selfOn ? 4000 + Math.random() * 5000 : 1500 + Math.random() * 1500);
+    renderAvatarPool();
   }
 
   App.initExtras = function () {
@@ -1388,6 +1456,25 @@
         avatarFile.value = '';
       });
     }
+
+    const avatarAccept = el('#avatar-request-accept');
+    if (avatarAccept) avatarAccept.addEventListener('click', function () {
+      if (!avatarRequest) return;
+      const slot = avatarRequest.slot;
+      const name = taDisplayName();
+      closeAvatarRequest();
+      if (changeMyAvatar(slot)) {
+        pushAvatarNotice('你同意了，' + name + ' 把你的头像换成了第 ' + (slot + 1) + ' 张');
+      }
+      renderAvatarPool();
+    });
+    const avatarReject = el('#avatar-request-reject');
+    if (avatarReject) avatarReject.addEventListener('click', rejectAvatarRequest);
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !avatarRequest) return;
+      e.stopImmediatePropagation();
+      rejectAvatarRequest();
+    }, true);
 
     const mineReset = el('#mine-reset');
     if (mineReset) mineReset.addEventListener('click', resetMine);

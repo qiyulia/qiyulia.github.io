@@ -301,6 +301,9 @@
         '</div>' +
         '</div>';
     }
+    if (m.type === 'avatarNotice') {
+      return '<div class="msg-notice">★ ' + App.esc(m.text) + '</div>';
+    }
     const hasFrequency = !m.surveyAppend && (m.strength != null || m.percent != null || m.type === 'emotion');
     const hasEmotion = !!m.emotion || m.type === 'emotion';
     const strength = ['强', '中', '弱'].indexOf(m.strength) !== -1 ? m.strength : '中';
