@@ -4,6 +4,8 @@
   const el = function (sel) { return document.querySelector(sel); };
 
   let editingCard = null;
+  let batchMode = false;
+  let selected = {};
   const dialog = el('#card-dialog');
 
   function fillCategories() {
@@ -46,6 +48,16 @@
       ? list.map(cardRow).join('')
       : empty);
 
+    const bar = el('#card-batch-bar');
+    if (bar) {
+      bar.hidden = !batchMode;
+      if (batchMode) {
+        el('#card-batch-count').textContent = '已选 ' + Object.keys(selected).length + ' 张，点字卡可多选';
+      }
+    }
+    const batchBtn = el('#btn-batch-trigger');
+    if (batchBtn) batchBtn.classList.toggle('is-on', batchMode);
+
     const enabled = App.state.cards.filter(function (c) { return c.enabled; }).length;
     el('#card-count').textContent = '共 ' + App.state.cards.length + ' 张，已启用 ' + enabled + ' 张';
   };
@@ -59,7 +71,22 @@
       (c.category === '语音'
         ? '<span class="tag">语音' + (c.audio ? ' · mp3' : ' · 未添加') + '</span>'
         : '');
-    return '<div class="card-item" data-id="' + c.id + '">' +
+    const picked = !!selected[c.id];
+    const check = batchMode
+      ? '<span class="card-check">' + (picked ? '✓' : '') + '</span>'
+      : '';
+    const side = batchMode ? '' :
+      '<div class="card-side">' +
+        '<label class="switch" title="启用 / 停用">' +
+          '<input type="checkbox" data-toggle="' + c.id + '"' + (c.enabled ? ' checked' : '') + '>' +
+          '<span class="slider"></span>' +
+        '</label>' +
+        '<button type="button" class="mini-btn" data-edit-card="' + c.id + '" aria-label="编辑字卡">✎</button>' +
+        '<button type="button" class="mini-btn" data-del-card="' + c.id + '" aria-label="删除字卡">✕</button>' +
+      '</div>';
+    return '<div class="card-item' + (batchMode ? ' is-batch' : '') + (picked ? ' is-selected' : '') +
+      '" data-id="' + c.id + '"' + (batchMode ? ' data-batch-toggle="' + c.id + '"' : '') + '>' +
+      check +
       '<div class="card-main">' +
         '<p class="card-text">' + App.esc(c.text) + '</p>' +
         '<div class="card-meta">' +
@@ -69,14 +96,7 @@
           (c.builtin ? '<span class="tag ghost">内置</span>' : '') +
         '</div>' +
       '</div>' +
-      '<div class="card-side">' +
-        '<label class="switch" title="启用 / 停用">' +
-          '<input type="checkbox" data-toggle="' + c.id + '"' + (c.enabled ? ' checked' : '') + '>' +
-          '<span class="slider"></span>' +
-        '</label>' +
-        '<button type="button" class="mini-btn" data-edit-card="' + c.id + '" aria-label="编辑字卡">✎</button>' +
-        '<button type="button" class="mini-btn" data-del-card="' + c.id + '" aria-label="删除字卡">✕</button>' +
-      '</div>' +
+      side +
       '</div>';
   }
 
@@ -247,6 +267,40 @@
     });
   }
 
+  function exitBatch() {
+    batchMode = false;
+    selected = {};
+    const input = el('#card-batch-trigger');
+    if (input) input.value = '';
+    App.renderCards();
+  }
+
+  function applyBatchTrigger() {
+    const input = el('#card-batch-trigger');
+    const value = input ? input.value.trim().slice(0, 40) : '';
+    const ids = Object.keys(selected);
+    if (!ids.length) {
+      App.toast('先点选要修改的字卡');
+      return;
+    }
+    if (!value) {
+      App.toast('先写触发词');
+      if (input) input.focus();
+      return;
+    }
+    let count = 0;
+    ids.forEach(function (id) {
+      const card = findCard(id);
+      if (!card) return;
+      card.trigger = value;
+      count++;
+    });
+    App.save();
+    App.renderDesktop();
+    exitBatch();
+    App.toast('已为 ' + count + ' 张字卡设置触发词');
+  }
+
   function restoreBuiltins() {
     const existing = {};
     App.state.cards.forEach(function (c) { existing[c.id] = true; });
@@ -396,6 +450,28 @@
       App.toast(removed ? '已删除 ' + removed + ' 张重复字卡' : '没有重复的字卡');
     });
 
+    el('#btn-batch-trigger').addEventListener('click', function () {
+      if (batchMode) {
+        exitBatch();
+        return;
+      }
+      batchMode = true;
+      selected = {};
+      const input = el('#card-batch-trigger');
+      if (input) input.value = '';
+      App.renderCards();
+      setTimeout(function () { if (input) input.focus(); }, 60);
+    });
+
+    el('#card-batch-cancel').addEventListener('click', exitBatch);
+    el('#card-batch-apply').addEventListener('click', applyBatchTrigger);
+    el('#card-batch-trigger').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyBatchTrigger();
+      }
+    });
+
     el('#btn-import-cards').addEventListener('click', function () {
       el('#card-import-dialog').showModal();
     });
@@ -427,6 +503,14 @@
       }
       if (e.target.closest('[data-import-voice]')) {
         openCardDialog(null, '语音');
+        return;
+      }
+      const batchCard = e.target.closest('[data-batch-toggle]');
+      if (batchCard) {
+        const id = batchCard.dataset.batchToggle;
+        if (selected[id]) delete selected[id];
+        else selected[id] = true;
+        App.renderCards();
         return;
       }
       const edit = e.target.closest('[data-edit-card]');

@@ -1451,6 +1451,56 @@ button.widget:active { transform: scale(.99); }
 .card-voice-copy strong { font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .card-voice-copy em { font-style: normal; font-size: 11.5px; color: var(--muted); }
 
+/* 批量设置触发词 */
+.card-batch-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.card-batch-bar[hidden] { display: none; }
+.card-batch-row { display: flex; gap: 8px; align-items: center; }
+.card-batch-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field);
+  font-size: 13px;
+  color: var(--ink);
+}
+.card-batch-row .btn {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.card-item.is-batch { cursor: pointer; }
+.card-item.is-selected { border-color: var(--accent); background: var(--accent-soft); }
+.card-check {
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  line-height: 1;
+  color: transparent;
+}
+.card-item.is-selected .card-check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.tool-btn.is-on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+
 .card-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 
 .card-text {
