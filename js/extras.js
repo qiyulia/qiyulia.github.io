@@ -186,16 +186,30 @@
 
   /* ---------------- 工具：问卷 ---------------- */
   const SURVEY_TA_TEMPLATES = [
+    /* 单选 7 题 */
     { text: '今天的心情怎么样？', mode: 'single', options: ['很好', '还不错', '有点累', '想静静'] },
     { text: '如果今晚可以一起做一件事，你想选？', mode: 'single', options: ['散步', '看电影', '聊天', '什么都不做'] },
     { text: '你更喜欢我怎么陪你？', mode: 'single', options: ['安静待着', '一起聊天', '一起做点什么', '给我空间'] },
+    { text: '现在在干嘛呢？', mode: 'single', options: ['工作 / 学习', '躺着休息', '在外面', '刚忙完'] },
+    { text: '我刚发消息的时候，你在看手机吗？', mode: 'single', options: ['一直在', '刚看到', '在忙没注意', '准备回你'] },
+    { text: '今晚大概几点睡？', mode: 'single', options: ['十一点前', '十二点左右', '一两点', '说不准'] },
+    { text: '明天有没有想见我？', mode: 'single', options: ['很想', '想', '看情况', '暂时不了'] },
+    /* 多选 7 题 */
     { text: '最近最想让我陪你做什么？', mode: 'multi', options: ['吃饭', '散步', '看电影', '聊天', '一起发呆'] },
     { text: '哪些小事会让你觉得被在意？', mode: 'multi', options: ['早安晚安', '记得我说过的话', '主动找我', '小惊喜', '陪我吐槽'] },
     { text: '这周有哪些想和我分享的？', mode: 'multi', options: ['工作学习', '好吃的', '好风景', '心情起伏', '没什么特别的'] },
+    { text: '现在身边都有谁？', mode: 'multi', options: ['就我一个', '同事 / 同学', '家人', '朋友'] },
+    { text: '今天都和谁聊过天？', mode: 'multi', options: ['同事 / 同学', '家人', '朋友', '陌生人', '只和你'] },
+    { text: '周末想怎么过？', mode: 'multi', options: ['宅家', '出门走走', '见朋友', '和你待着'] },
+    { text: '最近在偷偷准备什么？', mode: 'multi', options: ['没什么', '一个惊喜', '工作上的事', '还没想好'] },
+    /* 打字回答 7 题 */
     { text: '最近有什么想被我知道的小事？', mode: 'text', options: [] },
     { text: '如果现在能对我说一句话，你最想说什么？', mode: 'text', options: [] },
     { text: '今天最想记住的一个瞬间是什么？', mode: 'text', options: [] },
     { text: '睡前最想听到哪句话？', mode: 'text', options: [] },
+    { text: '你现在具体在什么地方？', mode: 'text', options: [] },
+    { text: '今天有没有哪一刻突然想起我？', mode: 'text', options: [] },
+    { text: '最近有什么话，想说又没说出口？', mode: 'text', options: [] },
   ];
 
   let surveyMode = 'card';
