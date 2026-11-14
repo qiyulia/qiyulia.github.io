@@ -15,6 +15,10 @@
   }
 
   App.go = function (view) {
+    /* 切页面前关掉所有弹窗，避免弹窗留在主界面挡住操作 */
+    document.querySelectorAll('dialog[open]').forEach(function (d) {
+      try { d.close(); } catch (err) {}
+    });
     rememberView(view);
     if (App.closeMsgActions) App.closeMsgActions();
     document.querySelectorAll('.view').forEach(function (v) {
@@ -111,6 +115,11 @@
     btn.addEventListener('click', function () {
       btn.closest('dialog').close();
     });
+  });
+
+  /* 页面加载时如果还有弹窗处于打开状态，先关掉 */
+  document.querySelectorAll('dialog[open]').forEach(function (d) {
+    try { d.close(); } catch (err) {}
   });
 
   /* 同一个时间只允许一个弹窗：打开新弹窗前先关掉其它已打开的，避免叠层卡死 */
