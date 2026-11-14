@@ -677,6 +677,7 @@
 
       await sleep(240);
     }
+    maybeTaCall(contactId, contact, cs);
   }
 
   /* ---------- 表情包 ---------- */
@@ -886,13 +887,113 @@
     if (moved) setTimeout(function () { suppressCallClick = false; }, 0);
   }
 
+  function clampProb(value) {
+    return Math.max(0, Math.min(100, Number(value) || 0));
+  }
+
+  function callContact(session) {
+    return App.state.contacts.find(function (c) { return c.id === session.contactId; });
+  }
+
+  function setCallControls(mode) {
+    const connected = mode === 'connected';
+    const incoming = mode === 'incoming';
+    el('#call-accept-item').hidden = !incoming;
+    el('#call-mute-item').hidden = !connected;
+    el('#call-speaker-item').hidden = !connected;
+    el('#call-end-item').hidden = mode === 'ending';
+    el('#call-end-label').textContent = mode === 'outgoing' ? '取消' : '挂断';
+    el('#call-minimize').hidden = incoming || mode === 'ending';
+  }
+
+  function prepareCallUi(contact) {
+    el('#call-avatar').innerHTML = App.avatarHtml(contact.avatar);
+    el('#call-name').textContent = contact.name;
+    renderCallToggle('mute');
+    renderCallToggle('speaker');
+    setCallMinimized(false);
+    el('#call-overlay').hidden = false;
+  }
+
+  function clearCallTimers(session) {
+    clearTimeout(session.answerTimer);
+    clearTimeout(session.hangupTimer);
+    clearTimeout(session.endTimer);
+    clearInterval(session.ticker);
+  }
+
+  function pushCallLog(session, text) {
+    const chat = App.state.chats[session.contactId] || (App.state.chats[session.contactId] = []);
+    chat.push({ id: App.uid('m'), role: 'me', type: 'call', text: text, ts: Date.now() });
+    App.save();
+    if (App.chatContactId === session.contactId) App.renderChat();
+    App.renderContacts();
+  }
+
+  function closeCall(session, text) {
+    if (!session || callState !== session) return;
+    callState = null;
+    clearCallTimers(session);
+    el('#call-overlay').hidden = true;
+    pushCallLog(session, text);
+    el('#btn-call').focus();
+  }
+
+  function connectCall(session) {
+    if (!session || callState !== session || session.connected) return;
+    session.connected = true;
+    session.phase = 'connected';
+    session.startedAt = Date.now();
+    el('#call-avatar-wrap').classList.remove('is-ringing');
+    el('#call-status').textContent = '正在通话';
+    el('#call-timer').textContent = '00:00';
+    setCallControls('connected');
+    updateCallTimer();
+    session.ticker = setInterval(updateCallTimer, 1000);
+    const contact = callContact(session);
+    if (contact) scheduleTaHangup(session, contact);
+  }
+
+  /* 通话中 TA 按概率挂断，结果随机显示忙音或拒接 */
+  function scheduleTaHangup(session, contact) {
+    const prob = clampProb(App.contactSettings(contact).callHangupProb);
+    session.hangupTimer = setTimeout(function () {
+      if (callState !== session || !session.connected) return;
+      if (Math.random() * 100 < prob) {
+        endCallWithNotice(session, Math.random() < 0.5 ? 'busy' : 'reject');
+      } else {
+        scheduleTaHangup(session, contact);
+      }
+    }, 7000 + Math.random() * 5000);
+  }
+
+  function endCallWithNotice(session, kind) {
+    if (callState !== session || session.phase === 'ending') return;
+    session.phase = 'ending';
+    clearCallTimers(session);
+    el('#call-avatar-wrap').classList.remove('is-ringing');
+    el('#call-status').textContent = kind === 'busy' ? '对方忙音…' : '对方已拒接';
+    el('#call-timer').textContent = '';
+    setCallControls('ending');
+    const reason = kind === 'busy' ? '对方忙音' : '对方拒接';
+    const duration = session.connected ? Math.max(1, Math.floor((Date.now() - session.startedAt) / 1000)) : 0;
+    const text = session.connected
+      ? '语音通话 · ' + formatCallDuration(duration) + ' · ' + reason
+      : '语音通话 · ' + reason;
+    App.toast(reason);
+    session.endTimer = setTimeout(function () { closeCall(session, text); }, 1500);
+  }
+
   function startCall() {
     const contact = currentContact();
     if (!contact || callState) return;
     closeStickerPanel();
     closeMsgActions();
+    const cs = App.contactSettings(contact);
     callState = {
       contactId: contact.id,
+      direction: 'out',
+      phase: 'ringing',
       connected: false,
       startedAt: 0,
       muted: false,
@@ -900,52 +1001,83 @@
       minimized: false,
       miniPosition: null,
       answerTimer: null,
+      hangupTimer: null,
+      endTimer: null,
       ticker: null,
     };
-    el('#call-avatar').innerHTML = App.avatarHtml(contact.avatar);
-    el('#call-name').textContent = contact.name;
+    prepareCallUi(contact);
     el('#call-status').textContent = '正在呼叫…';
     el('#call-timer').textContent = '等待对方接听';
     el('#call-avatar-wrap').classList.add('is-ringing');
-    renderCallToggle('mute');
-    renderCallToggle('speaker');
-    setCallMinimized(false);
-    el('#call-overlay').hidden = false;
+    setCallControls('outgoing');
     el('#call-end').focus();
 
     const session = callState;
     session.answerTimer = setTimeout(function () {
       if (callState !== session) return;
-      session.connected = true;
-      session.startedAt = Date.now();
-      el('#call-avatar-wrap').classList.remove('is-ringing');
-      el('#call-status').textContent = '正在通话';
-      updateCallTimer();
-      session.ticker = setInterval(updateCallTimer, 1000);
-    }, 1500);
+      const roll = Math.random() * 100;
+      const answer = clampProb(cs.callAnswerProb);
+      const busy = clampProb(cs.callBusyProb);
+      const reject = clampProb(cs.callRejectProb);
+      if (roll < answer) connectCall(session);
+      else if (roll < answer + busy) endCallWithNotice(session, 'busy');
+      else if (roll < answer + busy + reject) endCallWithNotice(session, 'reject');
+      else connectCall(session);
+    }, 1600 + Math.random() * 1600);
+  }
+
+  /* TA 主动来电：我这边弹出接通 / 挂断 */
+  function startIncomingCall(contactId) {
+    if (callState) return;
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact) return;
+    closeStickerPanel();
+    closeMsgActions();
+    callState = {
+      contactId: contactId,
+      direction: 'in',
+      phase: 'ringing',
+      connected: false,
+      startedAt: 0,
+      muted: false,
+      speaker: false,
+      minimized: false,
+      miniPosition: null,
+      answerTimer: null,
+      hangupTimer: null,
+      endTimer: null,
+      ticker: null,
+    };
+    prepareCallUi(contact);
+    el('#call-status').textContent = '邀请你语音通话…';
+    el('#call-timer').textContent = '来电';
+    el('#call-avatar-wrap').classList.add('is-ringing');
+    setCallControls('incoming');
+    el('#call-accept').focus();
+  }
+
+  /* TA 每次回复后，按概率打来电话 */
+  function maybeTaCall(contactId, contact, cs) {
+    if (!contact) return;
+    if (Math.random() * 100 >= clampProb(cs.callIncomingProb)) return;
+    setTimeout(function () {
+      if (callState) return;
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      startIncomingCall(contactId);
+    }, 2200 + Math.random() * 2400);
   }
 
   function finishCall() {
     if (!callState) return;
     const session = callState;
-    callState = null;
-    clearTimeout(session.answerTimer);
-    clearInterval(session.ticker);
-    const duration = session.connected ? Math.max(1, Math.floor((Date.now() - session.startedAt) / 1000)) : 0;
-    el('#call-overlay').hidden = true;
-
-    const chat = App.state.chats[session.contactId] || (App.state.chats[session.contactId] = []);
-    chat.push({
-      id: App.uid('m'),
-      role: 'me',
-      type: 'call',
-      text: session.connected ? '语音通话 · ' + formatCallDuration(duration) : '语音通话已取消',
-      ts: Date.now(),
-    });
-    App.save();
-    if (App.chatContactId === session.contactId) App.renderChat();
-    App.renderContacts();
-    el('#btn-call').focus();
+    if (session.phase === 'ending') return;
+    if (session.connected) {
+      const duration = Math.max(1, Math.floor((Date.now() - session.startedAt) / 1000));
+      closeCall(session, '语音通话 · ' + formatCallDuration(duration));
+      return;
+    }
+    if (session.direction === 'in') closeCall(session, '语音通话 · 已拒绝来电');
+    else closeCall(session, '语音通话已取消');
   }
 
   App.initChat = function () {
@@ -1069,6 +1201,9 @@
       }
     });
     el('#call-end').addEventListener('click', finishCall);
+    el('#call-accept').addEventListener('click', function () {
+      if (callState) connectCall(callState);
+    });
     el('#call-mute').addEventListener('click', function () {
       if (!callState) return;
       callState.muted = !callState.muted;

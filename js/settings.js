@@ -64,6 +64,11 @@
     el('#set-music-play').value = st.settings.musicPlayProb == null ? 60 : st.settings.musicPlayProb;
     el('#set-music-fav').value = st.settings.musicFavProb == null ? 25 : st.settings.musicFavProb;
     el('#set-music-switch').value = st.settings.musicSwitchProb == null ? 30 : st.settings.musicSwitchProb;
+    el('#set-call-incoming').value = st.settings.callIncomingProb == null ? 12 : st.settings.callIncomingProb;
+    el('#set-call-answer').value = st.settings.callAnswerProb == null ? 70 : st.settings.callAnswerProb;
+    el('#set-call-busy').value = st.settings.callBusyProb == null ? 15 : st.settings.callBusyProb;
+    el('#set-call-reject').value = st.settings.callRejectProb == null ? 15 : st.settings.callRejectProb;
+    el('#set-call-hangup').value = st.settings.callHangupProb == null ? 10 : st.settings.callHangupProb;
 
     const partnerSelect = el('#set-partner');
     partnerSelect.innerHTML = st.contacts.length
@@ -235,6 +240,31 @@
       markDirty();
     });
 
+    App.bindStepper('#set-call-incoming', function (v) {
+      App.state.settings.callIncomingProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-call-answer', function (v) {
+      App.state.settings.callAnswerProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-call-busy', function (v) {
+      App.state.settings.callBusyProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-call-reject', function (v) {
+      App.state.settings.callRejectProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-call-hangup', function (v) {
+      App.state.settings.callHangupProb = v;
+      markDirty();
+    });
+
     el('#theme-row').addEventListener('click', function (e) {
       const btn = e.target.closest('[data-theme]');
       if (!btn) return;
@@ -289,6 +319,11 @@
         if (data.settings.musicPlayProb == null) data.settings.musicPlayProb = 60;
         if (data.settings.musicFavProb == null) data.settings.musicFavProb = 25;
         if (data.settings.musicSwitchProb == null) data.settings.musicSwitchProb = 30;
+        if (data.settings.callIncomingProb == null) data.settings.callIncomingProb = 12;
+        if (data.settings.callAnswerProb == null) data.settings.callAnswerProb = 70;
+        if (data.settings.callBusyProb == null) data.settings.callBusyProb = 15;
+        if (data.settings.callRejectProb == null) data.settings.callRejectProb = 15;
+        if (data.settings.callHangupProb == null) data.settings.callHangupProb = 10;
         if (!data.theme) data.theme = 'sand';
         data.contacts.forEach(function (c) {
           if (!c.id) c.id = App.uid('c');

@@ -89,6 +89,11 @@
     if (s.settings.musicPlayProb == null) s.settings.musicPlayProb = 60;
     if (s.settings.musicFavProb == null) s.settings.musicFavProb = 25;
     if (s.settings.musicSwitchProb == null) s.settings.musicSwitchProb = 30;
+    if (s.settings.callIncomingProb == null) s.settings.callIncomingProb = 12;
+    if (s.settings.callAnswerProb == null) s.settings.callAnswerProb = 70;
+    if (s.settings.callBusyProb == null) s.settings.callBusyProb = 15;
+    if (s.settings.callRejectProb == null) s.settings.callRejectProb = 15;
+    if (s.settings.callHangupProb == null) s.settings.callHangupProb = 10;
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];
@@ -167,6 +172,11 @@
       musicPlayProb: pick('musicPlayProb', 60),
       musicFavProb: pick('musicFavProb', 25),
       musicSwitchProb: pick('musicSwitchProb', 30),
+      callIncomingProb: pick('callIncomingProb', 12),
+      callAnswerProb: pick('callAnswerProb', 70),
+      callBusyProb: pick('callBusyProb', 15),
+      callRejectProb: pick('callRejectProb', 15),
+      callHangupProb: pick('callHangupProb', 10),
     };
   };
 
