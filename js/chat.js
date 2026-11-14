@@ -393,15 +393,17 @@
   }
   App.closeMsgActions = closeMsgActions;
 
-  function positionMsgActions(msgEl) {
+  function positionMsgActions(node) {
     const menu = el('#msg-actions');
-    if (!menu || menu.hidden || !msgEl) return;
-    const message = findChatMessage(msgEl.dataset.msgId);
-    if (!message) return;
-    const mine = message.role === 'me';
-    const rect = msgEl.getBoundingClientRect();
+    if (!menu || menu.hidden || !node) return;
+    const row = node.closest ? (node.closest('.msg') || node) : node;
+    const bubble = row.querySelector('[data-msg-bubble]') || row;
+    const message = findChatMessage(row.dataset.msgId);
+    const mine = message ? message.role === 'me' : row.classList.contains('me');
+    const rect = bubble.getBoundingClientRect();
     const box = menu.getBoundingClientRect();
     const appRect = (document.getElementById('app') || document.body).getBoundingClientRect();
+    /* 我的消息：操作栏右边缘对齐气泡右边缘；TA 的消息：左边缘对齐气泡左边缘 */
     let left = (mine ? rect.right - box.width : rect.left) - appRect.left;
     left = Math.max(8, Math.min(appRect.width - box.width - 8, left));
     let top = rect.top - box.height - 8 - appRect.top;
@@ -419,8 +421,10 @@
 
   function openMsgActions(msgEl) {
     const menu = el('#msg-actions');
-    const message = findChatMessage(msgEl.dataset.msgId);
-    if (!menu || !message) return;
+    const row = msgEl.closest ? msgEl.closest('[data-msg-id]') : null;
+    if (!menu || !row) return;
+    const message = findChatMessage(row.dataset.msgId);
+    if (!message) return;
     actionMsgId = message.id;
     const mine = message.role === 'me';
     menu.querySelector('[data-msg-action="recall"]').hidden = !mine;
@@ -428,7 +432,7 @@
     if (saveSticker) saveSticker.hidden = message.type !== 'image' || !!message.recalled;
     menu.querySelector('[data-msg-action="favorite"]').textContent = message.favMine ? '取消收藏' : '收藏';
     menu.hidden = false;
-    positionMsgActions(msgEl);
+    positionMsgActions(row);
   }
 
   function trackMsgActions() {
@@ -445,6 +449,25 @@
   if (chatScroller) chatScroller.addEventListener('scroll', trackMsgActions, { passive: true });
   window.addEventListener('resize', trackMsgActions);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', trackMsgActions);
+
+  const chatAvatarInput = el('#chat-avatar-file');
+  if (chatAvatarInput) {
+    chatAvatarInput.addEventListener('change', function () {
+      const file = chatAvatarInput.files && chatAvatarInput.files[0];
+      chatAvatarInput.value = '';
+      const contact = currentContact();
+      if (!file || !contact) return;
+      App.compressImage(file, 192).then(function (src) {
+        contact.avatar = src;
+        App.save();
+        App.renderChat();
+        App.renderContacts();
+        App.toast('头像已更换');
+      }).catch(function () {
+        App.toast('这张图片换不上，换一张试试');
+      });
+    });
+  }
 
   function doMsgAction(action) {
     const menu = el('#msg-actions');
@@ -1554,10 +1577,32 @@
         if (e.target.closest('audio')) return;
         if (e.target.closest('.rem-actions')) return;
         closeStickerPanel();
-        openMsgActions(bubbleHit.closest('[data-msg-id]'));
+        openMsgActions(bubbleHit);
         return;
       }
       closeMsgActions();
+
+      /* 顶部头像：从相册换头像，不触发拍一拍 */
+      if (e.target.closest('[data-chat-avatar]')) {
+        const input = el('#chat-avatar-file');
+        if (input) input.click();
+        return;
+      }
+
+      /* 顶部名字：点击直接改名字 */
+      if (e.target.closest('[data-chat-name]')) {
+        const contact = currentContact();
+        if (!contact) return;
+        const next = window.prompt('修改名字', contact.name);
+        if (next == null) return;
+        const name = next.trim();
+        if (!name) return;
+        contact.name = name;
+        App.save();
+        App.renderChat();
+        App.renderContacts();
+        return;
+      }
 
       const patAvatar = e.target.closest('[data-pat-current]');
       if (patAvatar) {

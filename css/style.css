@@ -951,7 +951,7 @@ button.widget:active { transform: scale(.99); }
 .chat-topbar { gap: 10px; }
 
 .chat-peer { flex: 1 1 auto; display: flex; align-items: center; gap: 10px; min-width: 0; }
-.chat-peer-text { display: flex; flex-direction: column; min-width: 0; }
+.chat-peer-text { display: flex; flex-direction: column; min-width: 0; text-align: left; }
 .chat-peer-text strong { font-size: 14.5px; font-weight: 600; }
 .chat-peer-text span {
   font-size: 10.5px;

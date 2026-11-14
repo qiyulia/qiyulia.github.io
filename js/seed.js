@@ -166,7 +166,7 @@
         musicSwitchProb: 30,
       },
       contacts: [
-        { id: contactId, name: '阿眠', avatar: '🌙', note: '住在隔壁的夜猫子', birthday: '' },
+        { id: contactId, name: 'ta', avatar: '🌙', note: '住在隔壁的夜猫子', birthday: '' },
       ],
       chats: {
         [contactId]: [
