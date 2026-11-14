@@ -113,6 +113,28 @@
     });
   });
 
+  /* 同一个时间只允许一个弹窗：打开新弹窗前先关掉其它已打开的，避免叠层卡死 */
+  if (window.HTMLDialogElement) {
+    const nativeShowModal = HTMLDialogElement.prototype.showModal;
+    HTMLDialogElement.prototype.showModal = function () {
+      document.querySelectorAll('dialog[open]').forEach(function (other) {
+        if (other !== this) {
+          try { other.close(); } catch (err) {}
+        }
+      });
+      if (!this.open) nativeShowModal.call(this);
+    };
+    const nativeShow = HTMLDialogElement.prototype.show;
+    HTMLDialogElement.prototype.show = function () {
+      document.querySelectorAll('dialog[open]').forEach(function (other) {
+        if (other !== this) {
+          try { other.close(); } catch (err) {}
+        }
+      });
+      if (!this.open) nativeShow.call(this);
+    };
+  }
+
   /* 统一的关闭兜底：任何带 data-close 的按钮都能关掉所在弹窗 */
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('[data-close]');
