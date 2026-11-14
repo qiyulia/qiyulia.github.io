@@ -616,8 +616,8 @@
     if (!contact) return false;
     const role = sendRole();
     const wallet = App.state.wallet;
-    if (!(amount > 0)) {
-      App.toast('金额要大于 0');
+    if (!(amount >= 1) || amount > 1000000) {
+      App.toast('红包金额要在 1 ~ 1000000 之间');
       return false;
     }
     if (wallet[role] < amount) {
@@ -1076,6 +1076,15 @@
     maybeTaPat(contactId, contact);
   }
 
+  /* TA 发红包的金额：37% 是特殊含义数额，其余在 1 ~ 1000000 之间随机 */
+  const SPECIAL_PACKET_AMOUNTS = [66, 520, 52, 1314, 13.14, 5200, 99, 999, 888];
+  function randomPacketAmount() {
+    if (Math.random() < 0.37) {
+      return SPECIAL_PACKET_AMOUNTS[Math.floor(Math.random() * SPECIAL_PACKET_AMOUNTS.length)];
+    }
+    return 1 + Math.floor(Math.random() * 1000000);
+  }
+
   /* TA 偶尔主动发一个红包给我 */
   function maybeTaPacket(contactId, contact, cs) {
     if (!contact) return;
@@ -1088,7 +1097,7 @@
         id: App.uid('m'),
         role: 'ta',
         type: 'redpacket',
-        amount: 5 + Math.floor(Math.random() * 84),
+        amount: randomPacketAmount(),
         note: notes[Math.floor(Math.random() * notes.length)],
         status: 'pending',
         ts: Date.now(),
