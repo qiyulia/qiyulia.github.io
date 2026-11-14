@@ -278,6 +278,14 @@
 
   App.go('desktop');
 
+  /* 旧版本的语音存在 localStorage 里，这里悄悄搬进 IndexedDB */
+  if (App.migrateVoiceToIdb) {
+    App.migrateVoiceToIdb().then(function (count) {
+      if (!count) return;
+      App.renderAll();
+    }).catch(function () {});
+  }
+
   /* 手机选图时页面可能被系统重载，重载后回到原来的聊天 */
   if (pickView && App.state.contacts.some(function (c) { return c.id === pickView; })) {
     App.openChat(pickView);

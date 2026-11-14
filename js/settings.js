@@ -12,6 +12,33 @@
     }
   }
 
+  function formatBytes(bytes) {
+    const value = Math.max(0, Number(bytes) || 0);
+    if (value < 1024) return value + ' B';
+    if (value < 1024 * 1024) return (value / 1024).toFixed(1) + ' KB';
+    return (value / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  /* 内存分类：文字在 localStorage，语音在 IndexedDB */
+  App.refreshMemoryStats = function () {
+    const localNode = el('#memory-local');
+    const voiceNode = el('#memory-voice');
+    const totalNode = el('#memory-total');
+    if (!localNode || !voiceNode || !totalNode) return Promise.resolve();
+    localNode.textContent = '统计中…';
+    voiceNode.textContent = '统计中…';
+    totalNode.textContent = '统计中…';
+    return App.memoryUsage().then(function (usage) {
+      localNode.textContent = formatBytes(usage.local);
+      voiceNode.textContent = formatBytes(usage.voice) + '（' + usage.voiceCount + ' 段）';
+      totalNode.textContent = formatBytes(usage.total);
+    }).catch(function () {
+      localNode.textContent = '—';
+      voiceNode.textContent = '—';
+      totalNode.textContent = '—';
+    });
+  };
+
   /* 备份分类：可勾选导出哪些内容，导入时只覆盖勾选的分类 */
   const BACKUP_SCOPES = [
     { key: 'profile', label: '资料与联系人', fields: ['profile', 'contacts', 'currentContactId', 'avatarPool'] },
@@ -176,6 +203,7 @@
         tab.classList.toggle('is-on', active);
         tab.setAttribute('aria-selected', String(active));
       });
+      if (name === 'memory' && App.refreshMemoryStats) App.refreshMemoryStats();
     }
 
     tabs.forEach(function (tab) {
@@ -592,15 +620,19 @@
           if (App.state[field] !== undefined) data[field] = App.state[field];
         });
       });
-      App.downloadJSON({
-        app: 'xuyu',
-        type: 'backup',
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        scopes: scopes.map(function (scope) { return scope.key; }),
-        data: data,
-      }, 'xuyu-backup-' + App.stamp() + '.json');
-      App.toast('已导出 ' + scopes.length + ' 项内容');
+      /* 复制一份再内联语音，避免改动当前状态；换设备导入也能播放 */
+      const payload = JSON.parse(JSON.stringify(data));
+      App.inlineVoice(payload).catch(function () { return payload; }).then(function (filled) {
+        App.downloadJSON({
+          app: 'xuyu',
+          type: 'backup',
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          scopes: scopes.map(function (scope) { return scope.key; }),
+          data: filled,
+        }, 'xuyu-backup-' + App.stamp() + '.json');
+        App.toast('已导出 ' + scopes.length + ' 项内容');
+      });
     });
 
     const selectAllBtn = el('#backup-select-all');
@@ -640,16 +672,39 @@
         const names = scopes.map(function (scope) { return scope.label; }).join('、');
         if (!confirm('将用备份里的「' + names + '」覆盖本机对应内容，其他分类保持不动，继续？')) return;
 
-        applyBackupData(data, scopes);
-        App.toast('已导入：' + names);
+        /* 备份里的语音是 dataURL，先写回 IndexedDB 再把索引交给状态 */
+        return App.adoptVoiceDataUrls(data).then(function () {
+          applyBackupData(data, scopes);
+          App.toast('已导入：' + names);
+        });
       }).catch(function (err) {
         App.toast(err.message || '导入失败');
       });
     });
 
+    const memoryRefresh = el('#btn-memory-refresh');
+    if (memoryRefresh) {
+      memoryRefresh.addEventListener('click', function () { App.refreshMemoryStats(); });
+    }
+
+    const memoryClean = el('#btn-memory-clean');
+    if (memoryClean) {
+      memoryClean.addEventListener('click', function () {
+        App.cleanVoiceMedia().then(function (result) {
+          App.toast(result.removed
+            ? '已清理 ' + result.removed + ' 段语音，释放 ' + formatBytes(result.bytes)
+            : '没有可清理的语音');
+          return App.refreshMemoryStats();
+        }).catch(function (err) {
+          App.toast(err && err.message ? err.message : '清理失败');
+        });
+      });
+    }
+
     el('#btn-reset').addEventListener('click', function () {
       if (!confirm('清空全部数据并恢复初始状态？建议先导出备份。')) return;
       if (App.resetMusicMedia) App.resetMusicMedia();
+      if (App.clearVoiceMedia) App.clearVoiceMedia().catch(function () {});
       App.state = App.seedState();
       App.chatContactId = null;
       App.unread = {};

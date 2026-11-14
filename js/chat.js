@@ -79,6 +79,7 @@
     list.innerHTML = chat.length
       ? chat.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
+    if (App.hydrateMedia) App.hydrateMedia(list);
     /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
     if (typingAllowed(id)) list.appendChild(typingRow());
     updateSideButtons();
@@ -348,8 +349,12 @@
       body = '<div class="bubble bubble-ignore"><span class="bubble-text">已读不回</span></div>';
     } else if (m.type === 'audio') {
       const showTranscript = m.text && (!App.state.settings || App.state.settings.voiceTranscript !== false);
+      const media = String(m.src || '');
+      const audioSrc = media.indexOf('voice:') === 0
+        ? ' data-media="' + App.esc(media) + '"'
+        : ' src="' + App.esc(media) + '"';
       body = '<div class="bubble bubble-audio' + (hasEmotion ? ' bubble-emotion' : '') + '">' +
-        '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' +
+        '<audio controls preload="metadata"' + audioSrc + '></audio>' +
         (showTranscript ? '<p class="audio-transcript">' + App.esc(m.text) + '</p>' : '') +
         meta +
         '</div>';
@@ -1315,9 +1320,12 @@
   function mediaDb() {
     return new Promise(function (resolve, reject) {
       if (!window.indexedDB) { reject(new Error('no indexedDB')); return; }
-      const req = indexedDB.open('xuyu-media', 1);
+      const req = indexedDB.open('xuyu-media', 2);
       req.onupgradeneeded = function () {
-        if (!req.result.objectStoreNames.contains('kv')) req.result.createObjectStore('kv');
+        const db = req.result;
+        if (!db.objectStoreNames.contains('audio')) db.createObjectStore('audio', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('voice')) db.createObjectStore('voice', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
       };
       req.onsuccess = function () { resolve(req.result); };
       req.onerror = function () { reject(req.error); };

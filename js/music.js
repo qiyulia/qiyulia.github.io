@@ -457,20 +457,10 @@
     App.renderMusic();
   }
 
-  /* IndexedDB 只保存本地音频 Blob，歌名等元数据仍放在 localStorage。 */
-  let dbPromise = null;
+  /* IndexedDB 只保存本地音频 Blob，歌名等元数据仍放在 localStorage。
+     统一由 store.js 打开媒体库，保证和语音共用同一个版本。 */
   function openMediaDB() {
-    if (dbPromise) return dbPromise;
-    dbPromise = new Promise(function (resolve, reject) {
-      if (!window.indexedDB) return reject(new Error('当前浏览器不支持本地音频存储'));
-      const request = indexedDB.open('xuyu-media', 1);
-      request.onupgradeneeded = function () {
-        if (!request.result.objectStoreNames.contains('audio')) request.result.createObjectStore('audio', { keyPath: 'id' });
-      };
-      request.onsuccess = function () { resolve(request.result); };
-      request.onerror = function () { reject(request.error || new Error('音频库打开失败')); };
-    });
-    return dbPromise;
+    return App.openMediaDB();
   }
   function withStore(mode, operation) {
     return openMediaDB().then(function (db) {

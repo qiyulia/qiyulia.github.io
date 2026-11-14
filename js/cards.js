@@ -179,10 +179,15 @@
       preview.hidden = true;
       preview.removeAttribute('src');
       if (isVoice && card && card.audio) {
-        preview.src = card.audio;
         preview.hidden = false;
+        App.voiceSrc(card.audio).then(function (src) {
+          if (!src) return;
+          preview.src = src;
+          preview.load();
+        }).catch(function () {});
+      } else {
+        preview.load();
       }
-      preview.load();
     }
     el('#card-audio-hint').textContent = card && card.audio
       ? '已保存一段语音（重新选择可替换），下面是试听。'
@@ -225,40 +230,46 @@
     const filterCat = pickedCat || (App.cardFilter && App.cardFilter.cat !== '全部' && App.cardFilter.cat !== '语音'
       ? App.cardFilter.cat
       : '');
-    App.readJSONFile(file).then(function (data) {
+    App.readJSONFile(file).then(async function (data) {
       const incoming = Array.isArray(data) ? data : (data && data.cards);
       if (!Array.isArray(incoming)) throw new Error('文件里没有找到字卡');
 
       const existing = existingTextKeys();
+      const normalized = [];
+      for (let i = 0; i < incoming.length; i++) {
+        const item = incoming[i];
+        if (!item || typeof item !== 'object') continue;
+        const text = String(item.text || '').trim();
+        if (!text) continue;
+        const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : (filterCat || '聊天');
+        let audio = '';
+        if (category === '语音' && typeof item.audio === 'string' && item.audio.indexOf('data:audio') === 0) {
+          audio = await App.saveVoiceDataUrl(item.audio);
+        }
+        normalized.push({ item: item, text: text, category: category, audio: audio });
+      }
 
       let added = 0;
       let duplicated = 0;
-      incoming.forEach(function (item) {
-        if (!item || typeof item !== 'object') return;
-        const text = String(item.text || '').trim();
-        if (!text) return;
-        const category = App.CATEGORIES.indexOf(item.category) !== -1 ? item.category : (filterCat || '聊天');
-        const audio = category === '语音' && typeof item.audio === 'string' && item.audio.indexOf('data:audio') === 0
-          ? item.audio
-          : '';
-        const key = cardKey(category, text, audio);
+      normalized.forEach(function (entry) {
+        const key = cardKey(entry.category, entry.text, entry.audio);
         if (existing[key]) {
           duplicated++;
           return;
         }
         const card = {
           id: App.uid('card'),
-          text: text,
-          category: category,
-          trigger: String(item.trigger || '').slice(0, 40),
-          enabled: item.enabled !== false,
+          text: entry.text,
+          category: entry.category,
+          trigger: String(entry.item.trigger || '').slice(0, 40),
+          enabled: entry.item.enabled !== false,
           builtin: false,
         };
-        if (category === '情绪') {
-          card.emotion = String(item.emotion || '平常').slice(0, 12);
-          card.strength = ['强', '中', '弱'].indexOf(item.strength) !== -1 ? item.strength : '中';
+        if (entry.category === '情绪') {
+          card.emotion = String(entry.item.emotion || '平常').slice(0, 12);
+          card.strength = ['强', '中', '弱'].indexOf(entry.item.strength) !== -1 ? entry.item.strength : '中';
         }
-        if (audio) card.audio = audio;
+        if (entry.audio) card.audio = entry.audio;
         App.state.cards.unshift(card);
         existing[key] = true;
         added++;
@@ -392,7 +403,7 @@
         const file = el('#card-audio-file').files && el('#card-audio-file').files[0];
         if (file) {
           try {
-            audio = await fileToDataURL(file);
+            audio = await App.saveVoiceDataUrl(await fileToDataURL(file));
           } catch (err) {
             App.toast(err.message || '语音读取失败');
             return;
@@ -454,12 +465,15 @@
     });
 
     el('#btn-export-cards').addEventListener('click', function () {
-      App.downloadJSON({
-        app: 'xuyu',
-        type: 'cards',
-        exportedAt: new Date().toISOString(),
-        cards: App.state.cards,
-      }, 'xuyu-cards-' + App.stamp() + '.json');
+      const cards = JSON.parse(JSON.stringify(App.state.cards));
+      App.inlineVoice(cards).catch(function () { return cards; }).then(function (list) {
+        App.downloadJSON({
+          app: 'xuyu',
+          type: 'cards',
+          exportedAt: new Date().toISOString(),
+          cards: list,
+        }, 'xuyu-cards-' + App.stamp() + '.json');
+      });
     });
 
     el('#btn-dedupe-cards').addEventListener('click', function () {

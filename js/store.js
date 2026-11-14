@@ -52,6 +52,261 @@
   });
   window.addEventListener('pagehide', function () { App.flushSave(); });
 
+  /* ---------- 本地媒体库（IndexedDB，和音乐共用 xuyu-media） ----------
+     语音不再塞进 localStorage，改存 Blob，state 里只留 voice:<id> 索引。 */
+  const MEDIA_DB = 'xuyu-media';
+  const MEDIA_VERSION = 2;
+  let mediaDbPromise = null;
+  const voiceUrls = {};
+
+  App.openMediaDB = function () {
+    if (mediaDbPromise) return mediaDbPromise;
+    mediaDbPromise = new Promise(function (resolve, reject) {
+      if (!window.indexedDB) {
+        reject(new Error('当前浏览器不支持本地媒体存储'));
+        return;
+      }
+      const request = indexedDB.open(MEDIA_DB, MEDIA_VERSION);
+      request.onupgradeneeded = function () {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('audio')) db.createObjectStore('audio', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('voice')) db.createObjectStore('voice', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+      };
+      request.onsuccess = function () { resolve(request.result); };
+      request.onerror = function () { reject(request.error || new Error('本地媒体库打开失败')); };
+    });
+    return mediaDbPromise;
+  };
+
+  function withMediaStore(name, mode, operation) {
+    return App.openMediaDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const tx = db.transaction(name, mode);
+        const request = operation(tx.objectStore(name));
+        let result;
+        if (request) request.onsuccess = function () { result = request.result; };
+        tx.oncomplete = function () { resolve(result); };
+        tx.onerror = function () { reject(tx.error || new Error('本地媒体存储失败')); };
+        tx.onabort = function () { reject(tx.error || new Error('本地媒体存储已取消')); };
+      });
+    });
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    const parts = String(dataUrl).split(',');
+    const mime = (parts[0].match(/data:([^;]+)/) || [])[1] || 'audio/mpeg';
+    const binary = atob(parts[1] || '');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  function revokeVoiceUrl(id) {
+    const url = voiceUrls[id];
+    if (!url) return;
+    URL.revokeObjectURL(url);
+    delete voiceUrls[id];
+  }
+
+  /* 把一段语音 dataURL 写进 IndexedDB，返回 voice:<id>；不可用时原样返回 */
+  App.saveVoiceDataUrl = function (dataUrl) {
+    const value = String(dataUrl || '');
+    if (value.indexOf('data:audio') !== 0 || !window.indexedDB) return Promise.resolve(value);
+    const id = App.uid('voice');
+    return withMediaStore('voice', 'readwrite', function (store) {
+      return store.put({ id: id, blob: dataUrlToBlob(value), createdAt: Date.now() });
+    }).then(function () {
+      return 'voice:' + id;
+    }).catch(function () {
+      return value;
+    });
+  };
+
+  App.voiceBlob = function (ref) {
+    const value = String(ref || '');
+    if (value.indexOf('voice:') !== 0) return Promise.resolve(null);
+    return withMediaStore('voice', 'readonly', function (store) {
+      return store.get(value.slice(6));
+    }).then(function (record) { return (record && record.blob) || null; });
+  };
+
+  /* 把 voice:<id> 解析成可直接播放的 objectURL（带缓存） */
+  App.voiceSrc = function (ref) {
+    const value = String(ref || '');
+    if (value.indexOf('voice:') !== 0) return Promise.resolve(value);
+    const id = value.slice(6);
+    if (!id) return Promise.resolve('');
+    if (voiceUrls[id]) return Promise.resolve(voiceUrls[id]);
+    return App.voiceBlob(value).then(function (blob) {
+      if (!blob) return '';
+      const url = URL.createObjectURL(blob);
+      voiceUrls[id] = url;
+      return url;
+    });
+  };
+
+  App.voiceDataUrl = function (ref) {
+    return App.voiceBlob(ref).then(function (blob) {
+      if (!blob) return '';
+      return new Promise(function (resolve) {
+        const reader = new FileReader();
+        reader.onload = function () { resolve(String(reader.result)); };
+        reader.onerror = function () { resolve(''); };
+        reader.readAsDataURL(blob);
+      });
+    });
+  };
+
+  /* 渲染后给 [data-media] 的音频元素补上真实 src */
+  const warnedVoice = {};
+  App.hydrateMedia = function (root) {
+    const scope = root || document;
+    scope.querySelectorAll('[data-media]').forEach(function (node) {
+      const ref = node.getAttribute('data-media');
+      if (!ref || node.getAttribute('data-media-loaded') === ref) return;
+      node.setAttribute('data-media-loaded', ref);
+      App.voiceSrc(ref).then(function (src) {
+        if (src) {
+          node.src = src;
+          return;
+        }
+        node.removeAttribute('data-media-loaded');
+        if (App.toast && !warnedVoice[ref]) {
+          warnedVoice[ref] = true;
+          App.toast('这段语音已经找不到了');
+        }
+      }).catch(function () {});
+    });
+  };
+
+  /* 旧数据迁移：字卡和聊天里的 dataURL 语音全部搬进 IndexedDB */
+  App.migrateVoiceToIdb = function () {
+    if (!window.indexedDB || !App.state) return Promise.resolve(0);
+    const jobs = [];
+    const refs = {};
+    function convert(value, apply) {
+      if (typeof value !== 'string' || value.indexOf('data:audio') !== 0) return;
+      /* 同一条语音被多条消息复制过，迁移时只写一份 */
+      if (!refs[value]) refs[value] = App.saveVoiceDataUrl(value);
+      jobs.push(refs[value].then(function (ref) {
+        if (ref && ref.indexOf('voice:') === 0) apply(ref);
+      }).catch(function () {}));
+    }
+    (App.state.cards || []).forEach(function (card) {
+      convert(card.audio, function (ref) { card.audio = ref; });
+    });
+    Object.keys(App.state.chats || {}).forEach(function (contactId) {
+      (App.state.chats[contactId] || []).forEach(function (message) {
+        convert(message.src, function (ref) { message.src = ref; });
+      });
+    });
+    if (!jobs.length) return Promise.resolve(0);
+    return Promise.all(jobs).then(function () {
+      App.save();
+      App.flushSave();
+      return jobs.length;
+    });
+  };
+
+  /* 内存统计：localStorage 里的文字数据 + IndexedDB 里的语音 */
+  App.memoryUsage = function () {
+    let local = 0;
+    try { local = new Blob([JSON.stringify(App.state)]).size; } catch (e) { local = 0; }
+    return withMediaStore('voice', 'readonly', function (store) {
+      return store.getAll();
+    }).then(function (records) {
+      let voice = 0;
+      (records || []).forEach(function (record) {
+        voice += (record && record.blob && record.blob.size) || 0;
+      });
+      return {
+        local: local,
+        voice: voice,
+        voiceCount: (records || []).length,
+        total: local + voice,
+      };
+    });
+  };
+
+  /* 清理没有被任何字卡或消息引用的语音 */
+  App.cleanVoiceMedia = function () {
+    const used = {};
+    (App.state.cards || []).forEach(function (card) {
+      if (card.audio) used[card.audio] = true;
+    });
+    Object.keys(App.state.chats || {}).forEach(function (contactId) {
+      (App.state.chats[contactId] || []).forEach(function (message) {
+        if (message.src) used[message.src] = true;
+      });
+    });
+    return withMediaStore('voice', 'readonly', function (store) {
+      return store.getAll();
+    }).then(function (records) {
+      const stale = (records || []).filter(function (record) {
+        return record && record.id && !used['voice:' + record.id];
+      });
+      if (!stale.length) return { removed: 0, bytes: 0 };
+      const bytes = stale.reduce(function (sum, record) {
+        return sum + ((record.blob && record.blob.size) || 0);
+      }, 0);
+      return withMediaStore('voice', 'readwrite', function (store) {
+        stale.forEach(function (record) {
+          store.delete(record.id);
+          revokeVoiceUrl(record.id);
+        });
+      }).then(function () { return { removed: stale.length, bytes: bytes }; });
+    });
+  };
+
+  App.clearVoiceMedia = function () {
+    Object.keys(voiceUrls).forEach(revokeVoiceUrl);
+    return withMediaStore('voice', 'readwrite', function (store) { return store.clear(); });
+  };
+
+  /* 深度遍历对象里的 voice: 索引或语音 dataURL，做导入导出的转换 */
+  function walkVoiceStrings(root, handler) {
+    const jobs = [];
+    function walk(node) {
+      if (!node || typeof node !== 'object') return;
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+        return;
+      }
+      Object.keys(node).forEach(function (key) {
+        const value = node[key];
+        if (typeof value === 'string') {
+          const job = handler(value);
+          if (job) {
+            jobs.push(job.then(function (next) {
+              if (typeof next === 'string' && next) node[key] = next;
+            }));
+          }
+        } else if (value && typeof value === 'object') {
+          walk(value);
+        }
+      });
+    }
+    walk(root);
+    return Promise.all(jobs).then(function () { return root; });
+  }
+
+  /* 导出时把语音还原成 dataURL，换设备导入也能播放 */
+  App.inlineVoice = function (root) {
+    return walkVoiceStrings(root, function (value) {
+      if (value.indexOf('voice:') !== 0) return null;
+      return App.voiceDataUrl(value);
+    });
+  };
+
+  /* 导入时把 dataURL 语音写回 IndexedDB，state 里只留索引 */
+  App.adoptVoiceDataUrls = function (root) {
+    return walkVoiceStrings(root, function (value) {
+      if (value.indexOf('data:audio') !== 0) return null;
+      return App.saveVoiceDataUrl(value);
+    });
+  };
+
   App.normalizeMusic = function (s) {
     const defaults = App.MUSIC_SEED();
     if (!s.music || typeof s.music !== 'object' || Array.isArray(s.music)) s.music = defaults;

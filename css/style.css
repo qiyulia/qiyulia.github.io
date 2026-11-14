@@ -1800,6 +1800,33 @@ button.widget:active { transform: scale(.99); }
 .settings-page { display: flex; flex-direction: column; gap: 12px; }
 .settings-page[hidden] { display: none; }
 
+/* 设置 · 内存 */
+.memory-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.memory-stats li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.memory-stats strong {
+  font-weight: 600;
+  color: var(--accent);
+  text-align: right;
+}
+
 /* 设置 · 备份分类 */
 .backup-scopes {
   display: grid;
