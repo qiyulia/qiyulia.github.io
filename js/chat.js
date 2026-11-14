@@ -213,12 +213,11 @@
       : '<button type="button" class="msg-avatar msg-avatar-button" data-pat-current="1" aria-label="拍一拍 ' + App.esc(contact ? contact.name : 'TA') + '" title="拍一拍">' + App.avatarHtml(avatarSrc) + '</button>';
     return '<div class="msg ' + (mine ? 'me' : 'ta') + '" data-msg-id="' + App.esc(m.id) + '">' +
       '<div class="msg-main">' +
-        quote +
         '<div class="msg-content">' +
           '<div class="msg-side">' + avatarHtml +
             '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
           '</div>' +
-          '<div class="msg-bubble-hit" data-msg-bubble="1">' + body + '</div>' +
+          '<div class="msg-bubble-hit" data-msg-bubble="1">' + quote + body + '</div>' +
         '</div>' +
         marksHtml +
       '</div>' +
