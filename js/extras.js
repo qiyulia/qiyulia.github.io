@@ -353,13 +353,27 @@
         ts: Date.now(),
         read: App.chatOpen(contactId),
       });
-      maybeTaSurveyBack(contactId);
       delete surveyTimers[surveyId];
     }, waitMs);
   }
 
-  function maybeTaSurveyBack(contactId) {
-    if (Math.random() >= 0.3) return;
+  /* TA 主动发来一份问卷：概率和冷却时间在 设置 → 问卷 里改 */
+  function taSurveyProbability() {
+    const settings = App.state.settings || {};
+    return settings.taSurveyProb == null
+      ? 10
+      : Math.max(0, Math.min(100, Number(settings.taSurveyProb) || 0));
+  }
+
+  function taSurveyCooldownMs() {
+    const settings = App.state.settings || {};
+    const min = settings.taSurveyCooldownMin == null
+      ? 30
+      : Math.max(0, Math.min(1440, Number(settings.taSurveyCooldownMin) || 0));
+    return min * 60000;
+  }
+
+  function sendTaSurvey(contactId, delayMs) {
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       const total = 2 + Math.floor(Math.random() * 2);
@@ -385,8 +399,29 @@
         ts: Date.now(),
         read: App.chatOpen(contactId),
       });
-    }, 2200 + Math.random() * 2200);
+    }, delayMs);
   }
+
+  function maybeTaSendSurvey() {
+    if (document.hidden) return;
+    const st = App.state;
+    if (!st || !st.contacts.length) return;
+    const settings = st.settings || {};
+    const last = Number(settings.taSurveyLastAt) || 0;
+    if (last && Date.now() - last < taSurveyCooldownMs()) return;
+    const contactId = st.contacts.some(function (c) { return c.id === st.currentContactId; })
+      ? st.currentContactId
+      : st.contacts[0].id;
+    const chat = st.chats[contactId] || [];
+    /* 上一份问卷还没答，就先不再发新的 */
+    if (chat.some(function (m) { return m.type === 'survey' && m.role === 'ta' && !m.answered; })) return;
+    if (Math.random() * 100 >= taSurveyProbability()) return;
+    settings.taSurveyLastAt = Date.now();
+    App.save();
+    sendTaSurvey(contactId, 1500 + Math.random() * 3000);
+  }
+
+  App.maybeTaSurvey = maybeTaSendSurvey;
 
   function scheduleSurveyAppend(contactId) {
     if (Math.random() >= 0.4) return;

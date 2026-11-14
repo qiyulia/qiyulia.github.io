@@ -893,6 +893,7 @@
   /* 每分钟按概率检查一次，让 TA 也会主动找我说话 */
   setInterval(function () {
     maybeTaStartsChat();
+    if (App.maybeTaSurvey) App.maybeTaSurvey();
     if (document.hidden || callState) return;
     const st = App.state;
     if (!st || !st.contacts.length) return;

@@ -233,6 +233,8 @@
     el('#set-mail-card-min').value = st.settings.mailCardMin == null ? 1 : st.settings.mailCardMin;
     el('#set-mail-card-max').value = st.settings.mailCardMax == null ? 3 : st.settings.mailCardMax;
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
+    el('#set-ta-survey-prob').value = st.settings.taSurveyProb == null ? 10 : st.settings.taSurveyProb;
+    el('#set-ta-survey-cooldown').value = st.settings.taSurveyCooldownMin == null ? 30 : st.settings.taSurveyCooldownMin;
 
     const partnerSelect = el('#set-partner');
     partnerSelect.innerHTML = st.contacts.length
@@ -330,6 +332,7 @@
     bindAvatarProb('#set-ta-quote', 'taQuoteProb');
     bindAvatarProb('#set-ta-mail-prob', 'taMailProb');
     bindAvatarProb('#set-card-offer-prob', 'cardOfferProb');
+    bindAvatarProb('#set-ta-survey-prob', 'taSurveyProb');
 
     function bindMinutes(id, key, max) {
       const input = el(id);
@@ -344,6 +347,7 @@
     }
     bindMinutes('#set-avatar-cooldown', 'avatarCooldownMin', 1440);
     bindMinutes('#set-ta-mail-cooldown', 'taMailCooldownMin', 1440);
+    bindMinutes('#set-ta-survey-cooldown', 'taSurveyCooldownMin', 1440);
 
     ['#set-mail-card-min', '#set-mail-card-max'].forEach(function (sel) {
       const node = el(sel);
