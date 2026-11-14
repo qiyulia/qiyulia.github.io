@@ -128,7 +128,7 @@
   App.applyLook = function () {
     const look = (App.state && App.state.look) || {};
     const app = document.getElementById('app');
-    if (app) app.style.setProperty('--ui-opacity', String((look.opacity == null ? 80 : look.opacity) / 100));
+    if (app) app.style.setProperty('--ui-opacity', String((look.opacity == null ? 100 : look.opacity) / 100));
 
     const wall = document.querySelector('.wallpaper');
     if (wall) {
@@ -170,7 +170,7 @@
     style.textContent = look.bubbleCss || '';
 
     const slider = el('#look-opacity');
-    if (slider) slider.value = String(look.opacity == null ? 80 : look.opacity);
+    if (slider && document.activeElement !== slider) slider.value = String(look.opacity == null ? 100 : look.opacity);
     const css = el('#look-bubble-css');
     if (css && document.activeElement !== css) css.value = look.bubbleCss || '';
   };
@@ -431,11 +431,17 @@
     /* 美化 */
     const slider = el('#look-opacity');
     if (slider) {
-      slider.addEventListener('input', function () {
-        App.state.look.opacity = Math.max(20, Math.min(100, Number(slider.value) || 80));
+      function commitOpacity() {
+        const digits = String(slider.value).replace(/[^\d]/g, '');
+        const num = digits ? Number(digits) : 100;
+        const v = Math.max(20, Math.min(100, num));
+        slider.value = String(v);
+        App.state.look.opacity = v;
+        App.save();
         App.applyLook();
-      });
-      slider.addEventListener('change', function () { App.save(); });
+      }
+      slider.addEventListener('change', commitOpacity);
+      slider.addEventListener('blur', commitOpacity);
     }
     const cssBox = el('#look-bubble-css');
     if (cssBox) {
@@ -475,7 +481,7 @@
     const reset = el('#look-reset');
     if (reset) {
       reset.addEventListener('click', function () {
-        App.state.look = { bgImage: '', chatBg: '', callBg: '', bubbleCss: '', opacity: 80 };
+        App.state.look = { bgImage: '', chatBg: '', callBg: '', bubbleCss: '', opacity: 100 };
         App.state.iconStyle = { shape: 'rounded', color: 'blue' };
         App.save();
         App.applyLook();
@@ -495,6 +501,19 @@
         if (d) d.showModal();
       });
     }
+    document.querySelectorAll('[data-more-cat]').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        const cat = tab.dataset.moreCat;
+        document.querySelectorAll('[data-more-cat]').forEach(function (t) {
+          const on = t === tab;
+          t.classList.toggle('is-on', on);
+          t.setAttribute('aria-selected', String(on));
+        });
+        document.querySelectorAll('#more-apps [data-cat]').forEach(function (app) {
+          app.hidden = app.dataset.cat !== cat;
+        });
+      });
+    });
     document.querySelectorAll('[data-tool]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         const more = el('#more-dialog');

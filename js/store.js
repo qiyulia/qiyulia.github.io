@@ -197,7 +197,11 @@
       if (typeof look[k] !== 'string') look[k] = '';
     });
     look.opacity = Number(look.opacity);
-    if (!Number.isFinite(look.opacity)) look.opacity = 80;
+    if (!Number.isFinite(look.opacity)) look.opacity = 100;
+    if (!look.v) {
+      look.v = 2;
+      if (look.opacity === 80) look.opacity = 100;
+    }
     look.opacity = Math.max(20, Math.min(100, Math.round(look.opacity)));
 
     s.contacts.forEach(function (c) {

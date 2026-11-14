@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-53">
+<link rel="stylesheet" href="css/style.css?v=20261114-54">
 </head>
 <body>
 <div class="stage">
@@ -535,7 +535,6 @@ if ('caches' in window) {
           <button type="button" class="chat-settings-tab is-on" role="tab" id="chat-tab-reply" aria-selected="true" aria-controls="reply-settings-panel" data-chat-settings-page="0">回复</button>
           <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-music" aria-selected="false" aria-controls="music-settings-panel" data-chat-settings-page="1" tabindex="-1">音乐互动</button>
           <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-moments" aria-selected="false" aria-controls="moments-settings-panel" data-chat-settings-page="2" tabindex="-1">朋友圈互动</button>
-          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-look" aria-selected="false" aria-controls="look-settings-panel" data-chat-settings-page="3" tabindex="-1">美化</button>
         </div>
         <div class="chat-settings-pager" id="chat-settings-pager">
           <section class="chat-settings-page reply-settings-page" id="reply-settings-panel" role="tabpanel" aria-labelledby="chat-tab-reply" aria-label="回复设置">
@@ -738,64 +737,6 @@ if ('caches' in window) {
               <p class="panel-note">TA 的朋友圈会从字卡库（聊天 / 情绪）、内置颜文字和表情包里随机取内容。超过最长间隔时会保底发一条。</p>
             </div>
           </section>
-          <section class="chat-settings-page look-settings-page" id="look-settings-panel" role="tabpanel" aria-labelledby="chat-tab-look" aria-label="美化设置" hidden>
-            <div class="panel">
-              <h3 class="settings-subtitle">图标</h3>
-              <div class="segmented" id="icon-shapes" aria-label="图标形状">
-                <button type="button" data-icon-shape="rounded">圆角</button>
-                <button type="button" data-icon-shape="circle">圆形</button>
-                <button type="button" data-icon-shape="square">方形</button>
-              </div>
-              <div class="color-swatches" id="icon-colors" aria-label="图标颜色">
-                <button type="button" data-icon-color="blue" style="--sw:#6b9ed2" aria-label="淡蓝"></button>
-                <button type="button" data-icon-color="lilac" style="--sw:#a18bc4" aria-label="淡紫"></button>
-                <button type="button" data-icon-color="sage" style="--sw:#79a98d" aria-label="豆绿"></button>
-                <button type="button" data-icon-color="apricot" style="--sw:#d99b72" aria-label="杏橙"></button>
-              </div>
-            </div>
-            <div class="panel">
-              <h3 class="settings-subtitle">背景</h3>
-              <div class="look-row">
-                <span>主页背景</span>
-                <span class="look-actions">
-                  <button type="button" class="tool-btn" data-look-file="bg">本地图片</button>
-                  <button type="button" class="tool-btn" data-look-clear="bg">清除</button>
-                </span>
-              </div>
-              <div class="look-row">
-                <span>聊天背景</span>
-                <span class="look-actions">
-                  <button type="button" class="tool-btn" data-look-file="chat">本地图片</button>
-                  <button type="button" class="tool-btn" data-look-clear="chat">清除</button>
-                </span>
-              </div>
-              <div class="look-row">
-                <span>通话背景</span>
-                <span class="look-actions">
-                  <button type="button" class="tool-btn" data-look-file="call">本地图片</button>
-                  <button type="button" class="tool-btn" data-look-clear="call">清除</button>
-                </span>
-              </div>
-              <input type="file" id="look-file-bg" accept="image/*" hidden>
-              <input type="file" id="look-file-chat" accept="image/*" hidden>
-              <input type="file" id="look-file-call" accept="image/*" hidden>
-            </div>
-            <div class="panel">
-              <h3 class="settings-subtitle">透明度</h3>
-              <label class="field"><span>界面透明度（%）</span>
-                <input id="look-opacity" type="range" min="20" max="100" step="1" value="80">
-              </label>
-              <p class="field-hint">默认 80%，也就是在原样式上减 20%。</p>
-            </div>
-            <div class="panel">
-              <h3 class="settings-subtitle">气泡 CSS</h3>
-              <label class="field"><span>自定义气泡样式</span>
-                <textarea id="look-bubble-css" rows="5" maxlength="2000" placeholder=".bubble { border-radius: 18px; }"></textarea>
-              </label>
-              <p class="field-hint">写在这里的 CSS 会作用到整个聊天界面，留空即恢复默认。</p>
-              <button type="button" class="btn ghost" id="look-reset">恢复默认外观</button>
-            </div>
-          </section>
         </div>
 
         <div class="panel chat-delete-panel">
@@ -955,6 +896,65 @@ if ('caches' in window) {
             <button type="button" class="theme-chip" data-theme="night"><i style="--sw:#3b4252"></i>夜色</button>
           </div>
         </div>
+
+          <section id="look-settings-panel" class="look-settings" aria-label="美化设置">
+            <div class="panel">
+              <h3 class="settings-subtitle">图标</h3>
+              <div class="segmented" id="icon-shapes" aria-label="图标形状">
+                <button type="button" data-icon-shape="rounded">圆角</button>
+                <button type="button" data-icon-shape="circle">圆形</button>
+                <button type="button" data-icon-shape="square">方形</button>
+              </div>
+              <div class="color-swatches" id="icon-colors" aria-label="图标颜色">
+                <button type="button" data-icon-color="blue" style="--sw:#6b9ed2" aria-label="淡蓝"></button>
+                <button type="button" data-icon-color="lilac" style="--sw:#a18bc4" aria-label="淡紫"></button>
+                <button type="button" data-icon-color="sage" style="--sw:#79a98d" aria-label="豆绿"></button>
+                <button type="button" data-icon-color="apricot" style="--sw:#d99b72" aria-label="杏橙"></button>
+              </div>
+            </div>
+            <div class="panel">
+              <h3 class="settings-subtitle">背景</h3>
+              <div class="look-row">
+                <span>主页背景</span>
+                <span class="look-actions">
+                  <button type="button" class="tool-btn" data-look-file="bg">本地图片</button>
+                  <button type="button" class="tool-btn" data-look-clear="bg">清除</button>
+                </span>
+              </div>
+              <div class="look-row">
+                <span>聊天背景</span>
+                <span class="look-actions">
+                  <button type="button" class="tool-btn" data-look-file="chat">本地图片</button>
+                  <button type="button" class="tool-btn" data-look-clear="chat">清除</button>
+                </span>
+              </div>
+              <div class="look-row">
+                <span>通话背景</span>
+                <span class="look-actions">
+                  <button type="button" class="tool-btn" data-look-file="call">本地图片</button>
+                  <button type="button" class="tool-btn" data-look-clear="call">清除</button>
+                </span>
+              </div>
+              <input type="file" id="look-file-bg" accept="image/*" hidden>
+              <input type="file" id="look-file-chat" accept="image/*" hidden>
+              <input type="file" id="look-file-call" accept="image/*" hidden>
+            </div>
+            <div class="panel">
+              <h3 class="settings-subtitle">透明度</h3>
+              <label class="field"><span>界面透明度（%）</span>
+                <input id="look-opacity" type="text" inputmode="numeric" maxlength="3" value="100" placeholder="100">
+              </label>
+              <p class="field-hint">手动输入 20–100 的整数，默认 100（保持原样）；数字越小，界面越淡。</p>
+            </div>
+            <div class="panel">
+              <h3 class="settings-subtitle">气泡 CSS</h3>
+              <label class="field"><span>自定义气泡样式</span>
+                <textarea id="look-bubble-css" rows="5" maxlength="2000" placeholder=".bubble { border-radius: 18px; }"></textarea>
+              </label>
+              <p class="field-hint">写在这里的 CSS 会作用到整个聊天界面，留空即恢复默认。</p>
+              <button type="button" class="btn ghost" id="look-reset">恢复默认外观</button>
+            </div>
+          </section>
 
         <div class="panel">
           <h3>数据</h3>
@@ -1119,7 +1119,7 @@ if ('caches' in window) {
 </dialog>
 
 <!-- ============ 拍一拍：选字卡 ============ -->
-<dialog id="pat-picker-dialog" class="sheet">
+<dialog id="pat-picker-dialog" class="sheet pat-sheet">
   <div class="sheet-head">
     <h3>拍一拍</h3>
     <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
@@ -1132,19 +1132,19 @@ if ('caches' in window) {
 </dialog>
 
 <!-- ============ 其他：工具 / 游戏 ============ -->
-<dialog id="more-dialog" class="sheet">
+<dialog id="more-dialog" class="sheet more-sheet">
   <div class="sheet-head">
     <h3>其他</h3>
     <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
   </div>
-  <p class="settings-subtitle">工具</p>
-  <div class="more-grid">
-    <button type="button" class="more-item" data-tool="survey"><span>问卷</span><small>写一份小问卷</small></button>
-    <button type="button" class="more-item" data-tool="divine"><span>占卜</span><small>抽一支今天的签</small></button>
+  <div class="more-tabs" role="tablist">
+    <button type="button" class="more-tab is-on" data-more-cat="tool" role="tab" aria-selected="true">工具</button>
+    <button type="button" class="more-tab" data-more-cat="game" role="tab" aria-selected="false">游戏</button>
   </div>
-  <p class="settings-subtitle">游戏</p>
-  <div class="more-grid">
-    <button type="button" class="more-item" data-tool="mine"><span>扫雷</span><small>9 × 9，10 颗雷</small></button>
+  <div id="more-apps" class="more-apps">
+    <button type="button" class="more-app" data-tool="survey" data-cat="tool" title="写一份小问卷"><span class="more-app-icon is-tool">问</span><span>问卷</span></button>
+    <button type="button" class="more-app" data-tool="divine" data-cat="tool" title="抽一支今天的签"><span class="more-app-icon is-divine">签</span><span>占卜</span></button>
+    <button type="button" class="more-app" data-tool="mine" data-cat="game" title="9 × 9，10 颗雷" hidden><span class="more-app-icon is-game">雷</span><span>扫雷</span></button>
   </div>
   <div class="sheet-actions">
     <button type="button" class="btn ghost" data-close>关闭</button>
@@ -1302,18 +1302,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-53"></script>
-<script src="js/store.js?v=20261114-53"></script>
-<script src="js/desktop.js?v=20261114-53"></script>
-<script src="js/chat.js?v=20261114-53"></script>
-<script src="js/cards.js?v=20261114-53"></script>
-<script src="js/settings.js?v=20261114-53"></script>
-<script src="js/moments.js?v=20261114-53"></script>
-<script src="js/calendar.js?v=20261114-53"></script>
-<script src="js/music.js?v=20261114-53"></script>
-<script src="js/market.js?v=20261114-53"></script>
-<script src="js/mail.js?v=20261114-53"></script>
-<script src="js/extras.js?v=20261114-53"></script>
-<script src="js/app.js?v=20261114-53"></script>
+<script src="js/seed.js?v=20261114-54"></script>
+<script src="js/store.js?v=20261114-54"></script>
+<script src="js/desktop.js?v=20261114-54"></script>
+<script src="js/chat.js?v=20261114-54"></script>
+<script src="js/cards.js?v=20261114-54"></script>
+<script src="js/settings.js?v=20261114-54"></script>
+<script src="js/moments.js?v=20261114-54"></script>
+<script src="js/calendar.js?v=20261114-54"></script>
+<script src="js/music.js?v=20261114-54"></script>
+<script src="js/market.js?v=20261114-54"></script>
+<script src="js/mail.js?v=20261114-54"></script>
+<script src="js/extras.js?v=20261114-54"></script>
+<script src="js/app.js?v=20261114-54"></script>
 </body>
 </html>
