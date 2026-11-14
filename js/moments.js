@@ -201,10 +201,12 @@
 
     const gapMin = Math.max(0, Number(cs.taMomentGapMin) || 0) * 60000;
     const gapMax = Math.max(gapMin, (Number(cs.taMomentGapMax) || 0) * 60000);
+    /* 冷却时间：两次 TA 朋友圈之间至少要隔这么久 */
+    const cooldown = Math.max(gapMin, (Number(cs.taMomentCooldownMin) || 0) * 60000);
     const lastTa = taMoments.length ? taMoments.reduce(function (a, b) { return a.ts > b.ts ? a : b; }) : null;
     const elapsed = lastTa ? now - lastTa.ts : gapMin;
 
-    if (lastTa && elapsed < gapMin) return false;
+    if (lastTa && elapsed < cooldown) return false;
     const mustPost = !!lastTa && elapsed >= gapMax;
     if (!mustPost && Math.random() * 100 >= Math.max(0, Math.min(100, Number(cs.taMomentProb) || 0))) return false;
 

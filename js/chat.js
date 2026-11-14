@@ -977,8 +977,14 @@
         const pool = chat.filter(function (m) {
           return !m.recalled && m.type !== 'pat' && (m.text || m.type === 'image');
         }).slice(-12);
-        if (pool.length) {
-          const target = pool[Math.floor(Math.random() * pool.length)];
+        const minePool = pool.filter(function (m) { return m.role === 'me'; });
+        const taPool = pool.filter(function (m) { return m.role !== 'me'; });
+        let candidates = pool;
+        /* 大部分引用我发的消息，很少引用他自己发的 */
+        if (minePool.length && (Math.random() < 0.85 || !taPool.length)) candidates = minePool;
+        else if (taPool.length) candidates = taPool;
+        if (candidates.length) {
+          const target = candidates[Math.floor(Math.random() * candidates.length)];
           message.quote = {
             name: messageAuthor(target, contact),
             text: App.messagePreview(target),

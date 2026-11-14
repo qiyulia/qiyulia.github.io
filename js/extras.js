@@ -1078,12 +1078,24 @@
     pushAvatarNotice('你拒绝了换头像，' + name + ' 说那就下次再问');
   }
 
+  function avatarCooldownMs() {
+    const raw = Number(App.state.settings && App.state.settings.avatarCooldownMin);
+    const minutes = isFinite(raw) ? Math.max(0, Math.min(1440, raw)) : 30;
+    return minutes * 60000;
+  }
+
+  function markAvatarSwap() {
+    App.state.avatarLastSwap = Date.now();
+    App.save();
+  }
+
   function runAvatarSwap(auto) {
     const pool = avatarPoolData();
     if (!pool.mine.length && !pool.ta.length) {
       if (!auto) App.toast('先导入几张头像');
       return;
     }
+    if (auto && Date.now() - (Number(App.state.avatarLastSwap) || 0) < avatarCooldownMs()) return;
     const name = taDisplayName();
     let selfOn = pool.ta.length > 0 && Math.random() * 100 < avatarProb('avatarSelfProb', 40);
     const meOn = pool.mine.length > 0 && Math.random() * 100 < avatarProb('avatarMeProb', 25);
@@ -1104,6 +1116,7 @@
       const prefer = mySlot === -1 ? Math.floor(Math.random() * pool.ta.length) : mySlot;
       selfSlot = pickIndexBySameSlot(pool.ta, prefer, 0.75);
       if (changeContactAvatar(selfSlot)) {
+        markAvatarSwap();
         pushAvatarNotice(name + ' 换成了他的第 ' + (selfSlot + 1) + ' 张头像');
       } else {
         selfOn = false;
@@ -1464,6 +1477,7 @@
       const name = taDisplayName();
       closeAvatarRequest();
       if (changeMyAvatar(slot)) {
+        markAvatarSwap();
         pushAvatarNotice('你同意了，' + name + ' 把你的头像换成了第 ' + (slot + 1) + ' 张');
       }
       renderAvatarPool();

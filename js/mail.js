@@ -234,8 +234,15 @@
     if (!st || !st.contacts.length) return;
     const taMails = mailList().filter(function (m) { return m.from === 'ta'; });
     const lastTa = taMails.length ? taMails.reduce(function (a, b) { return a.ts > b.ts ? a : b; }) : null;
-    if (lastTa && Date.now() - lastTa.ts < 30 * 60 * 1000) return;
-    if (Math.random() * 100 >= 12) return;
+    const settings = st.settings || {};
+    const cooldownMin = settings.taMailCooldownMin == null
+      ? 30
+      : Math.max(0, Math.min(1440, Number(settings.taMailCooldownMin) || 0));
+    const prob = settings.taMailProb == null
+      ? 12
+      : Math.max(0, Math.min(100, Number(settings.taMailProb) || 0));
+    if (lastTa && Date.now() - lastTa.ts < cooldownMin * 60000) return;
+    if (Math.random() * 100 >= prob) return;
 
     const contact = fallbackContact();
     const card = pickTaCard();

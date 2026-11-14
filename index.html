@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-95">
+<link rel="stylesheet" href="css/style.css?v=20261114-96">
 </head>
 <body>
 <div class="stage">
@@ -599,13 +599,6 @@ if ('caches' in window) {
                   <button type="button" class="step-btn" data-step-for="set-ta-recall" data-step="5">+</button>
                 </span>
               </label>
-              <label class="field"><span>TA 引用消息（%）</span>
-                <span class="prob-input">
-                  <button type="button" class="step-btn" data-step-for="set-ta-quote" data-step="-5">−</button>
-                  <input id="set-ta-quote" type="number" min="0" max="100" step="1" inputmode="numeric">
-                  <button type="button" class="step-btn" data-step-for="set-ta-quote" data-step="5">+</button>
-                </span>
-              </label>
               <label class="field"><span>TA 收藏消息（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-fav" data-step="-5">−</button>
@@ -728,6 +721,9 @@ if ('caches' in window) {
                   <input id="set-ta-moment-gap-max" type="number" min="1" max="2880" step="1" inputmode="numeric">
                 </label>
               </div>
+              <label class="field"><span>冷却时间（分钟）</span>
+                <input id="set-ta-moment-cooldown" type="number" min="0" max="1440" step="1" inputmode="numeric">
+              </label>
               <div class="field-row">
                 <label class="field"><span>最少用字卡数</span>
                   <input id="set-ta-moment-card-min" type="number" min="1" max="9" step="1" inputmode="numeric">
@@ -920,10 +916,24 @@ if ('caches' in window) {
         </div>
 
         <div class="panel">
+          <h3>消息引用</h3>
+          <label class="field"><span>TA 引用消息（%）</span><input id="set-ta-quote" inputmode="numeric" maxlength="3" placeholder="20"></label>
+          <p class="field-hint">TA 引用时大多会引用你发的消息（约 85%），很少引用他自己的。</p>
+        </div>
+
+        <div class="panel">
+          <h3>信</h3>
+          <label class="field"><span>TA 主动写信（%）</span><input id="set-ta-mail-prob" inputmode="numeric" maxlength="3" placeholder="12"></label>
+          <label class="field"><span>写信冷却时间（分钟）</span><input id="set-ta-mail-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
+          <p class="field-hint">冷却时间内 TA 不会再主动寄信。</p>
+        </div>
+
+        <div class="panel">
           <h3>换头像概率</h3>
           <label class="field"><span>TA 给自己换头像的概率（%）</span><input id="set-avatar-self-prob" inputmode="numeric" maxlength="3" placeholder="40"></label>
           <label class="field"><span>TA 给我换头像的概率（%）</span><input id="set-avatar-me-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
-          <p class="field-hint">在「其他 → 互换头像」里让 TA 换头像时，按这两个概率决定换不换。</p>
+          <label class="field"><span>换头像冷却时间（分钟）</span><input id="set-avatar-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
+          <p class="field-hint">按两个概率决定换谁的；换过一次后要等冷却时间结束，TA 才会再次换头像。</p>
         </div>
         </div>
 
@@ -1471,18 +1481,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-95"></script>
-<script src="js/store.js?v=20261114-95"></script>
-<script src="js/desktop.js?v=20261114-95"></script>
-<script src="js/chat.js?v=20261114-95"></script>
-<script src="js/cards.js?v=20261114-95"></script>
-<script src="js/settings.js?v=20261114-95"></script>
-<script src="js/moments.js?v=20261114-95"></script>
-<script src="js/calendar.js?v=20261114-95"></script>
-<script src="js/music.js?v=20261114-95"></script>
-<script src="js/market.js?v=20261114-95"></script>
-<script src="js/mail.js?v=20261114-95"></script>
-<script src="js/extras.js?v=20261114-95"></script>
-<script src="js/app.js?v=20261114-95"></script>
+<script src="js/seed.js?v=20261114-96"></script>
+<script src="js/store.js?v=20261114-96"></script>
+<script src="js/desktop.js?v=20261114-96"></script>
+<script src="js/chat.js?v=20261114-96"></script>
+<script src="js/cards.js?v=20261114-96"></script>
+<script src="js/settings.js?v=20261114-96"></script>
+<script src="js/moments.js?v=20261114-96"></script>
+<script src="js/calendar.js?v=20261114-96"></script>
+<script src="js/music.js?v=20261114-96"></script>
+<script src="js/market.js?v=20261114-96"></script>
+<script src="js/mail.js?v=20261114-96"></script>
+<script src="js/extras.js?v=20261114-96"></script>
+<script src="js/app.js?v=20261114-96"></script>
 </body>
 </html>

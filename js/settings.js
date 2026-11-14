@@ -203,6 +203,7 @@
     el('#set-ta-moment-gap-max').value = st.settings.taMomentGapMax == null ? 60 : st.settings.taMomentGapMax;
     el('#set-ta-moment-card-min').value = st.settings.taMomentCardMin == null ? 1 : st.settings.taMomentCardMin;
     el('#set-ta-moment-card-max').value = st.settings.taMomentCardMax == null ? 3 : st.settings.taMomentCardMax;
+    el('#set-ta-moment-cooldown').value = st.settings.taMomentCooldownMin == null ? 10 : st.settings.taMomentCooldownMin;
     el('#set-pat-back').value = st.settings.patBackProb == null ? 50 : st.settings.patBackProb;
     el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
     el('#set-ta-recall').value = st.settings.taRecallProb == null ? 5 : st.settings.taRecallProb;
@@ -220,6 +221,9 @@
     el('#set-voice-transcript').checked = st.settings.voiceTranscript !== false;
     el('#set-avatar-self-prob').value = st.settings.avatarSelfProb == null ? 40 : st.settings.avatarSelfProb;
     el('#set-avatar-me-prob').value = st.settings.avatarMeProb == null ? 25 : st.settings.avatarMeProb;
+    el('#set-avatar-cooldown').value = st.settings.avatarCooldownMin == null ? 30 : st.settings.avatarCooldownMin;
+    el('#set-ta-mail-prob').value = st.settings.taMailProb == null ? 12 : st.settings.taMailProb;
+    el('#set-ta-mail-cooldown').value = st.settings.taMailCooldownMin == null ? 30 : st.settings.taMailCooldownMin;
 
     const partnerSelect = el('#set-partner');
     partnerSelect.innerHTML = st.contacts.length
@@ -314,6 +318,23 @@
     }
     bindAvatarProb('#set-avatar-self-prob', 'avatarSelfProb');
     bindAvatarProb('#set-avatar-me-prob', 'avatarMeProb');
+    bindAvatarProb('#set-ta-quote', 'taQuoteProb');
+    bindAvatarProb('#set-ta-mail-prob', 'taMailProb');
+
+    function bindMinutes(id, key, max) {
+      const input = el(id);
+      if (!input) return;
+      input.addEventListener('input', function () {
+        const raw = String(input.value || '').trim();
+        if (!raw) return;
+        const value = Math.max(0, Math.min(max, parseInt(raw, 10) || 0));
+        App.state.settings[key] = value;
+        App.save();
+      });
+    }
+    bindMinutes('#set-avatar-cooldown', 'avatarCooldownMin', 1440);
+    bindMinutes('#set-ta-mail-cooldown', 'taMailCooldownMin', 1440);
+    bindMinutes('#set-ta-moment-cooldown', 'taMomentCooldownMin', 1440);
 
     el('#btn-edit-partner').addEventListener('click', function () {
       const partner = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
