@@ -203,6 +203,7 @@
 
   /* 我发出的消息约两秒后变成已读 */
   function scheduleRead(contactId, message) {
+    if (message.noReply) return;
     if (readTimers[message.id]) return;
     readTimers[message.id] = setTimeout(function () {
       delete readTimers[message.id];
@@ -1084,16 +1085,23 @@
     /* 按概率已读不回：不接话，把我刚发的那条消息标成「已读不回」 */
     const ignoreProb = Math.max(0, Math.min(100, Number(cs.taIgnoreProb) || 0));
     if (Math.random() * 100 < ignoreProb) {
-      await sleep(1600 + Math.random() * 2400);
-      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       const chat = App.state.chats[contactId] || [];
       let target = null;
       for (let i = chat.length - 1; i >= 0; i--) {
         if (chat[i].role === 'me') { target = chat[i]; break; }
       }
-      if (!target) return;
+      /* 先占住这条消息的「已读」流程，避免中途闪一下已读 */
+      if (target) {
+        if (readTimers[target.id]) {
+          clearTimeout(readTimers[target.id]);
+          delete readTimers[target.id];
+        }
+        target.noReply = true;
+      }
+      await sleep(1600 + Math.random() * 2400);
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      if (!target || chat.indexOf(target) === -1) return;
       target.read = true;
-      target.noReply = true;
       App.save();
       if (App.chatOpen(contactId)) App.renderChat();
       return;
