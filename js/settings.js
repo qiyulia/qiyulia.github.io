@@ -706,10 +706,10 @@
     const memoryClean = el('#btn-memory-clean');
     if (memoryClean) {
       memoryClean.addEventListener('click', function () {
-        App.cleanVoiceMedia().then(function (result) {
+        App.cleanOrphanMedia().then(function (result) {
           App.toast(result.removed
-            ? '已清理 ' + result.removed + ' 段语音，释放 ' + formatBytes(result.bytes)
-            : '没有可清理的语音');
+            ? '已清理 ' + result.removed + ' 项媒体，释放 ' + formatBytes(result.bytes)
+            : '没有可清理的媒体');
           return App.refreshMemoryStats();
         }).catch(function (err) {
           App.toast(err && err.message ? err.message : '清理失败');

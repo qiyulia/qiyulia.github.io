@@ -278,33 +278,74 @@
     });
   };
 
-  /* 清理没有被任何字卡或消息引用的语音 */
-  App.cleanVoiceMedia = function () {
-    const used = {};
+  /* 统计指定记录的总字节数 */
+  function recordBytes(name, ids) {
+    if (!ids.length) return Promise.resolve(0);
+    const stats = { bytes: 0 };
+    return withMediaStore(name, 'readonly', function (store) {
+      ids.forEach(function (id) {
+        const request = store.get(id);
+        request.onsuccess = function () {
+          const record = request.result;
+          stats.bytes += (record && record.blob && record.blob.size) || 0;
+        };
+      });
+      return null;
+    }).then(function () { return stats.bytes; });
+  }
+
+  /* 清理孤儿媒体：没有字卡/消息引用的语音，以及歌单里已不存在的本地音乐 */
+  App.cleanOrphanMedia = function () {
+    const usedVoice = {};
     (App.state.cards || []).forEach(function (card) {
-      if (card.audio) used[card.audio] = true;
+      if (card.audio) usedVoice[card.audio] = true;
     });
     Object.keys(App.state.chats || {}).forEach(function (contactId) {
       (App.state.chats[contactId] || []).forEach(function (message) {
-        if (message.src) used[message.src] = true;
+        if (message.src) usedVoice[message.src] = true;
       });
     });
-    return withMediaStore('voice', 'readonly', function (store) {
-      return store.getAll();
-    }).then(function (records) {
-      const stale = (records || []).filter(function (record) {
-        return record && record.id && !used['voice:' + record.id];
-      });
-      if (!stale.length) return { removed: 0, bytes: 0 };
-      const bytes = stale.reduce(function (sum, record) {
-        return sum + ((record.blob && record.blob.size) || 0);
-      }, 0);
-      return withMediaStore('voice', 'readwrite', function (store) {
-        stale.forEach(function (record) {
-          store.delete(record.id);
-          revokeVoiceUrl(record.id);
+    const trackIds = {};
+    ((App.state.music && App.state.music.tracks) || []).forEach(function (track) {
+      if (track && track.id) trackIds[track.id] = true;
+    });
+
+    return Promise.all([
+      withMediaStore('voice', 'readonly', function (store) { return store.getAllKeys(); }),
+      withMediaStore('audio', 'readonly', function (store) { return store.getAllKeys(); }),
+    ]).then(function (keys) {
+      const staleVoice = (keys[0] || []).filter(function (id) { return !usedVoice['voice:' + id]; });
+      const staleAudio = (keys[1] || []).filter(function (id) { return !trackIds[id]; });
+      if (!staleVoice.length && !staleAudio.length) {
+        return { removed: 0, bytes: 0, voice: 0, music: 0 };
+      }
+      return Promise.all([
+        recordBytes('voice', staleVoice),
+        recordBytes('audio', staleAudio),
+      ]).then(function (sizes) {
+        const jobs = [];
+        if (staleVoice.length) {
+          jobs.push(withMediaStore('voice', 'readwrite', function (store) {
+            staleVoice.forEach(function (id) {
+              store.delete(id);
+              revokeVoiceUrl(id);
+            });
+          }));
+        }
+        if (staleAudio.length) {
+          jobs.push(withMediaStore('audio', 'readwrite', function (store) {
+            staleAudio.forEach(function (id) { store.delete(id); });
+          }));
+        }
+        return Promise.all(jobs).then(function () {
+          return {
+            removed: staleVoice.length + staleAudio.length,
+            bytes: sizes[0] + sizes[1],
+            voice: staleVoice.length,
+            music: staleAudio.length,
+          };
         });
-      }).then(function () { return { removed: stale.length, bytes: bytes }; });
+      });
     });
   };
 
