@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-109">
+<link rel="stylesheet" href="css/style.css?v=20261114-110">
 </head>
 <body>
 <div class="stage">
@@ -1109,10 +1109,13 @@ if ('caches' in window) {
         <div class="settings-page" data-settings-panel="memory" hidden>
           <div class="panel">
             <h3>内存占用</h3>
-            <p class="field-hint">文字和设置放在浏览器本地存储，语音放在空间更大的 IndexedDB，分开计算。</p>
+            <p class="field-hint">所有内容都保存在浏览器本地的 IndexedDB 里，容量比原来的 localStorage 大得多。</p>
             <ul class="memory-stats">
-              <li><span>文字与设置</span><strong id="memory-local">—</strong></li>
+              <li><span>已用空间</span><strong id="memory-used">—</strong></li>
+              <li><span>总容量</span><strong id="memory-quota">—</strong></li>
+              <li><span>会话数据</span><strong id="memory-local">—</strong></li>
               <li><span>语音</span><strong id="memory-voice">—</strong></li>
+              <li><span>音乐</span><strong id="memory-music">—</strong></li>
               <li><span>合计</span><strong id="memory-total">—</strong></li>
             </ul>
             <div class="btn-row">
@@ -1561,18 +1564,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-109"></script>
-<script src="js/store.js?v=20261114-109"></script>
-<script src="js/desktop.js?v=20261114-109"></script>
-<script src="js/chat.js?v=20261114-109"></script>
-<script src="js/cards.js?v=20261114-109"></script>
-<script src="js/settings.js?v=20261114-109"></script>
-<script src="js/moments.js?v=20261114-109"></script>
-<script src="js/calendar.js?v=20261114-109"></script>
-<script src="js/music.js?v=20261114-109"></script>
-<script src="js/market.js?v=20261114-109"></script>
-<script src="js/mail.js?v=20261114-109"></script>
-<script src="js/extras.js?v=20261114-109"></script>
-<script src="js/app.js?v=20261114-109"></script>
+<script src="js/seed.js?v=20261114-110"></script>
+<script src="js/store.js?v=20261114-110"></script>
+<script src="js/desktop.js?v=20261114-110"></script>
+<script src="js/chat.js?v=20261114-110"></script>
+<script src="js/cards.js?v=20261114-110"></script>
+<script src="js/settings.js?v=20261114-110"></script>
+<script src="js/moments.js?v=20261114-110"></script>
+<script src="js/calendar.js?v=20261114-110"></script>
+<script src="js/music.js?v=20261114-110"></script>
+<script src="js/market.js?v=20261114-110"></script>
+<script src="js/mail.js?v=20261114-110"></script>
+<script src="js/extras.js?v=20261114-110"></script>
+<script src="js/app.js?v=20261114-110"></script>
 </body>
 </html>

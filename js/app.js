@@ -171,8 +171,6 @@
     rawSave.apply(App, arguments);
     watchChats();
   };
-  setTimeout(seedSeenChats, 0);
-
   App.renderAll = function () {
     App.renderDesktop();
     App.renderContacts();
@@ -252,7 +250,9 @@
     }
   });
 
-  App.load();
+  /* 数据在 IndexedDB 里，读取是异步的，读完再初始化界面 */
+  function boot() {
+  seedSeenChats();
   App.chatContactId = null;
   App.applyTheme();
 
@@ -313,4 +313,10 @@
   setTimeout(function () {
     if (App.recoverPendingStickers) App.recoverPendingStickers();
   }, 900);
+  }
+
+  App.load().then(boot, function () {
+    if (!App.state) App.state = App.seedState();
+    boot();
+  });
 })();

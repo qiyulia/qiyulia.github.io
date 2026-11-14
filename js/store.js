@@ -22,13 +22,49 @@
   };
 
   let saveTimer = 0;
+  /* 主数据已经搬到 IndexedDB；'local' 只在浏览器不支持时兜底 */
+  let storageMode = 'db';
+  let saveChain = Promise.resolve();
+  let saveWarnAt = 0;
 
-  function writeState() {
+  function warnSaveFailed() {
+    if (App.toast && Date.now() - saveWarnAt > 4000) {
+      saveWarnAt = Date.now();
+      App.toast('保存失败：本地存储空间不足');
+    }
+  }
+
+  function saveToLocal() {
     try {
       localStorage.setItem(KEY, JSON.stringify(App.state));
+      return true;
     } catch (e) {
-      if (App.toast) App.toast('保存失败：浏览器存储不可用');
+      warnSaveFailed();
+      return false;
     }
+  }
+
+  /* 把整份状态序列化后写进 IndexedDB 的 kv 库，排队执行避免写入乱序 */
+  function persistState() {
+    const json = JSON.stringify(App.state);
+    const job = saveChain.catch(function () {}).then(function () {
+      return withMediaStore('kv', 'readwrite', function (store) {
+        return store.put({ data: json, savedAt: Date.now() }, 'state');
+      });
+    });
+    saveChain = job.catch(function () {});
+    return job;
+  }
+
+  function writeState() {
+    if (storageMode === 'local') {
+      saveToLocal();
+      return;
+    }
+    persistState().catch(function () {
+      storageMode = 'local';
+      saveToLocal();
+    });
   }
 
   /* 合并短时间内的多次保存，避免每次点击都同步序列化整份数据造成卡顿 */
@@ -209,22 +245,35 @@
     });
   };
 
-  /* 内存统计：localStorage 里的文字数据 + IndexedDB 里的语音 */
+  /* 统计某个 Blob 库里所有记录的总字节数（用游标，避免一次加载全部音频） */
+  App.storeBytes = function (name) {
+    const stats = { bytes: 0, count: 0 };
+    return withMediaStore(name, 'readonly', function (store) {
+      const request = store.openCursor();
+      request.onsuccess = function () {
+        const cursor = request.result;
+        if (!cursor) return;
+        const value = cursor.value;
+        stats.bytes += (value && value.blob && value.blob.size) || 0;
+        stats.count++;
+        cursor.continue();
+      };
+      return null;
+    }).then(function () { return stats; });
+  };
+
+  /* 内存统计：会话数据 + 语音 + 音乐，全部在 IndexedDB 里 */
   App.memoryUsage = function () {
     let local = 0;
     try { local = new Blob([JSON.stringify(App.state)]).size; } catch (e) { local = 0; }
-    return withMediaStore('voice', 'readonly', function (store) {
-      return store.getAll();
-    }).then(function (records) {
-      let voice = 0;
-      (records || []).forEach(function (record) {
-        voice += (record && record.blob && record.blob.size) || 0;
-      });
+    return Promise.all([App.storeBytes('voice'), App.storeBytes('audio')]).then(function (stats) {
       return {
         local: local,
-        voice: voice,
-        voiceCount: (records || []).length,
-        total: local + voice,
+        voice: stats[0].bytes,
+        voiceCount: stats[0].count,
+        music: stats[1].bytes,
+        musicCount: stats[1].count,
+        total: local + stats[0].bytes + stats[1].bytes,
       };
     });
   };
@@ -341,12 +390,31 @@
     return s;
   };
 
-  App.load = function () {
-    let raw = null;
-    try {
-      raw = JSON.parse(localStorage.getItem(KEY) || 'null');
-    } catch (e) {
-      raw = null;
+  /* 从 IndexedDB 读回上次保存的整份状态 */
+  function readSavedState() {
+    return withMediaStore('kv', 'readonly', function (store) {
+      return store.get('state');
+    }).then(function (record) {
+      if (!record) return null;
+      if (typeof record.data === 'string') {
+        try { return JSON.parse(record.data); } catch (e) { return null; }
+      }
+      if (record.state && record.state.version === 1) return record.state;
+      if (record.version === 1) return record;
+      return null;
+    }).catch(function () { return null; });
+  }
+
+  function finishLoad(saved) {
+    let raw = saved;
+    const fromDb = !!saved;
+    /* 旧版本把数据放在 localStorage，第一次打开时自动搬过来 */
+    if (!raw) {
+      try {
+        raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+      } catch (e) {
+        raw = null;
+      }
     }
 
     const s = (raw && raw.version === 1) ? raw : App.seedState();
@@ -521,6 +589,28 @@
     }
 
     App.state = s;
+    return { state: s, fromDb: fromDb };
+  }
+
+  App.load = function () {
+    return readSavedState().then(function (saved) {
+      const result = finishLoad(saved);
+      storageMode = 'db';
+      /* 首次迁移：写进 IndexedDB 成功后再删掉 localStorage 里的旧副本 */
+      if (!result.fromDb) {
+        persistState().then(function () {
+          try { localStorage.removeItem(KEY); } catch (e) {}
+        }).catch(function () {
+          storageMode = 'local';
+          saveToLocal();
+        });
+      }
+      return result.state;
+    }).catch(function () {
+      const result = finishLoad(null);
+      storageMode = 'local';
+      return result.state;
+    });
   };
 
   /* 每个角色独立的回复/互动设置，未单独设置的项回落到全局默认值 */

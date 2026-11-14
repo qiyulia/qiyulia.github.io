@@ -6,7 +6,7 @@
   function storageSize() {
     try {
       const bytes = new Blob([JSON.stringify(App.state)]).size;
-      el('#storage-size').textContent = '本地数据约 ' + (bytes / 1024).toFixed(1) + ' KB';
+      el('#storage-size').textContent = '数据约 ' + (bytes / 1024).toFixed(1) + ' KB';
     } catch (e) {
       el('#storage-size').textContent = '';
     }
@@ -16,26 +16,42 @@
     const value = Math.max(0, Number(bytes) || 0);
     if (value < 1024) return value + ' B';
     if (value < 1024 * 1024) return (value / 1024).toFixed(1) + ' KB';
-    return (value / 1024 / 1024).toFixed(1) + ' MB';
+    if (value < 1024 * 1024 * 1024) return (value / 1024 / 1024).toFixed(1) + ' MB';
+    return (value / 1024 / 1024 / 1024).toFixed(2) + ' GB';
   }
 
-  /* 内存分类：文字在 localStorage，语音在 IndexedDB */
+  function storageEstimate() {
+    if (navigator.storage && navigator.storage.estimate) {
+      return navigator.storage.estimate().catch(function () { return null; });
+    }
+    return Promise.resolve(null);
+  }
+
+  /* 内存分类：已用/总容量 + 分类占用 */
   App.refreshMemoryStats = function () {
     const localNode = el('#memory-local');
     const voiceNode = el('#memory-voice');
+    const musicNode = el('#memory-music');
     const totalNode = el('#memory-total');
+    const usedNode = el('#memory-used');
+    const quotaNode = el('#memory-quota');
     if (!localNode || !voiceNode || !totalNode) return Promise.resolve();
-    localNode.textContent = '统计中…';
-    voiceNode.textContent = '统计中…';
-    totalNode.textContent = '统计中…';
-    return App.memoryUsage().then(function (usage) {
+    [localNode, voiceNode, musicNode, totalNode, usedNode, quotaNode].forEach(function (node) {
+      if (node) node.textContent = '统计中…';
+    });
+    return Promise.all([App.memoryUsage(), storageEstimate()]).then(function (results) {
+      const usage = results[0];
+      const estimate = results[1];
       localNode.textContent = formatBytes(usage.local);
       voiceNode.textContent = formatBytes(usage.voice) + '（' + usage.voiceCount + ' 段）';
+      if (musicNode) musicNode.textContent = formatBytes(usage.music) + '（' + usage.musicCount + ' 首）';
       totalNode.textContent = formatBytes(usage.total);
+      if (usedNode) usedNode.textContent = estimate ? formatBytes(estimate.usage) : '—';
+      if (quotaNode) quotaNode.textContent = estimate ? formatBytes(estimate.quota) : '—';
     }).catch(function () {
-      localNode.textContent = '—';
-      voiceNode.textContent = '—';
-      totalNode.textContent = '—';
+      [localNode, voiceNode, musicNode, totalNode, usedNode, quotaNode].forEach(function (node) {
+        if (node) node.textContent = '—';
+      });
     });
   };
 
