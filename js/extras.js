@@ -185,51 +185,423 @@
   }
 
   /* ---------------- 工具：问卷 ---------------- */
-  const SURVEY = [
-    { q: '今天的心情', opts: ['很低落', '有点累', '还行', '不错', '很好'] },
-    { q: '和 TA 的连接感', opts: ['很远', '有点淡', '一般', '挺近', '很贴近'] },
-    { q: '今天的精力', opts: ['几乎没电', '偏累', '够用', '充沛', '满格'] },
+  const SURVEY_TA_TEMPLATES = [
+    { text: '今天的心情怎么样？', mode: 'single', options: ['很好', '还不错', '有点累', '想静静'] },
+    { text: '如果今晚可以一起做一件事，你想选？', mode: 'single', options: ['散步', '看电影', '聊天', '什么都不做'] },
+    { text: '最近有什么想被我知道的小事？', mode: 'card', options: [] },
   ];
-  let surveyPicks = [0, 0, 0];
 
-  function renderSurvey() {
-    const body = el('#survey-body');
-    if (!body) return;
-    body.innerHTML = SURVEY.map(function (item, qi) {
-      return '<div class="survey-q" data-q="' + qi + '"><span>' + item.q + '</span><div class="survey-scale">' +
-        item.opts.map(function (opt, oi) {
-          return '<button type="button" data-survey-pick="' + qi + ':' + oi + '" class="' + (surveyPicks[qi] === oi ? 'is-on' : '') + '">' + opt + '</button>';
-        }).join('') + '</div></div>';
-    }).join('');
-    el('#survey-result').hidden = true;
+  let surveyDraft = [];
+
+  function parseSurveyOptions(text) {
+    const parts = String(text || '').split(/[/／、,，\n]+/);
+    const out = [];
+    parts.forEach(function (part) {
+      const value = part.trim();
+      if (value && out.indexOf(value) === -1) out.push(value);
+    });
+    return out;
   }
 
-  function surveyResult() {
-    const score = surveyPicks.reduce(function (sum, v) { return sum + (v + 1); }, 0);
-    if (score <= 5) return '今天先把自己放在第一位。慢一点也没关系，想说的时候再说。';
-    if (score <= 8) return '今天有点低电量。给自己留一点空白，别把每件事都做得满分。';
-    if (score <= 11) return '还行的一天。适合做一件小小的、让自己开心的事。';
-    if (score <= 13) return '状态不错。今天的你，比想象中更有余裕。';
-    return '今天满格。把这份好心情分一点给 TA 吧。';
+  function surveyModeLabel(mode) {
+    if (mode === 'single') return '单选';
+    if (mode === 'multi') return '多选';
+    return '字卡回答';
+  }
+
+  function renderSurveyQuestions() {
+    const list = el('#survey-question-list');
+    if (!list) return;
+    list.innerHTML = surveyDraft.map(function (item, index) {
+      const modes = ['card', 'single', 'multi'].map(function (mode) {
+        return '<button type="button" class="' + (item.mode === mode ? 'is-active' : '') +
+          '" data-survey-mode="' + index + ':' + mode + '">' + surveyModeLabel(mode) + '</button>';
+      }).join('');
+      const extra = (item.mode === 'single' || item.mode === 'multi')
+        ? '<input class="survey-option-input" data-survey-options="' + index + '" maxlength="120" placeholder="选项用 / 分隔，2~6 个" value="' + App.esc(item.optionsText) + '">'
+        : '<label class="survey-scope"><span>字卡范围</span><select data-survey-scope="' + index + '">' +
+            '<option value="all"' + (item.scope === 'all' ? ' selected' : '') + '>整个字卡库</option>' +
+            '<option value="聊天"' + (item.scope === '聊天' ? ' selected' : '') + '>只选聊天字卡</option>' +
+            '<option value="情绪"' + (item.scope === '情绪' ? ' selected' : '') + '>只选情绪字卡</option>' +
+          '</select></label>';
+      return '<div class="survey-editor-item">' +
+        '<div class="survey-editor-top">' +
+          '<span class="survey-index">' + (index + 1) + '</span>' +
+          '<input class="survey-editor-title" data-survey-title="' + index + '" maxlength="80" value="' + App.esc(item.text) + '" placeholder="题目">' +
+          '<button type="button" class="mini-btn" data-survey-del="' + index + '" aria-label="删除这个问题">×</button>' +
+        '</div>' +
+        '<div class="segmented survey-mode" role="group" aria-label="回答方式">' + modes + '</div>' +
+        extra +
+      '</div>';
+    }).join('');
+    const empty = el('#survey-empty');
+    if (empty) empty.hidden = surveyDraft.length > 0;
+  }
+
+  function addSurveyQuestion() {
+    const input = el('#survey-question-input');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) { App.toast('先写一个问题'); return; }
+    if (surveyDraft.length >= 8) { App.toast('一份问卷最多 8 个问题'); return; }
+    surveyDraft.push({ text: text, mode: 'card', optionsText: '', scope: 'all' });
+    input.value = '';
+    renderSurveyQuestions();
+    input.focus();
+  }
+
+  function collectSurveyQuestions() {
+    if (!surveyDraft.length) return { error: '先添加一个问题' };
+    const questions = [];
+    for (let i = 0; i < surveyDraft.length; i++) {
+      const item = surveyDraft[i];
+      const text = String(item.text || '').trim();
+      if (!text) return { error: '第 ' + (i + 1) + ' 题还没写问题' };
+      if (item.mode === 'single' || item.mode === 'multi') {
+        const options = parseSurveyOptions(item.optionsText);
+        if (options.length < 2 || options.length > 6) {
+          return { error: '第 ' + (i + 1) + ' 题需要 2~6 个选项' };
+        }
+        questions.push({ text: text, mode: item.mode, options: options });
+      } else {
+        questions.push({ text: text, mode: 'card', options: [], scope: item.scope || 'all' });
+      }
+    }
+    return { questions: questions };
+  }
+
+  function surveyScopeCats(scope) {
+    if (scope === '聊天' || scope === '情绪') return [scope];
+    return ['聊天', '情绪'];
+  }
+
+  function deliverMessage(contactId, message) {
+    const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+    chat.push(message);
+    App.save();
+    if (App.chatOpen(contactId)) {
+      App.renderChat();
+    } else {
+      App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+      App.updateBadges();
+      App.renderContacts();
+    }
+  }
+
+  function surveyAnswerFor(question, contactId) {
+    if (question.mode === 'single' || question.mode === 'multi') {
+      const options = (question.options || []).slice();
+      if (!options.length) return { text: question.text, mode: question.mode, answer: '（没有选项）' };
+      if (question.mode === 'single') {
+        return { text: question.text, mode: 'single', answer: options[Math.floor(Math.random() * options.length)] };
+      }
+      const count = 1 + Math.floor(Math.random() * options.length);
+      const picked = [];
+      while (picked.length < count && options.length) {
+        picked.push(options.splice(Math.floor(Math.random() * options.length), 1)[0]);
+      }
+      return { text: question.text, mode: 'multi', answer: picked.join('、') };
+    }
+    const cards = App.pickCards('', 1, contactId, surveyScopeCats(question.scope));
+    const card = cards.length ? cards[0] : null;
+    return {
+      text: question.text,
+      mode: 'card',
+      answer: card ? card.text : '这次先不答，留一点空白。',
+      cardId: card ? card.id : '',
+    };
+  }
+
+  function scheduleSurveyAnswers(contactId, surveyId) {
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const chat = App.state.chats[contactId] || [];
+      const survey = chat.find(function (m) { return m.id === surveyId; });
+      if (!survey) return;
+      const answers = (survey.questions || []).map(function (q) {
+        return surveyAnswerFor(q, contactId);
+      });
+      survey.answered = true;
+      deliverMessage(contactId, {
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'surveyAnswer',
+        text: '问卷答案',
+        surveyId: surveyId,
+        answers: answers,
+        ts: Date.now(),
+        read: App.chatOpen(contactId),
+      });
+      maybeTaSurveyBack(contactId);
+    }, 2400 + Math.random() * 2400);
+  }
+
+  function maybeTaSurveyBack(contactId) {
+    if (Math.random() >= 0.3) return;
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const total = 2 + Math.floor(Math.random() * 2);
+      const pool = SURVEY_TA_TEMPLATES.slice();
+      const questions = [];
+      while (questions.length < total && pool.length) {
+        const item = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+        questions.push({
+          text: item.text,
+          mode: item.mode,
+          options: item.options.slice(),
+          scope: 'all',
+        });
+      }
+      deliverMessage(contactId, {
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'survey',
+        text: 'TA 发来一份小问卷',
+        questions: questions,
+        answered: false,
+        fromTa: true,
+        ts: Date.now(),
+        read: App.chatOpen(contactId),
+      });
+    }, 2200 + Math.random() * 2200);
+  }
+
+  function scheduleSurveyAppend(contactId) {
+    if (Math.random() >= 0.4) return;
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const cards = App.pickCards('', 1, contactId, ['聊天', '情绪']);
+      const card = cards.length ? cards[0] : null;
+      deliverMessage(contactId, {
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'text',
+        text: card ? card.text : '刚刚想说的，又忘了。',
+        cardId: card ? card.id : undefined,
+        surveyAppend: true,
+        ts: Date.now(),
+        read: App.chatOpen(contactId),
+      });
+    }, 2600 + Math.random() * 2600);
+  }
+
+  /* 我在聊天里用文字回答 TA 的问卷后调用 */
+  App.noteSurveyTextReply = function (contactId) {
+    const chat = App.state.chats[contactId] || [];
+    for (let i = chat.length - 1; i >= 0; i--) {
+      const message = chat[i];
+      if (message.type === 'survey' && message.role === 'ta' && !message.answered) {
+        message.answered = true;
+        App.save();
+        if (App.chatOpen(contactId)) App.renderChat();
+        scheduleSurveyAppend(contactId);
+        return;
+      }
+    }
+  };
+
+  function sendSurvey() {
+    const contactId = reminderContactId();
+    if (!contactId) { App.toast('先添加一个角色吧'); return; }
+    const collected = collectSurveyQuestions();
+    if (collected.error) { App.toast(collected.error); return; }
+    const message = {
+      id: App.uid('m'),
+      role: 'me',
+      type: 'survey',
+      text: '发来一份小问卷',
+      questions: collected.questions,
+      answered: false,
+      ts: Date.now(),
+    };
+    deliverMessage(contactId, message);
+    const dialog = el('#survey-dialog');
+    if (dialog) dialog.close();
+    surveyDraft = [];
+    renderSurveyQuestions();
+    App.toast('问卷已发出');
+    scheduleSurveyAnswers(contactId, message.id);
   }
 
   /* ---------------- 工具：占卜 ---------------- */
-  const FORTUNES = [
-    { t: '上上签', b: '想见的人，今天会先开口。\n适合把藏了很久的一句话说出来。' },
-    { t: '上签', b: '有一件小事会顺利得超出预期。\n记得对帮你的人说谢谢。' },
-    { t: '中签', b: '今天适合慢一点。\n越急着证明什么，越容易错过手边的好东西。' },
-    { t: '平签', b: '风平浪静的一天。\n没有消息，也是一种好消息。' },
-    { t: '小吉', b: '会在意想不到的地方被偏爱。\n留意一句随口的关心。' },
-    { t: '温柔签', b: '你最近很用力地生活。\n今晚早点睡，梦里会有人等你。' },
-    { t: '月亮签', b: '今天的月光很适合想人。\n那就想吧，不用觉得不好意思。' },
-    { t: '晴天签', b: '适合出门，适合抬头。\n会遇到一件让你笑出来的小事。' },
+  const TAROT_MAJOR = [
+    '愚者', '魔术师', '女祭司', '皇后', '皇帝', '教皇', '恋人', '战车',
+    '力量', '隐者', '命运之轮', '正义', '倒吊人', '死神', '节制', '恶魔',
+    '高塔', '星星', '月亮', '太阳', '审判', '世界',
   ];
-  let fortune = null;
+  const TAROT_SUITS = ['权杖', '圣杯', '宝剑', '星币'];
+  const TAROT_RANKS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '侍从', '骑士', '王后', '国王'];
+  const TAROT_DECK = TAROT_MAJOR.slice();
+  TAROT_SUITS.forEach(function (suit) {
+    TAROT_RANKS.forEach(function (rank) {
+      TAROT_DECK.push(suit + rank);
+    });
+  });
+  const LENORMAND_DECK = [
+    '骑士', '四叶草', '船', '房子', '树', '云', '蛇', '棺材', '花束', '镰刀', '鞭子', '鸟',
+    '小孩', '狐狸', '熊', '星星', '鹳', '狗', '高塔', '花园', '山', '十字路口', '老鼠', '心',
+    '戒指', '书', '信', '男人', '女人', '百合', '太阳', '月亮', '钥匙', '鱼', '锚', '十字架',
+  ];
 
-  function drawFortune() {
-    fortune = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
-    const box = el('#divine-result');
-    if (box) box.innerHTML = '<strong>' + fortune.t + '</strong>' + App.esc(fortune.b);
+  let divine = { type: '', count: 0, started: false, deck: [], drawn: [], revealed: 0 };
+
+  function divineTypeLabel(type) {
+    return type === 'lenormand' ? '雷诺曼' : '塔罗牌';
+  }
+
+  function shuffleDeck(list) {
+    const deck = list.slice();
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = deck[i];
+      deck[i] = deck[j];
+      deck[j] = tmp;
+    }
+    return deck;
+  }
+
+  function divineCardHtml(index) {
+    return '<button type="button" class="divine-card" data-divine-flip="' + index + '" aria-label="翻开第 ' + (index + 1) + ' 张牌">' +
+      '<span class="divine-card-inner">' +
+        '<span class="divine-card-face divine-card-back">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3.1-5.4 3.1 1.2-6L3.3 9.3l6.1-.7L12 3z"/></svg>' +
+        '</span>' +
+        '<span class="divine-card-face divine-card-front"></span>' +
+      '</span>' +
+    '</button>';
+  }
+
+  function divineRevealedCount() {
+    return divine.drawn.filter(function (card) { return !!card; }).length;
+  }
+
+  function updateDivineControls() {
+    const draw = el('#divine-draw');
+    const reset = el('#divine-reset');
+    const send = el('#divine-send');
+    const hint = el('#divine-hint');
+    if (draw) draw.disabled = divine.started || !divine.type || !divine.count;
+    if (reset) reset.disabled = !divine.started && !divine.type && !divine.count;
+    if (send) send.disabled = !divine.started || divineRevealedCount() < divine.count;
+    document.querySelectorAll('[data-divine-type]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.divineType === divine.type);
+      btn.disabled = divine.started;
+    });
+    document.querySelectorAll('[data-divine-count]').forEach(function (btn) {
+      btn.classList.toggle('is-active', Number(btn.dataset.divineCount) === divine.count);
+      btn.disabled = divine.started;
+    });
+    if (hint) {
+      if (!divine.type || !divine.count) {
+        hint.textContent = '先选牌种和抽牌数量，再开始抽牌。';
+      } else if (!divine.started) {
+        hint.textContent = '已选' + divineTypeLabel(divine.type) + ' ' + divine.count + ' 张，点「开始抽牌」。';
+      } else if (divineRevealedCount() < divine.count) {
+        hint.textContent = '点牌背翻开，还剩 ' + (divine.count - divineRevealedCount()) + ' 张。';
+      } else {
+        hint.textContent = '牌阵完成，可以发给 TA，或重新开始。';
+      }
+    }
+  }
+
+  function resetDivine(clearChoice) {
+    divine.started = false;
+    divine.deck = [];
+    divine.drawn = [];
+    divine.revealed = 0;
+    if (clearChoice) {
+      divine.type = '';
+      divine.count = 0;
+    }
+    const board = el('#divine-board');
+    if (board) {
+      board.innerHTML = '';
+      board.className = 'divine-board';
+    }
+    updateDivineControls();
+  }
+
+  function startDivine() {
+    if (!divine.type || !divine.count || divine.started) return;
+    const source = divine.type === 'tarot' ? TAROT_DECK : LENORMAND_DECK;
+    divine.started = true;
+    divine.deck = shuffleDeck(source);
+    divine.drawn = [];
+    divine.revealed = 0;
+    for (let i = 0; i < divine.count; i++) divine.drawn.push(null);
+    const board = el('#divine-board');
+    if (board) {
+      board.className = 'divine-board count-' + divine.count;
+      let html = '';
+      for (let i = 0; i < divine.count; i++) html += divineCardHtml(i);
+      board.innerHTML = html;
+    }
+    updateDivineControls();
+  }
+
+  function flipDivineCard(button) {
+    if (!button || !divine.started) return;
+    if (button.classList.contains('is-flipped')) return;
+    const index = Number(button.dataset.divineFlip);
+    if (!isFinite(index) || index < 0 || index >= divine.count) return;
+    if (divine.drawn[index]) return;
+    if (!divine.deck.length) return;
+    const name = divine.deck.pop();
+    const card = {
+      name: name,
+      reversed: divine.type === 'tarot' && Math.random() < 0.5,
+    };
+    divine.drawn[index] = card;
+    const front = button.querySelector('.divine-card-front');
+    if (front) {
+      front.innerHTML = '<strong>' + App.esc(card.name) + '</strong>' +
+        '<em class="' + (card.reversed ? 'is-reversed' : '') + '">' + (card.reversed ? '逆位' : '正位') + '</em>';
+    }
+    button.disabled = true;
+    requestAnimationFrame(function () {
+      button.classList.add('is-flipped');
+    });
+    updateDivineControls();
+  }
+
+  function scheduleDivineReply(contactId, messageId) {
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const chat = App.state.chats[contactId] || [];
+      const message = chat.find(function (m) { return m.id === messageId; });
+      if (!message || message.reply) return;
+      const cards = App.pickCards('', 1, contactId, ['聊天', '情绪']);
+      const card = cards.length ? cards[0] : null;
+      message.reply = {
+        text: card ? card.text : '牌面很安静，我先陪你坐一会儿。',
+        cardId: card ? card.id : '',
+      };
+      App.save();
+      if (App.chatOpen(contactId)) App.renderChat();
+    }, 2400 + Math.random() * 2400);
+  }
+
+  function sendDivine() {
+    const contactId = reminderContactId();
+    if (!contactId) { App.toast('先添加一个角色吧'); return; }
+    if (!divine.started || divineRevealedCount() < divine.count) return;
+    const cards = divine.drawn.filter(function (card) { return !!card; }).map(function (card) {
+      return { name: card.name, reversed: !!card.reversed };
+    });
+    const message = {
+      id: App.uid('m'),
+      role: 'me',
+      type: 'divine',
+      text: '发了一个' + divineTypeLabel(divine.type) + '牌阵',
+      system: divineTypeLabel(divine.type),
+      cards: cards,
+      ts: Date.now(),
+    };
+    deliverMessage(contactId, message);
+    const dialog = el('#divine-dialog');
+    if (dialog) dialog.close();
+    App.toast('牌阵已发出');
+    scheduleDivineReply(contactId, message.id);
   }
 
   /* ---------------- 游戏：扫雷 ---------------- */
@@ -524,11 +896,11 @@
         const more = el('#more-dialog');
         if (more) more.close();
         if (btn.dataset.tool === 'survey') {
-          renderSurvey();
+          renderSurveyQuestions();
           const d = el('#survey-dialog');
           if (d) d.showModal();
         } else if (btn.dataset.tool === 'divine') {
-          drawFortune();
+          resetDivine(true);
           const d = el('#divine-dialog');
           if (d) d.showModal();
         } else if (btn.dataset.tool === 'mine') {
@@ -539,47 +911,87 @@
       });
     });
 
-    const surveyBody = el('#survey-body');
-    if (surveyBody) {
-      surveyBody.addEventListener('click', function (e) {
-        const pick = e.target.closest('[data-survey-pick]');
-        if (!pick) return;
-        const parts = pick.dataset.surveyPick.split(':');
-        surveyPicks[Number(parts[0])] = Number(parts[1]);
-        renderSurvey();
-      });
-    }
-    const surveySubmit = el('#survey-submit');
-    if (surveySubmit) {
-      surveySubmit.addEventListener('click', function () {
-        const box = el('#survey-result');
-        if (box) {
-          box.hidden = false;
-          box.textContent = surveyResult();
+    /* 问卷：手动添加问题、切换回答方式、编辑选项、发送 */
+    const surveyInput = el('#survey-question-input');
+    if (surveyInput) {
+      surveyInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addSurveyQuestion();
         }
       });
     }
-    const divineAgain = el('#divine-again');
-    if (divineAgain) divineAgain.addEventListener('click', drawFortune);
+    const surveyAdd = el('#survey-add-question');
+    if (surveyAdd) surveyAdd.addEventListener('click', addSurveyQuestion);
+
+    const surveyList = el('#survey-question-list');
+    if (surveyList) {
+      surveyList.addEventListener('click', function (e) {
+        const del = e.target.closest('[data-survey-del]');
+        if (del) {
+          surveyDraft.splice(Number(del.dataset.surveyDel), 1);
+          renderSurveyQuestions();
+          return;
+        }
+        const mode = e.target.closest('[data-survey-mode]');
+        if (mode) {
+          const parts = mode.dataset.surveyMode.split(':');
+          const item = surveyDraft[Number(parts[0])];
+          if (item) {
+            item.mode = parts[1];
+            renderSurveyQuestions();
+          }
+        }
+      });
+      surveyList.addEventListener('input', function (e) {
+        const title = e.target.closest('[data-survey-title]');
+        if (title) {
+          const item = surveyDraft[Number(title.dataset.surveyTitle)];
+          if (item) item.text = title.value;
+          return;
+        }
+        const options = e.target.closest('[data-survey-options]');
+        if (options) {
+          const item = surveyDraft[Number(options.dataset.surveyOptions)];
+          if (item) item.optionsText = options.value;
+        }
+      });
+      surveyList.addEventListener('change', function (e) {
+        const scope = e.target.closest('[data-survey-scope]');
+        if (!scope) return;
+        const item = surveyDraft[Number(scope.dataset.surveyScope)];
+        if (item) item.scope = scope.value;
+      });
+    }
+    const surveySend = el('#survey-send');
+    if (surveySend) surveySend.addEventListener('click', sendSurvey);
+
+    /* 占卜：选牌种 / 张数、翻牌、重新开始、发送 */
+    document.querySelectorAll('[data-divine-type]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (divine.started) return;
+        divine.type = btn.dataset.divineType;
+        updateDivineControls();
+      });
+    });
+    document.querySelectorAll('[data-divine-count]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (divine.started) return;
+        divine.count = Number(btn.dataset.divineCount) || 0;
+        updateDivineControls();
+      });
+    });
+    const divineDraw = el('#divine-draw');
+    if (divineDraw) divineDraw.addEventListener('click', startDivine);
+    const divineReset = el('#divine-reset');
+    if (divineReset) divineReset.addEventListener('click', function () { resetDivine(false); });
     const divineSend = el('#divine-send');
-    if (divineSend) {
-      divineSend.addEventListener('click', function () {
-        if (!fortune) drawFortune();
-        const contactId = reminderContactId();
-        if (!contactId) { App.toast('还没有联系人'); return; }
-        const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-        chat.push({
-          id: App.uid('m'),
-          role: 'me',
-          type: 'text',
-          text: '今日占卜·' + fortune.t + '：' + fortune.b.split('\n').join(' '),
-          ts: Date.now(),
-        });
-        App.save();
-        if (App.chatOpen(contactId)) App.renderChat();
-        App.renderContacts();
-        el('#divine-dialog').close();
-        App.toast('已发到聊天里');
+    if (divineSend) divineSend.addEventListener('click', sendDivine);
+    const divineBoard = el('#divine-board');
+    if (divineBoard) {
+      divineBoard.addEventListener('click', function (e) {
+        const card = e.target.closest('[data-divine-flip]');
+        if (card) flipDivineCard(card);
       });
     }
     const mineReset = el('#mine-reset');

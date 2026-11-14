@@ -147,6 +147,80 @@
       '</div>';
   }
 
+  function surveyModeText(mode) {
+    if (mode === 'single') return '单选';
+    if (mode === 'multi') return '多选';
+    return '字卡回答';
+  }
+
+  function surveyCardHtml(m, contact) {
+    const mine = m.role === 'me';
+    const name = contact ? contact.name : 'TA';
+    const status = m.answered ? '已回答' : (mine ? '等 TA 回答' : '等你回答');
+    const questions = (m.questions || []).map(function (q, index) {
+      const options = (q.options && q.options.length)
+        ? '<span class="survey-card-options">' + q.options.map(function (opt) { return App.esc(opt); }).join(' / ') + '</span>'
+        : '';
+      return '<li><span class="survey-card-q">' + (index + 1) + '. ' + App.esc(q.text) + '</span>' +
+        '<em class="survey-card-mode">' + surveyModeText(q.mode) + '</em>' + options + '</li>';
+    }).join('');
+    return '<div class="bubble bubble-survey">' +
+      '<div class="survey-card-head"><span class="survey-card-tag">小问卷</span><em>' + status + '</em></div>' +
+      '<p class="survey-card-title">' + (mine ? '我发出的问卷' : App.esc(name) + ' 的问卷') + '</p>' +
+      '<ol class="survey-card-list">' + questions + '</ol>' +
+      (!mine && !m.answered ? '<p class="survey-card-hint">直接在聊天里打字回答我。</p>' : '') +
+      '</div>';
+  }
+
+  function surveyAnswerCardHtml(m, contact) {
+    const name = contact ? contact.name : 'TA';
+    const answers = (m.answers || []).map(function (item) {
+      return '<li><span class="survey-card-q">' + App.esc(item.text) + '</span>' +
+        '<strong class="survey-card-a">' + App.esc(item.answer) + '</strong></li>';
+    }).join('');
+    return '<div class="bubble bubble-survey-answer">' +
+      '<div class="survey-card-head"><span class="survey-card-tag">问卷答案</span><em>已作答</em></div>' +
+      '<p class="survey-card-title">' + App.esc(name) + ' 的回答</p>' +
+      '<ul class="survey-card-list">' + answers + '</ul>' +
+      '</div>';
+  }
+
+  function divineCardHtml(m) {
+    const cards = (m.cards || []).map(function (card) {
+      return '<span class="divine-chat-card">' +
+        '<strong>' + App.esc(card.name) + '</strong>' +
+        '<em class="' + (card.reversed ? 'is-reversed' : '') + '">' + (card.reversed ? '逆位' : '正位') + '</em>' +
+        '</span>';
+    }).join('');
+    const reply = m.reply
+      ? '<div class="divine-chat-reply"><span>TA 的回复</span><p>' + App.esc(m.reply.text) + '</p></div>'
+      : '<div class="divine-chat-reply is-waiting">TA 正在看牌…</div>';
+    return '<div class="bubble bubble-divine">' +
+      '<div class="survey-card-head"><span class="survey-card-tag">' + App.esc(m.system || '占卜') + '牌阵</span><em>占卜</em></div>' +
+      '<div class="divine-chat-cards">' + cards + '</div>' +
+      reply +
+      '</div>';
+  }
+
+  function messageCardShell(m, contact, inner) {
+    const mine = m.role === 'me';
+    const taName = contact ? contact.name : 'TA';
+    const avatarSrc = mine ? App.state.profile.userAvatar : (contact && contact.avatar);
+    const avatarHtml = mine
+      ? '<span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>'
+      : '<button type="button" class="msg-avatar msg-avatar-button" data-pat-current="1" aria-label="拍一拍 ' + App.esc(taName) + '" title="拍一拍">' + App.avatarHtml(avatarSrc) + '</button>';
+    return '<div class="msg ' + (mine ? 'me' : 'ta') + '" data-msg-id="' + App.esc(m.id) + '">' +
+      '<div class="msg-main">' +
+        '<div class="msg-content">' +
+          '<div class="msg-side">' + avatarHtml +
+            '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
+          '</div>' +
+          '<div class="msg-bubble-hit" data-msg-bubble="1">' + inner + '</div>' +
+        '</div>' +
+      '</div>' +
+      '</div>';
+  }
+
   function messageHtml(m) {
     const mine = m.role === 'me';
     const contact = currentContact();
@@ -184,6 +258,15 @@
         '</div>' +
         '</div>';
     }
+    if (m.type === 'survey') {
+      return messageCardShell(m, contact, surveyCardHtml(m, contact));
+    }
+    if (m.type === 'surveyAnswer') {
+      return messageCardShell(m, contact, surveyAnswerCardHtml(m, contact));
+    }
+    if (m.type === 'divine') {
+      return messageCardShell(m, contact, divineCardHtml(m));
+    }
     if (m.type === 'redpacket' || m.type === 'gift') {
       const avatarSrc = mine ? App.state.profile.userAvatar : (contact && contact.avatar);
       const avatarHtml = mine
@@ -200,17 +283,20 @@
         '</div>' +
         '</div>';
     }
-    const hasFrequency = m.strength != null || m.percent != null || m.type === 'emotion';
+    const hasFrequency = !m.surveyAppend && (m.strength != null || m.percent != null || m.type === 'emotion');
     const hasEmotion = !!m.emotion || m.type === 'emotion';
     const strength = ['强', '中', '弱'].indexOf(m.strength) !== -1 ? m.strength : '中';
     const percent = Math.max(0, Math.min(100, Number(m.percent) || 0));
-    const meta = hasFrequency
+    const meta = m.surveyAppend
       ? '<span class="emotion-divider"></span>' +
-        (hasEmotion
-          ? '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span></div>'
-          : '') +
-        '<div class="emotion-row"><span class="emotion-chip">频率</span><span class="emotion-value">链接度' + App.esc(strength) + ' ' + percent + '%</span>' + readChip(m) + '</div>'
-      : '';
+        '<div class="emotion-row survey-append-row"><span class="emotion-chip">问卷追加</span></div>'
+      : (hasFrequency
+        ? '<span class="emotion-divider"></span>' +
+          (hasEmotion
+            ? '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span></div>'
+            : '') +
+          '<div class="emotion-row"><span class="emotion-chip">频率</span><span class="emotion-value">链接度' + App.esc(strength) + ' ' + percent + '%</span>' + readChip(m) + '</div>'
+        : '');
     let body = '';
     if (m.type === 'image') {
       body = '<div class="bubble sticker"><img class="sticker-img" src="' + App.esc(m.src) + '" alt="表情包"></div>';
@@ -219,6 +305,10 @@
     } else if (m.type === 'audio') {
       body = '<div class="bubble bubble-audio' + (hasFrequency ? ' bubble-emotion' : '') + '">' +
         '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' + meta +
+        '</div>';
+    } else if (m.surveyAppend) {
+      body = '<div class="bubble bubble-emotion survey-append-bubble">' +
+        '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta +
         '</div>';
     } else if (hasFrequency) {
       body = '<div class="bubble bubble-emotion">' +
@@ -500,6 +590,7 @@
     input.style.height = 'auto';
 
     if (role === 'me') {
+      if (App.noteSurveyTextReply) App.noteSurveyTextReply(App.chatContactId);
       scheduleReply(App.chatContactId, text);
       maybeTaSticker(App.chatContactId);
     }
