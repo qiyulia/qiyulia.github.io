@@ -221,8 +221,6 @@
       App.renderCards();
     });
 
-    el('#btn-add-card').addEventListener('click', function () { openCardDialog(null); });
-
     el('#card-cat').addEventListener('change', function (e) {
       toggleExtraFields(e.target.value, editingCard);
     });
@@ -323,6 +321,16 @@
     });
 
     el('#btn-import-cards').addEventListener('click', function () {
+      el('#card-import-dialog').showModal();
+    });
+
+    el('#card-import-manual').addEventListener('click', function () {
+      el('#card-import-dialog').close();
+      openCardDialog(null);
+    });
+
+    el('#card-import-file').addEventListener('click', function () {
+      el('#card-import-dialog').close();
       el('#file-import-cards').click();
     });
 
