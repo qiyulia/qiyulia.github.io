@@ -730,8 +730,18 @@
   function setMusicFloatMinimized(minimized) {
     const box = el('#chat-music-float');
     const toggle = el('#chat-music-toggle');
+    const scroller = el('#chat-scroll');
+    const beforeHeight = scroller.scrollHeight;
+    const beforeTop = scroller.scrollTop;
     box.classList.toggle('is-minimized', minimized);
     el('#view-chat').classList.toggle('music-is-minimized', minimized);
+    /* 卡片高度变化会改变聊天区的顶部留白，这里同步滚动量，避免聊天内容被顶动。 */
+    const delta = scroller.scrollHeight - beforeHeight;
+    if (delta) {
+      scroller.style.scrollBehavior = 'auto';
+      scroller.scrollTop = beforeTop + delta;
+      scroller.style.scrollBehavior = '';
+    }
     toggle.setAttribute('aria-expanded', String(!minimized));
     toggle.setAttribute('aria-label', minimized ? '展开音乐卡片' : '缩小音乐卡片');
     toggle.title = minimized ? '展开' : '缩小';
