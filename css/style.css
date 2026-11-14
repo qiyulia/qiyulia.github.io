@@ -2573,15 +2573,15 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .more-tab.is-on { background: #5b8fc9; color: #fff; }
 .more-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; margin: 14px 0 6px; }
 .more-app {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  border: 0; background: none; padding: 0; font-size: 12px; color: var(--ink); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  border: 0; background: none; padding: 0; font-size: 11px; color: var(--ink); cursor: pointer;
 }
 .more-app[hidden] { display: none; }
 .more-app-icon {
-  width: 54px; height: 54px; border-radius: 16px;
+  width: 40px; height: 40px; border-radius: 12px;
   display: grid; place-items: center;
-  font-family: "KaiTi", "STKaiti", serif; font-size: 22px; color: #fff;
-  box-shadow: 0 8px 18px rgba(91, 143, 201, .22);
+  font-family: "KaiTi", "STKaiti", serif; font-size: 17px; color: #fff;
+  box-shadow: 0 6px 14px rgba(91, 143, 201, .2);
 }
 .more-app-icon.is-tool { background: linear-gradient(160deg, #8fb7de, #5b8fc9); }
 .more-app-icon.is-divine { background: linear-gradient(160deg, #b9a6dd, #8d73bd); }
