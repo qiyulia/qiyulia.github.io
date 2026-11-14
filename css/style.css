@@ -2548,7 +2548,18 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .more-item:active { transform: scale(.97); }
 
 /* “其他”弹窗：横向分类 + 应用图标 */
-.more-tabs { display: flex; gap: 8px; margin: 10px 0 2px; }
+.more-sheet { padding-top: 38px; }
+.more-sheet .sheet-head {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  left: auto;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  border: 0;
+}
+.more-tabs { display: flex; gap: 8px; margin: 0 0 2px; padding-left: 12px; }
 .more-tab {
   padding: 6px 16px;
   border: 0;
