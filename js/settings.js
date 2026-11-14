@@ -210,7 +210,7 @@
     el('#set-ta-moment-card-min').value = st.settings.taMomentCardMin == null ? 1 : st.settings.taMomentCardMin;
     el('#set-ta-moment-card-max').value = st.settings.taMomentCardMax == null ? 3 : st.settings.taMomentCardMax;
     el('#set-ta-moment-cooldown').value = st.settings.taMomentCooldownMin == null ? 10 : st.settings.taMomentCooldownMin;
-    el('#set-pat-back').value = st.settings.patBackProb == null ? 50 : st.settings.patBackProb;
+    el('#set-pat-back').value = st.settings.taPatProb == null ? 10 : st.settings.taPatProb;
     el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
     el('#set-ta-recall').value = st.settings.taRecallProb == null ? 5 : st.settings.taRecallProb;
     el('#set-ta-quote').value = st.settings.taQuoteProb == null ? 20 : st.settings.taQuoteProb;
@@ -484,7 +484,7 @@
     });
 
     App.bindStepper('#set-pat-back', function (v) {
-      App.state.settings.patBackProb = v;
+      App.state.settings.taPatProb = v;
       markDirty();
     });
 

@@ -171,7 +171,7 @@
     el('#ct-reply-min').value = cs.replyMin;
     el('#ct-reply-max').value = cs.replyMax;
     el('#ct-typing').value = cs.typingMin;
-    el('#ct-pat-back').value = cs.patBackProb;
+    el('#ct-pat-back').value = cs.taPatProb;
     el('#ct-sticker').value = cs.taStickerProb;
     el('#ct-like').value = cs.taLikeProb;
     el('#ct-comment').value = cs.taCommentProb;
@@ -199,7 +199,7 @@
       replyMin: min,
       replyMax: max,
       typingMin: Math.max(0, Math.min(5, Number(el('#ct-typing').value) || 0.1)),
-      patBackProb: Number(el('#ct-pat-back').value) || 0,
+      taPatProb: Number(el('#ct-pat-back').value) || 0,
       taStickerProb: Math.max(0, Math.min(100, Number(el('#ct-sticker').value) || 0)),
       taLikeProb: Number(el('#ct-like').value) || 0,
       taCommentProb: Number(el('#ct-comment').value) || 0,

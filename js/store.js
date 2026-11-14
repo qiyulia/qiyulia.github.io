@@ -123,6 +123,7 @@
     if (s.settings.taRedpacketProb == null) s.settings.taRedpacketProb = 8;
     if (s.settings.redpacketAcceptProb == null) s.settings.redpacketAcceptProb = 70;
     if (s.settings.redpacketReturnProb == null) s.settings.redpacketReturnProb = 20;
+    if (s.settings.taPatProb == null) s.settings.taPatProb = 10;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
     if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
     if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;
@@ -294,7 +295,7 @@
       taMomentGapMax: pick('taMomentGapMax', 60),
       taMomentCardMin: pick('taMomentCardMin', 1),
       taMomentCardMax: pick('taMomentCardMax', 3),
-      patBackProb: pick('patBackProb', 50),
+      taPatProb: pick('taPatProb', 10),
       taStickerProb: pick('taStickerProb', 30),
       taRecallProb: pick('taRecallProb', 5),
       taQuoteProb: pick('taQuoteProb', 20),

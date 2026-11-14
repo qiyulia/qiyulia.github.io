@@ -333,19 +333,13 @@
     if (m.type === 'avatarNotice') {
       return '<div class="msg-notice">★ ' + App.esc(m.text) + '</div>';
     }
-    const hasFrequency = !m.surveyAppend && (m.strength != null || m.percent != null || m.type === 'emotion');
     const hasEmotion = !!m.emotion || m.type === 'emotion';
-    const strength = ['强', '中', '弱'].indexOf(m.strength) !== -1 ? m.strength : '中';
-    const percent = Math.max(0, Math.min(100, Number(m.percent) || 0));
     const meta = m.surveyAppend
       ? '<span class="emotion-divider"></span>' +
         '<div class="emotion-row survey-append-row"><span class="emotion-chip">问卷追加</span></div>'
-      : (hasFrequency
+      : (hasEmotion
         ? '<span class="emotion-divider"></span>' +
-          (hasEmotion
-            ? '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span></div>'
-            : '') +
-          '<div class="emotion-row"><span class="emotion-chip">频率</span><span class="emotion-value">链接度' + App.esc(strength) + ' ' + percent + '%</span>' + readChip(m) + '</div>'
+          '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span>' + readChip(m) + '</div>'
         : '');
     let body = '';
     if (m.type === 'image') {
@@ -354,7 +348,7 @@
       body = '<div class="bubble bubble-ignore"><span class="bubble-text">已读不回</span></div>';
     } else if (m.type === 'audio') {
       const showTranscript = m.text && (!App.state.settings || App.state.settings.voiceTranscript !== false);
-      body = '<div class="bubble bubble-audio' + (hasFrequency ? ' bubble-emotion' : '') + '">' +
+      body = '<div class="bubble bubble-audio' + (hasEmotion ? ' bubble-emotion' : '') + '">' +
         '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' +
         (showTranscript ? '<p class="audio-transcript">' + App.esc(m.text) + '</p>' : '') +
         meta +
@@ -363,7 +357,7 @@
       body = '<div class="bubble bubble-emotion survey-append-bubble">' +
         '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta +
         '</div>';
-    } else if (hasFrequency) {
+    } else if (hasEmotion) {
       body = '<div class="bubble bubble-emotion">' +
         '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta +
         '</div>';
@@ -758,7 +752,6 @@
     });
     closeStickerPanel();
 
-    schedulePatBack(contact.id);
     scheduleReply(contact.id, '');
     maybeTaSticker(contact.id);
   };
@@ -776,11 +769,11 @@
     App.updateBadges();
   };
 
-  /* 我拍了 TA 之后，TA 按概率回拍我 */
-  function schedulePatBack(contactId) {
-    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+  /* TA 偶尔主动拍一拍我，不需要我先拍他 */
+  function maybeTaPat(contactId, contact) {
+    contact = contact || App.state.contacts.find(function (c) { return c.id === contactId; });
     if (!contact) return;
-    const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).patBackProb) || 0));
+    const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).taPatProb) || 0));
     if (Math.random() * 100 >= prob) return;
 
     const card = App.pickPatCard();
@@ -808,7 +801,7 @@
         App.updateBadges();
         App.renderContacts();
       }
-    }, 900 + Math.random() * 1200);
+    }, 2000 + Math.random() * 3000);
   }
 
   /* TA 按概率主动发一张表情包（从 TA 的表情库随机抽） */
@@ -883,7 +876,14 @@
   }
 
   /* 每分钟按概率检查一次，让 TA 也会主动找我说话 */
-  setInterval(maybeTaStartsChat, 60000);
+  setInterval(function () {
+    maybeTaStartsChat();
+    if (document.hidden || callState) return;
+    const st = App.state;
+    if (!st || !st.contacts.length) return;
+    const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
+    maybeTaPat(contact.id, contact);
+  }, 60000);
 
   App.openCurrentChat = function () {
     const st = App.state;
@@ -1073,6 +1073,7 @@
     }
     maybeTaCall(contactId, contact, cs);
     maybeTaPacket(contactId, contact, cs);
+    maybeTaPat(contactId, contact);
   }
 
   /* TA 偶尔主动发一个红包给我 */
