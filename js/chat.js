@@ -259,6 +259,8 @@
     actionMsgId = message.id;
     const mine = message.role === 'me';
     menu.querySelector('[data-msg-action="recall"]').hidden = !mine;
+    const saveSticker = menu.querySelector('[data-msg-action="sticker"]');
+    if (saveSticker) saveSticker.hidden = message.type !== 'image' || !!message.recalled;
     menu.querySelector('[data-msg-action="favorite"]').textContent = message.favMine ? '取消收藏' : '收藏';
     menu.hidden = false;
 
@@ -301,6 +303,16 @@
       renderComposerQuote();
       const input = el('#msg-input');
       if (input) input.focus();
+      return;
+    }
+
+    if (action === 'sticker') {
+      if (message.type !== 'image' || !message.src) return;
+      if (!Array.isArray(App.state.stickers.mine)) App.state.stickers.mine = [];
+      const list = App.state.stickers.mine;
+      if (list.indexOf(message.src) === -1) list.unshift(message.src);
+      App.save();
+      App.toast('已存为表情');
       return;
     }
 
@@ -782,6 +794,7 @@
 
     if (isPat) { renderPatGrid(); return; }
 
+    setStickerStatus('');
     const stickers = stickerList();
     el('#sticker-grid').innerHTML = stickers.length
       ? stickers.map(function (src, index) {
@@ -815,6 +828,13 @@
     if (panel) panel.hidden = true;
   }
 
+  App.openStickerPanel = function () {
+    const panel = el('#sticker-panel');
+    if (!panel) return;
+    panel.hidden = false;
+    renderStickerPanel();
+  };
+
   function toggleStickerPanel() {
     const panel = el('#sticker-panel');
     panel.hidden = !panel.hidden;
@@ -822,35 +842,51 @@
   }
 
   function compressImage(file) {
-    return App.compressImage(file, 240);
+    return App.compressImage(file, 160);
+  }
+
+  App.stickerNotice = function (text, isError) { setStickerStatus(text, isError); };
+
+  function setStickerStatus(text, isError) {
+    const box = el('#sticker-status');
+    if (!box) return;
+    box.hidden = !text;
+    box.textContent = text || '';
+    box.classList.toggle('is-error', !!isError);
   }
 
   async function addStickers(files) {
     const images = Array.from(files || []).slice(0, 12);
     if (!images.length) return;
 
+    setStickerStatus('正在压缩图片…');
     App.toast('正在处理图片…');
     const list = stickerList();
     let added = 0;
-    let first = null;
+    let failed = 0;
 
     for (let i = 0; i < images.length; i++) {
       try {
         const src = await compressImage(images[i]);
         if (!list.includes(src)) {
           list.push(src);
-          if (!first) first = src;
           added++;
         }
       } catch (e) {
-        App.toast(e.message || '图片处理失败');
+        failed++;
       }
     }
 
-    if (!added) return;
+    if (!added) {
+      setStickerStatus(failed ? '这张图片无法读取，换一张试试' : '没有添加新表情', true);
+      App.toast(failed ? '图片处理失败' : '没有添加新表情');
+      return;
+    }
     App.save();
     renderStickerPanel();
-    if (first) sendSticker(first);
+    const grid = el('#sticker-grid');
+    if (grid) grid.scrollTop = grid.scrollHeight;
+    setStickerStatus('已添加 ' + added + ' 张表情包');
     App.toast('已添加 ' + added + ' 张表情包');
   }
 
@@ -1309,11 +1345,28 @@
     });
     el('#chat-scroll').addEventListener('wheel', closeMsgActions, { passive: true });
     window.addEventListener('resize', closeMsgActions);
-    el('#btn-add-sticker').addEventListener('click', function () { el('#sticker-file').click(); });
+    let awaitingPick = false;
+    el('#btn-add-sticker').addEventListener('click', function () {
+      awaitingPick = true;
+      setStickerStatus('正在打开相册…');
+      try { sessionStorage.setItem('xuyu.stickerPick', String(Date.now())); } catch (err) {}
+      el('#sticker-file').click();
+    });
     el('#sticker-file').addEventListener('change', function (e) {
+      awaitingPick = false;
+      try { sessionStorage.removeItem('xuyu.stickerPick'); } catch (err) {}
       const files = e.target.files;
       e.target.value = '';
       addStickers(files);
+    });
+    /* 从相册返回却没有收到文件时，清掉中断标记并提示；若页面被系统重载，标记会留到下次启动 */
+    window.addEventListener('focus', function () {
+      setTimeout(function () {
+        if (!awaitingPick) return;
+        awaitingPick = false;
+        try { sessionStorage.removeItem('xuyu.stickerPick'); } catch (err) {}
+        setStickerStatus('没有收到图片，请重新选择', true);
+      }, 3000);
     });
 
     el('#btn-clear-chat').addEventListener('click', function () {

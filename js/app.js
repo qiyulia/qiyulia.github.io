@@ -140,4 +140,19 @@
       App.state.contacts.some(function (c) { return c.id === lastView.contactId; })) {
     App.openChat(lastView.contactId);
   }
+
+  /* 选图过程中页面被系统重载时，给出明确提示并重新打开表情面板 */
+  let pickInterrupted = false;
+  try {
+    const pickedAt = Number(sessionStorage.getItem('xuyu.stickerPick')) || 0;
+    sessionStorage.removeItem('xuyu.stickerPick');
+    pickInterrupted = pickedAt > 0 && Date.now() - pickedAt < 10 * 60 * 1000;
+  } catch (e) {}
+  if (pickInterrupted && App.chatContactId) {
+    setTimeout(function () {
+      if (App.openStickerPanel) App.openStickerPanel();
+      if (App.stickerNotice) App.stickerNotice('上次选图被系统中断了，请重新选择', true);
+      App.toast('上次选图被系统中断了，请重新选择');
+    }, 400);
+  }
 })();

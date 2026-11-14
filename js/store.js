@@ -423,19 +423,33 @@
   App.compressImage = function (file, maxSize) {
     const max = maxSize || 240;
 
-    function drawToDataUrl(source, width, height) {
+    function drawToDataUrl(source, width, height, limit, quality) {
       let w = width;
       let h = height;
       if (w > h) {
-        if (w > max) { h = Math.round(h * max / w); w = max; }
-      } else if (h > max) {
-        w = Math.round(w * max / h); h = max;
+        if (w > limit) { h = Math.round(h * limit / w); w = limit; }
+      } else if (h > limit) {
+        w = Math.round(w * limit / h); h = limit;
       }
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(1, w);
       canvas.height = Math.max(1, h);
       canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL('image/jpeg', 0.85);
+      return canvas.toDataURL('image/jpeg', quality);
+    }
+
+    /* 逐步缩小，保证存进表情包的图片足够小，避免手机内存被撑爆 */
+    function encode(source, width, height) {
+      let limit = max;
+      let quality = 0.82;
+      let out = '';
+      for (let i = 0; i < 4; i++) {
+        out = drawToDataUrl(source, width, height, limit, quality);
+        if (out.length <= 90000) break;
+        limit = Math.max(64, Math.round(limit * 0.72));
+        quality = Math.max(0.5, quality - 0.08);
+      }
+      return out;
     }
 
     return new Promise(function (resolve, reject) {
@@ -454,7 +468,7 @@
         const img = new Image();
         img.onload = function () {
           try {
-            finish(true, drawToDataUrl(img, img.naturalWidth || img.width, img.naturalHeight || img.height));
+            finish(true, encode(img, img.naturalWidth || img.width, img.naturalHeight || img.height));
           } catch (e) {
             finish(false, e);
           }
@@ -474,7 +488,7 @@
         }
         pending.then(function (bitmap) {
           try {
-            const src = drawToDataUrl(bitmap, bitmap.width, bitmap.height);
+            const src = encode(bitmap, bitmap.width, bitmap.height);
             if (bitmap.close) bitmap.close();
             finish(true, src);
           } catch (e) {

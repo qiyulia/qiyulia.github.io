@@ -2263,6 +2263,15 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 .switch-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 
+.sticker-status {
+  margin: 6px 4px 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+}
+.sticker-status.is-error { color: #b4402f; }
+
 /* 隐藏的文件选择框：部分手机浏览器对 display:none 的 input 兼容不好 */
 .file-input-ghost {
   position: fixed;
