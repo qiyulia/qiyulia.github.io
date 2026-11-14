@@ -78,7 +78,8 @@
     updateSideButtons();
     renderStickerPanel();
     renderComposerQuote();
-    scrollBottom();
+    scrollBottom(true);
+    requestAnimationFrame(function () { scrollBottom(true); });
   };
 
   function readChip(m) {
@@ -360,9 +361,17 @@
     }
   }
 
-  function scrollBottom() {
+  function scrollBottom(instant) {
     const box = el('#chat-scroll');
-    if (box) box.scrollTop = box.scrollHeight;
+    if (!box) return;
+    if (instant) {
+      const prev = box.style.scrollBehavior;
+      box.style.scrollBehavior = 'auto';
+      box.scrollTop = box.scrollHeight;
+      box.style.scrollBehavior = prev;
+      return;
+    }
+    box.scrollTop = box.scrollHeight;
   }
 
   function setTyping(on) {
