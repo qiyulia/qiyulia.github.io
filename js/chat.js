@@ -887,21 +887,26 @@
       : '<p class="sticker-empty">字卡库里还没有拍一拍字卡，去「字卡」添加。</p>';
   }
 
+  function closePatPicker() {
+    const panel = el('#pat-picker-panel');
+    if (panel) panel.hidden = true;
+  }
+  App.closePatPicker = closePatPicker;
+
   function openPatPicker() {
     if (!currentContact()) return;
     renderPatGrid();
-    const dialog = el('#pat-picker-dialog');
-    if (dialog && !dialog.open) dialog.showModal();
+    const panel = el('#pat-picker-panel');
+    if (!panel) return;
+    panel.hidden = false;
+    const grid = el('#pat-grid');
+    if (grid) grid.scrollTop = 0;
   }
   App.openPatPicker = openPatPicker;
 
-  /* 只要拍一拍弹窗被打开，就保证字卡网格已渲染（防止其它入口直接 open） */
-  const patDialogNode = el('#pat-picker-dialog');
-  if (patDialogNode && window.MutationObserver) {
-    new MutationObserver(function () {
-      if (patDialogNode.open) renderPatGrid();
-    }).observe(patDialogNode, { attributes: true, attributeFilter: ['open'] });
-  }
+  document.querySelectorAll('[data-pat-close]').forEach(function (btn) {
+    btn.addEventListener('click', closePatPicker);
+  });
 
   function closeStickerPanel() {
     const panel = el('#sticker-panel');
@@ -1402,8 +1407,7 @@
         const card = (App.state.cards || []).find(function (c) {
           return c.id === patItem.dataset.sendPat;
         });
-        const dialog = el('#pat-picker-dialog');
-        if (dialog) dialog.close();
+        closePatPicker();
         if (card) App.sendPat(card);
         return;
       }

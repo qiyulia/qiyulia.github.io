@@ -19,6 +19,7 @@
     document.querySelectorAll('dialog[open]').forEach(function (d) {
       try { d.close(); } catch (err) {}
     });
+    if (App.closePatPicker) App.closePatPicker();
     rememberView(view);
     if (App.closeMsgActions) App.closeMsgActions();
     document.querySelectorAll('.view').forEach(function (v) {
