@@ -132,11 +132,19 @@
 
   let lastView = null;
   try { lastView = JSON.parse(sessionStorage.getItem('xuyu.view') || 'null'); } catch (e) { lastView = null; }
+  /* 选图前写入的记忆，localStorage 比 sessionStorage 更容易在系统重载后保留 */
+  let pickView = null;
+  try {
+    pickView = localStorage.getItem('xuyu.pickView');
+    localStorage.removeItem('xuyu.pickView');
+  } catch (e) { pickView = null; }
 
   App.go('desktop');
 
   /* 手机选图时页面可能被系统重载，重载后回到原来的聊天 */
-  if (lastView && lastView.view === 'chat' && lastView.contactId &&
+  if (pickView && App.state.contacts.some(function (c) { return c.id === pickView; })) {
+    App.openChat(pickView);
+  } else if (lastView && lastView.view === 'chat' && lastView.contactId &&
       App.state.contacts.some(function (c) { return c.id === lastView.contactId; })) {
     App.openChat(lastView.contactId);
   }
@@ -148,11 +156,16 @@
     sessionStorage.removeItem('xuyu.stickerPick');
     pickInterrupted = pickedAt > 0 && Date.now() - pickedAt < 10 * 60 * 1000;
   } catch (e) {}
-  if (pickInterrupted && App.chatContactId) {
+  if ((pickInterrupted || pickView) && App.chatContactId) {
     setTimeout(function () {
       if (App.openStickerPanel) App.openStickerPanel();
       if (App.stickerNotice) App.stickerNotice('上次选图被系统中断了，请重新选择', true);
       App.toast('上次选图被系统中断了，请重新选择');
     }, 400);
   }
+
+  /* 如果上次选中的图片已暂存，重载后自动恢复成表情包 */
+  setTimeout(function () {
+    if (App.recoverPendingStickers) App.recoverPendingStickers();
+  }, 900);
 })();
