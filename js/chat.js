@@ -393,6 +393,30 @@
   }
   App.closeMsgActions = closeMsgActions;
 
+  function positionMsgActions(msgEl) {
+    const menu = el('#msg-actions');
+    if (!menu || menu.hidden || !msgEl) return;
+    const message = findChatMessage(msgEl.dataset.msgId);
+    if (!message) return;
+    const mine = message.role === 'me';
+    const rect = msgEl.getBoundingClientRect();
+    const box = menu.getBoundingClientRect();
+    const appRect = (document.getElementById('app') || document.body).getBoundingClientRect();
+    let left = (mine ? rect.right - box.width : rect.left) - appRect.left;
+    left = Math.max(8, Math.min(appRect.width - box.width - 8, left));
+    let top = rect.top - box.height - 8 - appRect.top;
+    if (top < 8) top = rect.bottom + 8 - appRect.top;
+    top = Math.max(8, Math.min(appRect.height - box.height - 8, top));
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+
+    if (chatScroller) {
+      const listRect = chatScroller.getBoundingClientRect();
+      const outside = rect.bottom < listRect.top || rect.top > listRect.bottom;
+      menu.style.visibility = outside ? 'hidden' : '';
+    }
+  }
+
   function openMsgActions(msgEl) {
     const menu = el('#msg-actions');
     const message = findChatMessage(msgEl.dataset.msgId);
@@ -404,18 +428,23 @@
     if (saveSticker) saveSticker.hidden = message.type !== 'image' || !!message.recalled;
     menu.querySelector('[data-msg-action="favorite"]').textContent = message.favMine ? '取消收藏' : '收藏';
     menu.hidden = false;
-
-    const rect = msgEl.getBoundingClientRect();
-    const box = menu.getBoundingClientRect();
-    const appRect = (document.getElementById('app') || document.body).getBoundingClientRect();
-    let left = (mine ? rect.right - box.width : rect.left) - appRect.left;
-    left = Math.max(8, Math.min(appRect.width - box.width - 8, left));
-    let top = rect.top - box.height - 8 - appRect.top;
-    if (top < 8) top = rect.bottom + 8 - appRect.top;
-    top = Math.max(8, Math.min(appRect.height - box.height - 8, top));
-    menu.style.left = left + 'px';
-    menu.style.top = top + 'px';
+    positionMsgActions(msgEl);
   }
+
+  function trackMsgActions() {
+    if (!actionMsgId) return;
+    const node = document.querySelector('.msg[data-msg-id="' + actionMsgId + '"]');
+    if (!node) {
+      closeMsgActions();
+      return;
+    }
+    positionMsgActions(node);
+  }
+
+  const chatScroller = el('#chat-list');
+  if (chatScroller) chatScroller.addEventListener('scroll', trackMsgActions, { passive: true });
+  window.addEventListener('resize', trackMsgActions);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', trackMsgActions);
 
   function doMsgAction(action) {
     const menu = el('#msg-actions');
