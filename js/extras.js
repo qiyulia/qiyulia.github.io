@@ -541,7 +541,7 @@
     '戒指', '书', '信', '男人', '女人', '百合', '太阳', '月亮', '钥匙', '鱼', '锚', '十字架',
   ];
 
-  let divine = { type: '', count: 0, started: false, deck: [], drawn: [], revealed: 0 };
+  let divine = { type: '', count: 0, phase: 'idle', deck: [], picks: [], cards: {} };
 
   function divineTypeLabel(type) {
     return type === 'lenormand' ? '雷诺曼' : '塔罗牌';
@@ -559,18 +559,99 @@
   }
 
   function divineCardHtml(index) {
-    return '<button type="button" class="divine-card" data-divine-flip="' + index + '" aria-label="翻开第 ' + (index + 1) + ' 张牌">' +
+    return '<button type="button" class="divine-card" data-divine-pick="' + index + '" aria-label="第 ' + (index + 1) + ' 张牌">' +
       '<span class="divine-card-inner">' +
         '<span class="divine-card-face divine-card-back">' +
           '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3.1-5.4 3.1 1.2-6L3.3 9.3l6.1-.7L12 3z"/></svg>' +
         '</span>' +
         '<span class="divine-card-face divine-card-front"></span>' +
       '</span>' +
+      '<span class="divine-pick-order" hidden></span>' +
     '</button>';
   }
 
-  function divineRevealedCount() {
-    return divine.drawn.filter(function (card) { return !!card; }).length;
+  function divineTakeCard(index) {
+    if (divine.cards[index]) return divine.cards[index];
+    const card = {
+      name: divine.deck[index],
+      reversed: divine.type === 'tarot' && Math.random() < 0.5,
+    };
+    divine.cards[index] = card;
+    return card;
+  }
+
+  function renderDivineOrder() {
+    document.querySelectorAll('#divine-board [data-divine-pick]').forEach(function (node) {
+      const index = Number(node.dataset.divinePick);
+      const order = divine.picks.indexOf(index);
+      const badge = node.querySelector('.divine-pick-order');
+      if (!badge) return;
+      badge.textContent = order === -1 ? '' : String(order + 1);
+      badge.hidden = order === -1;
+    });
+  }
+
+  /* 点牌：选中 / 取消选中，选满数量后可以翻牌，也能随时重选 */
+  function toggleDivinePick(button) {
+    if (!button || divine.phase === 'idle') return;
+    const index = Number(button.dataset.divinePick);
+    if (!isFinite(index) || index < 0 || index >= divine.deck.length) return;
+    const at = divine.picks.indexOf(index);
+    if (at !== -1) {
+      divine.picks.splice(at, 1);
+      delete divine.cards[index];
+      button.classList.remove('is-picked', 'is-flipped');
+      const front = button.querySelector('.divine-card-front');
+      if (front) front.innerHTML = '';
+      if (divine.phase === 'revealed') divine.phase = 'pick';
+    } else {
+      if (divine.picks.length >= divine.count) {
+        App.toast('最多选 ' + divine.count + ' 张，先点掉一张再选');
+        return;
+      }
+      divine.picks.push(index);
+      button.classList.add('is-picked');
+    }
+    renderDivineOrder();
+    updateDivineControls();
+  }
+
+  function revealDivineCards() {
+    if (divine.phase !== 'pick' || divine.picks.length < divine.count) return;
+    divine.picks.forEach(function (index) {
+      const button = document.querySelector('#divine-board [data-divine-pick="' + index + '"]');
+      if (!button || button.classList.contains('is-flipped')) return;
+      const card = divineTakeCard(index);
+      const front = button.querySelector('.divine-card-front');
+      if (front) {
+        front.innerHTML = '<strong>' + App.esc(card.name) + '</strong>' +
+          '<em class="' + (card.reversed ? 'is-reversed' : '') + '">' + (card.reversed ? '逆位' : '正位') + '</em>';
+      }
+      requestAnimationFrame(function () {
+        button.classList.add('is-flipped');
+      });
+    });
+    divine.phase = 'revealed';
+    updateDivineControls();
+  }
+
+  function clearDivinePicks() {
+    divine.picks = [];
+    divine.cards = {};
+    divine.phase = 'pick';
+    document.querySelectorAll('#divine-board [data-divine-pick]').forEach(function (node) {
+      node.classList.remove('is-picked', 'is-flipped');
+      const front = node.querySelector('.divine-card-front');
+      if (front) front.innerHTML = '';
+    });
+    renderDivineOrder();
+    updateDivineControls();
+  }
+
+  function handleDivineDraw() {
+    if (divine.phase === 'idle') startDivine();
+    else if (divine.phase === 'pick') revealDivineCards();
+    else clearDivinePicks();
   }
 
   function updateDivineControls() {
@@ -578,35 +659,47 @@
     const reset = el('#divine-reset');
     const send = el('#divine-send');
     const hint = el('#divine-hint');
-    if (draw) draw.disabled = divine.started || !divine.type || !divine.count;
-    if (reset) reset.disabled = !divine.started && !divine.type && !divine.count;
-    if (send) send.disabled = !divine.started || divineRevealedCount() < divine.count;
+    if (draw) {
+      if (divine.phase === 'idle') {
+        draw.textContent = '摊开牌堆';
+        draw.disabled = !divine.type || !divine.count;
+      } else if (divine.phase === 'pick') {
+        draw.textContent = '翻牌（' + divine.picks.length + '/' + divine.count + '）';
+        draw.disabled = divine.picks.length < divine.count;
+      } else {
+        draw.textContent = '重新选牌';
+        draw.disabled = false;
+      }
+    }
+    if (reset) reset.disabled = divine.phase === 'idle' && !divine.type && !divine.count;
+    if (send) send.disabled = !(divine.phase === 'revealed' && divine.picks.length === divine.count);
     document.querySelectorAll('[data-divine-type]').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.dataset.divineType === divine.type);
-      btn.disabled = divine.started;
+      btn.disabled = divine.phase !== 'idle';
     });
     document.querySelectorAll('[data-divine-count]').forEach(function (btn) {
       btn.classList.toggle('is-active', Number(btn.dataset.divineCount) === divine.count);
-      btn.disabled = divine.started;
+      btn.disabled = divine.phase !== 'idle';
     });
     if (hint) {
       if (!divine.type || !divine.count) {
-        hint.textContent = '先选牌种和抽牌数量，再开始抽牌。';
-      } else if (!divine.started) {
-        hint.textContent = '已选' + divineTypeLabel(divine.type) + ' ' + divine.count + ' 张，点「开始抽牌」。';
-      } else if (divineRevealedCount() < divine.count) {
-        hint.textContent = '点牌背翻开，还剩 ' + (divine.count - divineRevealedCount()) + ' 张。';
+        hint.textContent = '先选牌种和抽牌数量，再摊开牌堆。';
+      } else if (divine.phase === 'idle') {
+        hint.textContent = '已选' + divineTypeLabel(divine.type) + ' ' + divine.count + ' 张，点「摊开牌堆」。';
+      } else if (divine.phase === 'pick') {
+        hint.textContent = '左右滑动看牌，点选 ' + divine.count + ' 张（已选 ' + divine.picks.length + ' 张）' +
+          (divine.picks.length >= divine.count ? '，可以翻牌了。' : '，选满后翻牌。');
       } else {
-        hint.textContent = '牌阵完成，可以发给 TA，或重新开始。';
+        hint.textContent = '点已选的牌可以取消重选，也可以直接发给 TA。';
       }
     }
   }
 
   function resetDivine(clearChoice) {
-    divine.started = false;
+    divine.phase = 'idle';
     divine.deck = [];
-    divine.drawn = [];
-    divine.revealed = 0;
+    divine.picks = [];
+    divine.cards = {};
     if (clearChoice) {
       divine.type = '';
       divine.count = 0;
@@ -620,45 +713,20 @@
   }
 
   function startDivine() {
-    if (!divine.type || !divine.count || divine.started) return;
+    if (!divine.type || !divine.count || divine.phase !== 'idle') return;
     const source = divine.type === 'tarot' ? TAROT_DECK : LENORMAND_DECK;
-    divine.started = true;
     divine.deck = shuffleDeck(source);
-    divine.drawn = [];
-    divine.revealed = 0;
-    for (let i = 0; i < divine.count; i++) divine.drawn.push(null);
+    divine.picks = [];
+    divine.cards = {};
+    divine.phase = 'pick';
     const board = el('#divine-board');
     if (board) {
-      board.className = 'divine-board count-' + divine.count;
-      let html = '';
-      for (let i = 0; i < divine.count; i++) html += divineCardHtml(i);
-      board.innerHTML = html;
+      board.className = 'divine-board is-deck';
+      board.innerHTML = divine.deck.map(function (name, i) {
+        return divineCardHtml(i);
+      }).join('');
+      board.scrollLeft = 0;
     }
-    updateDivineControls();
-  }
-
-  function flipDivineCard(button) {
-    if (!button || !divine.started) return;
-    if (button.classList.contains('is-flipped')) return;
-    const index = Number(button.dataset.divineFlip);
-    if (!isFinite(index) || index < 0 || index >= divine.count) return;
-    if (divine.drawn[index]) return;
-    if (!divine.deck.length) return;
-    const name = divine.deck.pop();
-    const card = {
-      name: name,
-      reversed: divine.type === 'tarot' && Math.random() < 0.5,
-    };
-    divine.drawn[index] = card;
-    const front = button.querySelector('.divine-card-front');
-    if (front) {
-      front.innerHTML = '<strong>' + App.esc(card.name) + '</strong>' +
-        '<em class="' + (card.reversed ? 'is-reversed' : '') + '">' + (card.reversed ? '逆位' : '正位') + '</em>';
-    }
-    button.disabled = true;
-    requestAnimationFrame(function () {
-      button.classList.add('is-flipped');
-    });
     updateDivineControls();
   }
 
@@ -682,10 +750,12 @@
   function sendDivine() {
     const contactId = reminderContactId();
     if (!contactId) { App.toast('先添加一个角色吧'); return; }
-    if (!divine.started || divineRevealedCount() < divine.count) return;
-    const cards = divine.drawn.filter(function (card) { return !!card; }).map(function (card) {
-      return { name: card.name, reversed: !!card.reversed };
-    });
+    if (divine.phase !== 'revealed' || divine.picks.length < divine.count) return;
+    const cards = divine.picks.map(function (index) {
+      const card = divine.cards[index];
+      return card ? { name: card.name, reversed: !!card.reversed } : null;
+    }).filter(function (card) { return !!card; });
+    if (cards.length < divine.count) return;
     const message = {
       id: App.uid('m'),
       role: 'me',
@@ -1089,20 +1159,20 @@
     /* 占卜：选牌种 / 张数、翻牌、重新开始、发送 */
     document.querySelectorAll('[data-divine-type]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (divine.started) return;
+        if (divine.phase !== 'idle') return;
         divine.type = btn.dataset.divineType;
         updateDivineControls();
       });
     });
     document.querySelectorAll('[data-divine-count]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (divine.started) return;
+        if (divine.phase !== 'idle') return;
         divine.count = Number(btn.dataset.divineCount) || 0;
         updateDivineControls();
       });
     });
     const divineDraw = el('#divine-draw');
-    if (divineDraw) divineDraw.addEventListener('click', startDivine);
+    if (divineDraw) divineDraw.addEventListener('click', handleDivineDraw);
     const divineReset = el('#divine-reset');
     if (divineReset) divineReset.addEventListener('click', function () { resetDivine(false); });
     const divineSend = el('#divine-send');
@@ -1110,8 +1180,8 @@
     const divineBoard = el('#divine-board');
     if (divineBoard) {
       divineBoard.addEventListener('click', function (e) {
-        const card = e.target.closest('[data-divine-flip]');
-        if (card) flipDivineCard(card);
+        const card = e.target.closest('[data-divine-pick]');
+        if (card) toggleDivinePick(card);
       });
     }
     const mineReset = el('#mine-reset');

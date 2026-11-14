@@ -2741,6 +2741,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   flex-wrap: nowrap;
 }
 .divine-card {
+  position: relative;
   flex: 0 0 auto;
   width: 100px;
   aspect-ratio: 2 / 3;
@@ -2748,6 +2749,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   border: 0;
   background: none;
   perspective: 700px;
+  transition: transform .18s ease;
 }
 .divine-board.count-1 .divine-card { width: 112px; }
 .divine-board.count-3 .divine-card { width: calc((100% - 20px) / 3); }
@@ -2800,6 +2802,44 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .divine-card-front em.is-reversed { color: #b46449; }
 .divine-board.count-5 .divine-card-front strong { font-size: 11px; }
 .divine-board.count-5 .divine-card-front em { font-size: 9px; }
+/* 整副牌横向铺开，滑动手选 */
+.divine-board.is-deck {
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  gap: 8px;
+  padding: 12px 2px 16px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.divine-board.is-deck::-webkit-scrollbar { display: none; }
+.divine-board.is-deck .divine-card { width: 58px; }
+.divine-board.is-deck .divine-card-front { padding: 4px; }
+.divine-board.is-deck .divine-card-front strong { font-size: 10.5px; line-height: 1.25; }
+.divine-board.is-deck .divine-card-front em { font-size: 9px; }
+.divine-card.is-picked { transform: translateY(-5px); }
+.divine-card.is-picked .divine-card-back {
+  box-shadow: 0 10px 20px rgba(22, 50, 79, .38), 0 0 0 2px var(--accent);
+}
+.divine-pick-order {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.divine-pick-order[hidden] { display: none; }
 
 /* 聊天里的问卷 / 占卜卡片 */
 .msg .bubble.bubble-survey,
