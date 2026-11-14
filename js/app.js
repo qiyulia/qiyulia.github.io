@@ -39,9 +39,24 @@
     const theme = App.state.theme || 'mist';
     app.className = 'app theme-' + theme;
     const colors = { sand: '#f6f1e9', mist: '#edf5fc', rose: '#f9eff1', night: '#14161c' };
+    const color = colors[theme] || colors.sand;
+    document.documentElement.style.setProperty('--shell-bg', color);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', colors[theme] || colors.sand);
+    if (meta) meta.setAttribute('content', color);
   };
+
+  /* 跟随可视视口高度，避免弹出输入法时底部露出空白。 */
+  function syncAppHeight() {
+    const viewport = window.visualViewport;
+    const height = viewport ? viewport.height : window.innerHeight;
+    if (height) document.documentElement.style.setProperty('--app-height', Math.round(height) + 'px');
+  }
+  syncAppHeight();
+  window.addEventListener('resize', syncAppHeight);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncAppHeight);
+    window.visualViewport.addEventListener('scroll', syncAppHeight);
+  }
 
   App.updateBadges = function () {
     const total = Object.keys(App.unread).reduce(function (sum, key) {

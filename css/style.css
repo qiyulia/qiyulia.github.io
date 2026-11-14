@@ -18,7 +18,7 @@ html, body {
 
 body {
   font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
-  background: #1b1815;
+  background: var(--shell-bg, #edf5fc);
   color: var(--ink);
   overflow: hidden;
 }
@@ -118,7 +118,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 /* ============ 外壳 ============ */
 .stage {
   height: 100vh;
-  height: 100dvh;
+  height: var(--app-height, 100dvh);
   min-height: 0;
   display: flex;
   align-items: center;
