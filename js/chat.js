@@ -1370,6 +1370,17 @@
       input.style.height = Math.min(118, input.scrollHeight) + 'px';
     });
 
+    /* 输入法弹出、视口变矮时，消息重新贴到最后一条 */
+    const keepBottom = function () {
+      if (document.activeElement !== input) return;
+      [0, 120, 320].forEach(function (delay) {
+        setTimeout(function () { scrollBottom(true); }, delay);
+      });
+    };
+    input.addEventListener('focus', keepBottom);
+    window.addEventListener('resize', keepBottom);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', keepBottom);
+
     document.addEventListener('click', function (e) {
       const packetBtn = e.target.closest('[data-rp-accept], [data-rp-return], [data-gift-accept], [data-gift-return]');
       if (packetBtn) {
