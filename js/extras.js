@@ -1020,16 +1020,16 @@
     return true;
   }
 
-  function runAvatarSwap() {
+  function runAvatarSwap(auto) {
     const pool = avatarPoolData();
     if (!pool.mine.length && !pool.ta.length) {
-      App.toast('先导入几张头像');
+      if (!auto) App.toast('先导入几张头像');
       return;
     }
     const selfOn = pool.ta.length > 0 && Math.random() * 100 < avatarProb('avatarSelfProb', 40);
     const meOn = pool.mine.length > 0 && Math.random() * 100 < avatarProb('avatarMeProb', 25);
     if (!selfOn && !meOn) {
-      App.toast('这次 TA 没换头像');
+      if (!auto) App.toast('这次 TA 没换头像');
       return;
     }
     /* 以我当前头像在「我的头像」里的位置为基准，TA 大概率换到同一位置 */
@@ -1388,8 +1388,6 @@
         avatarFile.value = '';
       });
     }
-    const avatarRun = el('#avatar-swap-run');
-    if (avatarRun) avatarRun.addEventListener('click', runAvatarSwap);
 
     const mineReset = el('#mine-reset');
     if (mineReset) mineReset.addEventListener('click', resetMine);
@@ -1428,5 +1426,14 @@
     App.applyLook();
     setTimeout(tickReminders, 2500);
     setInterval(tickReminders, 30000);
+
+    /* TA 自己隔一阵子按概率换头像，不需要手动点 */
+    function scheduleAutoAvatarSwap() {
+      setTimeout(function () {
+        if (!document.hidden) runAvatarSwap(true);
+        scheduleAutoAvatarSwap();
+      }, 90000 + Math.random() * 150000);
+    }
+    scheduleAutoAvatarSwap();
   };
 })();
