@@ -2259,17 +2259,17 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
     border-radius: 22px 22px 0 0;
   }
 }
-/* 「其他」工具面板：浮在中间的小卡片，不贴着底部 */
+/* 「其他」工具面板：浮在中间偏下的小卡片，不贴着底部 */
 dialog.sheet.more-sheet {
   position: fixed;
-  top: 50%;
+  top: 58%;
   left: 50%;
   right: auto;
   bottom: auto;
   transform: translate(-50%, -50%);
   margin: 0;
-  width: min(86vw, 360px);
-  max-width: min(86vw, 360px);
+  width: min(92vw, 420px);
+  max-width: min(92vw, 420px);
   height: auto;
   max-height: 80vh;
   border-radius: 22px;
@@ -3055,7 +3055,7 @@ dialog.sheet.more-sheet {
 .more-item:active { transform: scale(.97); }
 
 /* “其他”弹窗：横向分类 + 应用图标 */
-.more-sheet { padding-top: 38px; }
+dialog.sheet.more-sheet { padding: 50px 14px 14px; }
 .more-sheet .sheet-head {
   position: absolute;
   top: 6px;
