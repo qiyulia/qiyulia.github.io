@@ -2744,7 +2744,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .mail-list-pane { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .mail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .mail-summary { font-size: 11.5px; color: var(--muted); }
-.mail-write-btn { flex: 0 0 auto; padding: 7px 16px; font-size: 12px; }
+.mail-compose-wrap { display: flex; justify-content: center; padding: 6px 0 2px; }
 
 .mail-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -2788,8 +2788,32 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 
 .mail-list-pane[hidden] { display: none; }
-#btn-mail-compose[hidden],
-#btn-mail-compose-2[hidden] { display: none; }
+#btn-mail-compose-2[hidden],
+#btn-mail-compose-3[hidden],
+#mail-compose-wrap[hidden] { display: none; }
+
+/* 回信：上面留白，下面输入 */
+.mail-reply-card { height: 58vh; max-height: 58vh; }
+.mail-reply-body { gap: 10px; }
+.mail-reply-blank { flex: 1 1 auto; min-height: 20px; }
+.mail-reply-input {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 96px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.55;
+  resize: none;
+}
+.mail-reply-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
 
 /* 信件详情铺满全屏，左上角退出 */
 .mail-detail {

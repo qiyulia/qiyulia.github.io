@@ -7,6 +7,7 @@
   let composeMode = 'new';
   let composeContactId = null;
   let selectedCardId = null;
+  let replyMailId = null;
   let mailTab = 'ta';
 
   function contactOf(id) {
@@ -106,8 +107,10 @@
       ? 'TA 还没有寄信来，再等等吧。'
       : '在我的信里写一封给 TA，TA 会回信的。';
     el('#mail-empty').hidden = items.length > 0;
-    el('#btn-mail-compose').hidden = mailTab !== 'mine';
-    el('#btn-mail-compose-2').hidden = mailTab !== 'mine';
+    const emptyCompose = el('#btn-mail-compose-2');
+    if (emptyCompose) emptyCompose.hidden = mailTab !== 'mine';
+    const composeWrap = el('#mail-compose-wrap');
+    if (composeWrap) composeWrap.hidden = mailTab !== 'mine' || items.length === 0;
     document.querySelectorAll('[data-mail-tab]').forEach(function (btn) {
       const on = btn.dataset.mailTab === mailTab;
       btn.classList.toggle('is-on', on);
@@ -253,6 +256,63 @@
     return true;
   }
 
+  /* 回信：直接在输入框里写字，不再挑字卡 */
+  function openReply(mail) {
+    if (!mail) return;
+    replyMailId = mail.id;
+    const contact = contactOf(mail.contactId) || fallbackContact();
+    const title = el('#mail-reply-title');
+    if (title) title.textContent = contact ? '回信给 ' + contact.name : '回信';
+    const input = el('#mail-reply-text');
+    if (input) input.value = '';
+    const dialog = el('#mail-reply-dialog');
+    if (dialog) dialog.hidden = false;
+    setTimeout(function () {
+      if (input) input.focus();
+    }, 60);
+  }
+
+  function closeReply() {
+    replyMailId = null;
+    const dialog = el('#mail-reply-dialog');
+    if (dialog) dialog.hidden = true;
+    const input = el('#mail-reply-text');
+    if (input) input.value = '';
+  }
+
+  function sendReply() {
+    const input = el('#mail-reply-text');
+    const text = String((input && input.value) || '').trim();
+    if (!text) {
+      App.toast('先写点什么');
+      return;
+    }
+    const mail = mailList().find(function (m) { return m.id === replyMailId; });
+    const contact = (mail && contactOf(mail.contactId)) || fallbackContact();
+    if (!contact) {
+      App.toast('先添加一个角色吧');
+      return;
+    }
+    mailList().unshift({
+      id: App.uid('mail'),
+      from: 'me',
+      contactId: contact.id,
+      text: text,
+      cardId: null,
+      cardIds: [],
+      ts: Date.now(),
+      read: true,
+      fav: false,
+    });
+    App.save();
+    App.updateMailBadge();
+    closeReply();
+    App.toast('回信已寄出');
+    mailTab = 'mine';
+    if (el('#view-mail').classList.contains('is-active')) showList();
+    scheduleTaReply(contact.id);
+  }
+
   /* TA 收到信后用 0~15 条字卡回信 */
   function scheduleTaReply(contactId) {
     const letter = composeTaMail();
@@ -318,8 +378,21 @@
   };
 
   App.initMail = function () {
-    el('#btn-mail-compose').addEventListener('click', function () { openCompose('new'); });
-    el('#btn-mail-compose-2').addEventListener('click', function () { openCompose('new'); });
+    document.querySelectorAll('#btn-mail-compose-2, #btn-mail-compose-3').forEach(function (btn) {
+      btn.addEventListener('click', function () { openCompose('new'); });
+    });
+
+    const replyDialog = el('#mail-reply-dialog');
+    if (replyDialog) {
+      replyDialog.addEventListener('click', function (e) {
+        if (e.target.closest('[data-mail-reply-close]')) closeReply();
+      });
+    }
+    const replySend = el('#mail-reply-send');
+    if (replySend) replySend.addEventListener('click', sendReply);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && replyMailId) closeReply();
+    });
 
     document.querySelectorAll('[data-mail-tab]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -353,7 +426,7 @@
       const reply = e.target.closest('[data-mail-reply]');
       if (reply) {
         const mail = mailList().find(function (m) { return m.id === reply.dataset.mailReply; });
-        if (mail) openCompose('reply', mail.contactId);
+        if (mail) openReply(mail);
         return;
       }
       const remove = e.target.closest('[data-mail-delete]');
