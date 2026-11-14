@@ -92,7 +92,10 @@
       badge.textContent = total > 99 ? '99+' : String(total);
     }
     const chatDot = document.getElementById('d-badge-chat');
-    if (chatDot) chatDot.hidden = total === 0;
+    if (chatDot) {
+      chatDot.hidden = total === 0;
+      chatDot.textContent = total > 99 ? '99+' : String(total);
+    }
     if (App.updateMailBadge) App.updateMailBadge();
   };
 
@@ -111,10 +114,8 @@
   App.hideChatBanner = hideChatBanner;
 
   App.showChatBanner = function (contactId, message) {
-    const view = document.getElementById('view-desktop');
-    if (!view || !view.classList.contains('is-active')) return;
     if (document.hidden) return;
-    if (App.chatContactId === contactId) return;
+    if (App.chatOpen && App.chatOpen(contactId)) return;
     const contact = (App.state.contacts || []).find(function (c) { return c.id === contactId; });
     const box = document.getElementById('chat-banner');
     if (!contact || !box || !message) return;

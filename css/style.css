@@ -645,13 +645,8 @@ button.widget:active { transform: scale(.99); }
 }
 .badge[hidden] { display: none; }
 .badge-dot {
-  min-width: 10px;
-  width: 10px;
-  height: 10px;
-  padding: 0;
-  border-radius: 50%;
   top: 0;
-  right: calc(50% - 27px);
+  right: calc(50% - 25px);
 }
 #d-badge-mail {
   top: -3px;
