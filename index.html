@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-84">
+<link rel="stylesheet" href="css/style.css?v=20261114-85">
 </head>
 <body>
 <div class="stage">
@@ -118,6 +118,7 @@ if ('caches' in window) {
                     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 7.5h20v14H14l-7 5v-5H6v-14z"/><path d="M11 14.5h.01M16 14.5h.01M21 14.5h.01" stroke-width="3.2"/></svg>
                   </span>
                   <span class="app-entry-label">聊天</span>
+                  <span class="badge badge-dot" id="d-badge-chat" hidden></span>
                 </button>
                 <button type="button" class="app-entry" data-go="moments">
                   <span class="software-icon moments-app-icon">
@@ -1050,6 +1051,14 @@ if ('caches' in window) {
       <p class="call-note">本机模拟通话，不会启用麦克风或拨出电话</p>
     </section>
 
+    <button type="button" class="chat-banner" id="chat-banner" hidden>
+      <span class="chat-banner-avatar" id="chat-banner-avatar"></span>
+      <span class="chat-banner-body">
+        <strong class="chat-banner-name" id="chat-banner-name"></strong>
+        <span class="chat-banner-text" id="chat-banner-text"></span>
+      </span>
+      <em class="chat-banner-time" id="chat-banner-time">现在</em>
+    </button>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <!-- ============ 日历经期 / 排卵期弹窗 ============ -->
@@ -1404,18 +1413,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-84"></script>
-<script src="js/store.js?v=20261114-84"></script>
-<script src="js/desktop.js?v=20261114-84"></script>
-<script src="js/chat.js?v=20261114-84"></script>
-<script src="js/cards.js?v=20261114-84"></script>
-<script src="js/settings.js?v=20261114-84"></script>
-<script src="js/moments.js?v=20261114-84"></script>
-<script src="js/calendar.js?v=20261114-84"></script>
-<script src="js/music.js?v=20261114-84"></script>
-<script src="js/market.js?v=20261114-84"></script>
-<script src="js/mail.js?v=20261114-84"></script>
-<script src="js/extras.js?v=20261114-84"></script>
-<script src="js/app.js?v=20261114-84"></script>
+<script src="js/seed.js?v=20261114-85"></script>
+<script src="js/store.js?v=20261114-85"></script>
+<script src="js/desktop.js?v=20261114-85"></script>
+<script src="js/chat.js?v=20261114-85"></script>
+<script src="js/cards.js?v=20261114-85"></script>
+<script src="js/settings.js?v=20261114-85"></script>
+<script src="js/moments.js?v=20261114-85"></script>
+<script src="js/calendar.js?v=20261114-85"></script>
+<script src="js/music.js?v=20261114-85"></script>
+<script src="js/market.js?v=20261114-85"></script>
+<script src="js/mail.js?v=20261114-85"></script>
+<script src="js/extras.js?v=20261114-85"></script>
+<script src="js/app.js?v=20261114-85"></script>
 </body>
 </html>

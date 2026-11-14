@@ -90,8 +90,86 @@
       badge.hidden = total === 0;
       badge.textContent = total > 99 ? '99+' : String(total);
     }
+    const chatDot = document.getElementById('d-badge-chat');
+    if (chatDot) chatDot.hidden = total === 0;
     if (App.updateMailBadge) App.updateMailBadge();
   };
+
+  /* ---------- 主页新消息横幅 ---------- */
+  const lastSeen = {};
+  let watchReady = false;
+  let bannerContactId = null;
+  let bannerTimer = null;
+
+  function hideChatBanner() {
+    const box = document.getElementById('chat-banner');
+    if (box) box.hidden = true;
+    bannerContactId = null;
+    clearTimeout(bannerTimer);
+  }
+  App.hideChatBanner = hideChatBanner;
+
+  App.showChatBanner = function (contactId, message) {
+    const view = document.getElementById('view-desktop');
+    if (!view || !view.classList.contains('is-active')) return;
+    if (document.hidden) return;
+    if (App.chatContactId === contactId) return;
+    const contact = (App.state.contacts || []).find(function (c) { return c.id === contactId; });
+    const box = document.getElementById('chat-banner');
+    if (!contact || !box || !message) return;
+
+    document.getElementById('chat-banner-avatar').innerHTML = App.avatarHtml(contact.avatar);
+    document.getElementById('chat-banner-name').textContent = contact.name;
+    document.getElementById('chat-banner-text').textContent = App.messagePreview(message);
+    document.getElementById('chat-banner-time').textContent = '现在';
+    box.dataset.contact = contactId;
+
+    if (bannerContactId !== contactId) {
+      box.hidden = false;
+      box.style.animation = 'none';
+      void box.offsetWidth;
+      box.style.animation = '';
+    }
+    box.hidden = false;
+    bannerContactId = contactId;
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(hideChatBanner, 4800);
+  };
+
+  document.getElementById('chat-banner').addEventListener('click', function () {
+    const id = this.dataset.contact;
+    hideChatBanner();
+    if (id) App.openChat(id);
+  });
+
+  function seedSeenChats() {
+    Object.keys(App.state.chats || {}).forEach(function (id) {
+      const chat = App.state.chats[id] || [];
+      lastSeen[id] = chat.length ? chat[chat.length - 1].id : '';
+    });
+    watchReady = true;
+  }
+
+  function watchChats() {
+    if (!watchReady) return;
+    const chats = App.state.chats || {};
+    Object.keys(chats).forEach(function (id) {
+      const chat = chats[id] || [];
+      const last = chat[chat.length - 1];
+      const lastId = last ? last.id : '';
+      if (lastSeen[id] === lastId) return;
+      lastSeen[id] = lastId;
+      if (!last || last.role !== 'ta') return;
+      App.showChatBanner(id, last);
+    });
+  }
+
+  const rawSave = App.save;
+  App.save = function () {
+    rawSave.apply(App, arguments);
+    watchChats();
+  };
+  setTimeout(seedSeenChats, 0);
 
   App.renderAll = function () {
     App.renderDesktop();
