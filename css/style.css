@@ -2259,6 +2259,21 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
     border-radius: 22px 22px 0 0;
   }
 }
+/* 「其他」工具面板：浮在中间的小卡片，不贴着底部 */
+dialog.sheet.more-sheet {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  width: min(86vw, 360px);
+  max-width: min(86vw, 360px);
+  height: auto;
+  max-height: 80vh;
+  border-radius: 22px;
+}
 /* ============ 本机模拟语音通话 ============ */
 .call-overlay {
   position: absolute;
