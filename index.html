@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-28">
+<link rel="stylesheet" href="css/style.css?v=20261114-29">
 </head>
 <body>
 <div class="stage">
@@ -71,8 +71,8 @@ if ('caches' in window) {
                     <svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 9l10-2"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
                   </span>
                   <div class="music-copy">
-                    <strong id="w-track">晚风</strong>
-                    <span id="w-artist">絮语电台 · 轻柔旋律</span>
+                    <strong id="w-track">暂无歌曲</strong>
+                    <span id="w-artist">导入音乐后在这里播放</span>
                   </div>
                   <button type="button" class="music-play" id="w-play" aria-label="播放音乐">
                     <svg id="w-play-icon" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7V5z"/></svg>
@@ -81,7 +81,7 @@ if ('caches' in window) {
                 <div class="music-progress" aria-hidden="true"><span id="w-progress"></span></div>
                 <div class="music-controls">
                   <button type="button" class="mini-btn" id="w-prev" aria-label="上一首"><svg viewBox="0 0 24 24"><path d="M7 5v14M18 6l-9 6 9 6V6z"/></svg></button>
-                  <span id="w-music-status">点一下，听首小曲</span>
+                  <span id="w-music-status">播放列表是空的，先导入一首歌</span>
                   <button type="button" class="mini-btn" id="w-next" aria-label="下一首"><svg viewBox="0 0 24 24"><path d="M17 5v14M6 6l9 6-9 6V6z"/></svg></button>
                 </div>
               </section>
@@ -325,9 +325,9 @@ if ('caches' in window) {
               <svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 9l10-2"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
             </span>
             <div class="music-now-copy">
-              <span id="music-source-label">内置旋律</span>
-              <h3 id="music-title">晚风</h3>
-              <p id="music-artist">絮语电台 · 轻柔旋律</p>
+              <span id="music-source-label">未导入</span>
+              <h3 id="music-title">暂无歌曲</h3>
+              <p id="music-artist">导入音乐后在这里播放</p>
             </div>
             <button type="button" class="music-heart" id="music-favorite" aria-label="收藏当前歌曲" title="我的收藏">
               <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
@@ -343,7 +343,7 @@ if ('caches' in window) {
             <span class="music-ta-heart" id="music-ta-favorite" title="TA 的收藏状态">♡ TA</span>
           </div>
           <div class="music-now-foot">
-            <span id="music-status">点一下，听首小曲</span>
+            <span id="music-status">播放列表是空的，先导入一首歌</span>
             <a id="music-open-source" href="#" target="_blank" rel="noopener noreferrer" hidden>打开原平台</a>
           </div>
         </section>
@@ -408,8 +408,8 @@ if ('caches' in window) {
           <svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12M9 9l10-2"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
         </span>
         <div class="music-float-copy" data-music-float-drag>
-          <strong id="chat-music-title">晚风</strong>
-          <span id="chat-music-artist">絮语电台 · 轻柔旋律</span>
+          <strong id="chat-music-title">暂无歌曲</strong>
+          <span id="chat-music-artist">导入音乐后在这里播放</span>
           <span id="chat-music-time" class="music-float-time">00:00</span>
         </div>
         <div class="music-float-controls">
@@ -422,7 +422,7 @@ if ('caches' in window) {
         </button>
         <div class="music-float-progress" aria-hidden="true"><span id="chat-music-progress"></span></div>
         <div class="music-float-foot">
-          <span id="chat-music-status">点一下，听首小曲</span>
+          <span id="chat-music-status">播放列表是空的，先导入一首歌</span>
           <button type="button" id="chat-music-favorite" aria-label="收藏当前歌曲">♡ 收藏</button>
         </div>
       </section>
@@ -907,15 +907,15 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261114-28"></script>
-<script src="js/store.js?v=20261114-28"></script>
-<script src="js/desktop.js?v=20261114-28"></script>
-<script src="js/chat.js?v=20261114-28"></script>
-<script src="js/cards.js?v=20261114-28"></script>
-<script src="js/settings.js?v=20261114-28"></script>
-<script src="js/moments.js?v=20261114-28"></script>
-<script src="js/calendar.js?v=20261114-28"></script>
-<script src="js/music.js?v=20261114-28"></script>
-<script src="js/app.js?v=20261114-28"></script>
+<script src="js/seed.js?v=20261114-29"></script>
+<script src="js/store.js?v=20261114-29"></script>
+<script src="js/desktop.js?v=20261114-29"></script>
+<script src="js/chat.js?v=20261114-29"></script>
+<script src="js/cards.js?v=20261114-29"></script>
+<script src="js/settings.js?v=20261114-29"></script>
+<script src="js/moments.js?v=20261114-29"></script>
+<script src="js/calendar.js?v=20261114-29"></script>
+<script src="js/music.js?v=20261114-29"></script>
+<script src="js/app.js?v=20261114-29"></script>
 </body>
 </html>

@@ -113,14 +113,10 @@
 
   App.MUSIC_SEED = function () {
     return {
-      currentId: 'synth-breeze',
+      currentId: '',
       mode: 'sequence',
       favorites: { mine: [], ta: [] },
-      tracks: [
-        { id: 'synth-breeze', title: '晚风', artist: '絮语电台 · 轻柔旋律', source: 'synth' },
-        { id: 'synth-cloud', title: '云端漫步', artist: '絮语电台 · 明亮琴音', source: 'synth' },
-        { id: 'synth-stars', title: '枕边星', artist: '絮语电台 · 睡前慢板', source: 'synth' },
-      ],
+      tracks: [],
     };
   };
 

@@ -66,10 +66,41 @@
     el('#chat-music-progress').style.width = (ratio * 100) + '%';
   }
 
+  function renderMusicEmpty() {
+    const icon = '<path d="M8 5l11 7-11 7V5z"/>';
+    ['#w-track', '#music-title', '#chat-music-title'].forEach(function (sel) { el(sel).textContent = '暂无歌曲'; });
+    ['#w-artist', '#music-artist', '#chat-music-artist'].forEach(function (sel) { el(sel).textContent = '导入音乐后在这里播放'; });
+    ['#w-play-icon', '#music-play-icon', '#chat-music-play-icon'].forEach(function (sel) { el(sel).innerHTML = icon; });
+    ['#w-play', '#music-play', '#chat-music-play'].forEach(function (sel) { el(sel).setAttribute('aria-label', '播放音乐'); });
+    ['#w-disc', '#music-disc', '#chat-music-disc'].forEach(function (sel) { el(sel).classList.remove('is-playing'); });
+    ['#w-music-status', '#music-status', '#chat-music-status'].forEach(function (sel) { el(sel).textContent = '播放列表是空的，先导入一首歌'; });
+    el('#music-source-label').textContent = '未导入';
+    el('#music-mode').textContent = MODE_LABELS[App.state.music.mode];
+    el('#music-favorite').classList.remove('is-active');
+    el('#music-ta-favorite').textContent = '♡ TA';
+    el('#music-ta-favorite').classList.remove('is-active');
+    el('#chat-music-favorite').textContent = '♡ 收藏';
+    el('#chat-music-favorite').classList.remove('is-active');
+    const source = el('#music-open-source');
+    source.hidden = true;
+    source.removeAttribute('href');
+    el('#music-count').textContent = '0 首 · 我 0 · TA 0';
+    el('#music-list').innerHTML = '<p class="panel-note">还没有歌曲，导入直链或本地音频后会显示在这里。</p>';
+    el('#music-current-time').textContent = '00:00';
+    el('#chat-music-time').textContent = '00:00';
+    el('#music-duration').textContent = '00:00';
+    el('#music-progress-fill').style.width = '0%';
+    el('#w-progress').style.width = '0%';
+    el('#chat-music-progress').style.width = '0%';
+  }
+
   App.renderMusic = function () {
     if (!App.state || !App.state.music) return;
     const track = currentTrack();
-    if (!track) return;
+    if (!track) {
+      renderMusicEmpty();
+      return;
+    }
     const mine = isFavorite(track.id, 'mine');
     const ta = isFavorite(track.id, 'ta');
     const index = tracks().indexOf(track);
@@ -308,7 +339,10 @@
 
   function playCurrent() {
     const track = currentTrack();
-    if (!track) return Promise.resolve(false);
+    if (!track) {
+      App.toast('播放列表是空的，先导入一首歌');
+      return Promise.resolve(false);
+    }
     clearTaTimers();
     statusText = '';
     if (track.source === 'synth') {
@@ -384,11 +418,14 @@
   function handleEnded() {
     clearTaTimers();
     stopPlayback();
-    if (App.state.music.mode === 'repeat') selectTrack(currentTrack().id, true);
+    const track = currentTrack();
+    if (!track) return;
+    if (App.state.music.mode === 'repeat') selectTrack(track.id, true);
     else changeTrack(1, true, App.state.music.mode === 'shuffle');
   }
 
   function toggleFavorite(id, side) {
+    if (!id) return;
     const list = App.state.music.favorites[side];
     const index = list.indexOf(id);
     if (index === -1) list.push(id);
@@ -753,7 +790,10 @@
     el('#chat-music-play').addEventListener('click', togglePlay);
     el('#chat-music-prev').addEventListener('click', function () { changeTrack(-1, playing, false); });
     el('#chat-music-next').addEventListener('click', function () { changeTrack(1, playing, App.state.music.mode === 'shuffle'); });
-    el('#chat-music-favorite').addEventListener('click', function () { toggleFavorite(currentTrack().id, 'mine'); });
+    el('#chat-music-favorite').addEventListener('click', function () {
+      const track = currentTrack();
+      if (track) toggleFavorite(track.id, 'mine');
+    });
     el('#chat-music-toggle').addEventListener('click', function () {
       setMusicFloatMinimized(!el('#chat-music-float').classList.contains('is-minimized'));
     });
@@ -765,7 +805,10 @@
       App.save();
       App.renderMusic();
     });
-    el('#music-favorite').addEventListener('click', function () { toggleFavorite(currentTrack().id, 'mine'); });
+    el('#music-favorite').addEventListener('click', function () {
+      const track = currentTrack();
+      if (track) toggleFavorite(track.id, 'mine');
+    });
     el('#music-link-form').addEventListener('submit', importLink);
     el('#music-local-button').addEventListener('click', function () { el('#music-local-file').click(); });
     el('#music-local-file').addEventListener('change', function (e) {

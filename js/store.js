@@ -41,7 +41,8 @@
       track.title = String(track.title || '未命名歌曲');
       track.artist = String(track.artist || '未知歌手');
       if (['synth', 'local', 'url', 'netease', 'kugou'].indexOf(track.source) === -1) track.source = track.url ? 'url' : 'local';
-      if (track.source !== 'synth' && track.source !== 'local' && !/^https?:\/\//.test(track.url || track.audioUrl || '')) return false;
+      if (track.source === 'synth') return false;
+      if (track.source !== 'local' && !/^https?:\/\//.test(track.url || track.audioUrl || '')) return false;
       return true;
     });
     defaults.tracks.forEach(function (track) {
