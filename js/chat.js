@@ -5,6 +5,7 @@
   const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
   if (App.sendAs == null) App.sendAs = 'me';
+  if (App.stickerTab == null) App.stickerTab = 'me';
   if (App.panelKind == null) App.panelKind = 'sticker';
 
   let quoteDraft = null;
@@ -521,7 +522,7 @@
     const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
     if (!contact) return;
     const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).taStickerProb) || 0));
-    const pool = App.state.stickers.ta || [];
+    const pool = (App.state.stickers.ta || []).concat(App.state.stickers.public || []);
     if (!pool.length || Math.random() * 100 >= prob) return;
     const src = pool[Math.floor(Math.random() * pool.length)];
 
@@ -679,12 +680,27 @@
   }
 
   /* ---------- 表情包 ---------- */
+  function stickerKey() {
+    if (App.stickerTab === 'public') return 'public';
+    return App.stickerTab === 'ta' ? 'ta' : 'mine';
+  }
+
+  function stickerList() {
+    const key = stickerKey();
+    if (!Array.isArray(App.state.stickers[key])) App.state.stickers[key] = [];
+    return App.state.stickers[key];
+  }
+
   function updateSideButtons() {
     document.querySelectorAll('[data-sticker-side]').forEach(function (btn) {
-      btn.classList.toggle('is-on', btn.dataset.stickerSide === App.sendAs);
+      btn.classList.toggle('is-on', btn.dataset.stickerSide === (App.stickerTab || 'me'));
     });
     const hint = el('#sticker-side-hint');
-    if (hint) hint.textContent = App.sendAs === 'me' ? '当前：我的表情包' : '当前：TA 的表情包';
+    if (hint) {
+      hint.textContent = App.stickerTab === 'public'
+        ? '公共表情包 · 以「' + (App.sendAs === 'ta' ? 'TA' : '我') + '」身份发送'
+        : '当前：' + (App.stickerTab === 'ta' ? 'TA' : '我') + '的表情包';
+    }
   }
 
   function renderStickerPanel() {
@@ -700,8 +716,7 @@
 
     if (isPat) { renderPatGrid(); return; }
 
-    const side = App.sendAs;
-    const stickers = App.state.stickers[side] || [];
+    const stickers = stickerList();
     el('#sticker-grid').innerHTML = stickers.length
       ? stickers.map(function (src, index) {
           return '<div class="sticker-cell">' +
@@ -745,12 +760,11 @@
   }
 
   async function addStickers(files) {
-    const side = App.sendAs;
     const images = Array.from(files || []).slice(0, 12);
     if (!images.length) return;
 
     App.toast('正在处理图片…');
-    const list = App.state.stickers[side] || (App.state.stickers[side] = []);
+    const list = stickerList();
     let added = 0;
     let first = null;
 
@@ -1007,7 +1021,8 @@
 
       const stickerTab = e.target.closest('[data-sticker-side]');
       if (stickerTab) {
-        App.sendAs = stickerTab.dataset.stickerSide;
+        App.stickerTab = stickerTab.dataset.stickerSide;
+        if (App.stickerTab !== 'public') App.sendAs = App.stickerTab;
         updateSideButtons();
         renderStickerPanel();
         return;
@@ -1015,7 +1030,7 @@
 
       const stickerItem = e.target.closest('[data-send-sticker]');
       if (stickerItem) {
-        const list = App.state.stickers[App.sendAs] || [];
+        const list = stickerList();
         const src = list[Number(stickerItem.dataset.sendSticker)];
         if (src) sendSticker(src);
         return;
@@ -1023,7 +1038,7 @@
 
       const stickerDel = e.target.closest('[data-del-sticker]');
       if (stickerDel) {
-        const list = App.state.stickers[App.sendAs] || [];
+        const list = stickerList();
         const index = Number(stickerDel.dataset.delSticker);
         list.splice(index, 1);
         App.save();

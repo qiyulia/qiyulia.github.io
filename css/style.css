@@ -1172,9 +1172,10 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .pat-item:active { background: var(--field-strong, var(--field)); }
 .sticker-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px 10px;
 }
 .sticker-tabs { display: flex; gap: 8px; }
 .sticker-tab {
@@ -1187,7 +1188,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   background: var(--field);
 }
 .sticker-tab.is-on { background: var(--accent); color: var(--accent-ink); }
-.sticker-side-hint { font-size: 11px; color: var(--muted); }
+.sticker-side-hint { flex: 1 1 100%; font-size: 11px; color: var(--muted); }
 .sticker-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2097,19 +2098,21 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .msg.me .msg-read.is-read { color: rgba(255, 255, 255, .92); }
 .bubble-with-read { display: flex; align-items: flex-end; gap: 6px; }
 .bubble-with-read .bubble-text { min-width: 0; }
-.composer-packet-btn { font-size: 19px; line-height: 1; }
+.composer-packet-btn { color: #d2554d; }
 
 /* ============ 同心币红包 / 礼物气泡 ============ */
-.bubble-packet, .bubble-gift {
+.msg .bubble.bubble-packet,
+.msg .bubble.bubble-gift {
   min-width: 186px;
   padding: 0;
   overflow: hidden;
   border-radius: 16px;
+  border-color: transparent;
   background: linear-gradient(150deg, #f0574f, #d63a35);
   color: #fff5ea;
   box-shadow: 0 8px 20px rgba(198, 57, 52, .28);
 }
-.bubble-gift { background: linear-gradient(150deg, #e8a05b, #d07b3e); }
+.msg .bubble.bubble-gift { background: linear-gradient(150deg, #e8a05b, #d07b3e); }
 .packet-head {
   display: flex;
   align-items: center;

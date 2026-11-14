@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-35">
+<link rel="stylesheet" href="css/style.css?v=20261114-36">
 </head>
 <body>
 <div class="stage">
@@ -453,7 +453,9 @@ if ('caches' in window) {
         <button type="button" class="composer-quote-close" id="composer-quote-close" aria-label="取消引用">×</button>
       </div>
       <form id="composer" class="composer">
-        <button type="button" class="composer-icon-btn composer-packet-btn" id="btn-redpacket" aria-label="发红包" title="发同心币红包">🧧</button>
+        <button type="button" class="composer-icon-btn composer-packet-btn" id="btn-redpacket" aria-label="发红包" title="发同心币红包">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="5.5" width="17.6" height="13" rx="3.2"/><path d="M3.2 8.2l8.8 5.6 8.8-5.6"/><circle cx="12" cy="14.2" r="2.4"/><path d="M12 12.9v1.3l.9.7"/></svg>
+        </button>
         <button type="button" class="composer-icon-btn" id="btn-sticker" aria-label="表情包" title="表情包">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14.5c1.4 1.8 2.6 2.5 4 2.5s2.6-.7 4-2.5"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
         </button>
@@ -469,7 +471,8 @@ if ('caches' in window) {
           <button type="button" class="sticker-tab" data-panel-kind="pat">拍一拍</button>
         </div>
         <div class="sticker-head" id="sticker-side-head">
-          <div class="sticker-tabs" role="group" aria-label="表情包身份">
+          <div class="sticker-tabs" role="group" aria-label="表情包分类">
+            <button type="button" class="sticker-tab" data-sticker-side="public">公共</button>
             <button type="button" class="sticker-tab is-on" data-sticker-side="me">我</button>
             <button type="button" class="sticker-tab" data-sticker-side="ta">TA</button>
           </div>
@@ -477,7 +480,7 @@ if ('caches' in window) {
         </div>
         <div id="sticker-grid" class="sticker-grid"></div>
         <div id="pat-grid" class="pat-grid" hidden></div>
-        <button type="button" class="btn sticker-add" id="btn-add-sticker">+ 从本地相册添加到当前侧</button>
+        <button type="button" class="btn sticker-add" id="btn-add-sticker">+ 从本地相册添加到当前分类</button>
       </div>
     </section>
 
@@ -987,16 +990,16 @@ if ('caches' in window) {
   </div>
 </div>
 
-<script src="js/seed.js?v=20261114-35"></script>
-<script src="js/store.js?v=20261114-35"></script>
-<script src="js/desktop.js?v=20261114-35"></script>
-<script src="js/chat.js?v=20261114-35"></script>
-<script src="js/cards.js?v=20261114-35"></script>
-<script src="js/settings.js?v=20261114-35"></script>
-<script src="js/moments.js?v=20261114-35"></script>
-<script src="js/calendar.js?v=20261114-35"></script>
-<script src="js/music.js?v=20261114-35"></script>
-<script src="js/market.js?v=20261114-35"></script>
-<script src="js/app.js?v=20261114-35"></script>
+<script src="js/seed.js?v=20261114-36"></script>
+<script src="js/store.js?v=20261114-36"></script>
+<script src="js/desktop.js?v=20261114-36"></script>
+<script src="js/chat.js?v=20261114-36"></script>
+<script src="js/cards.js?v=20261114-36"></script>
+<script src="js/settings.js?v=20261114-36"></script>
+<script src="js/moments.js?v=20261114-36"></script>
+<script src="js/calendar.js?v=20261114-36"></script>
+<script src="js/music.js?v=20261114-36"></script>
+<script src="js/market.js?v=20261114-36"></script>
+<script src="js/app.js?v=20261114-36"></script>
 </body>
 </html>

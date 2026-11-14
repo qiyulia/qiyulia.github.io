@@ -93,14 +93,18 @@
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];
     if (!s.calendar || typeof s.calendar !== 'object' || Array.isArray(s.calendar)) s.calendar = {};
-    if (!s.stickers || typeof s.stickers !== 'object') s.stickers = { mine: [], ta: [] };
+    if (!s.stickers || typeof s.stickers !== 'object') s.stickers = { mine: [], ta: [], public: [] };
     if (!Array.isArray(s.stickers.mine)) s.stickers.mine = [];
     if (!Array.isArray(s.stickers.ta)) s.stickers.ta = [];
+    if (!Array.isArray(s.stickers.public)) s.stickers.public = [];
+    /* 兼容旧版本误存到 stickers.me 的表情，迁移到 mine */
+    if (Array.isArray(s.stickers.me) && s.stickers.me.length) {
+      s.stickers.mine = s.stickers.mine.concat(s.stickers.me);
+      delete s.stickers.me;
+    }
     if (!s.stickers.mine.length && !s.stickers.ta.length && App.DEFAULT_STICKERS) {
-      s.stickers = {
-        mine: App.DEFAULT_STICKERS.mine.slice(),
-        ta: App.DEFAULT_STICKERS.ta.slice(),
-      };
+      s.stickers.mine = App.DEFAULT_STICKERS.mine.slice();
+      s.stickers.ta = App.DEFAULT_STICKERS.ta.slice();
     }
     App.normalizeCards(s);
     App.normalizeMusic(s);
