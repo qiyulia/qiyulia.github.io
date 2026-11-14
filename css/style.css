@@ -2463,7 +2463,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   overflow: hidden;
   border-radius: 16px;
   border-color: transparent;
-  background: linear-gradient(150deg, #f0574f, #d63a35);
+  background: linear-gradient(150deg, #f0817a, #e2605a);
   color: #fff5ea;
   box-shadow: 0 8px 20px rgba(198, 57, 52, .28);
 }
@@ -2499,6 +2499,17 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 .packet-actions button + button { background: rgba(255, 255, 255, .18); color: #fff5ea; }
 .bubble-gift .packet-actions button { color: #8c4a15; }
 .bubble-gift .packet-actions button + button { color: #fff5ea; }
+.msg .bubble.bubble-packet.is-accepted {
+  background: linear-gradient(150deg, #f3a9c3, #e2819f);
+  box-shadow: 0 8px 20px rgba(214, 116, 150, .24);
+}
+.msg .bubble.bubble-packet.is-returned {
+  background: linear-gradient(150deg, #bdbdbd, #9a9a9a);
+  box-shadow: 0 8px 20px rgba(120, 120, 120, .22);
+}
+.msg .bubble.bubble-packet.is-accepted .packet-actions button,
+.msg .bubble.bubble-packet.is-returned .packet-actions button { color: #a15b73; }
+.msg .bubble.bubble-packet.is-returned .packet-actions button { color: #5f5f5f; }
 .bubble-packet.is-done, .bubble-gift.is-done { opacity: .88; }
 .gift-title { padding: 8px 12px 0; font-size: 14px; font-weight: 600; }
 
@@ -3383,3 +3394,19 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 }
 
 
+
+/* ============ 主页应用图标统一为聊天图标配色 ============ */
+.moments-app-icon,
+.calendar-app-icon,
+.music-app-icon,
+.market-app-icon,
+.mail-app-icon,
+.anniversary-app-icon,
+.notes-app-icon,
+.more-app-icon.is-tool,
+.more-app-icon.is-divine,
+.more-app-icon.is-game,
+.more-app-icon.is-avatar {
+  background: linear-gradient(145deg, #83bceb, #4e89c5);
+  color: #fff;
+}

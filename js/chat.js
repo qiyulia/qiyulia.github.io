@@ -117,7 +117,13 @@
       const chat = App.state.chats[contactId] || [];
       const target = chat.find(function (m) { return m.id === message.id; });
       if (!target || target.status !== 'pending') return;
-      settlePacket(target.type, contactId, target.id, Math.random() < 0.7 ? 'accept' : 'return');
+      const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+      const cs = contact ? App.contactSettings(contact) : {};
+      const accept = Math.max(0, Math.min(100, Number(cs.redpacketAcceptProb) || 0));
+      const back = Math.max(0, Math.min(100, Number(cs.redpacketReturnProb) || 0));
+      const roll = Math.random() * 100;
+      if (roll < accept) settlePacket(target.type, contactId, target.id, 'accept');
+      else if (roll < accept + back) settlePacket(target.type, contactId, target.id, 'return');
     }, 3000 + Math.random() * 3000);
   }
 
@@ -125,7 +131,8 @@
     const pending = m.status === 'pending';
     const waiting = pending && m.role === 'me';
     const statusText = m.status === 'accepted' ? '已领取' : (m.status === 'returned' ? '已退回' : (waiting ? '等待对方领取' : '待领取'));
-    return '<div class="bubble bubble-packet' + (pending ? '' : ' is-done') + '">' +
+    const stateClass = pending ? ' is-pending' : (m.status === 'accepted' ? ' is-accepted' : ' is-returned');
+    return '<div class="bubble bubble-packet' + (pending ? '' : ' is-done') + stateClass + '">' +
       '<div class="packet-head"><span class="packet-tag">同心币红包</span><em>' + statusText + '</em></div>' +
       '<p class="packet-amount">' + Number(m.amount || 0) + '<small> 同心币</small></p>' +
       (m.note ? '<p class="packet-note">' + App.esc(m.note) + '</p>' : '<p class="packet-note">恭喜发财，大吉大利</p>') +
@@ -1065,6 +1072,35 @@
       await sleep(240);
     }
     maybeTaCall(contactId, contact, cs);
+    maybeTaPacket(contactId, contact, cs);
+  }
+
+  /* TA 偶尔主动发一个红包给我 */
+  function maybeTaPacket(contactId, contact, cs) {
+    if (!contact) return;
+    if (Math.random() * 100 >= clampProb(cs.taRedpacketProb)) return;
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const notes = ['拿去花', '请你喝奶茶', '今天也辛苦啦', '一点小心意', '买点好吃的'];
+      const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+      chat.push({
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'redpacket',
+        amount: 5 + Math.floor(Math.random() * 84),
+        note: notes[Math.floor(Math.random() * notes.length)],
+        status: 'pending',
+        ts: Date.now(),
+      });
+      App.save();
+      if (App.chatOpen(contactId)) {
+        App.renderChat();
+      } else {
+        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+    }, 2600 + Math.random() * 3200);
   }
 
   /* TA 偶尔会问：这句话能不能收进字卡库 */

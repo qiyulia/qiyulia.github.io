@@ -97,6 +97,9 @@
     if (s.settings.mergeMin == null) s.settings.mergeMin = 2;
     if (s.settings.mergeMax == null) s.settings.mergeMax = 3;
     if (s.settings.cardOfferProb == null) s.settings.cardOfferProb = 10;
+    if (s.settings.taRedpacketProb == null) s.settings.taRedpacketProb = 8;
+    if (s.settings.redpacketAcceptProb == null) s.settings.redpacketAcceptProb = 70;
+    if (s.settings.redpacketReturnProb == null) s.settings.redpacketReturnProb = 20;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
     if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
     if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;
@@ -255,6 +258,9 @@
       mergeMin: pick('mergeMin', 2),
       mergeMax: pick('mergeMax', 3),
       cardOfferProb: pick('cardOfferProb', 10),
+      taRedpacketProb: pick('taRedpacketProb', 8),
+      redpacketAcceptProb: pick('redpacketAcceptProb', 70),
+      redpacketReturnProb: pick('redpacketReturnProb', 20),
       emotionProb: pick('emotionProb', 30),
       taLikeProb: pick('taLikeProb', 60),
       taCommentProb: pick('taCommentProb', 40),

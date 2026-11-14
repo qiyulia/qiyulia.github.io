@@ -197,6 +197,9 @@
     el('#set-merge-prob').value = st.settings.mergeProb == null ? 15 : st.settings.mergeProb;
     el('#set-merge-min').value = st.settings.mergeMin == null ? 2 : st.settings.mergeMin;
     el('#set-merge-max').value = st.settings.mergeMax == null ? 3 : st.settings.mergeMax;
+    el('#set-ta-redpacket-prob').value = st.settings.taRedpacketProb == null ? 8 : st.settings.taRedpacketProb;
+    el('#set-rp-accept-prob').value = st.settings.redpacketAcceptProb == null ? 70 : st.settings.redpacketAcceptProb;
+    el('#set-rp-return-prob').value = st.settings.redpacketReturnProb == null ? 20 : st.settings.redpacketReturnProb;
     el('#set-emotion-prob').value = st.settings.emotionProb == null ? 30 : st.settings.emotionProb;
     el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
     el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
@@ -385,6 +388,21 @@
 
     App.bindStepper('#set-merge-prob', function (v) {
       App.state.settings.mergeProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-ta-redpacket-prob', function (v) {
+      App.state.settings.taRedpacketProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-rp-accept-prob', function (v) {
+      App.state.settings.redpacketAcceptProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-rp-return-prob', function (v) {
+      App.state.settings.redpacketReturnProb = v;
       markDirty();
     });
 
