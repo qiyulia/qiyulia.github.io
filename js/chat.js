@@ -80,7 +80,7 @@
       ? chat.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
     /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
-    if (typingContacts[id]) list.appendChild(typingRow());
+    if (typingAllowed(id)) list.appendChild(typingRow());
     updateSideButtons();
     renderStickerPanel();
     renderComposerQuote();
@@ -568,7 +568,8 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  /* 正在输入的状态按联系人记住，离开聊天页再回来不会丢，计时也不会重置 */
+  /* 正在输入的状态按联系人记住，离开聊天页再回来不会丢，计时也不会重置。
+     同一个人可能有几段回复同时排队，用计数保证一段结束时不会误删另一段的输入状态 */
   const typingContacts = {};
   App.typingContacts = typingContacts;
 
@@ -579,20 +580,21 @@
     return row;
   }
 
-  function setTyping(contactId, on) {
-    if (typeof contactId === 'boolean') {
-      on = contactId;
-      contactId = App.chatContactId;
-    }
-    if (!contactId) return;
-    if (on) typingContacts[contactId] = true;
-    else delete typingContacts[contactId];
+  /* 最新一条是已读不回、或根本没有待发消息时，不显示正在输入 */
+  function typingAllowed(contactId) {
+    if (!(typingContacts[contactId] > 0)) return false;
+    const chat = App.state.chats[contactId] || [];
+    const last = chat[chat.length - 1];
+    if (last && last.role === 'ta' && last.type === 'ignore') return false;
+    return true;
+  }
 
+  function syncTypingRow(contactId) {
     if (!App.chatOpen(contactId)) return;
     const list = el('#chat-list');
     if (!list) return;
     const row = list.querySelector('.typing-row');
-    if (on) {
+    if (typingAllowed(contactId)) {
       if (!row) {
         list.appendChild(typingRow());
         scrollBottom();
@@ -600,6 +602,19 @@
     } else if (row) {
       row.remove();
     }
+  }
+
+  function setTyping(contactId, on) {
+    if (typeof contactId === 'boolean') {
+      on = contactId;
+      contactId = App.chatContactId;
+    }
+    if (!contactId) return;
+    const depth = typingContacts[contactId] || 0;
+    if (on) typingContacts[contactId] = depth + 1;
+    else if (depth > 0) typingContacts[contactId] = depth - 1;
+    if (!typingContacts[contactId]) delete typingContacts[contactId];
+    syncTypingRow(contactId);
   }
 
   function pushMessage(message) {
