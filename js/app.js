@@ -26,6 +26,7 @@
     else if (view === 'calendar') App.renderCalendar();
     else if (view === 'music') App.renderMusic();
     else if (view === 'market') App.renderMarket();
+    else if (view === 'mail') App.renderMail();
   };
 
   App.toast = function (message) {
@@ -68,6 +69,7 @@
       badge.hidden = total === 0;
       badge.textContent = total > 99 ? '99+' : String(total);
     }
+    if (App.updateMailBadge) App.updateMailBadge();
   };
 
   App.renderAll = function () {
@@ -114,6 +116,7 @@
   App.initCalendar();
   App.initMusic();
   App.initMarket();
+  App.initMail();
 
   App.go('desktop');
 })();

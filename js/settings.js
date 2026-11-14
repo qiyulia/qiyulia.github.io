@@ -50,11 +50,17 @@
     el('#set-since').value = st.profile.since || '';
     el('#set-min').value = st.settings.replyMin;
     el('#set-max').value = st.settings.replyMax;
-    el('#set-typing').value = st.settings.typingMs || 700;
+    el('#set-typing').value = st.settings.typingMin == null ? 0.1 : st.settings.typingMin;
+    el('#set-ta-msg-prob').value = st.settings.taMsgProb == null ? 8 : st.settings.taMsgProb;
     el('#set-emotion-prob').value = st.settings.emotionProb == null ? 30 : st.settings.emotionProb;
     el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
     el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
-    el('#set-ta-moment-cards').value = st.settings.taMomentCards == null ? 1 : st.settings.taMomentCards;
+    el('#set-ta-moment-prob').value = st.settings.taMomentProb == null ? 25 : st.settings.taMomentProb;
+    el('#set-ta-moment-daily').value = st.settings.taMomentDailyMax == null ? 3 : st.settings.taMomentDailyMax;
+    el('#set-ta-moment-gap-min').value = st.settings.taMomentGapMin == null ? 10 : st.settings.taMomentGapMin;
+    el('#set-ta-moment-gap-max').value = st.settings.taMomentGapMax == null ? 60 : st.settings.taMomentGapMax;
+    el('#set-ta-moment-card-min').value = st.settings.taMomentCardMin == null ? 1 : st.settings.taMomentCardMin;
+    el('#set-ta-moment-card-max').value = st.settings.taMomentCardMax == null ? 3 : st.settings.taMomentCardMax;
     el('#set-pat-back').value = st.settings.patBackProb == null ? 50 : st.settings.patBackProb;
     el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
     el('#set-ta-recall').value = st.settings.taRecallProb == null ? 5 : st.settings.taRecallProb;
@@ -171,9 +177,14 @@
     });
 
     App.bindStepper('#set-typing', function (v) {
-      App.state.settings.typingMs = v;
+      App.state.settings.typingMin = v;
       markDirty();
-    }, { min: 0, max: 3000, step: 100 });
+    }, { min: 0, max: 5, step: 0.1, decimals: 1 });
+
+    App.bindStepper('#set-ta-msg-prob', function (v) {
+      App.state.settings.taMsgProb = v;
+      markDirty();
+    });
 
     App.bindStepper('#set-emotion-prob', function (v) {
       App.state.settings.emotionProb = v;
@@ -190,10 +201,45 @@
       markDirty();
     });
 
-    App.bindStepper('#set-ta-moment-cards', function (v) {
-      App.state.settings.taMomentCards = v;
+    App.bindStepper('#set-ta-moment-prob', function (v) {
+      App.state.settings.taMomentProb = v;
       markDirty();
-    }, { min: 1, max: 3, step: 1 });
+    });
+
+    App.bindStepper('#set-ta-moment-daily', function (v) {
+      App.state.settings.taMomentDailyMax = v;
+      markDirty();
+    }, { min: 1, max: 20, step: 1 });
+
+    ['#set-ta-moment-gap-min', '#set-ta-moment-gap-max', '#set-ta-moment-card-min', '#set-ta-moment-card-max'].forEach(function (selector) {
+      el(selector).addEventListener('change', function (e) {
+        const key = {
+          '#set-ta-moment-gap-min': 'taMomentGapMin',
+          '#set-ta-moment-gap-max': 'taMomentGapMax',
+          '#set-ta-moment-card-min': 'taMomentCardMin',
+          '#set-ta-moment-card-max': 'taMomentCardMax',
+        }[selector];
+        let v = Math.max(0, Math.min(2880, Number(e.target.value) || 0));
+        if (key === 'taMomentGapMax') v = Math.max(1, v);
+        if (key === 'taMomentCardMin') v = Math.max(1, Math.min(9, v));
+        if (key === 'taMomentCardMax') v = Math.max(1, Math.min(9, v));
+        if (key === 'taMomentGapMin' && v > Number(App.state.settings.taMomentGapMax)) {
+          v = Number(App.state.settings.taMomentGapMax);
+        }
+        if (key === 'taMomentGapMax' && v < Number(App.state.settings.taMomentGapMin)) {
+          v = Number(App.state.settings.taMomentGapMin);
+        }
+        if (key === 'taMomentCardMin' && v > Number(App.state.settings.taMomentCardMax)) {
+          v = Number(App.state.settings.taMomentCardMax);
+        }
+        if (key === 'taMomentCardMax' && v < Number(App.state.settings.taMomentCardMin)) {
+          v = Number(App.state.settings.taMomentCardMin);
+        }
+        e.target.value = v;
+        App.state.settings[key] = v;
+        markDirty();
+      });
+    });
 
     App.bindStepper('#set-pat-back', function (v) {
       App.state.settings.patBackProb = v;
@@ -302,15 +348,42 @@
 
         if (!data.chats || typeof data.chats !== 'object' || Array.isArray(data.chats)) data.chats = {};
         if (!Array.isArray(data.moments)) data.moments = [];
+        if (!Array.isArray(data.mail)) data.mail = [];
+        data.mail = data.mail.filter(function (m) {
+          return m && typeof m === 'object' && m.text;
+        }).map(function (m) {
+          if (!m.id) m.id = App.uid('mail');
+          m.from = m.from === 'me' ? 'me' : 'ta';
+          m.text = String(m.text);
+          m.ts = Number(m.ts) || Date.now();
+          m.read = m.from === 'me' ? true : !!m.read;
+          m.fav = !!m.fav;
+          if (!m.contactId) m.contactId = data.currentContactId;
+          return m;
+        });
         if (!data.calendar || typeof data.calendar !== 'object') data.calendar = {};
         if (!data.stickers || typeof data.stickers !== 'object') data.stickers = { mine: [], ta: [] };
         if (!Array.isArray(data.stickers.mine)) data.stickers.mine = [];
         if (!Array.isArray(data.stickers.ta)) data.stickers.ta = [];
         if (!data.profile) data.profile = { userName: '我', userAvatar: '🍊', since: '' };
-        if (!data.settings) data.settings = { replyMin: 1, replyMax: 2, typingMs: 700 };
+        if (!data.settings) data.settings = { replyMin: 1, replyMax: 2, typingMin: 0.1 };
+        if (data.settings.typingMin == null) {
+          const legacyMs = Number(data.settings.typingMs);
+          data.settings.typingMin = Number.isFinite(legacyMs)
+            ? Math.max(0.1, Math.round(legacyMs / 6000) / 10)
+            : 0.1;
+        }
+        delete data.settings.typingMs;
+        if (data.settings.taMsgProb == null) data.settings.taMsgProb = 8;
         if (data.settings.taLikeProb == null) data.settings.taLikeProb = 60;
         if (data.settings.taCommentProb == null) data.settings.taCommentProb = 40;
         if (data.settings.taMomentCards == null) data.settings.taMomentCards = 1;
+        if (data.settings.taMomentProb == null) data.settings.taMomentProb = 25;
+        if (data.settings.taMomentDailyMax == null) data.settings.taMomentDailyMax = 3;
+        if (data.settings.taMomentGapMin == null) data.settings.taMomentGapMin = 10;
+        if (data.settings.taMomentGapMax == null) data.settings.taMomentGapMax = 60;
+        if (data.settings.taMomentCardMin == null) data.settings.taMomentCardMin = Number(data.settings.taMomentCards) || 1;
+        if (data.settings.taMomentCardMax == null) data.settings.taMomentCardMax = Math.max(Number(data.settings.taMomentCardMin) || 1, Number(data.settings.taMomentCards) || 1);
         if (data.settings.emotionProb == null) data.settings.emotionProb = 30;
         if (data.settings.taRecallProb == null) data.settings.taRecallProb = 5;
         if (data.settings.taQuoteProb == null) data.settings.taQuoteProb = 20;

@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-39">
+<link rel="stylesheet" href="css/style.css?v=20261114-40">
 </head>
 <body>
 <div class="stage">
@@ -178,6 +178,13 @@ if ('caches' in window) {
                     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 11h20l-2 15H8L6 11z"/><path d="M11 11V8a5 5 0 0 1 10 0v3"/><path d="M12 18h8" stroke-width="2.2"/></svg>
                   </span>
                   <span class="app-entry-label">集市</span>
+                </button>
+                <button type="button" class="app-entry" data-go="mail">
+                  <span class="software-icon mail-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="9" width="22" height="15" rx="3"/><path d="M6 11l10 7 10-7"/></svg>
+                  </span>
+                  <span class="app-entry-label">信箱</span>
+                  <span class="badge" id="d-badge-mail" hidden></span>
                 </button>
               </div>
             </div>
@@ -513,11 +520,18 @@ if ('caches' in window) {
                 <label class="field"><span>每句话最少</span><input id="set-min" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
                 <label class="field"><span>最多</span><input id="set-max" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
               </div>
-              <label class="field"><span>打字停顿（毫秒，400 快 / 700 正常 / 1100 慢）</span>
+              <label class="field"><span>打字停顿（分钟）</span>
                 <span class="prob-input">
-                  <button type="button" class="step-btn" data-step-for="set-typing" data-step="-100">−</button>
-                  <input id="set-typing" type="number" min="0" max="3000" step="1" inputmode="numeric">
-                  <button type="button" class="step-btn" data-step-for="set-typing" data-step="100">+</button>
+                  <button type="button" class="step-btn" data-step-for="set-typing" data-step="-0.1">−</button>
+                  <input id="set-typing" type="number" min="0" max="5" step="0.1" inputmode="decimal">
+                  <button type="button" class="step-btn" data-step-for="set-typing" data-step="0.1">+</button>
+                </span>
+              </label>
+              <label class="field"><span>TA 主动发消息（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-msg-prob" data-step="-5">−</button>
+                  <input id="set-ta-msg-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-msg-prob" data-step="5">+</button>
                 </span>
               </label>
               <label class="field"><span>情绪出现概率（%）</span>
@@ -660,14 +674,37 @@ if ('caches' in window) {
                   <button type="button" class="step-btn" data-step-for="set-ta-comment" data-step="5">+</button>
                 </span>
               </label>
-              <label class="field"><span>TA 每条动态用几张字卡</span>
+              <label class="field"><span>TA 主动发朋友圈（%）</span>
                 <span class="prob-input">
-                  <button type="button" class="step-btn" data-step-for="set-ta-moment-cards" data-step="-1">−</button>
-                  <input id="set-ta-moment-cards" type="number" min="1" max="3" step="1" inputmode="numeric">
-                  <button type="button" class="step-btn" data-step-for="set-ta-moment-cards" data-step="1">+</button>
+                  <button type="button" class="step-btn" data-step-for="set-ta-moment-prob" data-step="-5">−</button>
+                  <input id="set-ta-moment-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-moment-prob" data-step="5">+</button>
                 </span>
               </label>
-              <p class="panel-note">都可以直接打字输入，也可以点 + / − 微调（概率每次 5%）。TA 发动态和评论的内容都来自字卡库。</p>
+              <label class="field"><span>每天最多发布（条）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-moment-daily" data-step="-1">−</button>
+                  <input id="set-ta-moment-daily" type="number" min="1" max="20" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-moment-daily" data-step="1">+</button>
+                </span>
+              </label>
+              <div class="field-row">
+                <label class="field"><span>最短间隔（分钟）</span>
+                  <input id="set-ta-moment-gap-min" type="number" min="0" max="1440" step="1" inputmode="numeric">
+                </label>
+                <label class="field"><span>最长间隔（分钟）</span>
+                  <input id="set-ta-moment-gap-max" type="number" min="1" max="2880" step="1" inputmode="numeric">
+                </label>
+              </div>
+              <div class="field-row">
+                <label class="field"><span>最少用字卡数</span>
+                  <input id="set-ta-moment-card-min" type="number" min="1" max="9" step="1" inputmode="numeric">
+                </label>
+                <label class="field"><span>最多</span>
+                  <input id="set-ta-moment-card-max" type="number" min="1" max="9" step="1" inputmode="numeric">
+                </label>
+              </div>
+              <p class="panel-note">TA 的朋友圈会从字卡库（聊天 / 情绪）、内置颜文字和表情包里随机取内容。超过最长间隔时会保底发一条。</p>
             </div>
           </section>
         </div>
@@ -751,6 +788,34 @@ if ('caches' in window) {
           <h3>商品</h3>
           <div id="market-list" class="market-list"></div>
         </section>
+      </div>
+    </section>
+
+    <!-- ============ 信箱 ============ -->
+    <section id="view-mail" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>信箱</h2>
+        <span class="topbar-spacer"></span>
+        <button type="button" class="icon-btn" id="btn-write-mail" aria-label="写信" title="写信">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M14 4l6 6-9 9H5v-6l9-9z"/></svg>
+        </button>
+      </header>
+      <div class="page-body mail-body">
+        <div id="mail-list-pane" class="mail-list-pane">
+          <div class="mail-toolbar">
+            <span id="mail-summary" class="mail-summary"></span>
+            <button type="button" class="btn primary mail-write-btn" id="btn-mail-compose">写信</button>
+          </div>
+          <div id="mail-list" class="mail-list"></div>
+          <div id="mail-empty" class="empty-state" hidden>
+            <p>信箱还是空的，写一封信给 TA 吧。</p>
+            <button type="button" class="btn primary" id="btn-mail-compose-2">写下第一封信</button>
+          </div>
+        </div>
+        <div id="mail-detail" class="mail-detail" hidden></div>
       </div>
     </section>
 
@@ -980,11 +1045,11 @@ if ('caches' in window) {
         <label class="field"><span>每句话最少</span><input id="ct-reply-min" type="number" min="0" max="5" step="1"></label>
         <label class="field"><span>最多</span><input id="ct-reply-max" type="number" min="0" max="5" step="1"></label>
       </div>
-      <label class="field"><span>打字停顿（毫秒）</span>
+      <label class="field"><span>打字停顿（分钟）</span>
         <span class="prob-input">
-          <button type="button" class="step-btn" data-step-for="ct-typing" data-step="-100">−</button>
-          <input id="ct-typing" type="number" min="0" max="3000" step="1" inputmode="numeric">
-          <button type="button" class="step-btn" data-step-for="ct-typing" data-step="100">+</button>
+          <button type="button" class="step-btn" data-step-for="ct-typing" data-step="-0.1">−</button>
+          <input id="ct-typing" type="number" min="0" max="5" step="0.1" inputmode="decimal">
+          <button type="button" class="step-btn" data-step-for="ct-typing" data-step="0.1">+</button>
         </span>
       </label>
       <label class="field"><span>拍一拍回应我（%）</span>
@@ -1032,19 +1097,36 @@ if ('caches' in window) {
     </div>
   </form>
 </dialog>
+
+<!-- ============ 信箱：写信 / 回信 ============ -->
+<dialog id="mail-dialog" class="sheet">
+  <form id="mail-form">
+    <div class="sheet-head">
+      <h3 id="mail-dialog-title">写信</h3>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    </div>
+    <p class="field-hint" id="mail-dialog-hint">从字卡库选一张，装进信封。</p>
+    <div id="mail-card-list" class="mail-card-list"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="submit" class="btn primary">寄出</button>
+    </div>
+  </form>
+</dialog>
   </div>
 </div>
 
-<script src="js/seed.js?v=20261114-39"></script>
-<script src="js/store.js?v=20261114-39"></script>
-<script src="js/desktop.js?v=20261114-39"></script>
-<script src="js/chat.js?v=20261114-39"></script>
-<script src="js/cards.js?v=20261114-39"></script>
-<script src="js/settings.js?v=20261114-39"></script>
-<script src="js/moments.js?v=20261114-39"></script>
-<script src="js/calendar.js?v=20261114-39"></script>
-<script src="js/music.js?v=20261114-39"></script>
-<script src="js/market.js?v=20261114-39"></script>
-<script src="js/app.js?v=20261114-39"></script>
+<script src="js/seed.js?v=20261114-40"></script>
+<script src="js/store.js?v=20261114-40"></script>
+<script src="js/desktop.js?v=20261114-40"></script>
+<script src="js/chat.js?v=20261114-40"></script>
+<script src="js/cards.js?v=20261114-40"></script>
+<script src="js/settings.js?v=20261114-40"></script>
+<script src="js/moments.js?v=20261114-40"></script>
+<script src="js/calendar.js?v=20261114-40"></script>
+<script src="js/music.js?v=20261114-40"></script>
+<script src="js/market.js?v=20261114-40"></script>
+<script src="js/mail.js?v=20261114-40"></script>
+<script src="js/app.js?v=20261114-40"></script>
 </body>
 </html>

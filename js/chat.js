@@ -20,6 +20,12 @@
     return App.state.contacts.find(function (c) { return c.id === App.chatContactId; });
   }
 
+  /* 聊天视图真正处于前台时，收到的消息才算已读 */
+  App.chatOpen = function (contactId) {
+    const view = document.getElementById('view-chat');
+    return App.chatContactId === contactId && !!view && view.classList.contains('is-active');
+  };
+
   App.openChat = function (contactId) {
     const exists = App.state.contacts.some(function (c) { return c.id === contactId; });
     if (!exists) return;
@@ -30,6 +36,10 @@
     App.chatContactId = contactId;
     App.state.currentContactId = contactId;
     App.unread[contactId] = 0;
+    /* 点进聊天，TA 发来的消息立即全部标为已读 */
+    (App.state.chats[contactId] || []).forEach(function (m) {
+      if (m.role === 'ta') m.read = true;
+    });
     App.save();
     closeStickerPanel();
     App.renderChat();
@@ -49,9 +59,14 @@
 
     const chat = App.state.chats[id] || [];
     const now = Date.now();
+    const open = App.chatOpen(id);
     chat.forEach(function (m) {
-      if (m.read === undefined) m.read = now - m.ts > 2400;
-      if (!m.read) scheduleRead(id, m);
+      if (m.read === undefined) {
+        /* 我发出的消息由 TA 稍后已读；TA 的消息只有聊天开着时才算已读 */
+        m.read = m.role === 'me' ? now - m.ts > 2400 : open;
+      }
+      /* 只有我的消息需要模拟「TA 两秒后已读」 */
+      if (m.role === 'me' && !m.read) scheduleRead(id, m);
       if ((m.type === 'redpacket' || m.type === 'gift') && m.role === 'me' && m.status === 'pending') {
         scheduleTaDecision(id, m);
       }
@@ -70,7 +85,7 @@
     return '<span class="msg-read' + (m.read ? ' is-read' : '') + '">' + (m.read ? '已读' : '未读') + '</span>';
   }
 
-  /* 新消息先显示未读，两三秒后自动转为已读 */
+  /* 我发出的消息约两秒后变成已读 */
   function scheduleRead(contactId, message) {
     if (readTimers[message.id]) return;
     readTimers[message.id] = setTimeout(function () {
@@ -84,7 +99,7 @@
         node.textContent = '已读';
         node.classList.add('is-read');
       }
-    }, 2200 + Math.random() * 900);
+    }, 1600 + Math.random() * 700);
   }
 
   /* 我发出的红包 / 礼物由 TA 自行决定收下或退回 */
@@ -410,7 +425,7 @@
 
     chat.push({ id: App.uid('m'), role: 'ta', type: 'pat', text: line, ts: Date.now() });
     App.save();
-    if (App.chatContactId === contactId) App.renderChat();
+    if (App.chatOpen(contactId)) App.renderChat();
     else {
       App.unread[contactId] = (App.unread[contactId] || 0) + 1;
       App.updateBadges();
@@ -507,7 +522,7 @@
         cardId: card ? card.id : undefined,
       });
       App.save();
-      if (App.chatContactId === contactId) {
+      if (App.chatOpen(contactId)) {
         App.renderChat();
       } else {
         App.unread[contactId] = (App.unread[contactId] || 0) + 1;
@@ -531,7 +546,7 @@
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
       chat.push({ id: App.uid('m'), role: 'ta', type: 'image', src: src, ts: Date.now() });
       App.save();
-      if (App.chatContactId === contactId) {
+      if (App.chatOpen(contactId)) {
         App.renderChat();
       } else {
         App.unread[contactId] = (App.unread[contactId] || 0) + 1;
@@ -540,6 +555,56 @@
       }
     }, 1600 + Math.random() * 1800);
   }
+
+  /* TA 主动发来一条消息（不依赖我先开口） */
+  function maybeTaStartsChat() {
+    if (document.hidden || callState) return;
+    const st = App.state;
+    if (!st || !st.contacts.length) return;
+    const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
+    const cs = App.contactSettings(contact);
+    const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
+    if (Math.random() * 100 >= prob) return;
+
+    const pool = (st.cards || []).filter(function (c) {
+      return c.enabled !== false && c.text &&
+        (c.category === '聊天' || c.category === '情绪' || c.category === '语音');
+    });
+    if (!pool.length) return;
+    const card = pool[Math.floor(Math.random() * pool.length)];
+    const isVoice = card.category === '语音' && card.audio;
+    const strengths = ['强', '中', '弱'];
+
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contact.id; })) return;
+      const chat = App.state.chats[contact.id] || (App.state.chats[contact.id] = []);
+      const strength = strengths[Math.floor(Math.random() * strengths.length)];
+      const message = {
+        id: App.uid('m'),
+        role: 'ta',
+        type: isVoice ? 'audio' : 'text',
+        text: card.text,
+        ts: Date.now(),
+        cardId: card.id,
+        strength: strength,
+        percent: App.emotionPercent(strength),
+      };
+      if (isVoice) message.src = card.audio;
+      if (card.category === '情绪' && card.emotion) message.emotion = card.emotion;
+      if (App.chatOpen(contact.id)) message.read = true;
+      chat.push(message);
+      App.save();
+      if (App.chatOpen(contact.id)) App.renderChat();
+      else {
+        App.unread[contact.id] = (App.unread[contact.id] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+    }, 1200 + Math.random() * 2200);
+  }
+
+  /* 每分钟按概率检查一次，让 TA 也会主动找我说话 */
+  setInterval(maybeTaStartsChat, 60000);
 
   App.openCurrentChat = function () {
     const st = App.state;
@@ -623,12 +688,12 @@
       };
       if (!stillThere()) return;
 
-      const active = function () { return App.chatContactId === contactId; };
+      const active = function () { return App.chatOpen(contactId); };
       if (active()) setTyping(true);
 
-      const base = Number(cs.typingMs) || 700;
+      const base = Math.max(0, Math.min(5, Number(cs.typingMin) || 0)) * 60000;
       const extra = card.category === '语音' ? 900 : 0;
-      const wait = Math.min(2600, base + extra + card.text.length * 22 + Math.random() * 260);
+      const wait = Math.min(300000, base + extra + card.text.length * 22 + Math.random() * 260);
       await sleep(wait);
 
       if (active()) setTyping(false);

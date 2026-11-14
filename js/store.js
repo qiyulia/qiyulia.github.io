@@ -77,10 +77,25 @@
     if (!s.chats || typeof s.chats !== 'object' || Array.isArray(s.chats)) s.chats = {};
     if (!Array.isArray(s.cards)) s.cards = App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); });
     if (!s.profile) s.profile = { userName: '我', userAvatar: '🍊', since: '' };
-    if (!s.settings) s.settings = { replyMin: 1, replyMax: 2, typingMs: 700 };
+    if (!s.settings) s.settings = { replyMin: 1, replyMax: 2, typingMin: 0.1 };
+    /* 打字停顿由毫秒改为分钟 */
+    if (s.settings.typingMin == null) {
+      const legacyMs = Number(s.settings.typingMs);
+      s.settings.typingMin = Number.isFinite(legacyMs)
+        ? Math.max(0.1, Math.round(legacyMs / 6000) / 10)
+        : 0.1;
+    }
+    delete s.settings.typingMs;
+    if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
     if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
     if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;
+    if (s.settings.taMomentProb == null) s.settings.taMomentProb = 25;
+    if (s.settings.taMomentDailyMax == null) s.settings.taMomentDailyMax = 3;
+    if (s.settings.taMomentGapMin == null) s.settings.taMomentGapMin = 10;
+    if (s.settings.taMomentGapMax == null) s.settings.taMomentGapMax = 60;
+    if (s.settings.taMomentCardMin == null) s.settings.taMomentCardMin = Number(s.settings.taMomentCards) || 1;
+    if (s.settings.taMomentCardMax == null) s.settings.taMomentCardMax = Math.max(Number(s.settings.taMomentCardMin) || 1, Number(s.settings.taMomentCards) || 1);
     if (s.settings.emotionProb == null) s.settings.emotionProb = 30;
     if (s.settings.taRecallProb == null) s.settings.taRecallProb = 5;
     if (s.settings.taQuoteProb == null) s.settings.taQuoteProb = 20;
@@ -97,6 +112,19 @@
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];
+    if (!Array.isArray(s.mail)) s.mail = [];
+    s.mail = s.mail.filter(function (m) {
+      return m && typeof m === 'object' && m.text;
+    }).map(function (m) {
+      if (!m.id) m.id = App.uid('mail');
+      m.from = m.from === 'me' ? 'me' : 'ta';
+      m.text = String(m.text);
+      m.ts = Number(m.ts) || Date.now();
+      m.read = m.from === 'me' ? true : !!m.read;
+      m.fav = !!m.fav;
+      if (!m.contactId) m.contactId = s.currentContactId;
+      return m;
+    });
     if (!s.calendar || typeof s.calendar !== 'object' || Array.isArray(s.calendar)) s.calendar = {};
     if (!s.stickers || typeof s.stickers !== 'object') s.stickers = { mine: [], ta: [], public: [] };
     if (!Array.isArray(s.stickers.mine)) s.stickers.mine = [];
@@ -138,6 +166,10 @@
       if (!c.id) c.id = App.uid('c');
       if (!s.chats[c.id]) s.chats[c.id] = [];
       if (!c.settings || typeof c.settings !== 'object') c.settings = {};
+      if (c.settings.typingMs != null && c.settings.typingMin == null) {
+        c.settings.typingMin = Math.max(0.1, Math.round(Number(c.settings.typingMs) / 6000) / 10);
+      }
+      delete c.settings.typingMs;
       if (typeof c.birthday !== 'string') c.birthday = '';
     });
     if (!s.contacts.some(function (c) { return c.id === s.currentContactId; })) {
@@ -158,11 +190,18 @@
     return {
       replyMin: pick('replyMin', 1),
       replyMax: pick('replyMax', 2),
-      typingMs: pick('typingMs', 700),
+      typingMin: pick('typingMin', 0.1),
+      taMsgProb: pick('taMsgProb', 8),
       emotionProb: pick('emotionProb', 30),
       taLikeProb: pick('taLikeProb', 60),
       taCommentProb: pick('taCommentProb', 40),
       taMomentCards: pick('taMomentCards', 1),
+      taMomentProb: pick('taMomentProb', 25),
+      taMomentDailyMax: pick('taMomentDailyMax', 3),
+      taMomentGapMin: pick('taMomentGapMin', 10),
+      taMomentGapMax: pick('taMomentGapMax', 60),
+      taMomentCardMin: pick('taMomentCardMin', 1),
+      taMomentCardMax: pick('taMomentCardMax', 3),
       patBackProb: pick('patBackProb', 50),
       taStickerProb: pick('taStickerProb', 30),
       taRecallProb: pick('taRecallProb', 5),
@@ -195,15 +234,18 @@
     const min = opts.min != null ? opts.min : 0;
     const max = opts.max != null ? opts.max : 100;
     const step = opts.step != null ? opts.step : 5;
+    const decimals = Math.max(0, Math.min(3, Number(opts.decimals) || 0));
+    const factor = Math.pow(10, decimals);
     const input = document.querySelector(selector);
     if (!input) return;
 
     function commit(raw) {
       const num = Number(raw);
-      let v = isNaN(num) ? min : Math.round(num);
+      let v = isNaN(num) ? min : Math.round(num * factor) / factor;
       v = Math.max(min, Math.min(max, v));
-      if (input.value !== String(v)) input.value = String(v);
-      onCommit(v);
+      const text = v.toFixed(decimals);
+      if (input.value !== text) input.value = text;
+      onCommit(Number(text));
     }
 
     input.addEventListener('change', function () { commit(input.value); });

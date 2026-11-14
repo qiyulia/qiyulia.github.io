@@ -20,32 +20,49 @@
     return !moment.role || moment.role === 'me';
   }
 
-  // 抽一张「聊天」字卡用作 TA 的评论/动态文案
-  function pickCardForMoment() {
+  // 抽一张字卡用作 TA 的评论/动态文案
+  function pickCardForMoment(categories) {
+    const cats = categories || ['聊天'];
     const enabled = (App.state.cards || []).filter(function (c) {
-      return c.enabled && c.text && c.category === '聊天';
+      return c.enabled && c.text && cats.indexOf(c.category) !== -1;
     });
     if (!enabled.length) return null;
     return enabled[Math.floor(Math.random() * enabled.length)];
   }
 
-  function taMomentText(contact) {
-    const cs = App.contactSettings(contact);
-    const n = Math.max(1, Math.min(3, Number(cs.taMomentCards) || 1));
+  /* TA 发朋友圈时可以用的颜文字 */
+  const EMOTICONS = [
+    '(｡･ω･｡)ﾉ♡', '(๑•́ ₃ •̀๑)', '( ´ ▽ ` )ﾉ', '(>_<)', '(￣▽￣)~*',
+    '(๑´ㅂ`๑)', '(*/ω＼*)', '(·•᷄ࡇ•᷅ )', 'ヽ(✿ﾟ▽ﾟ)ノ', '(っ˘ω˘ς )',
+  ];
+
+  function pickMomentSticker() {
+    const st = App.state.stickers || {};
+    const pool = (st.ta || []).concat(st.public || []);
+    if (!pool.length) return '';
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  /* 一条 TA 朋友圈：字卡 + 颜文字，偶尔配一张表情包 */
+  function taMomentContent(contact, cs) {
+    const min = Math.max(1, Math.min(9, Number(cs.taMomentCardMin) || 1));
+    const max = Math.max(min, Math.min(9, Number(cs.taMomentCardMax) || min));
+    const n = min + Math.floor(Math.random() * (max - min + 1));
     const parts = [];
     const used = {};
     for (let i = 0; i < n; i++) {
-      const card = pickCardForMoment();
+      const card = pickCardForMoment(['聊天', '情绪']);
       if (!card) break;
       if (used[card.id]) continue;
       used[card.id] = true;
       parts.push(card.text);
     }
-    if (!parts.length) {
-      const fallback = pickCardForMoment();
-      if (fallback) parts.push(fallback.text);
+    /* 偶尔用颜文字收尾，让动态更像随手发的 */
+    if (Math.random() < 0.45 || !parts.length) {
+      parts.push(EMOTICONS[Math.floor(Math.random() * EMOTICONS.length)]);
     }
-    return parts.join('\n');
+    const sticker = Math.random() < 0.3 ? pickMomentSticker() : '';
+    return { text: parts.join('\n'), sticker: sticker };
   }
 
   App.renderMoments = function () {
@@ -109,7 +126,8 @@
           '<span class="avatar">' + App.avatarHtml(avatar) + '</span>' +
           '<strong>' + App.esc(name) + '</strong>' +
         '</div>' +
-        '<p class="moment-card-text">' + App.esc(moment.text) + '</p>' +
+        (moment.text ? '<p class="moment-card-text">' + App.esc(moment.text) + '</p>' : '') +
+        (moment.sticker ? '<div class="moment-sticker"><img src="' + App.esc(moment.sticker) + '" alt="表情包"></div>' : '') +
         likeLine +
         (commentHtml ? '<div class="moment-comments">' + commentHtml + '</div>' : '') +
         commentForm +
@@ -163,32 +181,50 @@
     }
   }
 
-  // 打开朋友圈时，TA 可能新发一条动态
+  function dayKey(ts) {
+    const d = new Date(ts);
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  /* 按概率、每日上限和间隔决定 TA 要不要发一条朋友圈 */
   App.maybeTaPosts = function () {
     const now = Date.now();
     const taMoments = App.state.moments.filter(function (m) { return !isMine(m); });
-    const lastTa = taMoments.length ? taMoments.reduce(function (a, b) { return a.ts > b.ts ? a : b; }) : null;
-    const minGap = 10 * 60 * 1000; // 至少间隔 10 分钟才可能再发
-
-    if (lastTa && (now - lastTa.ts) < minGap) return;
-
-    // 有 60% 概率发一条
-    if (Math.random() > 0.6) return;
-
     const contact = taContact();
-    const text = taMomentText(contact);
-    if (!text) return;
+    if (!contact) return false;
+    const cs = App.contactSettings(contact);
+
+    const dailyMax = Math.max(1, Math.min(20, Number(cs.taMomentDailyMax) || 1));
+    const today = dayKey(now);
+    const todayCount = taMoments.filter(function (m) { return dayKey(m.ts) === today; }).length;
+    if (todayCount >= dailyMax) return false;
+
+    const gapMin = Math.max(0, Number(cs.taMomentGapMin) || 0) * 60000;
+    const gapMax = Math.max(gapMin, (Number(cs.taMomentGapMax) || 0) * 60000);
+    const lastTa = taMoments.length ? taMoments.reduce(function (a, b) { return a.ts > b.ts ? a : b; }) : null;
+    const elapsed = lastTa ? now - lastTa.ts : gapMin;
+
+    if (lastTa && elapsed < gapMin) return false;
+    const mustPost = !!lastTa && elapsed >= gapMax;
+    if (!mustPost && Math.random() * 100 >= Math.max(0, Math.min(100, Number(cs.taMomentProb) || 0))) return false;
+
+    const content = taMomentContent(contact, cs);
+    if (!content.text && !content.sticker) return false;
+
     App.state.moments.unshift({
       id: App.uid('m'),
       role: 'ta',
       contactId: contact.id,
-      text: text,
+      text: content.text,
+      sticker: content.sticker,
       ts: now,
       liked: false,
       likedByTa: false,
       comments: [],
     });
     App.save();
+    if (el('#view-moments').classList.contains('is-active')) App.renderMoments();
+    return true;
   };
 
   App.initMoments = function () {
@@ -291,5 +327,10 @@
       const reopened = el('[data-comment-form="' + moment.id + '"]');
       if (reopened) reopened.hidden = false;
     });
+
+    /* 每分钟检查一次 TA 是否要发朋友圈 */
+    setInterval(function () {
+      if (!document.hidden) App.maybeTaPosts();
+    }, 60000);
   };
 })();
