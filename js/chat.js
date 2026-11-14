@@ -981,12 +981,10 @@
     if (!pool.length) return;
     const card = pool[Math.floor(Math.random() * pool.length)];
     const isVoice = card.category === '语音' && card.audio;
-    const strengths = ['强', '中', '弱'];
 
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contact.id; })) return;
       const chat = App.state.chats[contact.id] || (App.state.chats[contact.id] = []);
-      const strength = strengths[Math.floor(Math.random() * strengths.length)];
       const message = {
         id: App.uid('m'),
         role: 'ta',
@@ -994,8 +992,6 @@
         text: card.text,
         ts: Date.now(),
         cardId: card.id,
-        strength: strength,
-        percent: App.emotionPercent(strength),
       };
       if (isVoice) message.src = card.audio;
       if (card.category === '情绪' && card.emotion) message.emotion = card.emotion;
@@ -1139,7 +1135,6 @@
       return;
     }
     const emotionProb = Math.max(0, Math.min(100, Number(cs.emotionProb) || 0));
-    const strengths = ['强', '中', '弱'];
 
     /* 多字卡拼接：按概率把这一次回复的多张字卡挤进同一个气泡 */
     const mergeProb = Math.max(0, Math.min(100, Number(cs.mergeProb) || 0));
@@ -1178,7 +1173,6 @@
       if (!stillThere()) return;
 
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      const strength = strengths[Math.floor(Math.random() * strengths.length)];
       const message = {
         id: App.uid('m'),
         role: 'ta',
@@ -1186,8 +1180,6 @@
         text: mergedText,
         ts: Date.now(),
         cardId: card.id,
-        strength: strength,
-        percent: App.emotionPercent(strength),
       };
       if (group.length > 1) message.cardIds = group.map(function (c) { return c.id; });
       if (group.length === 1 && card.category === '语音') message.src = card.audio;

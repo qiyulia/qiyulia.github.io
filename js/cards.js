@@ -95,8 +95,7 @@
   function cardRow(c) {
     const extra =
       (c.category === '情绪'
-        ? '<span class="tag">情绪：' + App.esc(c.emotion || '平常') + '</span>' +
-          '<span class="tag ghost">强度：' + App.esc(c.strength || '中') + '</span>'
+        ? '<span class="tag">情绪：' + App.esc(c.emotion || '平常') + '</span>'
         : '') +
       (c.category === '语音'
         ? '<span class="tag">语音' + (c.audio ? ' · mp3' : ' · 未添加') + '</span>'
@@ -184,7 +183,6 @@
     emotionBox.style.display = category === '情绪' ? '' : 'none';
     voiceBox.style.display = isVoice ? '' : 'none';
     el('#card-emotion').value = card && card.emotion ? card.emotion : '';
-    el('#card-strength').value = card && card.strength ? card.strength : '中';
 
     const textLabel = el('#card-text-label');
     if (textLabel) textLabel.textContent = isVoice ? '语音文字（显示在语音下方）' : '内容';
@@ -297,7 +295,6 @@
         };
         if (entry.category === '情绪') {
           card.emotion = String(entry.item.emotion || '平常').slice(0, 12);
-          card.strength = ['强', '中', '弱'].indexOf(entry.item.strength) !== -1 ? entry.item.strength : '中';
         }
         if (entry.audio) card.audio = entry.audio;
         App.state.cards.unshift(card);
@@ -431,7 +428,6 @@
       }
       const trigger = el('#card-trigger').value.trim().slice(0, 40);
       const emotion = el('#card-emotion').value.trim().slice(0, 12) || '平常';
-      const strength = el('#card-strength').value;
 
       let audio = '';
       if (category === '语音') {
@@ -455,10 +451,8 @@
         card.trigger = trigger;
         if (category === '情绪') {
           card.emotion = emotion;
-          card.strength = strength;
         } else {
           delete card.emotion;
-          delete card.strength;
         }
         if (category === '语音' && audio) card.audio = audio;
         if (category !== '语音') delete card.audio;

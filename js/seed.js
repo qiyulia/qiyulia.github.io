@@ -55,7 +55,7 @@
     ['我在，不用一个人扛。', '难过'],
   ];
 
-  /* 情绪：带情绪与链接强度，会在气泡下方展示 */
+  /* 情绪：带情绪标签，会在气泡下方展示 */
   const EMOTION_RAW = [
     ['不辛苦', '高兴', '强'],
     ['谢谢你一直记得', '感动', '强'],
@@ -107,7 +107,6 @@
       category: '情绪',
       text: row[0],
       emotion: row[1],
-      strength: row[2],
       trigger: '',
       enabled: true,
       builtin: true,

@@ -829,7 +829,7 @@
       if (App.CATEGORIES.indexOf(c.category) === -1) c.category = '聊天';
       if (c.category === '情绪') {
         if (!c.emotion) c.emotion = '平常';
-        if (['强', '中', '弱'].indexOf(c.strength) === -1) c.strength = '中';
+        delete c.strength;
       }
     });
     /* 补齐新版内置字卡 */
@@ -879,13 +879,6 @@
     if (m.type === 'redpacket') return '[红包] ' + (m.amount || 0) + ' 同心币';
     if (m.type === 'gift') return '[礼物] ' + (m.productName || '');
     return m.text || '';
-  };
-
-  /* ---------- 情绪强度 → 百分比 ---------- */
-  App.emotionPercent = function (strength) {
-    if (strength === '强') return 70 + Math.floor(Math.random() * 31); // 70~100
-    if (strength === '弱') return Math.floor(Math.random() * 40);      // 0~39
-    return 40 + Math.floor(Math.random() * 30);                        // 40~69
   };
 
   /* ---------- 字卡抽取 ---------- */
