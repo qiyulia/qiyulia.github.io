@@ -2283,6 +2283,49 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   pointer-events: none;
 }
 
+.sticker-paste-link {
+  align-self: center;
+  margin-top: -4px;
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.paste-zone {
+  min-height: 118px;
+  margin: 10px 0 4px;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+  outline: none;
+}
+
+.paste-zone:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(91, 143, 201, .18);
+}
+
+.paste-zone:empty::before {
+  content: '点这里，然后长按粘贴';
+  color: var(--muted);
+}
+
+.paste-zone img {
+  max-width: 100%;
+  border-radius: 10px;
+}
+
+.field-hint.is-error { color: #b4402f; }
+
 /* ============ 朋友圈：表情包 ============ */
 .moment-sticker { margin: 2px 0 4px; }
 .moment-sticker img {

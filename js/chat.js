@@ -1441,6 +1441,72 @@
         try { localStorage.removeItem('xuyu.pickView'); } catch (err) {}
       });
     });
+
+    /* 相册选择不可用时，可以从剪贴板粘贴图片 */
+    const pasteDialog = el('#paste-sticker-dialog');
+    const pasteZone = el('#paste-sticker-zone');
+    function setPasteStatus(text, isError) {
+      const box = el('#paste-sticker-status');
+      if (!box) return;
+      box.hidden = !text;
+      box.textContent = text || '';
+      box.classList.toggle('is-error', !!isError);
+    }
+    function addPastedFiles(files) {
+      const images = Array.from(files || []).filter(function (f) {
+        return f && /^image\//.test(f.type || '');
+      });
+      if (!images.length) {
+        setPasteStatus('剪贴板里没有图片，请先在相册里长按图片选「复制」', true);
+        return;
+      }
+      if (pasteDialog && pasteDialog.open) pasteDialog.close();
+      const tab = App.stickerTab || 'me';
+      stashPending(images, tab, 0).catch(function () {}).then(function () {
+        return addStickers(images);
+      });
+    }
+    if (pasteDialog && pasteZone) {
+      el('#btn-paste-sticker').addEventListener('click', function () {
+        pasteZone.innerHTML = '';
+        setPasteStatus('');
+        pasteDialog.showModal();
+        setTimeout(function () { pasteZone.focus(); }, 80);
+      });
+      pasteZone.addEventListener('paste', function (e) {
+        const data = e.clipboardData;
+        if (!data) return;
+        const files = [];
+        if (data.items) {
+          for (let i = 0; i < data.items.length; i++) {
+            const item = data.items[i];
+            if (item.kind === 'file' && /^image\//.test(item.type || '')) {
+              const file = item.getAsFile();
+              if (file) files.push(file);
+            }
+          }
+        }
+        if (!files.length && data.files) {
+          for (let i = 0; i < data.files.length; i++) {
+            if (/^image\//.test(data.files[i].type || '')) files.push(data.files[i]);
+          }
+        }
+        if (!files.length) {
+          setPasteStatus('剪贴板里没有图片，请先在相册里长按图片选「复制」', true);
+          return;
+        }
+        e.preventDefault();
+        addPastedFiles(files);
+      });
+      pasteZone.addEventListener('dragover', function (e) { e.preventDefault(); });
+      pasteZone.addEventListener('drop', function (e) {
+        if (!e.dataTransfer) return;
+        const files = Array.from(e.dataTransfer.files || []);
+        if (!files.length) return;
+        e.preventDefault();
+        addPastedFiles(files);
+      });
+    }
     /* 从相册返回却没有收到文件时，清掉中断标记并提示；若页面被系统重载，标记会留到下次启动 */
     window.addEventListener('focus', function () {
       setTimeout(function () {
