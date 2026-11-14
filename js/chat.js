@@ -76,11 +76,13 @@
       }
     });
     const list = el('#chat-list');
+    captureVoicePlayback(list);
     list.innerHTML = chat.length
       ? chat.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
     if (App.hydrateMedia) App.hydrateMedia(list);
     bindVoiceBubbles(list);
+    restoreVoicePlayback(list);
     /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
     if (typingAllowed(id)) list.appendChild(typingRow());
     updateSideButtons();
@@ -93,6 +95,41 @@
   /* 微信式语音气泡：点击播放，气泡宽度随时长变化 */
   function voiceBubbleWidth(seconds) {
     return Math.round(74 + Math.min(seconds, 30) * 3.6);
+  }
+
+  /* 重新渲染聊天列表前记录正在播放的语音，渲染后续播，避免来新消息就断掉 */
+  let voiceResume = null;
+
+  function captureVoicePlayback(root) {
+    const audio = root.querySelector('.bubble-audio audio');
+    if (!audio) {
+      voiceResume = null;
+      return;
+    }
+    const wrap = audio.closest('[data-msg-id]');
+    voiceResume = {
+      id: wrap ? wrap.dataset.msgId : '',
+      time: audio.currentTime || 0,
+      playing: !audio.paused
+    };
+    if (!voiceResume.id || (!voiceResume.playing && !voiceResume.time)) voiceResume = null;
+  }
+
+  function restoreVoicePlayback(root) {
+    const saved = voiceResume;
+    voiceResume = null;
+    if (!saved) return;
+    const wrap = root.querySelector('.msg[data-msg-id="' + saved.id + '"]');
+    const audio = wrap && wrap.querySelector('.bubble-audio audio');
+    if (!audio) return;
+    const apply = function () {
+      try {
+        if (saved.time > 0.2) audio.currentTime = saved.time;
+      } catch (e) {}
+      if (saved.playing && audio.paused) audio.play().catch(function () {});
+    };
+    if (audio.readyState >= 1) apply();
+    else audio.addEventListener('loadedmetadata', apply, { once: true });
   }
 
   function bindVoiceBubbles(root) {

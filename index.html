@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-116">
+<link rel="stylesheet" href="css/style.css?v=20261114-117">
 </head>
 <body>
 <div class="stage">
@@ -901,7 +901,6 @@ if ('caches' in window) {
           </div>
         </div>
       </div>
-      <div id="mail-detail" class="mail-detail" hidden></div>
     </section>
 
     <!-- ============ 设置 ============ -->
@@ -1595,22 +1594,37 @@ if ('caches' in window) {
   </div>
 </div>
 
-<!-- ============ 信箱：回信 ============ -->
-<div id="mail-reply-dialog" class="tool-overlay" hidden>
-  <div class="tool-overlay-backdrop" data-mail-reply-close></div>
-  <div class="tool-overlay-card mail-reply-card">
+<!-- ============ 信箱：来信详情 / 回信 ============ -->
+<div id="mail-preview" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-mail-preview-close></div>
+  <div class="tool-overlay-card mail-preview-card">
     <div class="sheet-head">
-      <h3 id="mail-reply-title">回信</h3>
-      <button type="button" class="icon-btn" data-mail-reply-close aria-label="关闭">×</button>
+      <h3 id="mail-preview-title">来信</h3>
+      <button type="button" class="icon-btn" data-mail-preview-close aria-label="关闭">×</button>
     </div>
-    <div class="tool-sheet-body mail-reply-body">
-      <div class="mail-reply-quote" id="mail-reply-quote"></div>
-      <textarea id="mail-reply-text" class="mail-reply-input" rows="4" placeholder="写点什么…"></textarea>
+    <div class="tool-sheet-body mail-preview-body" id="mail-preview-body"></div>
+    <div class="mail-preview-tools">
+      <button type="button" class="mail-tool-btn" id="mail-preview-fav">☆ 收藏</button>
+      <button type="button" class="mail-tool-btn" id="mail-preview-delete">删除</button>
     </div>
     <div class="sheet-actions tool-sheet-actions">
-      <button type="button" class="btn ghost" data-mail-reply-close>取消</button>
-      <button type="button" class="btn primary" id="mail-reply-send">发送</button>
+      <button type="button" class="btn ghost" data-mail-preview-close>取消</button>
+      <button type="button" class="btn primary" id="mail-preview-reply">回信</button>
     </div>
+  </div>
+</div>
+
+<div id="mail-editor" class="mail-editor" hidden>
+  <header class="mail-editor-head">
+    <button type="button" class="icon-btn" data-mail-editor-close aria-label="取消">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <h2 id="mail-editor-title">回信</h2>
+    <button type="button" class="mail-editor-save" id="mail-editor-save">确定</button>
+  </header>
+  <div class="mail-editor-quote" id="mail-editor-quote"></div>
+  <div class="mail-editor-write">
+    <textarea id="mail-editor-text" class="mail-editor-input" placeholder="写点什么…"></textarea>
   </div>
 </div>
 
@@ -1628,18 +1642,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-116"></script>
-<script src="js/store.js?v=20261114-116"></script>
-<script src="js/desktop.js?v=20261114-116"></script>
-<script src="js/chat.js?v=20261114-116"></script>
-<script src="js/cards.js?v=20261114-116"></script>
-<script src="js/settings.js?v=20261114-116"></script>
-<script src="js/moments.js?v=20261114-116"></script>
-<script src="js/calendar.js?v=20261114-116"></script>
-<script src="js/music.js?v=20261114-116"></script>
-<script src="js/market.js?v=20261114-116"></script>
-<script src="js/mail.js?v=20261114-116"></script>
-<script src="js/extras.js?v=20261114-116"></script>
-<script src="js/app.js?v=20261114-116"></script>
+<script src="js/seed.js?v=20261114-117"></script>
+<script src="js/store.js?v=20261114-117"></script>
+<script src="js/desktop.js?v=20261114-117"></script>
+<script src="js/chat.js?v=20261114-117"></script>
+<script src="js/cards.js?v=20261114-117"></script>
+<script src="js/settings.js?v=20261114-117"></script>
+<script src="js/moments.js?v=20261114-117"></script>
+<script src="js/calendar.js?v=20261114-117"></script>
+<script src="js/music.js?v=20261114-117"></script>
+<script src="js/market.js?v=20261114-117"></script>
+<script src="js/mail.js?v=20261114-117"></script>
+<script src="js/extras.js?v=20261114-117"></script>
+<script src="js/app.js?v=20261114-117"></script>
 </body>
 </html>

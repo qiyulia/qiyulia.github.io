@@ -136,71 +136,71 @@
 
   function showList() {
     currentMailId = null;
-    el('#mail-detail').hidden = true;
     el('#mail-list-pane').hidden = false;
     renderList();
   }
 
-  function renderDetail(id) {
-    const mail = mailList().find(function (m) { return m.id === id; });
-    if (!mail) {
-      showList();
-      return;
-    }
+  function quoteHtml(mail) {
+    const quoted = mail.replyTo
+      ? mailList().find(function (m) { return m.id === mail.replyTo; })
+      : null;
+    if (!quoted) return '';
+    return '<div class="letter-quote">' +
+      '<p class="letter-quote-head">『' + App.esc(senderName(quoted)) + ' 的信 · ' + App.esc(mailTime(quoted.ts)) + '』</p>' +
+      '<p class="letter-quote-text">' + App.esc(quoted.text) + '</p>' +
+      '</div>';
+  }
+
+  /* 点开一封信：先在小窗里看内容 */
+  function renderPreview(mail) {
     const mine = mail.from === 'me';
     const name = senderName(mail);
     const contact = contactOf(mail.contactId);
     const target = contact ? contact.name : 'TA';
-    const quoted = mail.replyTo
-      ? mailList().find(function (m) { return m.id === mail.replyTo; })
-      : null;
-    el('#mail-list-pane').hidden = true;
-    const detail = el('#mail-detail');
-    detail.hidden = false;
-    detail.innerHTML =
-      '<div class="mail-letter-bar">' +
-        '<button type="button" class="mail-back" data-mail-back="1">‹ 退出</button>' +
+    el('#mail-preview-title').textContent = mine ? '寄给 ' + target : '来自 ' + name;
+    el('#mail-preview-body').innerHTML =
+      '<div class="mail-preview-meta">' +
+        '<span class="avatar letter-avatar">' + App.avatarHtml(senderAvatar(mail)) + '</span>' +
+        '<div class="mail-preview-addr">' +
+          '<strong>' + App.esc(mine ? '寄给：' + target : '来自：' + name) + '</strong>' +
+          '<span>' + App.esc(mailTime(mail.ts)) + '</span>' +
+        '</div>' +
       '</div>' +
-      '<div class="mail-letter-scroll">' +
-        '<article class="letter">' +
-          '<div class="letter-meta">' +
-            '<span class="avatar letter-avatar">' + App.avatarHtml(senderAvatar(mail)) + '</span>' +
-            '<div class="letter-address">' +
-              '<strong>' + (mine ? '寄给：' + App.esc(target) : '来自：' + App.esc(name)) + '</strong>' +
-              '<span>' + App.esc(mailTime(mail.ts)) + '</span>' +
-            '</div>' +
-          '</div>' +
-          '<div class="letter-paper">' +
-            (quoted
-              ? '<div class="letter-quote">' +
-                  '<p class="letter-quote-head">『' + App.esc(senderName(quoted)) + ' 的信 · ' + App.esc(mailTime(quoted.ts)) + '』</p>' +
-                  '<p class="letter-quote-text">' + App.esc(quoted.text) + '</p>' +
-                '</div>'
-              : '') +
-            '<p class="letter-body">' + App.esc(mail.text) + '</p>' +
-            '<p class="letter-sign">—— ' + App.esc(mine ? (App.state.profile.userName || '我') : name) + '</p>' +
-          '</div>' +
-        '</article>' +
-      '</div>' +
-      '<div class="letter-actions">' +
-        '<button type="button" class="letter-btn' + (mail.fav ? ' is-on' : '') + '" data-mail-fav="' + App.esc(mail.id) + '">' +
-          (mail.fav ? '★ 已收藏' : '☆ 收藏') + '</button>' +
-        '<button type="button" class="letter-btn" data-mail-reply="' + App.esc(mail.id) + '">回信</button>' +
-        '<button type="button" class="letter-btn letter-delete" data-mail-delete="' + App.esc(mail.id) + '">删除</button>' +
+      '<div class="mail-preview-paper">' +
+        quoteHtml(mail) +
+        '<p class="letter-body">' + App.esc(mail.text) + '</p>' +
+        '<p class="letter-sign">—— ' + App.esc(mine ? (App.state.profile.userName || '我') : name) + '</p>' +
       '</div>';
+    const favBtn = el('#mail-preview-fav');
+    if (favBtn) {
+      favBtn.textContent = mail.fav ? '★ 已收藏' : '☆ 收藏';
+      favBtn.classList.toggle('is-on', !!mail.fav);
+    }
+  }
+
+  function openPreview(mail) {
+    currentMailId = mail.id;
+    renderPreview(mail);
+    const box = el('#mail-preview');
+    if (box) box.hidden = false;
+  }
+
+  function closePreview() {
+    const box = el('#mail-preview');
+    if (box) box.hidden = true;
+    currentMailId = null;
   }
 
   function openMail(id) {
     const mail = mailList().find(function (m) { return m.id === id; });
     if (!mail) return;
-    currentMailId = id;
     if (mail.from === 'ta' && !mail.read) {
       mail.read = true;
       App.save();
       App.updateMailBadge();
     }
     renderList();
-    renderDetail(id);
+    openPreview(mail);
   }
 
   function openCompose(mode, contactId) {
@@ -265,40 +265,41 @@
     return true;
   }
 
-  /* 回信：直接在输入框里写字，不再挑字卡 */
-  function openReply(mail) {
+  /* 回信：全屏编辑，上方是原信，下方用输入法写字 */
+  function openEditor(mail) {
     if (!mail) return;
     replyMailId = mail.id;
     const contact = contactOf(mail.contactId) || fallbackContact();
-    const title = el('#mail-reply-title');
+    const title = el('#mail-editor-title');
     if (title) title.textContent = contact ? '回信给 ' + contact.name : '回信';
-    const quote = el('#mail-reply-quote');
+    const quote = el('#mail-editor-quote');
     if (quote) {
-      quote.innerHTML = '<p class="mail-quote-head">回的是 ' + App.esc(senderName(mail)) + ' 的信 · ' + App.esc(mailTime(mail.ts)) + '</p>' +
+      quote.innerHTML = '<p class="mail-quote-head">『' + App.esc(senderName(mail)) + ' 的信 · ' + App.esc(mailTime(mail.ts)) + '』</p>' +
         '<p class="mail-quote-text">' + App.esc(mail.text) + '</p>';
       quote.scrollTop = 0;
     }
-    const input = el('#mail-reply-text');
+    const input = el('#mail-editor-text');
     if (input) input.value = '';
-    const dialog = el('#mail-reply-dialog');
-    if (dialog) dialog.hidden = false;
+    closePreview();
+    const box = el('#mail-editor');
+    if (box) box.hidden = false;
     setTimeout(function () {
       if (input) input.focus();
     }, 60);
   }
 
-  function closeReply() {
+  function closeEditor() {
     replyMailId = null;
-    const dialog = el('#mail-reply-dialog');
-    if (dialog) dialog.hidden = true;
-    const input = el('#mail-reply-text');
+    const box = el('#mail-editor');
+    if (box) box.hidden = true;
+    const input = el('#mail-editor-text');
     if (input) input.value = '';
-    const quote = el('#mail-reply-quote');
+    const quote = el('#mail-editor-quote');
     if (quote) quote.innerHTML = '';
   }
 
   function sendReply() {
-    const input = el('#mail-reply-text');
+    const input = el('#mail-editor-text');
     const text = String((input && input.value) || '').trim();
     if (!text) {
       App.toast('先写点什么');
@@ -324,7 +325,7 @@
     });
     App.save();
     App.updateMailBadge();
-    closeReply();
+    closeEditor();
     App.toast('回信已寄出');
     mailTab = 'mine';
     if (el('#view-mail').classList.contains('is-active')) showList();
@@ -400,16 +401,53 @@
       btn.addEventListener('click', function () { openCompose('new'); });
     });
 
-    const replyDialog = el('#mail-reply-dialog');
-    if (replyDialog) {
-      replyDialog.addEventListener('click', function (e) {
-        if (e.target.closest('[data-mail-reply-close]')) closeReply();
+    const preview = el('#mail-preview');
+    if (preview) {
+      preview.addEventListener('click', function (e) {
+        if (e.target.closest('[data-mail-preview-close]')) {
+          closePreview();
+          return;
+        }
+        if (e.target.closest('#mail-preview-fav')) {
+          const mail = mailList().find(function (m) { return m.id === currentMailId; });
+          if (!mail) return;
+          mail.fav = !mail.fav;
+          App.save();
+          renderPreview(mail);
+          renderList();
+          return;
+        }
+        if (e.target.closest('#mail-preview-delete')) {
+          if (!confirm('删除这封信？')) return;
+          App.state.mail = mailList().filter(function (m) { return m.id !== currentMailId; });
+          App.save();
+          App.updateMailBadge();
+          closePreview();
+          showList();
+          App.toast('信已删除');
+          return;
+        }
+        if (e.target.closest('#mail-preview-reply')) {
+          const mail = mailList().find(function (m) { return m.id === currentMailId; });
+          if (mail) openEditor(mail);
+        }
       });
     }
-    const replySend = el('#mail-reply-send');
-    if (replySend) replySend.addEventListener('click', sendReply);
+
+    const editor = el('#mail-editor');
+    if (editor) {
+      editor.addEventListener('click', function (e) {
+        if (e.target.closest('[data-mail-editor-close]')) {
+          closeEditor();
+          return;
+        }
+        if (e.target.closest('#mail-editor-save')) sendReply();
+      });
+    }
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && replyMailId) closeReply();
+      if (e.key !== 'Escape') return;
+      if (replyMailId) closeEditor();
+      else if (currentMailId) closePreview();
     });
 
     document.querySelectorAll('[data-mail-tab]').forEach(function (btn) {
@@ -423,38 +461,6 @@
       const item = e.target.closest('[data-mail-id]');
       if (!item) return;
       openMail(item.dataset.mailId);
-    });
-
-    el('#mail-detail').addEventListener('click', function (e) {
-      if (e.target.closest('[data-mail-back]')) {
-        showList();
-        return;
-      }
-      const fav = e.target.closest('[data-mail-fav]');
-      if (fav) {
-        const mail = mailList().find(function (m) { return m.id === fav.dataset.mailFav; });
-        if (mail) {
-          mail.fav = !mail.fav;
-          App.save();
-          renderDetail(mail.id);
-          renderList();
-        }
-        return;
-      }
-      const reply = e.target.closest('[data-mail-reply]');
-      if (reply) {
-        const mail = mailList().find(function (m) { return m.id === reply.dataset.mailReply; });
-        if (mail) openReply(mail);
-        return;
-      }
-      const remove = e.target.closest('[data-mail-delete]');
-      if (remove && confirm('删除这封信？')) {
-        App.state.mail = mailList().filter(function (m) { return m.id !== remove.dataset.mailDelete; });
-        App.save();
-        App.updateMailBadge();
-        showList();
-        App.toast('信已删除');
-      }
     });
 
     el('#mail-card-list').addEventListener('click', function (e) {

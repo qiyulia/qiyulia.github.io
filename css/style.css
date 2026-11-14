@@ -2842,18 +2842,38 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 #btn-mail-compose-3[hidden],
 #mail-compose-wrap[hidden] { display: none; }
 
-/* 回信：上面引用原信，下面输入 */
-.mail-reply-card { height: 58vh; max-height: 58vh; }
-.mail-reply-body { gap: 10px; }
-.mail-reply-quote {
-  flex: 1 1 auto;
-  min-height: 64px;
+/* 信件小窗详情 */
+.mail-preview-card { height: 66vh; max-height: 66vh; }
+.letter-avatar { flex: 0 0 auto; width: 40px; height: 40px; font-size: 20px; }
+.mail-preview-body {
+  gap: 10px;
+  min-height: 0;
   overflow-y: auto;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface-2);
 }
+.mail-preview-meta { display: flex; align-items: center; gap: 10px; }
+.mail-preview-addr { display: flex; flex-direction: column; gap: 2px; }
+.mail-preview-addr strong { font-size: 13.5px; }
+.mail-preview-addr span { font-size: 10.5px; color: var(--muted); }
+.mail-preview-paper {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--accent) 5%, var(--surface)));
+}
+.mail-preview-tools { display: flex; gap: 8px; padding: 2px 14px 4px; }
+.mail-tool-btn {
+  flex: 1 1 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
+.mail-tool-btn.is-on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+
 .mail-quote-head {
   margin: 0 0 6px;
   font-size: 10.5px;
@@ -2867,82 +2887,66 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   white-space: pre-wrap;
   word-break: break-word;
 }
-.mail-reply-input {
+
+/* 回信：全屏编辑，上方原信，下方写字 */
+.mail-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: calc(10px + var(--safe-top)) 16px calc(12px + var(--safe-bottom));
+  background: var(--bg);
+}
+.mail-editor[hidden] { display: none; }
+.mail-editor-head { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.mail-editor-head h2 { flex: 1 1 auto; margin: 0; font-size: 15px; font-weight: 600; }
+.mail-editor-head .icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.mail-editor-save {
   flex: 0 0 auto;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.mail-editor-quote {
+  flex: 0 1 auto;
+  max-height: 38vh;
+  overflow-y: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.mail-editor-write { flex: 1 1 auto; display: flex; min-height: 0; }
+.mail-editor-input {
+  flex: 1 1 auto;
   width: 100%;
-  min-height: 96px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
-  line-height: 1.55;
+  line-height: 1.6;
   resize: none;
 }
-.mail-reply-input:focus {
+.mail-editor-input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* 信件详情铺满全屏，左上角退出 */
-.mail-detail {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: calc(12px + var(--safe-top)) 16px calc(14px + var(--safe-bottom));
-  background: var(--bg);
-}
-.mail-detail[hidden] { display: none; }
-.mail-letter-bar { flex: 0 0 auto; display: flex; align-items: center; }
-.mail-letter-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  scrollbar-width: thin;
-}
-.mail-letter-scroll .letter {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-}
-.mail-letter-scroll .letter-paper { flex: 1 1 auto; }
-.mail-back {
-  align-self: flex-start;
-  padding: 4px 10px;
-  margin-left: -6px;
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.mail-back:hover { background: var(--accent-soft); color: var(--accent); }
-
-.letter {
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--accent) 5%, var(--surface)));
-  padding: 14px;
-  box-shadow: 0 8px 24px rgba(56, 93, 130, .08);
-}
-.letter-meta { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
-.letter-avatar { flex: 0 0 auto; width: 40px; height: 40px; font-size: 20px; }
-.letter-address { display: flex; flex-direction: column; gap: 2px; }
-.letter-address strong { font-size: 13.5px; }
-.letter-address span { font-size: 10.5px; color: var(--muted); }
-
-.letter-paper {
-  margin-top: 12px;
-  padding: 16px 14px;
-  border-radius: 12px;
-  background:
-    repeating-linear-gradient(180deg, transparent 0, transparent 27px, color-mix(in srgb, var(--line) 60%, transparent) 27px, color-mix(in srgb, var(--line) 60%, transparent) 28px);
-}
 .letter-body {
   font-size: 14px;
   line-height: 28px;
@@ -2975,20 +2979,6 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
   white-space: pre-wrap;
   word-break: break-word;
 }
-
-.letter-actions { display: flex; gap: 8px; }
-.letter-btn {
-  flex: 1;
-  padding: 10px 8px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  font-size: 12.5px;
-}
-.letter-btn.is-on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
-.letter-delete { color: #b4402f; }
-.app.theme-night .letter-delete { color: #ef8f7c; }
 
 .mail-card-list {
   display: flex;
