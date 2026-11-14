@@ -87,6 +87,7 @@
     }
     delete s.settings.typingMs;
     if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
+    if (s.settings.taIgnoreProb == null) s.settings.taIgnoreProb = 15;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
     if (s.settings.taCommentProb == null) s.settings.taCommentProb = 40;
     if (s.settings.taMomentCards == null) s.settings.taMomentCards = 1;
@@ -192,6 +193,7 @@
       replyMax: pick('replyMax', 2),
       typingMin: pick('typingMin', 0.1),
       taMsgProb: pick('taMsgProb', 8),
+      taIgnoreProb: pick('taIgnoreProb', 15),
       emotionProb: pick('emotionProb', 30),
       taLikeProb: pick('taLikeProb', 60),
       taCommentProb: pick('taCommentProb', 40),

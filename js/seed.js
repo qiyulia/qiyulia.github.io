@@ -145,6 +145,7 @@
         replyMax: 2,
         typingMin: 0.1,
         taMsgProb: 8,
+        taIgnoreProb: 15,
         emotionProb: 30,
         taLikeProb: 60,
         taCommentProb: 40,

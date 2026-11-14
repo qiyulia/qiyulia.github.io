@@ -52,6 +52,7 @@
     el('#set-max').value = st.settings.replyMax;
     el('#set-typing').value = st.settings.typingMin == null ? 0.1 : st.settings.typingMin;
     el('#set-ta-msg-prob').value = st.settings.taMsgProb == null ? 8 : st.settings.taMsgProb;
+    el('#set-ta-ignore').value = st.settings.taIgnoreProb == null ? 15 : st.settings.taIgnoreProb;
     el('#set-emotion-prob').value = st.settings.emotionProb == null ? 30 : st.settings.emotionProb;
     el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
     el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
@@ -183,6 +184,11 @@
 
     App.bindStepper('#set-ta-msg-prob', function (v) {
       App.state.settings.taMsgProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-ta-ignore', function (v) {
+      App.state.settings.taIgnoreProb = v;
       markDirty();
     });
 
@@ -375,6 +381,7 @@
         }
         delete data.settings.typingMs;
         if (data.settings.taMsgProb == null) data.settings.taMsgProb = 8;
+        if (data.settings.taIgnoreProb == null) data.settings.taIgnoreProb = 15;
         if (data.settings.taLikeProb == null) data.settings.taLikeProb = 60;
         if (data.settings.taCommentProb == null) data.settings.taCommentProb = 40;
         if (data.settings.taMomentCards == null) data.settings.taMomentCards = 1;

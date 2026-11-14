@@ -185,6 +185,8 @@
     let body = '';
     if (m.type === 'image') {
       body = '<div class="bubble sticker"><img class="sticker-img" src="' + App.esc(m.src) + '" alt="表情包"></div>';
+    } else if (m.type === 'ignore') {
+      body = '<div class="bubble bubble-ignore"><span class="bubble-text">已读不回</span></div>';
     } else if (m.type === 'audio') {
       body = '<div class="bubble bubble-audio' + (hasFrequency ? ' bubble-emotion' : '') + '">' +
         '<audio controls preload="metadata" src="' + App.esc(m.src) + '"></audio>' + meta +
@@ -469,8 +471,10 @@
 
   function sendSticker(src) {
     if (!App.chatContactId || !src) return;
-    pushMessage({ id: App.uid('m'), role: App.sendAs, type: 'image', src: src, ts: Date.now() });
+    const role = App.sendAs;
+    pushMessage({ id: App.uid('m'), role: role, type: 'image', src: src, ts: Date.now() });
     closeStickerPanel();
+    if (role === 'me') scheduleReply(App.chatContactId, '');
   }
 
   App.sendPat = function (card) {
@@ -684,6 +688,31 @@
     const max = Math.max(min, Math.min(5, Number(cs.replyMax) || 0));
     const count = min + Math.floor(Math.random() * (max - min + 1));
     if (count <= 0) return;
+
+    /* 按概率已读不回：不接话，只留一张「已读不回」的字卡 */
+    const ignoreProb = Math.max(0, Math.min(100, Number(cs.taIgnoreProb) || 0));
+    if (Math.random() * 100 < ignoreProb) {
+      await sleep(1600 + Math.random() * 2400);
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const ignored = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+      ignored.push({
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'ignore',
+        text: '已读不回',
+        ts: Date.now(),
+        read: true,
+      });
+      App.save();
+      if (App.chatOpen(contactId)) {
+        App.renderChat();
+      } else {
+        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+      return;
+    }
 
     const cards = App.pickCards(userText, count, contactId, ['聊天', '情绪', '语音']);
     if (!cards.length) {

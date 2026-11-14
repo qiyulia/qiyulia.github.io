@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E絮语%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-48">
+<link rel="stylesheet" href="css/style.css?v=20261114-49">
 </head>
 <body>
 <div class="stage">
@@ -557,6 +557,13 @@ if ('caches' in window) {
                   <button type="button" class="step-btn" data-step-for="set-ta-sticker" data-step="-5">−</button>
                   <input id="set-ta-sticker" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-sticker" data-step="5">+</button>
+                </span>
+              </label>
+              <label class="field"><span>已读不回（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-ignore" data-step="-5">−</button>
+                  <input id="set-ta-ignore" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-ignore" data-step="5">+</button>
                 </span>
               </label>
               <p class="panel-note">消息里出现字卡的触发词时，那张卡会被优先说出。</p>
@@ -1134,17 +1141,17 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-48"></script>
-<script src="js/store.js?v=20261114-48"></script>
-<script src="js/desktop.js?v=20261114-48"></script>
-<script src="js/chat.js?v=20261114-48"></script>
-<script src="js/cards.js?v=20261114-48"></script>
-<script src="js/settings.js?v=20261114-48"></script>
-<script src="js/moments.js?v=20261114-48"></script>
-<script src="js/calendar.js?v=20261114-48"></script>
-<script src="js/music.js?v=20261114-48"></script>
-<script src="js/market.js?v=20261114-48"></script>
-<script src="js/mail.js?v=20261114-48"></script>
-<script src="js/app.js?v=20261114-48"></script>
+<script src="js/seed.js?v=20261114-49"></script>
+<script src="js/store.js?v=20261114-49"></script>
+<script src="js/desktop.js?v=20261114-49"></script>
+<script src="js/chat.js?v=20261114-49"></script>
+<script src="js/cards.js?v=20261114-49"></script>
+<script src="js/settings.js?v=20261114-49"></script>
+<script src="js/moments.js?v=20261114-49"></script>
+<script src="js/calendar.js?v=20261114-49"></script>
+<script src="js/music.js?v=20261114-49"></script>
+<script src="js/market.js?v=20261114-49"></script>
+<script src="js/mail.js?v=20261114-49"></script>
+<script src="js/app.js?v=20261114-49"></script>
 </body>
 </html>
