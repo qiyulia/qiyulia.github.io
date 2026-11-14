@@ -21,6 +21,7 @@
     });
     if (App.closePatPicker) App.closePatPicker();
     if (App.hideToolPanels) App.hideToolPanels();
+    if (App.hideChatBanner) App.hideChatBanner();
     rememberView(view);
     if (App.closeMsgActions) App.closeMsgActions();
     document.querySelectorAll('.view').forEach(function (v) {
