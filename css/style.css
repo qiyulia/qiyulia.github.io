@@ -955,25 +955,7 @@ button.widget:active { transform: scale(.99); }
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
-.moments-hero.has-cover .moments-add {
-  color: #fff;
-  background: rgba(255, 255, 255, .2);
-  border-color: rgba(255, 255, 255, .38);
-}
-/* 自定义封面：压一层暗色保证文字可读 */
-.moments-hero.has-cover::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, rgba(18, 28, 42, .5), rgba(18, 28, 42, .18) 55%, rgba(18, 28, 42, .42));
-}
-.moments-hero.has-cover .hero-eyebrow { color: rgba(255, 255, 255, .78); }
-.moments-hero.has-cover h3 { color: #fff; text-shadow: 0 2px 10px rgba(10, 18, 30, .35); }
-.moments-hero.has-cover .moments-cover-btn {
-  color: #fff;
-  background: rgba(255, 255, 255, .2);
-  border-color: rgba(255, 255, 255, .38);
-}
+.moments-hero.has-cover .moments-hero-main { display: none; }
 .moment-composer {
   flex: 0 0 auto;
   display: flex;
