@@ -2113,6 +2113,24 @@
       sendMessage();
     });
 
+    const renameForm = el('#rename-form');
+    if (renameForm) {
+      renameForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const contact = currentContact();
+        const renameInput = el('#rename-input');
+        if (!contact || !renameInput) return;
+        const name = renameInput.value.trim();
+        if (!name) return;
+        contact.name = name;
+        App.save();
+        App.renderChat();
+        App.renderContacts();
+        const dialog = renameForm.closest('dialog');
+        if (dialog) dialog.close();
+      });
+    }
+
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
         e.preventDefault();
@@ -2206,14 +2224,15 @@
       if (e.target.closest('[data-chat-name]')) {
         const contact = currentContact();
         if (!contact) return;
-        const next = window.prompt('修改名字', contact.name);
-        if (next == null) return;
-        const name = next.trim();
-        if (!name) return;
-        contact.name = name;
-        App.save();
-        App.renderChat();
-        App.renderContacts();
+        const dialog = el('#rename-dialog');
+        const renameInput = el('#rename-input');
+        if (!dialog || !renameInput) return;
+        renameInput.value = contact.name || '';
+        dialog.showModal();
+        setTimeout(function () {
+          renameInput.focus();
+          renameInput.select();
+        }, 60);
         return;
       }
 
