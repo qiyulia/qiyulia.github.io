@@ -947,6 +947,24 @@
         s.cards.push(Object.assign({}, c));
       }
     });
+    App.dedupeBuiltinCards(s);
+  };
+
+  /* 内置字卡优先：内容（文字）和内置字卡一样的导入字卡直接去掉，语音卡不受影响 */
+  App.dedupeBuiltinCards = function (s) {
+    if (!s || !Array.isArray(s.cards)) return 0;
+    const texts = {};
+    (App.BUILTIN_CARDS || []).forEach(function (c) {
+      const text = String(c.text || '').trim();
+      if (text) texts[text] = true;
+    });
+    const before = s.cards.length;
+    s.cards = s.cards.filter(function (c) {
+      if (c.builtin || c.audio) return true;
+      const text = String(c.text || '').trim();
+      return !text || !texts[text];
+    });
+    return before - s.cards.length;
   };
 
   /* ---------- 时间与文案工具 ---------- */

@@ -156,8 +156,9 @@
   }
 
   function dedupeCards() {
+    /* 先按「内置优先」清掉和内置卡内容重复的导入卡，再清余下的重复项 */
+    let removed = App.dedupeBuiltinCards ? App.dedupeBuiltinCards(App.state) : 0;
     const seen = {};
-    let removed = 0;
     App.state.cards = App.state.cards.filter(function (c) {
       const key = cardTextKey(c);
       if (!key) return true;
@@ -366,6 +367,8 @@
         added++;
       }
     });
+    /* 恢复内置卡时顺手清掉内容和内置卡重复的导入卡 */
+    if (App.dedupeBuiltinCards) App.dedupeBuiltinCards(App.state);
     App.save();
     App.renderCards();
     App.renderDesktop();
