@@ -3796,6 +3796,27 @@ dialog.sheet.more-sheet { padding: 20px 14px 16px; }
 .mine-cell[data-n="7"] { color: var(--ink); }
 .mine-cell[data-n="8"] { color: var(--muted); }
 
+/* 扫雷全屏：卡片铺满手机框，棋盘按可用空间放大 */
+.sheet-head-actions { display: flex; align-items: center; gap: 2px; }
+#mine-dialog.is-full .tool-overlay-card {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+}
+#mine-dialog.is-full .tool-sheet-body {
+  padding: calc(4px + var(--safe-top)) 12px 8px;
+  justify-content: center;
+}
+#mine-dialog.is-full .sheet-head { padding: calc(14px + var(--safe-top)) 14px 6px; }
+#mine-dialog.is-full .mine-board {
+  /* 棋盘按可用高度收缩，全屏时也不出现滚动条 */
+  width: min(100%, calc(var(--app-height, 100vh) - 250px));
+  align-self: center;
+}
+#mine-dialog.is-full .sheet-actions { padding-bottom: var(--safe-bottom); }
+
 /* ============ 跳一跳 ============ */
 /* 跳一跳需要更高的面板，棋子才有地方跳 */
 #jump-dialog .tool-overlay-card {

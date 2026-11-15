@@ -1966,6 +1966,9 @@
           renderNamePool();
           showToolPanel('#avatar-dialog');
         } else if (btn.dataset.tool === 'mine') {
+          /* 每次打开默认还原成半屏卡片 */
+          const mineLayer = el('#mine-dialog');
+          if (mineLayer) mineLayer.classList.remove('is-full');
           resetMine();
           showToolPanel('#mine-dialog');
         } else if (btn.dataset.tool === 'jump') {
@@ -2193,6 +2196,7 @@
       let pressTimer = null;
       let pressed = -1;
       let suppressClick = false;
+      let flagAt = 0;
       mineBoard.addEventListener('pointerdown', function (e) {
         const cell = e.target.closest('[data-mine]');
         if (!cell) return;
@@ -2202,6 +2206,7 @@
           pressTimer = null;
           /* 长按插旗后要吃掉紧随其后的 click，否则会顺便把格子翻开 */
           suppressClick = true;
+          flagAt = Date.now();
           toggleMineFlag(pressed);
           pressed = -1;
         }, 520);
@@ -2221,7 +2226,20 @@
         const cell = e.target.closest('[data-mine]');
         if (!cell) return;
         e.preventDefault();
+        /* 手机长按本身会补发 contextmenu，刚插过旗就忽略，避免把旗子又取消掉 */
+        if (Date.now() - flagAt < 900) return;
         toggleMineFlag(Number(cell.dataset.mine));
+      });
+    }
+    const mineFullscreen = el('#mine-fullscreen');
+    if (mineFullscreen) {
+      mineFullscreen.addEventListener('click', function () {
+        const layer = el('#mine-dialog');
+        if (!layer) return;
+        const on = !layer.classList.contains('is-full');
+        layer.classList.toggle('is-full', on);
+        mineFullscreen.setAttribute('aria-label', on ? '退出全屏' : '全屏');
+        mineFullscreen.title = on ? '退出全屏' : '全屏';
       });
     }
 
