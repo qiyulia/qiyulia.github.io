@@ -1124,12 +1124,29 @@
 
   /* ---------------- 游戏：跳一跳（长条量距离，跳上平台继续） ---------------- */
   let jump = null;
-  const JUMP_MAX = 200; /* 长条滑到最右对应的最远跳跃距离 */
+  const JUMP_MAX = 200; /* 长条滑到最右对应的最远跳跃距离（屏幕放不下时按舞台宽度收缩） */
 
   function jumpBaseX() {
     const stage = el('#jump-stage');
     const w = (stage && stage.clientWidth) || 0;
     return (w || 320) * 0.2;
+  }
+
+  /* 竖线走到最右时，落点刚好接近舞台右沿，保证长条和平台的位置对得上 */
+  function jumpMaxDist() {
+    const stage = el('#jump-stage');
+    const w = (stage && stage.clientWidth) || 320;
+    return Math.max(80, Math.min(JUMP_MAX, w - jumpBaseX() - 34));
+  }
+
+  function showJumpResult() {
+    const result = el('#jump-result');
+    if (result) result.hidden = false;
+    if (el('#jump-result-score')) {
+      el('#jump-result-score').textContent = '我 ' + jump.me + ' 分 · TA ' + jump.ta + ' 分';
+    }
+    const startBtn = el('#jump-start');
+    if (startBtn) startBtn.hidden = true;
   }
 
   function renderJump() {
@@ -1155,7 +1172,17 @@
       piece.style.bottom = jump.pieceBottom + 'px';
       if (!jump.over) piece.style.transform = 'rotate(' + (jump.spin || 0) + 'deg)';
     }
-    if (marker) marker.style.left = (jump.pos * 100) + '%';
+    if (marker) {
+      /* 竖线按落点在舞台里的实际位置摆放，看到哪里就跳到哪里 */
+      const stage = el('#jump-stage');
+      const track = el('#jump-track');
+      const stageW = (stage && stage.clientWidth) || 320;
+      const trackW = (track && track.clientWidth) || stageW;
+      const maxDist = jump.maxDist || jumpMaxDist();
+      const landX = jumpBaseX() + jump.pos * maxDist;
+      const pct = Math.max(0, Math.min(100, (landX - 8) / trackW * 100));
+      marker.style.left = pct + '%';
+    }
     if (el('#jump-me')) el('#jump-me').textContent = String(jump.me);
     if (el('#jump-ta')) el('#jump-ta').textContent = String(jump.ta);
   }
@@ -1172,7 +1199,7 @@
     renderJump();
     /* TA 的回合：竖线滑到它选好的距离就自动起跳 */
     if (jump.turn === 'ta' && jump.taPlan != null) {
-      const nowDist = jump.pos * JUMP_MAX;
+      const nowDist = jump.pos * (jump.maxDist || JUMP_MAX);
       const prev = jump.taPrev == null ? nowDist : jump.taPrev;
       jump.taPrev = nowDist;
       if ((prev - jump.taPlan) * (nowDist - jump.taPlan) <= 0) {
@@ -1185,7 +1212,7 @@
 
   function jumpPlanTa() {
     const gap = jump.nextX - jump.curX;
-    const half = Math.max(4, jump.nextW / 2 - 2);
+    const half = Math.max(2, jump.nextW / 2 - 8);
     let dist;
     if (Math.random() < 0.85) {
       dist = gap + (Math.random() * 2 - 1) * half;
@@ -1193,7 +1220,7 @@
       /* 偶尔踩空，让对局有输赢 */
       dist = gap + (Math.random() < 0.5 ? -1 : 1) * (half + 12 + Math.random() * 36);
     }
-    jump.taPlan = Math.max(2, Math.min(JUMP_MAX, dist));
+    jump.taPlan = Math.max(2, Math.min(jump.maxDist || JUMP_MAX, dist));
     jump.taPrev = null;
   }
 
@@ -1227,13 +1254,16 @@
       camX: 0,
       turn: 'me', me: 0, ta: 0, taPlan: null, taPrev: null,
       running: false, locked: false, started: false, raf: 0, last: 0, timer: 0, over: false,
+      maxDist: jumpMaxDist(),
     };
     jumpSpawnNext();
     jump.camX = jump.curX - jumpBaseX();
     const next = el('#jump-plat-next');
     if (next) next.classList.remove('is-rise');
-    const startCover = el('#jump-start');
-    if (startCover) startCover.hidden = false;
+    const result = el('#jump-result');
+    if (result) result.hidden = true;
+    const startBtn = el('#jump-start');
+    if (startBtn) startBtn.hidden = false;
     const trackHint = el('#jump-dialog .jump-track-hint');
     if (trackHint) trackHint.textContent = '先点「开始游戏」';
     if (el('#jump-status')) {
@@ -1245,8 +1275,11 @@
   function startJumpGame() {
     if (!jump || jump.started || jump.over) return;
     jump.started = true;
-    const startCover = el('#jump-start');
-    if (startCover) startCover.hidden = true;
+    jump.maxDist = jumpMaxDist();
+    const startBtn = el('#jump-start');
+    if (startBtn) startBtn.hidden = true;
+    const result = el('#jump-result');
+    if (result) result.hidden = true;
     const trackHint = el('#jump-dialog .jump-track-hint');
     if (trackHint) trackHint.textContent = '点这里起跳';
     if (el('#jump-status')) {
@@ -1281,8 +1314,8 @@
     if (!jump) return;
     const next = el('#jump-plat-next');
     const diff = jump.pieceX - jump.nextX;
-    /* 只要蓝线落在平台范围内就能站住 */
-    if (Math.abs(diff) > jump.nextW / 2) {
+    /* 棋子中心要真的落在平台顶面上，离得远一点就站不住 */
+    if (Math.abs(diff) > Math.max(6, jump.nextW / 2 - 6)) {
       jump.over = true;
       const piece = el('#jump-piece');
       if (piece) {
@@ -1294,6 +1327,7 @@
           ? '你踩空了，TA 赢了。我 ' + jump.me + ' 分 / TA ' + jump.ta + ' 分。'
           : 'TA 踩空了，你赢了！我 ' + jump.me + ' 分 / TA ' + jump.ta + ' 分。';
       }
+      showJumpResult();
       renderJump();
       return;
     }
@@ -1334,7 +1368,7 @@
     jump.running = false;
     jump.locked = true;
     if (jump.raf) cancelAnimationFrame(jump.raf);
-    jumpFly(Math.max(2, jump.pos * JUMP_MAX), jumpLand);
+    jumpFly(Math.max(2, jump.pos * (jump.maxDist || JUMP_MAX)), jumpLand);
   }
 
   function stopJump() {
@@ -2211,10 +2245,15 @@
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stopJump(); }
       });
     }
-    const jumpEnd = el('#jump-end');
-    if (jumpEnd) jumpEnd.addEventListener('click', function () { hideToolPanel('#jump-dialog'); });
+    const jumpClose = el('#jump-close');
+    if (jumpClose) jumpClose.addEventListener('click', function () { hideToolPanel('#jump-dialog'); });
+    const jumpCancel = el('#jump-cancel');
+    if (jumpCancel) jumpCancel.addEventListener('click', function () { hideToolPanel('#jump-dialog'); });
     const jumpReset = el('#jump-reset');
-    if (jumpReset) jumpReset.addEventListener('click', resetJump);
+    if (jumpReset) jumpReset.addEventListener('click', function () {
+      resetJump();
+      startJumpGame();
+    });
     const jumpStart = el('#jump-start');
     if (jumpStart) jumpStart.addEventListener('click', startJumpGame);
     const mineBoard = el('#mine-board');
