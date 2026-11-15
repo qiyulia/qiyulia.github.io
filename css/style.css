@@ -1304,6 +1304,9 @@ dialog.moment-sheet {
   border: 1px solid var(--line);
 }
 .composer textarea::placeholder { color: var(--muted); }
+/* 输入框有字时不再出现右侧滚动条，避免多出一条灰线 */
+.composer textarea { scrollbar-width: none; }
+.composer textarea::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
 .send-btn {
   flex: 0 0 auto;

@@ -2298,7 +2298,8 @@
 
     input.addEventListener('input', function () {
       input.style.height = 'auto';
-      input.style.height = Math.min(118, input.scrollHeight) + 'px';
+      /* 多留 1px，避免 scrollHeight 取整多出一点导致右侧冒出滚动条 */
+      input.style.height = Math.min(118, input.scrollHeight + 1) + 'px';
     });
 
     /* 输入法弹出、视口变矮时，消息重新贴到最后一条 */
