@@ -473,7 +473,7 @@
         const target = pendingSettingInput;
         pendingSettingInput = null;
         commitSettingInput(target);
-      }, 400);
+      }, 1000);
     }, true);
     function flushSettingInput() {
       clearTimeout(pendingSettingTimer);
