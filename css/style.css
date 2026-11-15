@@ -888,7 +888,8 @@ button.widget:active { transform: scale(.99); }
   background-size: cover;
   background-position: center;
   box-shadow: 0 12px 28px var(--shadow);
-  overflow: hidden;
+  overflow: visible;
+  margin-bottom: 10px;
 }
 .moments-hero-main { flex: 1 1 auto; min-width: 0; position: relative; z-index: 1; }
 .moments-hero .hero-eyebrow { color: var(--muted); }
@@ -903,7 +904,7 @@ button.widget:active { transform: scale(.99); }
 .moments-hero .avatar.moments-hero-avatar {
   position: absolute;
   right: 6px;
-  bottom: 2px;
+  bottom: -22px;
   width: 66px;
   height: 66px;
   border-width: 3px;
