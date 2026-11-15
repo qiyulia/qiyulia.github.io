@@ -1974,10 +1974,12 @@
     session.phase = 'ending';
     clearCallTimers(session);
     el('#call-avatar-wrap').classList.remove('is-ringing');
-    el('#call-status').textContent = kind === 'busy' ? '对方忙音…' : '对方已拒接';
+    /* 接通后被 TA 挂断记作「对方挂断」，未接通才是忙音或拒接 */
+    const midCall = !!session.connected;
+    el('#call-status').textContent = midCall ? '对方已挂断' : (kind === 'busy' ? '对方忙音…' : '对方已拒接');
     el('#call-timer').textContent = '';
     setCallControls('ending');
-    const reason = kind === 'busy' ? '对方忙音' : '对方拒接';
+    const reason = midCall ? '对方挂断' : (kind === 'busy' ? '对方忙音' : '对方拒接');
     const duration = session.connected ? Math.max(1, Math.floor((Date.now() - session.startedAt) / 1000)) : 0;
     const text = session.connected
       ? '语音通话 · ' + formatCallDuration(duration) + ' · ' + reason
