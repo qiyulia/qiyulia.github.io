@@ -173,6 +173,7 @@
       lastSeen[id] = lastId;
       if (!last || last.role !== 'ta') return;
       App.showChatBanner(id, last);
+      if (App.notifyMessage) App.notifyMessage(id, last);
     });
   }
 

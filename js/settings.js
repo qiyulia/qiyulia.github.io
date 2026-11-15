@@ -220,6 +220,7 @@
         tab.setAttribute('aria-selected', String(active));
       });
       if (name === 'memory' && App.refreshMemoryStats) App.refreshMemoryStats();
+      if (name === 'backend') refreshNotifyStatus();
     }
 
     tabs.forEach(function (tab) {
@@ -285,6 +286,9 @@
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
     el('#set-ta-survey-prob').value = st.settings.taSurveyProb == null ? 10 : st.settings.taSurveyProb;
     el('#set-ta-survey-cooldown').value = st.settings.taSurveyCooldownMin == null ? 30 : st.settings.taSurveyCooldownMin;
+    el('#set-notify-enabled').checked = !!st.settings.notifyEnabled;
+    el('#set-keepalive').checked = !!st.settings.keepAlive;
+    refreshNotifyStatus();
 
     const partnerSelect = el('#set-partner');
     partnerSelect.innerHTML = st.contacts.length
@@ -319,6 +323,108 @@
     App.save();
     App.renderDesktop();
     storageSize();
+  }
+
+  /* ---------- 通知弹窗与后台保活 ---------- */
+  let swReg = null;
+  let keepAliveTimer = 0;
+  let keepAliveCtx = null;
+
+  function notifyStatusText() {
+    if (!('Notification' in window)) return '这个浏览器不支持通知弹窗。';
+    if (Notification.permission === 'denied') return '通知权限被拒绝了，需要到浏览器或系统设置里重新允许。';
+    if (!App.state.settings.notifyEnabled) return '还没有开启通知。';
+    if (Notification.permission === 'granted') return '通知已开启，TA 发来新消息时会弹到通知栏。';
+    return '还需要允许一次通知权限。';
+  }
+
+  function refreshNotifyStatus() {
+    const node = el('#notify-status');
+    if (node) node.textContent = notifyStatusText();
+  }
+
+  function ensureServiceWorker() {
+    if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+    if (swReg) return Promise.resolve(swReg);
+    return navigator.serviceWorker.register('sw.js').then(function (reg) {
+      swReg = reg;
+      return reg;
+    }).catch(function () {
+      swReg = null;
+      return null;
+    });
+  }
+
+  /* 用 Service Worker 弹通知，页面切到后台也能留在通知栏里 */
+  function sendNotification(title, body, tag) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return Promise.resolve(false);
+    const options = { body: body || '', tag: tag || 'shiyi-message', data: { url: './' } };
+    return ensureServiceWorker().then(function (reg) {
+      if (reg) {
+        return reg.showNotification(title, options).then(function () { return true; });
+      }
+      try {
+        new Notification(title, options);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }).catch(function () { return false; });
+  }
+
+  App.notifyMessage = function (contactId, message) {
+    if (!App.state.settings.notifyEnabled) return;
+    if (!document.hidden) return;
+    const contact = (App.state.contacts || []).find(function (c) { return c.id === contactId; });
+    let body = '发来一条新消息。';
+    if (message && message.text) body = message.text;
+    else if (message && message.type === 'voice') body = '[语音]';
+    else if (message && message.sticker) body = '[表情包]';
+    sendNotification(contact ? contact.name : 'TA', body, 'shiyi-' + contactId);
+  };
+
+  function stopKeepAlive() {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = 0;
+    if (keepAliveCtx) {
+      try { keepAliveCtx.close(); } catch (e) {}
+      keepAliveCtx = null;
+    }
+  }
+
+  function startKeepAlive() {
+    stopKeepAlive();
+    if (!App.state.settings.keepAlive) return;
+    ensureServiceWorker().then(function (reg) {
+      if (!reg || !App.state.settings.keepAlive) return;
+      const ping = function () {
+        try {
+          if (reg.active) reg.active.postMessage({ type: 'keepalive' });
+        } catch (e) {}
+      };
+      ping();
+      keepAliveTimer = setInterval(ping, 20000);
+      /* 安卓 Chrome 支持时顺带登记周期后台任务 */
+      try {
+        if (reg.periodicSync) {
+          reg.periodicSync.register('shiyi-keepalive', { minInterval: 15 * 60 * 1000 }).catch(function () {});
+        }
+      } catch (e) {}
+    });
+    /* 极低音量的静音音轨，让系统认为页面仍在播放，减少后台被回收 */
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        keepAliveCtx = new Ctx();
+        const osc = keepAliveCtx.createOscillator();
+        const gain = keepAliveCtx.createGain();
+        gain.gain.value = 0.001;
+        osc.frequency.value = 20;
+        osc.connect(gain);
+        gain.connect(keepAliveCtx.destination);
+        osc.start();
+      }
+    } catch (e) {}
   }
 
   App.initSettings = function () {
@@ -403,6 +509,80 @@
     bindMinutes('#set-ta-subsidy-cooldown', 'taSubsidyCooldownMin', 1440);
     bindMinutes('#set-ta-mail-cooldown', 'taMailCooldownMin', 1440);
     bindMinutes('#set-ta-survey-cooldown', 'taSurveyCooldownMin', 1440);
+
+    const notifyToggle = el('#set-notify-enabled');
+    if (notifyToggle) {
+      notifyToggle.addEventListener('change', function () {
+        if (!notifyToggle.checked) {
+          App.state.settings.notifyEnabled = false;
+          App.save();
+          refreshNotifyStatus();
+          return;
+        }
+        if (!('Notification' in window)) {
+          notifyToggle.checked = false;
+          refreshNotifyStatus();
+          App.toast('这个浏览器不支持通知弹窗');
+          return;
+        }
+        const finish = function (perm) {
+          if (perm !== 'granted') {
+            notifyToggle.checked = false;
+            refreshNotifyStatus();
+            App.toast('没有拿到通知权限');
+            return;
+          }
+          App.state.settings.notifyEnabled = true;
+          App.save();
+          ensureServiceWorker().then(refreshNotifyStatus);
+          App.toast('通知已开启');
+        };
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(finish, function () { finish('denied'); });
+        } else {
+          finish(Notification.permission);
+        }
+      });
+    }
+
+    const testNotify = el('#btn-notify-test');
+    if (testNotify) {
+      testNotify.addEventListener('click', function () {
+        if (!('Notification' in window)) {
+          App.toast('这个浏览器不支持通知弹窗');
+          return;
+        }
+        const send = function () {
+          sendNotification('拾忆', '这是一条测试通知，收到就说明通知弹窗可以用了。', 'shiyi-test')
+            .then(function (ok) { App.toast(ok ? '测试通知已发送' : '通知没发出去，检查一下权限'); });
+        };
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(function (perm) {
+            if (perm === 'granted') send();
+            else App.toast('没有拿到通知权限');
+          });
+        } else {
+          send();
+        }
+      });
+    }
+
+    const keepToggle = el('#set-keepalive');
+    if (keepToggle) {
+      keepToggle.addEventListener('change', function () {
+        App.state.settings.keepAlive = !!keepToggle.checked;
+        App.save();
+        if (keepToggle.checked) {
+          startKeepAlive();
+          App.toast('已开启后台保活');
+        } else {
+          stopKeepAlive();
+          App.toast('已关闭后台保活');
+        }
+      });
+    }
+    if (App.state.settings.keepAlive) startKeepAlive();
+    else if (App.state.settings.notifyEnabled) ensureServiceWorker();
 
     ['#set-mail-card-min', '#set-mail-card-max'].forEach(function (sel) {
       const node = el(sel);

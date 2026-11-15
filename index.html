@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261115-15">
+<link rel="stylesheet" href="css/style.css?v=20261115-16">
 </head>
 <body>
 <div class="stage">
@@ -968,7 +968,7 @@ if ('caches' in window) {
         <div class="settings-tabs" role="tablist" aria-label="设置分类">
           <button type="button" class="settings-tab is-on" role="tab" data-settings-page="profile">资料</button>
           <button type="button" class="settings-tab" role="tab" data-settings-page="look">美化</button>
-          <button type="button" class="settings-tab" role="tab" data-settings-page="survey" aria-selected="false">问卷</button>
+          <button type="button" class="settings-tab" role="tab" data-settings-page="backend" aria-selected="false">后台</button>
           <button type="button" class="settings-tab" role="tab" data-settings-page="backup">数据</button>
           <button type="button" class="settings-tab" role="tab" data-settings-page="memory" aria-selected="false">内存</button>
         </div>
@@ -1063,6 +1063,13 @@ if ('caches' in window) {
           <label class="field"><span>TA 想把你的话加入字卡（%）</span><input id="set-card-offer-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
           <p class="field-hint">你发消息后，TA 有概率问你这句话能不能收进字卡库的「聊天」分类。</p>
         </div>
+        <div class="panel">
+          <h3>问卷</h3>
+          <label class="field"><span>TA 主动发问卷（%）</span><input id="set-ta-survey-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
+          <p class="field-hint">即使你不发问卷，TA 也会按这个概率主动给你发一份，点开卡片就能直接作答。</p>
+          <label class="field"><span>发问卷冷却时间（分钟）</span><input id="set-ta-survey-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
+          <p class="field-hint">冷却时间内 TA 不会再发新的问卷；上一份还没答完时也会先等着。</p>
+        </div>
         </div>
 
         <div class="settings-page" data-settings-panel="look" hidden>
@@ -1136,13 +1143,36 @@ if ('caches' in window) {
           </section>
         </div>
 
-        <div class="settings-page" data-settings-panel="survey" hidden>
+        <div class="settings-page" data-settings-panel="backend" hidden>
           <div class="panel">
-            <h3>问卷</h3>
-            <label class="field"><span>TA 主动发问卷（%）</span><input id="set-ta-survey-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
-            <p class="field-hint">即使你不发问卷，TA 也会按这个概率主动给你发一份，点开卡片就能直接作答。</p>
-            <label class="field"><span>发问卷冷却时间（分钟）</span><input id="set-ta-survey-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
-            <p class="field-hint">冷却时间内 TA 不会再发新的问卷；上一份还没答完时也会先等着。</p>
+            <h3>通知弹窗</h3>
+            <div class="setting-switch-row">
+              <div class="setting-switch-copy">
+                <strong>开启通知弹窗</strong>
+                <span class="field-hint">开启后，TA 发来新消息时会在手机通知栏弹出提示。</span>
+              </div>
+              <label class="switch" title="通知弹窗">
+                <input type="checkbox" id="set-notify-enabled">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <p class="field-hint" id="notify-status">还没有开启通知。</p>
+            <button type="button" class="btn" id="btn-notify-test">发送一条测试通知</button>
+          </div>
+
+          <div class="panel">
+            <h3>后台保活</h3>
+            <div class="setting-switch-row">
+              <div class="setting-switch-copy">
+                <strong>保持后台运行</strong>
+                <span class="field-hint">让浏览器尽量不回收页面，通知更不容易被系统清掉。</span>
+              </div>
+              <label class="switch" title="后台保活">
+                <input type="checkbox" id="set-keepalive">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <p class="field-hint">安卓和电脑浏览器效果最好；iPhone 需要先把「拾忆」添加到主屏幕再开启通知。</p>
           </div>
         </div>
 
@@ -1767,18 +1797,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261115-15"></script>
-<script src="js/store.js?v=20261115-15"></script>
-<script src="js/desktop.js?v=20261115-15"></script>
-<script src="js/chat.js?v=20261115-15"></script>
-<script src="js/cards.js?v=20261115-15"></script>
-<script src="js/settings.js?v=20261115-15"></script>
-<script src="js/moments.js?v=20261115-15"></script>
-<script src="js/calendar.js?v=20261115-15"></script>
-<script src="js/music.js?v=20261115-15"></script>
-<script src="js/market.js?v=20261115-15"></script>
-<script src="js/mail.js?v=20261115-15"></script>
-<script src="js/extras.js?v=20261115-15"></script>
-<script src="js/app.js?v=20261115-15"></script>
+<script src="js/seed.js?v=20261115-16"></script>
+<script src="js/store.js?v=20261115-16"></script>
+<script src="js/desktop.js?v=20261115-16"></script>
+<script src="js/chat.js?v=20261115-16"></script>
+<script src="js/cards.js?v=20261115-16"></script>
+<script src="js/settings.js?v=20261115-16"></script>
+<script src="js/moments.js?v=20261115-16"></script>
+<script src="js/calendar.js?v=20261115-16"></script>
+<script src="js/music.js?v=20261115-16"></script>
+<script src="js/market.js?v=20261115-16"></script>
+<script src="js/mail.js?v=20261115-16"></script>
+<script src="js/extras.js?v=20261115-16"></script>
+<script src="js/app.js?v=20261115-16"></script>
 </body>
 </html>
