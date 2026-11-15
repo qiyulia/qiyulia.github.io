@@ -239,6 +239,8 @@
     el('#set-typing').value = st.settings.typingMin == null ? 0.1 : st.settings.typingMin;
     el('#set-ta-msg-prob').value = st.settings.taMsgProb == null ? 8 : st.settings.taMsgProb;
     el('#set-ta-msg-gap').value = st.settings.taMsgGapMin == null ? 1 : st.settings.taMsgGapMin;
+    el('#set-ta-msg-min').value = st.settings.taMsgMin == null ? 1 : st.settings.taMsgMin;
+    el('#set-ta-msg-max').value = st.settings.taMsgMax == null ? 3 : st.settings.taMsgMax;
     el('#set-ta-ignore').value = st.settings.taIgnoreProb == null ? 15 : st.settings.taIgnoreProb;
     el('#set-merge-prob').value = st.settings.mergeProb == null ? 15 : st.settings.mergeProb;
     el('#set-merge-min').value = st.settings.mergeMin == null ? 2 : st.settings.mergeMin;
@@ -663,6 +665,18 @@
       App.state.settings.taMsgGapMin = v;
       markDirty();
     }, { min: 1, max: 120, step: 1 });
+
+    App.bindStepper('#set-ta-msg-min', function (v) {
+      App.state.settings.taMsgMin = v;
+      if (Number(App.state.settings.taMsgMax) < v) App.state.settings.taMsgMax = v;
+      markDirty();
+    }, { min: 1, max: 10, step: 1 });
+
+    App.bindStepper('#set-ta-msg-max', function (v) {
+      App.state.settings.taMsgMax = v;
+      if (Number(App.state.settings.taMsgMin) > v) App.state.settings.taMsgMin = v;
+      markDirty();
+    }, { min: 1, max: 10, step: 1 });
 
     App.bindStepper('#set-ta-ignore', function (v) {
       App.state.settings.taIgnoreProb = v;

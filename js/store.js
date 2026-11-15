@@ -543,6 +543,8 @@
     if (s.settings.taSubsidyCooldownMin == null) s.settings.taSubsidyCooldownMin = 30;
     if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
     if (s.settings.taMsgGapMin == null) s.settings.taMsgGapMin = 1;
+    if (s.settings.taMsgMin == null) s.settings.taMsgMin = 1;
+    if (s.settings.taMsgMax == null) s.settings.taMsgMax = 3;
     if (s.settings.taVoiceProb == null) s.settings.taVoiceProb = 20;
     if (s.settings.taIgnoreProb == null) s.settings.taIgnoreProb = 15;
     if (s.settings.mergeProb == null) s.settings.mergeProb = 15;
@@ -748,6 +750,8 @@
       typingMin: pick('typingMin', 0.1),
       taMsgProb: pick('taMsgProb', 8),
       taMsgGapMin: pick('taMsgGapMin', 1),
+      taMsgMin: pick('taMsgMin', 1),
+      taMsgMax: pick('taMsgMax', 3),
       taIgnoreProb: pick('taIgnoreProb', 15),
       mergeProb: pick('mergeProb', 15),
       mergeMin: pick('mergeMin', 2),

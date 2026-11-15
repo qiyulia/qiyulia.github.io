@@ -1112,22 +1112,14 @@
     }, 1600 + Math.random() * 1800);
   }
 
-  /* TA 主动发来一条消息（不依赖我先开口） */
+  /* TA 主动发来消息（不依赖我先开口）：空闲一段时间后，一次发几条 */
   let lastTaStartAt = 0;
-  function maybeTaStartsChat() {
-    if (document.hidden || callState) return;
-    const st = App.state;
-    if (!st || !st.contacts.length) return;
-    const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
-    const cs = App.contactSettings(contact);
-    /* 按设置的间隔（分钟）才检查一次，避免每 60 秒都判一次概率 */
-    const gap = Math.max(1, Number(cs.taMsgGapMin) || 1) * 60000;
-    const now = Date.now();
-    if (now - lastTaStartAt < gap) return;
-    lastTaStartAt = now;
-    const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
-    if (Math.random() * 100 >= prob) return;
 
+  function sendTaStartMessage(contactId) {
+    const st = App.state;
+    const contact = st.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact) return;
+    const cs = App.contactSettings(contact);
     const voicePool = (st.cards || []).filter(function (c) {
       return c.enabled !== false && c.text && c.category === '语音' && c.audio;
     });
@@ -1141,29 +1133,52 @@
     const card = pool[Math.floor(Math.random() * pool.length)];
     const isVoice = card.category === '语音' && card.audio;
 
-    setTimeout(function () {
-      if (!App.state.contacts.some(function (c) { return c.id === contact.id; })) return;
-      const chat = App.state.chats[contact.id] || (App.state.chats[contact.id] = []);
-      const message = {
-        id: App.uid('m'),
-        role: 'ta',
-        type: isVoice ? 'audio' : 'text',
-        text: card.text,
-        ts: Date.now(),
-        cardId: card.id,
-      };
-      if (isVoice) message.src = card.audio;
-      if (card.category === '情绪') message.emotion = App.emotionLabel(card);
-      if (App.chatOpen(contact.id)) message.read = true;
-      chat.push(message);
-      App.save();
-      if (App.chatOpen(contact.id)) App.renderChat();
-      else {
-        App.unread[contact.id] = (App.unread[contact.id] || 0) + 1;
-        App.updateBadges();
-        App.renderContacts();
-      }
-    }, 1200 + Math.random() * 2200);
+    const chat = st.chats[contactId] || (st.chats[contactId] = []);
+    const message = {
+      id: App.uid('m'),
+      role: 'ta',
+      type: isVoice ? 'audio' : 'text',
+      text: card.text,
+      ts: Date.now(),
+      cardId: card.id,
+    };
+    if (isVoice) message.src = card.audio;
+    if (card.category === '情绪') message.emotion = App.emotionLabel(card);
+    if (App.chatOpen(contactId)) message.read = true;
+    chat.push(message);
+    App.save();
+    if (App.chatOpen(contactId)) App.renderChat();
+    else {
+      App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+      App.updateBadges();
+      App.renderContacts();
+    }
+  }
+
+  function maybeTaStartsChat() {
+    if (document.hidden || callState) return;
+    const st = App.state;
+    if (!st || !st.contacts.length) return;
+    const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
+    const cs = App.contactSettings(contact);
+    /* 聊天里安静够久（分钟）才考虑主动开口 */
+    const idle = Math.max(1, Number(cs.taMsgGapMin) || 1) * 60000;
+    const chat = st.chats[contact.id] || [];
+    const lastTs = chat.length ? Number(chat[chat.length - 1].ts) || 0 : 0;
+    const now = Date.now();
+    if (now - Math.max(lastTs, lastTaStartAt) < idle) return;
+    const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
+    if (Math.random() * 100 >= prob) return;
+
+    /* 这一次主动发几条：在最少～最多之间随机 */
+    const min = Math.max(1, Math.min(10, Math.round(Number(cs.taMsgMin) || 1)));
+    const max = Math.max(min, Math.min(10, Math.round(Number(cs.taMsgMax) || min)));
+    const count = min + Math.floor(Math.random() * (max - min + 1));
+    lastTaStartAt = now;
+    for (let i = 0; i < count; i++) {
+      const delay = 1200 + i * (3200 + Math.random() * 2800) + Math.random() * 1200;
+      setTimeout(function () { sendTaStartMessage(contact.id); }, delay);
+    }
   }
 
   /* 每分钟按概率检查一次，让 TA 也会主动找我说话 */
