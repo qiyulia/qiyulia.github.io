@@ -210,6 +210,29 @@
     { text: '你现在具体在什么地方？', mode: 'text', options: [] },
     { text: '今天有没有哪一刻突然想起我？', mode: 'text', options: [] },
     { text: '最近有什么话，想说又没说出口？', mode: 'text', options: [] },
+    /* 单选 8 题 */
+    { text: '今天有好好吃饭吗？', mode: 'single', options: ['三餐都吃了', '只吃了两顿', '随便对付了', '还没顾上吃'] },
+    { text: '如果现在能收到一份小礼物，你想要？', mode: 'single', options: ['一杯热饮', '一束花', '一份甜品', '你的陪伴'] },
+    { text: '你现在最需要什么？', mode: 'single', options: ['好好睡一觉', '有人听我说话', '一点独处时间', '一个拥抱'] },
+    { text: '最近睡得怎么样？', mode: 'single', options: ['倒头就睡', '还算安稳', '偶尔失眠', '总是睡不好'] },
+    { text: '你更想听我说哪句话？', mode: 'single', options: ['我在', '辛苦了', '想你了', '早点休息'] },
+    { text: '如果明天放假，你最想？', mode: 'single', options: ['睡到自然醒', '出门逛逛', '在家待着', '见想见的人'] },
+    { text: '今天的天气你喜欢吗？', mode: 'single', options: ['很喜欢', '还行', '不太喜欢', '没注意'] },
+    { text: '我找你的时候，你更希望我怎么开头？', mode: 'single', options: ['直接说事', '先问候', '随便聊聊', '发个表情'] },
+    /* 多选 6 题 */
+    { text: '最近有哪些事情让你开心？', mode: 'multi', options: ['吃到好吃的', '睡了个好觉', '被夸了', '见到了朋友', '和你聊天'] },
+    { text: '你今天想做的事有哪些？', mode: 'multi', options: ['把工作做完', '好好休息', '出去走走', '和我说说话'] },
+    { text: '哪些话你会想反复听？', mode: 'multi', options: ['想你', '等你回来', '有我在', '你很好'] },
+    { text: '什么会让你突然有安全感？', mode: 'multi', options: ['有人回消息', '被记得', '熟悉的环境', '你的声音'] },
+    { text: '最近想尝试哪些新东西？', mode: 'multi', options: ['新的餐厅', '新的路线', '新的爱好', '暂时不想'] },
+    { text: '如果有空闲的一下午，你会？', mode: 'multi', options: ['补觉', '刷剧', '看书', '出门走走', '发呆'] },
+    /* 打字回答 6 题 */
+    { text: '最近一次笑出声，是因为什么？', mode: 'text', options: [] },
+    { text: '如果今天可以重来一次，你想改哪一段？', mode: 'text', options: [] },
+    { text: '有什么小事一直想告诉我却忘了说？', mode: 'text', options: [] },
+    { text: '用一句话形容你现在的心情？', mode: 'text', options: [] },
+    { text: '最近有没有偷偷为我做了什么？', mode: 'text', options: [] },
+    { text: '此刻最想见的人是谁，为什么？', mode: 'text', options: [] },
   ];
 
   let surveyMode = 'card';
