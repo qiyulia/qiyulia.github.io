@@ -1113,12 +1113,18 @@
   }
 
   /* TA 主动发来一条消息（不依赖我先开口） */
+  let lastTaStartAt = 0;
   function maybeTaStartsChat() {
     if (document.hidden || callState) return;
     const st = App.state;
     if (!st || !st.contacts.length) return;
     const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
     const cs = App.contactSettings(contact);
+    /* 按设置的间隔（分钟）才检查一次，避免每 60 秒都判一次概率 */
+    const gap = Math.max(1, Number(cs.taMsgGapMin) || 1) * 60000;
+    const now = Date.now();
+    if (now - lastTaStartAt < gap) return;
+    lastTaStartAt = now;
     const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
     if (Math.random() * 100 >= prob) return;
 
