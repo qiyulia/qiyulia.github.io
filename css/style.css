@@ -238,11 +238,18 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   transform: translateX(0);
   opacity: 1;
 }
+.fav-page {
+  transform: translateX(100%);
+  opacity: 1;
+  pointer-events: none;
+}
 .widget-page {
   transform: translateX(100%);
   opacity: 1;
   pointer-events: none;
 }
+/* 首帧定位前先关掉过渡，避免刷新时看到页面从左边滑过去 */
+.desk-pager:not(.is-ready) .desk-page { transition: none !important; }
 .desk-pager.show-widgets .home-page {
   transform: translateX(-100%);
   opacity: 1;

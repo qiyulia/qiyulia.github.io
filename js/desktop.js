@@ -287,6 +287,8 @@
     let suppressClick = false;
     App.showDeskPage = jumpToDeskPage;
     jumpToDeskPage(0);
+    /* 首帧定位完成后再打开过渡，刷新时不会看到页面滑走 */
+    requestAnimationFrame(function () { pager.classList.add('is-ready'); });
 
     function updateGesture(x, y) {
       if (!gesture) return false;
