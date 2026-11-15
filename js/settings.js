@@ -452,6 +452,41 @@
     initChatSettingsPager();
     initSettingsPager();
 
+    /* 手机上在输入框打完字常常不会失焦，change 也就不触发，刷新后设置会丢。
+       这里在停止输入后补发一次 change，并在刷新 / 切后台时把还没提交的输入框提交掉 */
+    const SETTING_VIEWS = '#view-settings, #view-chat-settings';
+    function commitSettingInput(node) {
+      if (!node || !node.matches || !node.matches('input, textarea, select')) return;
+      if (!node.closest(SETTING_VIEWS)) return;
+      if (node.type === 'file' || node.type === 'checkbox' || node.type === 'radio') return;
+      node.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    let pendingSettingInput = null;
+    let pendingSettingTimer = 0;
+    document.addEventListener('input', function (e) {
+      const node = e.target;
+      if (!node || !node.closest || !node.closest(SETTING_VIEWS)) return;
+      if (node.type === 'file' || node.type === 'checkbox' || node.type === 'radio') return;
+      pendingSettingInput = node;
+      clearTimeout(pendingSettingTimer);
+      pendingSettingTimer = setTimeout(function () {
+        const target = pendingSettingInput;
+        pendingSettingInput = null;
+        commitSettingInput(target);
+      }, 400);
+    }, true);
+    function flushSettingInput() {
+      clearTimeout(pendingSettingTimer);
+      const target = pendingSettingInput || document.activeElement;
+      pendingSettingInput = null;
+      commitSettingInput(target);
+      App.flushSave();
+    }
+    window.addEventListener('pagehide', flushSettingInput);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) flushSettingInput();
+    });
+
     el('#set-name').addEventListener('input', function (e) {
       App.state.profile.userName = e.target.value;
       markDirty();

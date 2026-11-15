@@ -2,6 +2,10 @@
 (function () {
   const App = (window.App = window.App || {});
   const KEY = 'xuyu.state.v1';
+  /* 设置类数据的同步镜像：IndexedDB 写入是异步的，刷新或切后台时可能来不及落盘，
+     每次保存时同步写一份很小的副本，下次加载时采用更新的那一份 */
+  const SETTINGS_KEY = 'xuyu.settings.v1';
+  let lastDbSavedAt = 0;
 
   App.state = null;
   App.chatContactId = null;
@@ -44,6 +48,57 @@
     }
   }
 
+  function saveSettingsSnapshot() {
+    const st = App.state;
+    if (!st) return;
+    const look = st.look || {};
+    const profile = st.profile || {};
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        savedAt: Date.now(),
+        settings: st.settings || {},
+        theme: st.theme || '',
+        iconStyle: st.iconStyle || null,
+        look: { opacity: look.opacity, bubbleCss: look.bubbleCss },
+        profile: { userName: profile.userName, since: profile.since },
+      }));
+    } catch (e) {}
+  }
+
+  function readSettingsSnapshot() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return data && typeof data === 'object' ? data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /* 镜像比本地库里的状态更新时，用镜像里的设置覆盖回来 */
+  function applySettingsSnapshot(s) {
+    const snap = readSettingsSnapshot();
+    if (!snap || !(Number(snap.savedAt) > lastDbSavedAt)) return false;
+    if (snap.settings && typeof snap.settings === 'object') {
+      s.settings = Object.assign({}, s.settings, snap.settings);
+    }
+    if (snap.theme) s.theme = snap.theme;
+    if (snap.iconStyle && typeof snap.iconStyle === 'object') {
+      s.iconStyle = Object.assign({}, s.iconStyle, snap.iconStyle);
+    }
+    if (snap.look && typeof snap.look === 'object') {
+      const opacity = Number(snap.look.opacity);
+      if (Number.isFinite(opacity)) s.look.opacity = Math.max(20, Math.min(100, Math.round(opacity)));
+      if (typeof snap.look.bubbleCss === 'string') s.look.bubbleCss = snap.look.bubbleCss;
+    }
+    if (snap.profile && typeof snap.profile === 'object') {
+      if (typeof snap.profile.userName === 'string') s.profile.userName = snap.profile.userName;
+      if (typeof snap.profile.since === 'string') s.profile.since = snap.profile.since;
+    }
+    return true;
+  }
+
   /* 把整份状态序列化后写进 IndexedDB 的 kv 库，排队执行避免写入乱序 */
   function persistState() {
     const json = JSON.stringify(App.state);
@@ -57,6 +112,8 @@
   }
 
   function writeState() {
+    /* 先同步写设置镜像，即使下面的异步写入被刷新打断，设置也不会丢 */
+    saveSettingsSnapshot();
     if (storageMode === 'local') {
       saveToLocal();
       return;
@@ -437,6 +494,7 @@
       return store.get('state');
     }).then(function (record) {
       if (!record) return null;
+      lastDbSavedAt = Number(record.savedAt) || 0;
       if (typeof record.data === 'string') {
         try { return JSON.parse(record.data); } catch (e) { return null; }
       }
@@ -719,16 +777,19 @@
       s.currentContactId = s.contacts.length ? s.contacts[0].id : null;
     }
 
+    /* 设置镜像比本地库更新时（例如刚改完就刷新，异步写入没赶上），用镜像补齐 */
+    const snapshotUsed = applySettingsSnapshot(s);
+
     App.state = s;
-    return { state: s, fromDb: fromDb };
+    return { state: s, fromDb: fromDb, snapshotUsed: snapshotUsed };
   }
 
   App.load = function () {
     return readSavedState().then(function (saved) {
       const result = finishLoad(saved);
       storageMode = 'db';
-      /* 首次迁移：写进 IndexedDB 成功后再删掉 localStorage 里的旧副本 */
-      if (!result.fromDb) {
+      /* 首次迁移或补回了更新的设置镜像：写进 IndexedDB 成功后再删掉 localStorage 里的旧副本 */
+      if (!result.fromDb || result.snapshotUsed) {
         persistState().then(function () {
           try { localStorage.removeItem(KEY); } catch (e) {}
         }).catch(function () {
