@@ -902,7 +902,7 @@ button.widget:active { transform: scale(.99); }
 .moments-hero .avatar { flex: 0 0 auto; border: 2px solid rgba(255, 255, 255, .7); position: relative; z-index: 1; }
 .moments-hero-avatar {
   position: absolute;
-  right: 16px;
+  right: 6px;
   bottom: 14px;
   width: 66px;
   height: 66px;
