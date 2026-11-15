@@ -233,20 +233,23 @@
 
   function deleteContact() {
     if (!editingContact) return;
-    if (!confirm('删除「' + editingContact.name + '」和这段对话？此操作不可撤销。')) return;
-    const id = editingContact.id;
-    App.state.contacts = App.state.contacts.filter(function (c) { return c.id !== id; });
-    delete App.state.chats[id];
-    delete App.unread[id];
-    if (App.chatContactId === id) App.chatContactId = null;
-    if (App.state.currentContactId === id) {
-      App.state.currentContactId = App.state.contacts.length ? App.state.contacts[0].id : null;
-    }
-    App.save();
-    dialog.close();
-    editingContact = null;
-    App.renderAll();
-    App.toast('已删除联系人');
+    const contact = editingContact;
+    const id = contact.id;
+    App.confirmDialog('删除「' + contact.name + '」和这段对话？此操作不可撤销。', { title: '删除联系人', okText: '删除' }).then(function (ok) {
+      if (!ok) return;
+      App.state.contacts = App.state.contacts.filter(function (c) { return c.id !== id; });
+      delete App.state.chats[id];
+      delete App.unread[id];
+      if (App.chatContactId === id) App.chatContactId = null;
+      if (App.state.currentContactId === id) {
+        App.state.currentContactId = App.state.contacts.length ? App.state.contacts[0].id : null;
+      }
+      App.save();
+      dialog.close();
+      editingContact = null;
+      App.renderAll();
+      App.toast('已删除联系人');
+    });
   }
 
   let deskPage = 0;

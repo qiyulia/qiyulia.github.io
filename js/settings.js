@@ -985,12 +985,13 @@
           return;
         }
         const names = scopes.map(function (scope) { return scope.label; }).join('、');
-        if (!confirm('将用备份里的「' + names + '」覆盖本机对应内容，其他分类保持不动，继续？')) return;
-
-        /* 备份里的语音是 dataURL，先写回 IndexedDB 再把索引交给状态 */
-        return App.adoptVoiceDataUrls(data).then(function () {
-          applyBackupData(data, scopes);
-          App.toast('已导入：' + names);
+        return App.confirmDialog('将用备份里的「' + names + '」覆盖本机对应内容，其他分类保持不动，继续？', { title: '导入备份', okText: '导入' }).then(function (ok) {
+          if (!ok) return;
+          /* 备份里的语音是 dataURL，先写回 IndexedDB 再把索引交给状态 */
+          return App.adoptVoiceDataUrls(data).then(function () {
+            applyBackupData(data, scopes);
+            App.toast('已导入：' + names);
+          });
         });
       }).catch(function (err) {
         App.toast(err.message || '导入失败');
@@ -1016,8 +1017,9 @@
       });
     }
 
-    el('#btn-reset').addEventListener('click', function () {
-      if (!confirm('清空全部数据并恢复初始状态？建议先导出备份。')) return;
+    el('#btn-reset').addEventListener('click', async function () {
+      const ok = await App.confirmDialog('清空全部数据并恢复初始状态？建议先导出备份。', { title: '清空全部数据', okText: '清空' });
+      if (!ok) return;
       if (App.resetMusicMedia) App.resetMusicMedia();
       if (App.clearVoiceMedia) App.clearVoiceMedia().catch(function () {});
       App.state = App.seedState();

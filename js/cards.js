@@ -244,12 +244,14 @@
   }
 
   function deleteCard(card) {
-    if (!confirm('删除这张字卡？\n\n“' + card.text + '”')) return;
-    App.state.cards = App.state.cards.filter(function (c) { return c.id !== card.id; });
-    App.save();
-    App.renderCards();
-    App.renderDesktop();
-    App.toast('已删除字卡');
+    App.confirmDialog('删除这张字卡？\n\n“' + card.text + '”', { title: '删除字卡', okText: '删除' }).then(function (ok) {
+      if (!ok) return;
+      App.state.cards = App.state.cards.filter(function (c) { return c.id !== card.id; });
+      App.save();
+      App.renderCards();
+      App.renderDesktop();
+      App.toast('已删除字卡');
+    });
   }
 
   function importCards(file, fallbackCategory) {

@@ -428,13 +428,16 @@
           return;
         }
         if (e.target.closest('#mail-preview-delete')) {
-          if (!confirm('删除这封信？')) return;
-          App.state.mail = mailList().filter(function (m) { return m.id !== currentMailId; });
-          App.save();
-          App.updateMailBadge();
-          closePreview();
-          showList();
-          App.toast('信已删除');
+          const mailId = currentMailId;
+          App.confirmDialog('删除这封信？删除后无法恢复。', { title: '删除信件', okText: '删除' }).then(function (ok) {
+            if (!ok) return;
+            App.state.mail = mailList().filter(function (m) { return m.id !== mailId; });
+            App.save();
+            App.updateMailBadge();
+            closePreview();
+            showList();
+            App.toast('信已删除');
+          });
           return;
         }
         if (e.target.closest('#mail-preview-reply')) {

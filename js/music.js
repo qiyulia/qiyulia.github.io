@@ -697,24 +697,26 @@
   function deleteTrack(id) {
     const track = tracks().find(function (item) { return item.id === id; });
     if (!track || track.source === 'synth') return;
-    if (!confirm('删除「' + track.title + '」？本地音频文件也会一并删除。')) return;
-    clearTaTimers();
-    const index = tracks().indexOf(track);
-    if (App.state.music.currentId === id) {
-      stopPlayback();
-      releaseAudioSource();
-      const next = tracks()[index + 1] || tracks()[index - 1];
-      App.state.music.currentId = next ? next.id : '';
-      synth.step = 0;
-      synth.trackId = '';
-    }
-    App.state.music.tracks = tracks().filter(function (item) { return item.id !== id; });
-    App.state.music.favorites.mine = App.state.music.favorites.mine.filter(function (item) { return item !== id; });
-    App.state.music.favorites.ta = App.state.music.favorites.ta.filter(function (item) { return item !== id; });
-    if (track.source === 'local') deleteAudio(id).catch(function () {});
-    App.save();
-    App.renderMusic();
-    App.toast('已删除歌曲');
+    App.confirmDialog('删除「' + track.title + '」？本地音频文件也会一并删除。', { title: '删除歌曲', okText: '删除' }).then(function (ok) {
+      if (!ok) return;
+      clearTaTimers();
+      const index = tracks().indexOf(track);
+      if (App.state.music.currentId === id) {
+        stopPlayback();
+        releaseAudioSource();
+        const next = tracks()[index + 1] || tracks()[index - 1];
+        App.state.music.currentId = next ? next.id : '';
+        synth.step = 0;
+        synth.trackId = '';
+      }
+      App.state.music.tracks = tracks().filter(function (item) { return item.id !== id; });
+      App.state.music.favorites.mine = App.state.music.favorites.mine.filter(function (item) { return item !== id; });
+      App.state.music.favorites.ta = App.state.music.favorites.ta.filter(function (item) { return item !== id; });
+      if (track.source === 'local') deleteAudio(id).catch(function () {});
+      App.save();
+      App.renderMusic();
+      App.toast('已删除歌曲');
+    });
   }
 
   function openEdit(id) {

@@ -351,11 +351,15 @@
       }
 
       const remove = e.target.closest('[data-moment-delete]');
-      if (remove && confirm('删除这条动态？')) {
-        App.state.moments = App.state.moments.filter(function (item) { return item.id !== remove.dataset.momentDelete; });
-        App.save();
-        App.renderMoments();
-        App.toast('动态已删除');
+      if (remove) {
+        const momentId = remove.dataset.momentDelete;
+        App.confirmDialog('删除这条动态？删除后无法恢复。', { title: '删除动态', okText: '删除' }).then(function (ok) {
+          if (!ok) return;
+          App.state.moments = App.state.moments.filter(function (item) { return item.id !== momentId; });
+          App.save();
+          App.renderMoments();
+          App.toast('动态已删除');
+        });
       }
     });
 

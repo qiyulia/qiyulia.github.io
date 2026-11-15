@@ -363,11 +363,13 @@
       if (delBtn) {
         const product = findProduct(delBtn.dataset.marketDel);
         if (!product) return;
-        if (!confirm('把「' + product.name + '」下架？')) return;
-        App.state.market.products = products().filter(function (p) { return p !== product; });
-        App.save();
-        App.renderMarket();
-        App.toast('已下架「' + product.name + '」');
+        App.confirmDialog('把「' + product.name + '」下架？', { title: '下架商品', okText: '下架' }).then(function (ok) {
+          if (!ok) return;
+          App.state.market.products = products().filter(function (p) { return p !== product; });
+          App.save();
+          App.renderMarket();
+          App.toast('已下架「' + product.name + '」');
+        });
         return;
       }
 

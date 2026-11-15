@@ -853,13 +853,15 @@
     }
 
     if (action === 'delete') {
-      if (!confirm('删除这条消息？')) return;
-      const index = chat.indexOf(message);
-      if (index !== -1) chat.splice(index, 1);
-      App.save();
-      App.renderChat();
-      App.renderContacts();
-      App.toast('已删除消息');
+      App.confirmDialog('删除这条消息？删除后无法恢复。', { title: '删除消息', okText: '删除' }).then(function (ok) {
+        if (!ok) return;
+        const index = chat.indexOf(message);
+        if (index !== -1) chat.splice(index, 1);
+        App.save();
+        App.renderChat();
+        App.renderContacts();
+        App.toast('已删除消息');
+      });
     }
   }
 
@@ -2633,9 +2635,7 @@
     el('#btn-clear-chat').addEventListener('click', async function () {
       const id = App.chatContactId;
       if (!id) return;
-      const ok = App.confirmDialog
-        ? await App.confirmDialog('清空这段对话？此操作不可撤销。', { title: '删除本次聊天', okText: '删除' })
-        : confirm('清空这段对话？此操作不可撤销。');
+      const ok = await App.confirmDialog('清空这段对话？此操作不可撤销。', { title: '删除本次聊天', okText: '删除' });
       if (!ok) return;
       App.state.chats[id] = [];
       App.save();
