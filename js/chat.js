@@ -1080,7 +1080,12 @@
       }
       return;
     }
-    pushMessage({ id: App.uid('m'), role: role, type: 'image', src: src, sticker: true, ts: Date.now() });
+    /* 引用消息后只发表情包：表情包跟在被引用的消息下方一起发出去 */
+    const message = { id: App.uid('m'), role: role, type: 'image', src: src, sticker: true, ts: Date.now() };
+    if (quoteDraft) message.quote = quoteDraft;
+    quoteDraft = null;
+    renderComposerQuote();
+    pushMessage(message);
     closeStickerPanel();
     if (role === 'me') scheduleReply(App.chatContactId, '');
   }
