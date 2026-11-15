@@ -95,7 +95,7 @@
   function cardRow(c) {
     const extra =
       (c.category === '情绪'
-        ? '<span class="tag">情绪：' + App.esc(c.emotion || '平常') + '</span>'
+        ? '<span class="tag">情绪：' + App.esc(App.emotionLabel(c)) + '</span>'
         : '') +
       (c.category === '语音'
         ? '<span class="tag">语音' + (c.audio ? ' · mp3' : ' · 未添加') + '</span>'

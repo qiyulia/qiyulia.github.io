@@ -933,6 +933,16 @@
     return pool[Math.floor(Math.random() * pool.length)];
   };
 
+  /* 情绪卡真正展示的情绪：优先用填写的情绪，没填就用卡片正文（如「欢喜」） */
+  App.emotionLabel = function (card) {
+    if (!card) return '平常';
+    const e = String(card.emotion || '').trim();
+    if (e && e !== '平常') return e;
+    const t = String(card.text || '').trim();
+    if (t && t.length <= 4 && !/[，。,.!！?？、；;：:]/.test(t)) return t;
+    return e || '平常';
+  };
+
   /* ---------- 文件工具 ---------- */
   App.stamp = function () {
     const d = new Date();

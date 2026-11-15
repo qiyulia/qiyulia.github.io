@@ -458,7 +458,7 @@
         '<div class="emotion-row survey-append-row"><span class="emotion-chip">问卷追加</span></div>'
       : (hasEmotion
         ? '<span class="emotion-divider"></span>' +
-          '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(m.emotion || '平常') + '</span>' + readChip(m) + '</div>'
+          '<div class="emotion-row"><span class="emotion-chip">情绪</span><span class="emotion-value">' + App.esc(emotionOfMessage(m)) + '</span>' + readChip(m) + '</div>'
         : '');
     let body = '';
     if (m.type === 'image') {
@@ -879,9 +879,10 @@
     if (!contact) return;
     const picked = card || App.pickPatCard();
     const raw = picked ? picked.text : '拍了拍{name}';
+    /* 字卡里写了 {name} 才补上名字，没写就照原样显示 */
     const action = raw.indexOf('{name}') !== -1
       ? raw.split('{name}').join(contact.name)
-      : raw + ' ' + contact.name;
+      : raw;
     pushMessage({
       id: App.uid('m'),
       role: 'me',
@@ -920,7 +921,7 @@
     const raw = card ? card.text : '拍了拍{name}';
     const action = raw.indexOf('{name}') !== -1
       ? raw.split('{name}').join('你')
-      : raw + ' 你';
+      : raw;
 
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
@@ -1003,7 +1004,7 @@
         cardId: card.id,
       };
       if (isVoice) message.src = card.audio;
-      if (card.category === '情绪' && card.emotion) message.emotion = card.emotion;
+      if (card.category === '情绪') message.emotion = App.emotionLabel(card);
       if (App.chatOpen(contact.id)) message.read = true;
       chat.push(message);
       App.save();
@@ -1043,11 +1044,21 @@
   };
 
   function pickReplyEmotion(card) {
-    if (card.category === '情绪' && card.emotion) return card.emotion;
+    if (card.category === '情绪') return App.emotionLabel(card);
     const pool = App.state.cards.filter(function (c) {
-      return c.category === '情绪' && c.emotion;
+      return c.category === '情绪';
     });
-    return pool.length ? pool[Math.floor(Math.random() * pool.length)].emotion : '平常';
+    return pool.length ? App.emotionLabel(pool[Math.floor(Math.random() * pool.length)]) : '平常';
+  }
+
+  /* 老消息里存的是「平常」时，按卡片内容重新推导情绪 */
+  function emotionOfMessage(m) {
+    if (m.emotion && m.emotion !== '平常') return m.emotion;
+    const card = m.cardId
+      ? (App.state.cards || []).find(function (c) { return c.id === m.cardId; })
+      : null;
+    if (card && card.category === '情绪') return App.emotionLabel(card);
+    return m.emotion || '平常';
   }
 
   /* TA 按概率撤回/收藏自己或对方最近的消息 */
