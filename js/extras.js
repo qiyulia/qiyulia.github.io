@@ -1143,7 +1143,7 @@
       next.style.height = jump.nextH + 'px';
     }
     if (piece) {
-      piece.style.left = (jump.pieceX - 11) + 'px';
+      piece.style.left = (jump.pieceX - (piece.offsetWidth || 22) / 2) + 'px';
       piece.style.bottom = jump.pieceBottom + 'px';
       if (!jump.over) piece.style.transform = 'rotate(' + (jump.spin || 0) + 'deg)';
     }
@@ -1201,7 +1201,7 @@
   function jumpSpawnNext() {
     jump.nextX = jump.curX + 90 + Math.random() * 80;
     jump.nextW = 44 + Math.random() * 8;
-    jump.nextH = 46 + Math.floor(Math.random() * 3) * 10;
+    jump.nextH = 30 + Math.floor(Math.random() * 3) * 8;
   }
 
   function resetJump() {
@@ -1213,21 +1213,37 @@
     if (piece) piece.classList.remove('is-fall');
     jump = {
       pos: 0, dir: 1, speed: 0.55,
-      curX: 0, curW: 46, curH: 56,
-      nextX: 0, nextW: 46, nextH: 56,
-      pieceX: 0, pieceBottom: 56, spin: 0,
+      curX: 0, curW: 46, curH: 36,
+      nextX: 0, nextW: 46, nextH: 36,
+      pieceX: 0, pieceBottom: 36, spin: 0,
       camX: 0,
       turn: 'me', me: 0, ta: 0, taPlan: null, taPrev: null,
-      running: false, locked: false, raf: 0, last: 0, timer: 0, over: false,
+      running: false, locked: false, started: false, raf: 0, last: 0, timer: 0, over: false,
     };
     jumpSpawnNext();
     jump.camX = jump.curX - jumpBaseX();
     const next = el('#jump-plat-next');
     if (next) next.classList.remove('is-rise');
+    const startCover = el('#jump-start');
+    if (startCover) startCover.hidden = false;
+    const trackHint = el('#jump-dialog .jump-track-hint');
+    if (trackHint) trackHint.textContent = '先点「开始游戏」';
+    if (el('#jump-status')) {
+      el('#jump-status').textContent = '点「开始游戏」，然后轮流跳上平台。';
+    }
+    renderJump();
+  }
+
+  function startJumpGame() {
+    if (!jump || jump.started || jump.over) return;
+    jump.started = true;
+    const startCover = el('#jump-start');
+    if (startCover) startCover.hidden = true;
+    const trackHint = el('#jump-dialog .jump-track-hint');
+    if (trackHint) trackHint.textContent = '点这里起跳';
     if (el('#jump-status')) {
       el('#jump-status').textContent = '轮到你：竖线在长条上滑，点一下长条就起跳，落在平台上才站得住。';
     }
-    renderJump();
     startJumpRound();
   }
 
@@ -1315,7 +1331,7 @@
 
   function stopJump() {
     /* 只有轮到我时才能点长条起跳，TA 的回合由它自己跳 */
-    if (!jump || jump.over || jump.turn !== 'me') return;
+    if (!jump || jump.over || !jump.started || jump.turn !== 'me') return;
     jumpCommit();
   }
 
@@ -2191,6 +2207,8 @@
     if (jumpEnd) jumpEnd.addEventListener('click', function () { hideToolPanel('#jump-dialog'); });
     const jumpReset = el('#jump-reset');
     if (jumpReset) jumpReset.addEventListener('click', resetJump);
+    const jumpStart = el('#jump-start');
+    if (jumpStart) jumpStart.addEventListener('click', startJumpGame);
     const mineBoard = el('#mine-board');
     if (mineBoard) {
       let pressTimer = null;
