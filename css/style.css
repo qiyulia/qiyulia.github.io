@@ -1455,6 +1455,8 @@ dialog.moment-sheet {
 .bubble-combo .bubble-sticker {
   width: 128px;
   max-width: 52vw;
+  height: auto;
+  border-radius: 12px;
   box-shadow: none;
 }
 .bubble-combo .bubble-text,
