@@ -650,6 +650,12 @@
     } else {
       body = '<div class="bubble bubble-with-read"><span class="bubble-text">' + App.esc(m.text) + '</span>' + readChip(m) + '</div>';
     }
+    /* 文字 + 表情包一起发：文字在上，表情包在下 */
+    if (m.stickerSrc) {
+      body = '<div class="bubble-combo">' + body +
+        '<img class="bubble-sticker" loading="lazy" decoding="async" src="' + App.esc(m.stickerSrc) + '" alt="表情包">' +
+        '</div>';
+    }
     const quote = quoteHtml(m.quote);
     const marks = [];
     if (m.favMine) marks.push('我收藏了');
@@ -1049,6 +1055,25 @@
   function sendSticker(src) {
     if (!App.chatContactId || !src) return;
     const role = sendRole();
+    const input = el('#msg-input');
+    /* 输入框里已经打了字：文字和表情包合成一条消息发出去，表情包在文字下面 */
+    const text = input ? input.value.trim() : '';
+    if (text) {
+      const message = { id: App.uid('m'), role: role, type: 'text', text: text, stickerSrc: src, ts: Date.now() };
+      if (quoteDraft) message.quote = quoteDraft;
+      quoteDraft = null;
+      renderComposerQuote();
+      input.value = '';
+      input.style.height = 'auto';
+      pushMessage(message);
+      closeStickerPanel();
+      if (role === 'me') {
+        scheduleReply(App.chatContactId, text);
+        maybeOfferCard(App.chatContactId, text);
+        if (App.maybeHangupOnWords) App.maybeHangupOnWords(App.chatContactId, text);
+      }
+      return;
+    }
     pushMessage({ id: App.uid('m'), role: role, type: 'image', src: src, sticker: true, ts: Date.now() });
     closeStickerPanel();
     if (role === 'me') scheduleReply(App.chatContactId, '');
@@ -1422,6 +1447,15 @@
       if (group.length > 1) message.cardIds = group.map(function (c) { return c.id; });
       if (group.length === 1 && card.category === '语音') message.src = card.audio;
       if (Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
+
+      /* TA 也会把文字和表情包一起发：文字在上，表情包在下 */
+      if (message.type === 'text' && group.length === 1) {
+        const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerProb) || 0));
+        const stickerPool = (App.state.stickers.ta || []).concat(App.state.stickers.public || []);
+        if (stickerPool.length && Math.random() * 100 < stickerProb) {
+          message.stickerSrc = stickerPool[Math.floor(Math.random() * stickerPool.length)];
+        }
+      }
 
       const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
       if (chat.length && Math.random() * 100 < quoteProb) {

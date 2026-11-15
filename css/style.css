@@ -1441,6 +1441,24 @@ dialog.moment-sheet {
   border-radius: 12px;
   box-shadow: 0 5px 14px rgba(0, 0, 0, .1);
 }
+
+/* 文字 + 表情包合并发送：文字气泡在上，表情包紧贴在下面 */
+.bubble-combo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.msg.me .bubble-combo { align-items: flex-end; }
+.bubble-sticker {
+  display: block;
+  width: 96px;
+  max-width: 44vw;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .1);
+}
 .pat-line {
   align-self: center;
   margin: 2px 0;
