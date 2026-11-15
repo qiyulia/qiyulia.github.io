@@ -875,7 +875,7 @@ button.widget:active { transform: scale(.99); }
 .moments-hero {
   position: relative;
   flex: 0 0 auto;
-  min-height: 214px;
+  min-height: 172px;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -900,7 +900,7 @@ button.widget:active { transform: scale(.99); }
   font-weight: 600;
 }
 .moments-hero .avatar { flex: 0 0 auto; border: 2px solid rgba(255, 255, 255, .7); position: relative; z-index: 1; }
-.moments-hero-avatar {
+.moments-hero .avatar.moments-hero-avatar {
   position: absolute;
   right: 6px;
   bottom: 14px;
@@ -911,7 +911,7 @@ button.widget:active { transform: scale(.99); }
   box-shadow: 0 8px 20px rgba(20, 40, 70, .22);
   z-index: 2;
 }
-.moments-hero-avatar img { border-radius: 13px; }
+.moments-hero .avatar.moments-hero-avatar img { border-radius: 13px; }
 .moments-add {
   position: absolute;
   top: 16px;
