@@ -2763,14 +2763,33 @@ dialog.more-sheet::backdrop {
 .market-subsidy-actions .btn { flex: 1 1 0; }
 .market-add-form { display: flex; flex-direction: column; gap: 10px; }
 .market-list { display: flex; flex-direction: column; gap: 10px; }
-.market-group-title {
-  margin: 6px 2px -2px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  color: var(--muted);
+.market-cats {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 10px;
+  margin: 0 -2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
-.market-group-title:first-child { margin-top: 0; }
+.market-cats::-webkit-scrollbar { display: none; }
+.market-cat {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.market-cat.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: transparent;
+  font-weight: 600;
+}
 .market-item {
   display: flex;
   align-items: flex-start;

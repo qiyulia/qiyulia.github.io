@@ -257,12 +257,22 @@
       const cat = categoryOf(p);
       (groups[cat] || (groups[cat] = [])).push(p);
     });
-    list.innerHTML = items.length
-      ? order.filter(function (cat) { return groups[cat] && groups[cat].length; }).map(function (cat) {
-          return '<h3 class="market-group-title">' + App.esc(cat) + '</h3>' +
-            groups[cat].map(itemHtml).join('');
-        }).join('')
-      : '<p class="market-empty">集市还是空的，上架一件商品吧。</p>';
+
+    const present = order.filter(function (cat) { return groups[cat] && groups[cat].length; });
+    const catsBox = el('#market-cats');
+    if (catsBox) {
+      const tabs = ['全部'].concat(present);
+      if (!App.marketCat || tabs.indexOf(App.marketCat) === -1) App.marketCat = '全部';
+      catsBox.innerHTML = tabs.map(function (cat) {
+        return '<button type="button" class="market-cat' + (cat === App.marketCat ? ' is-active' : '') +
+          '" data-market-cat="' + App.esc(cat) + '">' + App.esc(cat) + '</button>';
+      }).join('');
+    }
+
+    const shown = App.marketCat === '全部' ? items : (groups[App.marketCat] || []);
+    list.innerHTML = shown.length
+      ? shown.map(itemHtml).join('')
+      : '<p class="market-empty">' + (items.length ? '这个分类还没有商品。' : '集市还是空的，上架一件商品吧。') + '</p>';
   };
 
   function findProduct(id) {
@@ -281,6 +291,16 @@
 
     el('#market-subsidy-me').addEventListener('click', function () { subsidy('me'); });
     el('#market-subsidy-ta').addEventListener('click', function () { subsidy('ta'); });
+
+    const catsBox = el('#market-cats');
+    if (catsBox) {
+      catsBox.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-market-cat]');
+        if (!btn) return;
+        App.marketCat = btn.dataset.marketCat;
+        App.renderMarket();
+      });
+    }
 
     el('#market-add-form').addEventListener('submit', function (e) {
       e.preventDefault();
@@ -303,6 +323,7 @@
       });
       App.save();
       el('#market-add-form').reset();
+      App.marketCat = cat;
       App.renderMarket();
       App.toast('已上架「' + name + '」');
     });
