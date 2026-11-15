@@ -321,11 +321,27 @@
     }
   });
 
+  /* 关掉系统输入法上方自带的站外填充条（密码 / 银行卡 / 联系人），让键盘只属于本站 */
+  function disableSystemAutofill() {
+    document.querySelectorAll('input, textarea').forEach(function (node) {
+      const type = String(node.getAttribute('type') || '').toLowerCase();
+      if (type === 'file' || type === 'checkbox' || type === 'radio' || type === 'date' || type === 'time') return;
+      node.setAttribute('autocomplete', 'off');
+      node.setAttribute('autocorrect', 'off');
+      node.setAttribute('autocapitalize', 'off');
+      node.setAttribute('spellcheck', 'false');
+      node.setAttribute('data-form-type', 'other');
+      node.setAttribute('data-lpignore', 'true');
+      node.setAttribute('data-1p-ignore', 'true');
+    });
+  }
+
   /* 数据在 IndexedDB 里，读取是异步的，读完再初始化界面 */
   function boot() {
   seedSeenChats();
   App.chatContactId = null;
   App.applyTheme();
+  disableSystemAutofill();
 
   App.initDesktop();
   App.initChat();
