@@ -68,10 +68,33 @@
   };
 
   /* 跟随可视视口高度，避免弹出输入法时底部露出空白。 */
-  function syncAppHeight() {
+  let lastAppHeight = 0;
+  let heightRaf = 0;
+  let expandTimer = 0;
+
+  function applyAppHeight() {
+    heightRaf = 0;
     const viewport = window.visualViewport;
-    const height = viewport ? viewport.height : window.innerHeight;
-    if (height) document.documentElement.style.setProperty('--app-height', Math.round(height) + 'px');
+    const height = Math.round((viewport ? viewport.height : window.innerHeight) || 0);
+    if (!height) return;
+    const growing = lastAppHeight > 0 && height > lastAppHeight + 24;
+    lastAppHeight = height;
+    if (growing) {
+      /* 关闭输入法时让高度平滑展开，避免输入框先被挤出屏幕再弹回来 */
+      document.documentElement.classList.add('is-keyboard-closing');
+      clearTimeout(expandTimer);
+      expandTimer = setTimeout(function () {
+        document.documentElement.classList.remove('is-keyboard-closing');
+      }, 280);
+    }
+    document.documentElement.style.setProperty('--app-height', height + 'px');
+    if (growing && viewport && viewport.offsetTop > 0) window.scrollTo(0, 0);
+  }
+
+  /* 输入法弹出/收起会连续触发几十次 resize，合并到每帧只改一次高度，避免卡顿 */
+  function syncAppHeight() {
+    if (heightRaf) return;
+    heightRaf = requestAnimationFrame(applyAppHeight);
   }
   syncAppHeight();
   window.addEventListener('resize', syncAppHeight);

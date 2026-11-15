@@ -2300,11 +2300,18 @@
     });
 
     /* 输入法弹出、视口变矮时，消息重新贴到最后一条 */
+    let keepBottomRaf = 0;
+    let keepBottomTimer = 0;
     const keepBottom = function () {
       if (document.activeElement !== input) return;
-      [0, 120, 320].forEach(function (delay) {
-        setTimeout(function () { scrollBottom(true); }, delay);
-      });
+      if (!keepBottomRaf) {
+        keepBottomRaf = requestAnimationFrame(function () {
+          keepBottomRaf = 0;
+          scrollBottom(true);
+        });
+      }
+      clearTimeout(keepBottomTimer);
+      keepBottomTimer = setTimeout(function () { scrollBottom(true); }, 240);
     };
     input.addEventListener('focus', keepBottom);
     window.addEventListener('resize', keepBottom);
