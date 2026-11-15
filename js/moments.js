@@ -243,9 +243,16 @@
   App.initMoments = function () {
     const form = el('#moment-form');
     const input = el('#moment-input');
+    const dialog = el('#moment-dialog');
 
     input.addEventListener('input', function () {
       el('#moment-count').textContent = input.value.length + ' / 300';
+    });
+
+    el('#moment-open').addEventListener('click', function () {
+      if (!dialog) return;
+      dialog.showModal();
+      setTimeout(function () { input.focus(); }, 60);
     });
 
     form.addEventListener('submit', function (e) {
@@ -268,6 +275,7 @@
       App.save();
       form.reset();
       el('#moment-count').textContent = '0 / 300';
+      if (dialog && dialog.open) dialog.close();
       App.renderMoments();
       App.toast('动态已发布');
       scheduleTaReact(moment.id);
