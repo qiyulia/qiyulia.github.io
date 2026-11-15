@@ -125,8 +125,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   justify-content: center;
 }
 
-/* 关闭输入法时让外壳高度平滑收放，避免输入框先被挤出屏幕再弹回原位 */
-html.is-keyboard-closing .stage { transition: height .24s ease; }
+/* 输入法弹出/收起时让外壳高度平滑收放，输入框跟着键盘一起移动 */
+html.is-keyboard-animating .stage { transition: height .18s ease-out; }
 
 .app {
   position: relative;

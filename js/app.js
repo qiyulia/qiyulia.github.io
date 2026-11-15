@@ -104,18 +104,22 @@
     const viewport = window.visualViewport;
     const height = Math.round((viewport ? viewport.height : window.innerHeight) || 0);
     if (!height) return;
-    const growing = lastAppHeight > 0 && height > lastAppHeight + 24;
+    const diff = lastAppHeight > 0 ? height - lastAppHeight : 0;
     lastAppHeight = height;
-    if (growing) {
-      /* 关闭输入法时让高度平滑展开，避免输入框先被挤出屏幕再弹回来 */
-      document.documentElement.classList.add('is-keyboard-closing');
+    if (Math.abs(diff) > 24) {
+      /* 输入法弹出往上收、收起往下放，都让高度平滑过渡，输入框跟着键盘一起移动 */
+      document.documentElement.classList.add('is-keyboard-animating');
       clearTimeout(expandTimer);
       expandTimer = setTimeout(function () {
-        document.documentElement.classList.remove('is-keyboard-closing');
-      }, 280);
+        document.documentElement.classList.remove('is-keyboard-animating');
+      }, 320);
     }
     document.documentElement.style.setProperty('--app-height', height + 'px');
-    if (growing && viewport && viewport.offsetTop > 0) window.scrollTo(0, 0);
+    /* iOS 会把可视视口往上平移去露出输入框，拉回原位，避免输入框先停在上面再掉下来 */
+    if (viewport && viewport.offsetTop > 0) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+    }
   }
 
   /* 输入法弹出/收起会连续触发几十次 resize，合并到每帧只改一次高度，避免卡顿 */
