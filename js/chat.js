@@ -1594,10 +1594,15 @@
     resetChatImageDraft();
   }
 
-  App.openStickerPanel = function () {
+  App.openStickerPanel = function (keepTab) {
     const panel = el('#sticker-panel');
     if (!panel) return;
     panel.hidden = false;
+    if (!keepTab) {
+      /* 正常打开都从「公共」开始，只有恢复选图时保留原分类 */
+      App.stickerTab = 'public';
+      App.panelKind = 'sticker';
+    }
     renderStickerPanel();
   };
 
@@ -1737,10 +1742,14 @@
         return;
       }
       return stashPending(data.files, data.tab, attempts + 1).then(function () {
+        /* 恢复选图只在后台完成，不自动弹出面板、不把界面切到「我」 */
+        const prevTab = App.stickerTab;
         if (data.tab) App.stickerTab = data.tab;
-        if (App.chatContactId) App.openStickerPanel();
         App.toast('正在恢复上次选择的图片…');
-        return addStickers(data.files);
+        return addStickers(data.files).then(function () {
+          App.stickerTab = prevTab || 'public';
+          renderStickerPanel();
+        });
       });
     }).catch(function () {});
   };
