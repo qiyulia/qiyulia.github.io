@@ -170,7 +170,7 @@
     const cs = App.contactSettings(contact);
     el('#ct-reply-min').value = cs.replyMin;
     el('#ct-reply-max').value = cs.replyMax;
-    el('#ct-typing').value = cs.typingMin;
+    el('#ct-typing').value = Math.round((Number(cs.typingMin) || 0) * 60);
     el('#ct-pat-back').value = cs.taPatProb;
     el('#ct-sticker').value = cs.taStickerProb;
     el('#ct-like').value = cs.taLikeProb;
@@ -198,7 +198,7 @@
     const settings = {
       replyMin: min,
       replyMax: max,
-      typingMin: Math.max(0, Math.min(5, Number(el('#ct-typing').value) || 0.1)),
+      typingMin: Math.max(0, Math.min(300, Math.round(Number(el('#ct-typing').value) || 0))) / 60,
       taPatProb: Number(el('#ct-pat-back').value) || 0,
       taStickerProb: Math.max(0, Math.min(100, Number(el('#ct-sticker').value) || 0)),
       taLikeProb: Number(el('#ct-like').value) || 0,
@@ -649,7 +649,7 @@
 
     // 角色弹窗里的数字/概率：手动输入或 −/+ 微调，保存时统一读取
     const noop = function () {};
-    App.bindStepper('#ct-typing', noop, { min: 0, max: 5, step: 0.1, decimals: 1 });
+    App.bindStepper('#ct-typing', noop, { min: 0, max: 300, step: 1, decimals: 0 });
     App.bindStepper('#ct-pat-back', noop);
     App.bindStepper('#ct-sticker', noop);
     App.bindStepper('#ct-like', noop);

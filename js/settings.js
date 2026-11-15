@@ -236,7 +236,7 @@
     el('#set-since').value = st.profile.since || '';
     el('#set-min').value = st.settings.replyMin;
     el('#set-max').value = st.settings.replyMax;
-    el('#set-typing').value = st.settings.typingMin == null ? 0.1 : st.settings.typingMin;
+    el('#set-typing').value = Math.round((st.settings.typingMin == null ? 0.1 : Number(st.settings.typingMin) || 0) * 60);
     el('#set-ta-msg-prob').value = st.settings.taMsgProb == null ? 8 : st.settings.taMsgProb;
     el('#set-ta-msg-gap').value = st.settings.taMsgGapMin == null ? 1 : st.settings.taMsgGapMin;
     el('#set-ta-msg-min').value = st.settings.taMsgMin == null ? 1 : st.settings.taMsgMin;
@@ -652,9 +652,9 @@
     });
 
     App.bindStepper('#set-typing', function (v) {
-      App.state.settings.typingMin = v;
+      App.state.settings.typingMin = Math.max(0, Math.min(300, Math.round(Number(v) || 0))) / 60;
       markDirty();
-    }, { min: 0, max: 5, step: 0.1, decimals: 1 });
+    }, { min: 0, max: 300, step: 1, decimals: 0 });
 
     App.bindStepper('#set-ta-msg-prob', function (v) {
       App.state.settings.taMsgProb = v;
