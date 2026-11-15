@@ -236,7 +236,8 @@
     el('#set-since').value = st.profile.since || '';
     el('#set-min').value = st.settings.replyMin;
     el('#set-max').value = st.settings.replyMax;
-    el('#set-typing').value = Math.round((st.settings.typingMin == null ? 0.1 : Number(st.settings.typingMin) || 0) * 60);
+    el('#set-typing-min').value = Math.round(Number(st.settings.replyDelayMinSec) || 0);
+    el('#set-typing-max').value = Math.round(Number(st.settings.replyDelayMaxSec) || 0);
     el('#set-ta-msg-prob').value = st.settings.taMsgProb == null ? 8 : st.settings.taMsgProb;
     el('#set-ta-msg-gap').value = st.settings.taMsgGapMin == null ? 1 : st.settings.taMsgGapMin;
     el('#set-ta-msg-min').value = st.settings.taMsgMin == null ? 1 : st.settings.taMsgMin;
@@ -651,10 +652,27 @@
       markDirty();
     });
 
-    App.bindStepper('#set-typing', function (v) {
-      App.state.settings.typingMin = Math.max(0, Math.min(300, Math.round(Number(v) || 0))) / 60;
+    el('#set-typing-min').addEventListener('change', function (e) {
+      let v = Math.max(0, Math.min(300, Math.round(Number(e.target.value) || 0)));
+      const max = Number(App.state.settings.replyDelayMaxSec);
+      if (Number.isFinite(max) && v > max) {
+        v = max;
+        e.target.value = v;
+      }
+      App.state.settings.replyDelayMinSec = v;
       markDirty();
-    }, { min: 0, max: 300, step: 1, decimals: 0 });
+    });
+
+    el('#set-typing-max').addEventListener('change', function (e) {
+      let v = Math.max(0, Math.min(300, Math.round(Number(e.target.value) || 0)));
+      const min = Number(App.state.settings.replyDelayMinSec) || 0;
+      if (v < min) {
+        v = min;
+        e.target.value = v;
+      }
+      App.state.settings.replyDelayMaxSec = v;
+      markDirty();
+    });
 
     App.bindStepper('#set-ta-msg-prob', function (v) {
       App.state.settings.taMsgProb = v;

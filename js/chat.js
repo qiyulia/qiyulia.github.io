@@ -1348,9 +1348,12 @@
 
       setTyping(contactId, true);
 
-      const base = Math.max(0, Math.min(5, Number(cs.typingMin) || 0)) * 60000;
+      const fast = Math.max(0, Math.min(300, Number(cs.replyDelayMinSec) || 0));
+      const slow = Math.max(fast, Math.min(300, Number(cs.replyDelayMaxSec) || 0));
+      const base = (fast + Math.random() * (slow - fast)) * 1000;
       const extra = group.length === 1 && card.category === '语音' ? 900 : 0;
-      const wait = Math.min(300000, base + extra + mergedText.length * 22 + Math.random() * 260);
+      /* 严格落在「最快～最慢」区间内 */
+      const wait = Math.max(fast * 1000, Math.min(slow * 1000, base + extra));
       await sleep(wait);
 
       setTyping(contactId, false);

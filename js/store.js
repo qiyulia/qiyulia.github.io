@@ -513,6 +513,14 @@
         : 0.1;
     }
     delete s.settings.typingMs;
+    /* 回复时间改为「最快 / 最慢」区间（秒） */
+    if (s.settings.replyDelayMinSec == null) {
+      const oldSec = Math.round((Number(s.settings.typingMin) || 0.1) * 60);
+      s.settings.replyDelayMinSec = Math.max(0, Math.min(300, oldSec));
+    }
+    if (s.settings.replyDelayMaxSec == null) {
+      s.settings.replyDelayMaxSec = Math.min(300, Math.max(Number(s.settings.replyDelayMinSec) || 0, Math.round((Number(s.settings.typingMin) || 0.1) * 60) + 10));
+    }
     if (!s.avatarPool || typeof s.avatarPool !== 'object') s.avatarPool = { mine: [], ta: [] };
     if (!Array.isArray(s.avatarPool.mine)) s.avatarPool.mine = [];
     if (!Array.isArray(s.avatarPool.ta)) s.avatarPool.ta = [];
@@ -748,6 +756,8 @@
       replyMin: pick('replyMin', 1),
       replyMax: pick('replyMax', 2),
       typingMin: pick('typingMin', 0.1),
+      replyDelayMinSec: pick('replyDelayMinSec', 6),
+      replyDelayMaxSec: pick('replyDelayMaxSec', 20),
       taMsgProb: pick('taMsgProb', 8),
       taMsgGapMin: pick('taMsgGapMin', 1),
       taMsgMin: pick('taMsgMin', 1),
