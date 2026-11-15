@@ -30,7 +30,11 @@
     app.dataset.view = view;
 
     if (view === 'desktop') {
-      if (App.showDeskPage) App.showDeskPage(0);
+      /* 无论从哪个功能退回主页，都回到第一页；布局完成后再校准一次位置 */
+      if (App.showDeskPage) {
+        App.showDeskPage(0);
+        requestAnimationFrame(function () { App.showDeskPage(0); });
+      }
       App.renderDesktop();
     }
     else if (view === 'contacts') App.renderContacts();
