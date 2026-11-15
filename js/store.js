@@ -482,6 +482,17 @@
       s.chats[id] = out;
     });
     if (!Array.isArray(s.cards)) s.cards = App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); });
+    /* 情绪卡只作为气泡里的情绪标签，不再作为一条独立消息；清掉以前误发出来的那些 */
+    if (!s.emotionTextCleaned) {
+      const moodIds = {};
+      s.cards.forEach(function (c) { if (c && c.category === '情绪') moodIds[c.id] = true; });
+      Object.keys(s.chats).forEach(function (id) {
+        s.chats[id] = (s.chats[id] || []).filter(function (m) {
+          return !(m && m.type === 'text' && m.cardId && moodIds[m.cardId]);
+        });
+      });
+      s.emotionTextCleaned = true;
+    }
     if (!s.profile) s.profile = { userName: '我', userAvatar: App.DEFAULT_AVATAR, since: '' };
     /* 旧版默认形象（阿眠 / 🌙 / 🍊）换成中性 ta 与灰底人像，用户自己选的图片不受影响 */
     const legacyAvatar = function (src) {

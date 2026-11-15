@@ -557,7 +557,7 @@
     if (Math.random() >= 0.4) return;
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
-      const cards = App.pickCards('', 1, contactId, ['聊天', '情绪']);
+      const cards = App.pickCards('', 1, contactId, ['聊天']);
       const card = cards.length ? cards[0] : null;
       deliverMessage(contactId, {
         id: App.uid('m'),
@@ -929,7 +929,7 @@
       const chat = App.state.chats[contactId] || [];
       const message = chat.find(function (m) { return m.id === messageId; });
       if (!message || message.reply) return;
-      const cards = App.pickCards('', 1, contactId, ['聊天', '情绪']);
+      const cards = App.pickCards('', 1, contactId, ['聊天']);
       const card = cards.length ? cards[0] : null;
       message.reply = {
         text: card ? card.text : '牌面很安静，我先陪你坐一会儿。',

@@ -1126,7 +1126,7 @@
       return c.enabled !== false && c.text && c.category === '语音' && c.audio;
     });
     const textPool = (st.cards || []).filter(function (c) {
-      return c.enabled !== false && c.text && (c.category === '聊天' || c.category === '情绪');
+      return c.enabled !== false && c.text && c.category === '聊天';
     });
     const voiceProb = Math.max(0, Math.min(100, Number(cs.taVoiceProb) || 0));
     const wantVoice = voicePool.length && Math.random() * 100 < voiceProb;
@@ -1277,11 +1277,11 @@
     /* 语音字卡：按概率决定这一轮是否发语音，没命中就避开语音卡 */
     const voiceProb = Math.max(0, Math.min(100, Number(cs.taVoiceProb) || 0));
     const wantVoice = Math.random() * 100 < voiceProb;
-    const cats = wantVoice ? ['聊天', '情绪', '语音'] : ['聊天', '情绪'];
+    const cats = wantVoice ? ['聊天', '语音'] : ['聊天'];
     let cards = App.pickCards(userText, count, contactId, cats);
     /* 只有语音卡时，仍然让它回一句，避免 TA 完全不说话 */
     if (!cards.length && !wantVoice) {
-      cards = App.pickCards(userText, count, contactId, ['聊天', '情绪', '语音']);
+      cards = App.pickCards(userText, count, contactId, ['聊天', '语音']);
     }
     if (wantVoice && !cards.some(function (c) { return c.category === '语音' && c.audio; })) {
       const voicePool = (App.state.cards || []).filter(function (c) {
