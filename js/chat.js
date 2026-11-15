@@ -288,7 +288,7 @@
       const roll = Math.random() * 100;
       if (roll < accept) settlePacket(target.type, contactId, target.id, 'accept');
       else if (roll < accept + back) settlePacket(target.type, contactId, target.id, 'return');
-    }, 3000 + Math.random() * 3000);
+    }, 3000 + Math.random() * 7000);
   }
 
   function packetHtml(m) {
