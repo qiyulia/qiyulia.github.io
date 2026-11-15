@@ -5,7 +5,7 @@
   const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
   if (App.sendAs == null) App.sendAs = 'me';
-  if (App.stickerTab == null) App.stickerTab = 'me';
+  if (App.stickerTab == null) App.stickerTab = 'public';
   if (App.panelKind == null) App.panelKind = 'sticker';
 
   let quoteDraft = null;
