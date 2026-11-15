@@ -301,13 +301,16 @@
     const mine = m.role === 'me';
     const statusText = pending
       ? (mine ? '等 TA 看见' : '等 TA 回应')
-      : (m.status === 'rejected' ? '已被拒绝' : (m.status === 'accepted' ? '已接受' : '已买下'));
-    return '<div class="bubble bubble-gift bubble-wish' + (pending ? '' : ' is-done') + (m.status === 'rejected' ? ' is-returned' : '') + '">' +
+      : (m.status === 'rejected' ? '已被拒绝' : (m.status === 'declined' ? '已拒绝' : (m.status === 'accepted' ? '已接受' : '已买下')));
+    return '<div class="bubble bubble-gift bubble-wish' + (pending ? '' : ' is-done') + (m.status === 'rejected' || m.status === 'declined' ? ' is-returned' : '') + '">' +
       '<div class="packet-head"><span class="packet-tag">心愿</span><em>' + statusText + '</em></div>' +
       '<p class="gift-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</p>' +
       '<p class="packet-note">' + Number(m.price || 0) + ' 同心币' + (pending && !mine ? ' · 想要这个' : '') + '</p>' +
       (pending && !mine
-        ? '<div class="packet-actions"><button type="button" data-wish-buy="' + App.esc(m.id) + '">买给他</button></div>'
+        ? '<div class="packet-actions">' +
+            '<button type="button" data-wish-buy="' + App.esc(m.id) + '">买给他</button>' +
+            '<button type="button" data-wish-decline="' + App.esc(m.id) + '">拒绝</button>' +
+          '</div>'
         : '') +
       '</div>';
   }
@@ -336,6 +339,18 @@
     App.addChatSystemMessage(contactId, '你给 TA 买下了「' + (wish.productName || '礼物') + '」，花掉 ' + price + ' 同心币');
     if (App.renderMarket) App.renderMarket();
     App.toast('已买下「' + (wish.productName || '礼物') + '」');
+  }
+
+  /* 不买 TA 许愿的东西 */
+  function declineWish(contactId, messageId) {
+    const chat = App.state.chats[contactId] || [];
+    const wish = chat.find(function (m) { return m.id === messageId; });
+    if (!wish || wish.type !== 'wish' || wish.status !== 'pending' || wish.role !== 'ta') return;
+    wish.status = 'declined';
+    wish.decided = true;
+    App.save();
+    if (App.chatOpen(contactId)) App.renderChat();
+    App.toast('这次没给他买');
   }
 
   /* 我许愿后，TA 看到时的三种结果：答应并立马送、拒绝、或者这次不作处理 */
@@ -2112,6 +2127,13 @@
         e.preventDefault();
         e.stopPropagation();
         buyWish(App.chatContactId, wishBuyBtn.dataset.wishBuy);
+        return;
+      }
+      const wishDeclineBtn = e.target.closest('[data-wish-decline]');
+      if (wishDeclineBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        declineWish(App.chatContactId, wishDeclineBtn.dataset.wishDecline);
         return;
       }
       const packetBtn = e.target.closest('[data-rp-accept], [data-rp-return], [data-gift-accept], [data-gift-return]');
