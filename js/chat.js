@@ -550,20 +550,28 @@
     const rect = bubble.getBoundingClientRect();
     const box = menu.getBoundingClientRect();
     const appRect = (document.getElementById('app') || document.body).getBoundingClientRect();
+
+    /* 气泡滑出聊天区或手机框后，操作栏直接收起 */
+    const listRect = chatScroller ? chatScroller.getBoundingClientRect() : appRect;
+    const visibleTop = Math.max(appRect.top, listRect.top);
+    const visibleBottom = Math.min(appRect.bottom, listRect.bottom);
+    if (rect.bottom <= visibleTop || rect.top >= visibleBottom) {
+      menu.style.visibility = 'hidden';
+      return;
+    }
+
     /* 我的消息：操作栏右边缘对齐气泡右边缘；TA 的消息：左边缘对齐气泡左边缘 */
     let left = (mine ? rect.right - box.width : rect.left) - appRect.left;
     left = Math.max(8, Math.min(appRect.width - box.width - 8, left));
+    /* 贴着气泡上下移动，不再强行夹在手机框内 */
     let top = rect.top - box.height - 8 - appRect.top;
     if (top < 8) top = rect.bottom + 8 - appRect.top;
-    top = Math.max(8, Math.min(appRect.height - box.height - 8, top));
     menu.style.left = left + 'px';
     menu.style.top = top + 'px';
 
-    if (chatScroller) {
-      const listRect = chatScroller.getBoundingClientRect();
-      const outside = rect.bottom < listRect.top || rect.top > listRect.bottom;
-      menu.style.visibility = outside ? 'hidden' : '';
-    }
+    const outOfFrame = top < 0 || top + box.height > appRect.height ||
+      rect.top < visibleTop || rect.bottom > visibleBottom;
+    menu.style.visibility = outOfFrame ? 'hidden' : '';
   }
 
   function openMsgActions(msgEl) {
@@ -592,7 +600,7 @@
     positionMsgActions(node);
   }
 
-  const chatScroller = el('#chat-list');
+  const chatScroller = el('#chat-scroll');
   if (chatScroller) chatScroller.addEventListener('scroll', trackMsgActions, { passive: true });
   window.addEventListener('resize', trackMsgActions);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', trackMsgActions);
