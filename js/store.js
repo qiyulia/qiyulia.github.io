@@ -629,6 +629,15 @@
       p.fav = p.fav && typeof p.fav === 'object' ? p.fav : { me: false, ta: false };
       return p;
     });
+    /* 集市上架新商品：老存档只补一次，之后用户自己下架不会再被补回来 */
+    if ((Number(s.settings.marketSeedVersion) || 1) < 2) {
+      const haveIds = {};
+      s.market.products.forEach(function (p) { haveIds[p.id] = true; });
+      App.MARKET_SEED().forEach(function (p) {
+        if (!haveIds[p.id]) s.market.products.push(p);
+      });
+      s.settings.marketSeedVersion = 2;
+    }
     if (!s.iconStyle || typeof s.iconStyle !== 'object') s.iconStyle = { shape: 'rounded', color: 'blue' };
     if (!['rounded', 'circle', 'square'].includes(s.iconStyle.shape)) s.iconStyle.shape = 'rounded';
     if (!['blue', 'lilac', 'sage', 'apricot'].includes(s.iconStyle.color)) s.iconStyle.color = 'blue';
