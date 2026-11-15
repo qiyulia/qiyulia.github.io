@@ -510,8 +510,8 @@
   App.maybeTaSurvey = maybeTaSendSurvey;
 
   /* TA 主动补贴同心币：概率和冷却时间在 设置 → 资料 里改 */
-  const SUBSIDY_MAX = 1000000000;
-  const SUBSIDY_SPECIAL = [66, 88, 99, 520, 521, 666, 888, 999, 1314, 5200, 9999, 1314520, 5201314, 100000000];
+  const SUBSIDY_MAX = 999;
+  const SUBSIDY_SPECIAL = [66, 88, 99, 520, 521, 666, 888, 999];
 
   function taSubsidyAmount() {
     /* 特殊数字的出现概率写死，不放进设置 */
