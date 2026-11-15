@@ -16,6 +16,10 @@
   const readTimers = {};
   const decisionTimers = {};
   let chatImageDraft = '';
+  /* 下一次重绘是否强制贴到底部（进入聊天、自己发消息时） */
+  let pinBottom = false;
+  /* 上一次重绘时最后一条消息的标识，用来判断是不是来了新消息 */
+  let lastChatSig = '';
 
   function sendRole() {
     return App.stickerTab === 'ta' ? 'ta' : 'me';
@@ -41,6 +45,8 @@
     }
     App.chatContactId = contactId;
     App.state.currentContactId = contactId;
+    /* 点进聊天一定停在最新一条 */
+    pinBottom = true;
     App.unread[contactId] = 0;
     /* 点进聊天，TA 发来的消息立即全部标为已读 */
     (App.state.chats[contactId] || []).forEach(function (m) {
@@ -64,6 +70,16 @@
     el('#c-note').textContent = contact.note || '字卡传讯';
 
     const chat = App.state.chats[id] || [];
+    /* 重绘前记住滚动位置：TA 发来新消息时不要把我拉回最底部 */
+    const box = el('#chat-scroll');
+    const prevTop = box ? box.scrollTop : 0;
+    const wasAtBottom = atScrollBottom();
+    const lastMsg = chat[chat.length - 1];
+    const chatSig = chat.length + '|' + (lastMsg ? lastMsg.id : '');
+    const arrivedFromTa = chatSig !== lastChatSig && !!lastMsg && lastMsg.role !== 'me';
+    lastChatSig = chatSig;
+    const stickBottom = pinBottom || wasAtBottom;
+    pinBottom = false;
     const now = Date.now();
     const open = App.chatOpen(id);
     chat.forEach(function (m) {
@@ -98,8 +114,15 @@
     updateSideButtons();
     renderStickerPanel();
     renderComposerQuote();
-    scrollBottom(true);
-    requestAnimationFrame(function () { scrollBottom(true); });
+    if (stickBottom) {
+      scrollBottom(true);
+      requestAnimationFrame(function () { scrollBottom(true); });
+      toggleNewMsg(false);
+    } else {
+      setScrollTop(box, prevTop);
+      requestAnimationFrame(function () { setScrollTop(box, prevTop); });
+      if (arrivedFromTa) toggleNewMsg(true);
+    }
   };
 
   /* 微信式语音气泡：只用一个播放器，列表重绘、来新消息都不会打断 */
@@ -742,6 +765,10 @@
 
   const chatScroller = el('#chat-scroll');
   if (chatScroller) chatScroller.addEventListener('scroll', trackMsgActions, { passive: true });
+  if (chatScroller) chatScroller.addEventListener('scroll', function () {
+    /* 自己滑到底部时，把「有新消息」收起来 */
+    if (atScrollBottom()) toggleNewMsg(false);
+  }, { passive: true });
   window.addEventListener('resize', trackMsgActions);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', trackMsgActions);
 
@@ -830,13 +857,34 @@
     const box = el('#chat-scroll');
     if (!box) return;
     if (instant) {
-      const prev = box.style.scrollBehavior;
-      box.style.scrollBehavior = 'auto';
-      box.scrollTop = box.scrollHeight;
-      box.style.scrollBehavior = prev;
+      setScrollTop(box, box.scrollHeight);
       return;
     }
     box.scrollTop = box.scrollHeight;
+  }
+
+  /* 关闭平滑滚动后瞬间定位，避免重绘时看到跳动 */
+  function setScrollTop(box, top) {
+    if (!box) return;
+    const prev = box.style.scrollBehavior;
+    box.style.scrollBehavior = 'auto';
+    box.scrollTop = top;
+    box.style.scrollBehavior = prev;
+  }
+
+  /* 是否已经停在最底部（留一点容差） */
+  function atScrollBottom() {
+    const box = el('#chat-scroll');
+    if (!box) return true;
+    return box.scrollHeight - box.scrollTop - box.clientHeight <= 24;
+  }
+
+  /* 左下角「有新消息」提示 */
+  function toggleNewMsg(on) {
+    const btn = el('#chat-new-msg');
+    if (!btn) return;
+    const view = document.getElementById('view-chat');
+    btn.hidden = !on || !view || !view.classList.contains('is-active');
   }
 
   /* 正在输入的状态按联系人记住，离开聊天页再回来不会丢，计时也不会重置。
@@ -863,8 +911,9 @@
     const row = list.querySelector('.typing-row');
     if (typingAllowed(contactId)) {
       if (!row) {
+        const stick = atScrollBottom();
         list.appendChild(typingRow());
-        scrollBottom();
+        if (stick) scrollBottom(true);
       }
     } else if (row) {
       row.remove();
@@ -890,6 +939,8 @@
     const chat = App.state.chats[id] || (App.state.chats[id] = []);
     chat.push(message);
     App.save();
+    /* 自己发的消息仍然直接看到最新一条 */
+    pinBottom = true;
     App.renderChat();
   }
 
@@ -2380,6 +2431,11 @@
       renderComposerQuote();
     });
     el('#chat-scroll').addEventListener('wheel', closeMsgActions, { passive: true });
+    const chatNewMsg = el('#chat-new-msg');
+    if (chatNewMsg) chatNewMsg.addEventListener('click', function () {
+      toggleNewMsg(false);
+      scrollBottom();
+    });
     window.addEventListener('resize', closeMsgActions);
     let awaitingPick = false;
     el('#btn-add-sticker').addEventListener('click', function () {
