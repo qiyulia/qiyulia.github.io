@@ -1030,6 +1030,8 @@
       let text;
       if (mine.over === 'lose') {
         text = mine.winner === 'me' ? 'TA 踩到雷了，你赢了！点重新开始再来一局。' : '你踩到雷了，TA 赢了。点重新开始再战。';
+      } else if (mine.over === 'flagwin') {
+        text = '所有雷都插上小旗子了，游戏胜利！点重新开始再来一局。';
       } else if (mine.over === 'win') {
         text = mine.winner === 'draw'
           ? '全部扫完，你们打成了平手。'
@@ -1100,6 +1102,15 @@
     const cell = mine.cells[i];
     if (!cell || cell.open) return;
     cell.flag = !cell.flag;
+    if (cell.flag) {
+      const diff = MINE_DIFFS[mineDiff];
+      const done = mine.cells.filter(function (c) { return c.mine && c.flag; }).length;
+      /* 所有雷的位置都插上小旗子即获胜，插在非雷位置不影响判定 */
+      if (done >= diff.count) {
+        mine.over = 'flagwin';
+        if (mine.timer) { clearTimeout(mine.timer); mine.timer = 0; }
+      }
+    }
     renderMine();
   }
 
@@ -2045,12 +2056,16 @@
     if (mineBoard) {
       let pressTimer = null;
       let pressed = -1;
+      let suppressClick = false;
       mineBoard.addEventListener('pointerdown', function (e) {
         const cell = e.target.closest('[data-mine]');
         if (!cell) return;
+        suppressClick = false;
         pressed = Number(cell.dataset.mine);
         pressTimer = setTimeout(function () {
           pressTimer = null;
+          /* 长按插旗后要吃掉紧随其后的 click，否则会顺便把格子翻开 */
+          suppressClick = true;
           toggleMineFlag(pressed);
           pressed = -1;
         }, 520);
@@ -2063,6 +2078,7 @@
       mineBoard.addEventListener('click', function (e) {
         const cell = e.target.closest('[data-mine]');
         if (!cell) return;
+        if (suppressClick) { suppressClick = false; return; }
         openMineCell(Number(cell.dataset.mine), 'me');
       });
       mineBoard.addEventListener('contextmenu', function (e) {
