@@ -2263,7 +2263,7 @@ dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 dialog.sheet.more-sheet {
   position: fixed;
   top: auto;
-  bottom: calc(84px + var(--safe-bottom));
+  bottom: calc(96px + var(--safe-bottom));
   left: 50%;
   right: auto;
   transform: translateX(-50%);
@@ -3060,7 +3060,7 @@ dialog.more-sheet::backdrop {
 .more-item:active { transform: scale(.97); }
 
 /* “其他”弹窗：横向分类 + 应用图标 */
-dialog.sheet.more-sheet { padding: 34px 14px 16px; }
+dialog.sheet.more-sheet { padding: 20px 14px 16px; }
 .more-sheet .sheet-head {
   position: absolute;
   top: 6px;
@@ -3071,7 +3071,7 @@ dialog.sheet.more-sheet { padding: 34px 14px 16px; }
   min-height: 0;
   border: 0;
 }
-.more-tabs { display: flex; gap: 8px; margin: 0 0 2px; padding-left: 12px; }
+.more-tabs { display: flex; gap: 8px; margin: 0 0 2px; padding-left: 2px; }
 .more-tab {
   padding: 6px 16px;
   border: 0;
