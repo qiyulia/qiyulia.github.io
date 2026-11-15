@@ -1407,11 +1407,11 @@ dialog.moment-sheet {
 }
 .sticker-img {
   display: block;
-  width: 132px;
-  max-width: 58vw;
+  width: 96px;
+  max-width: 44vw;
   height: auto;
-  border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .1);
+  border-radius: 12px;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .1);
 }
 .pat-line {
   align-self: center;
