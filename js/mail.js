@@ -97,15 +97,22 @@
   function renderList() {
     const all = mailList().slice().sort(function (a, b) { return b.ts - a.ts; });
     const items = all.filter(function (m) {
+      if (mailTab === 'replies') return !!m.replyTo;
+      if (m.replyTo) return false;
       return mailTab === 'mine' ? m.from === 'me' : m.from === 'ta';
     });
     const unread = all.filter(function (m) { return m.from === 'ta' && !m.read; }).length;
-    el('#mail-summary').textContent = items.length
-      ? '共 ' + items.length + ' 封' + (mailTab === 'ta' && unread ? ' · ' + unread + ' 封未读' : '')
-      : (mailTab === 'ta' ? '还没有他的来信' : '还没写过信');
+    const tabText = {
+      ta: items.length ? '共 ' + items.length + ' 封' + (unread ? ' · ' + unread + ' 封未读' : '') : '还没有他的来信',
+      mine: items.length ? '共 ' + items.length + ' 封' : '还没写过信',
+      replies: items.length ? '共 ' + items.length + ' 封回信' : '还没有回信',
+    };
+    el('#mail-summary').textContent = tabText[mailTab] || '';
     el('#mail-empty-text').textContent = mailTab === 'ta'
       ? 'TA 还没有寄信来，再等等吧。'
-      : '在我的信里写一封给 TA，TA 会回信的。';
+      : (mailTab === 'replies'
+        ? '你和他回过的信都会收在这里。'
+        : '在我的信里写一封给 TA，TA 会回信的。');
     el('#mail-empty').hidden = items.length > 0;
     const emptyCompose = el('#btn-mail-compose-2');
     if (emptyCompose) emptyCompose.hidden = mailTab !== 'mine';
@@ -126,7 +133,7 @@
         '<span class="mail-item-main">' +
           '<span class="mail-item-head"><strong>' + App.esc(mine ? '寄给 ' + (contactOf(m.contactId) ? contactOf(m.contactId).name : 'TA') : name) + '</strong>' +
             '<time>' + App.esc(mailTime(m.ts)) + '</time></span>' +
-          '<span class="mail-item-snippet">' + (mine ? '我：' : '') + App.esc(line) + '</span>' +
+          '<span class="mail-item-snippet">' + (m.replyTo ? '<span class="mail-reply-tag">回信</span>' : '') + (mine ? '我：' : '') + App.esc(line) + '</span>' +
         '</span>' +
         (m.fav ? '<span class="mail-fav-mark">★</span>' : '') +
         (!mine && !m.read ? '<span class="dot mail-dot"></span>' : '') +
@@ -244,8 +251,9 @@
       App.toast('先添加一个角色吧');
       return false;
     }
+    const id = App.uid('mail');
     mailList().unshift({
-      id: App.uid('mail'),
+      id: id,
       from: 'me',
       contactId: contact.id,
       text: card.text,
@@ -261,7 +269,7 @@
     App.toast('信已寄出');
     mailTab = 'mine';
     if (el('#view-mail').classList.contains('is-active')) showList();
-    scheduleTaReply(contact.id);
+    scheduleTaReply(contact.id, id);
     return true;
   }
 
@@ -311,8 +319,9 @@
       App.toast('先添加一个角色吧');
       return;
     }
+    const id = App.uid('mail');
     mailList().unshift({
-      id: App.uid('mail'),
+      id: id,
       from: 'me',
       contactId: contact.id,
       text: text,
@@ -327,13 +336,13 @@
     App.updateMailBadge();
     closeEditor();
     App.toast('回信已寄出');
-    mailTab = 'mine';
+    mailTab = 'replies';
     if (el('#view-mail').classList.contains('is-active')) showList();
-    scheduleTaReply(contact.id);
+    scheduleTaReply(contact.id, id);
   }
 
-  /* TA 收到信后用 0~15 条字卡回信 */
-  function scheduleTaReply(contactId) {
+  /* TA 收到信后用 0~15 条字卡回信，并引用收到的那封信 */
+  function scheduleTaReply(contactId, replyToId) {
     const letter = composeTaMail();
     setTimeout(function () {
       if (!contactOf(contactId)) return;
@@ -344,6 +353,7 @@
         text: letter.text,
         cardId: letter.cardIds[0] || null,
         cardIds: letter.cardIds,
+        replyTo: replyToId || null,
         ts: Date.now(),
         read: false,
         fav: false,
@@ -452,7 +462,8 @@
 
     document.querySelectorAll('[data-mail-tab]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        mailTab = btn.dataset.mailTab === 'mine' ? 'mine' : 'ta';
+        const tab = btn.dataset.mailTab;
+        mailTab = tab === 'mine' || tab === 'replies' ? tab : 'ta';
         showList();
       });
     });

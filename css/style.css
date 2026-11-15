@@ -2915,6 +2915,17 @@ dialog.more-sheet::backdrop {
   white-space: nowrap;
 }
 .mail-fav-mark { flex: 0 0 auto; font-size: 12px; color: var(--accent); }
+.mail-reply-tag {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--accent);
+  background: var(--accent-soft);
+  vertical-align: 1px;
+}
 .mail-dot {
   flex: 0 0 auto;
   width: 8px;
