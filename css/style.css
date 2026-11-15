@@ -2504,7 +2504,9 @@ dialog.more-sheet::backdrop {
 }
 
 .msg-quote {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 6px;
   padding: 6px 9px;
   border-left: 2px solid currentColor;
@@ -2518,6 +2520,15 @@ dialog.more-sheet::backdrop {
 }
 .msg.ta .msg-quote { background: var(--field); }
 .msg-quote strong { font-weight: 600; margin-right: 4px; }
+.msg-quote-body { flex: 1 1 auto; min-width: 0; }
+.msg-quote-thumb {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, .4);
+}
 
 .msg-marks {
   display: flex;

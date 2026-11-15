@@ -213,6 +213,24 @@
     return '<span class="msg-read' + (m.read ? ' is-read' : '') + (m.noReply ? ' is-noreply' : '') + '">' + label + '</span>';
   }
 
+  /* 判断一条图片消息是不是表情包（老消息没有 sticker 标记时按表情库比对） */
+  function isStickerMessage(m) {
+    if (!m || m.type !== 'image' || !m.src) return false;
+    if (m.sticker) return true;
+    const stickers = App.state.stickers || {};
+    return ['public', 'me', 'ta'].some(function (key) {
+      return Array.isArray(stickers[key]) && stickers[key].indexOf(m.src) !== -1;
+    });
+  }
+
+  function quoteHtml(q) {
+    if (!q || !q.text) return '';
+    return '<span class="msg-quote">' +
+      (q.src ? '<img class="msg-quote-thumb" src="' + App.esc(q.src) + '" alt="表情包">' : '') +
+      '<span class="msg-quote-body"><strong>' + App.esc(q.name || '') + '</strong>' + App.esc(q.text) + '</span>' +
+      '</span>';
+  }
+
   /* 我发出的消息约两秒后变成已读 */
   function scheduleRead(contactId, message) {
     if (message.noReply) return;
@@ -504,9 +522,7 @@
     if (m.type === 'reminder') {
       const contact = currentContact();
       const avatarSrc = contact && contact.avatar;
-      const quote = m.quote && m.quote.text
-        ? '<span class="msg-quote"><strong>' + App.esc(m.quote.name || '') + '</strong>' + App.esc(m.quote.text) + '</span>'
-        : '';
+      const quote = quoteHtml(m.quote);
       const actions = m.reminderDone ? '' :
         '<div class="rem-actions">' +
           '<button type="button" data-rem-cancel="' + App.esc(m.reminderId) + '" data-rem-cancel-msg="' + App.esc(m.id) + '">取消提醒，还没做完</button>' +
@@ -596,9 +612,7 @@
     } else {
       body = '<div class="bubble bubble-with-read"><span class="bubble-text">' + App.esc(m.text) + '</span>' + readChip(m) + '</div>';
     }
-    const quote = m.quote && m.quote.text
-      ? '<span class="msg-quote"><strong>' + App.esc(m.quote.name || '') + '</strong>' + App.esc(m.quote.text) + '</span>'
-      : '';
+    const quote = quoteHtml(m.quote);
     const marks = [];
     if (m.favMine) marks.push('我收藏了');
     if (m.favTa) marks.push(App.esc(taName) + '收藏了');
@@ -756,10 +770,12 @@
     }
 
     if (action === 'quote') {
+      const sticker = isStickerMessage(message);
       quoteDraft = {
         name: messageAuthor(message, currentContact()),
-        text: App.messagePreview(message),
+        text: sticker ? '[表情]' : App.messagePreview(message),
       };
+      if (sticker) quoteDraft.src = message.src;
       renderComposerQuote();
       const input = el('#msg-input');
       if (input) input.focus();
@@ -966,7 +982,7 @@
   function sendSticker(src) {
     if (!App.chatContactId || !src) return;
     const role = sendRole();
-    pushMessage({ id: App.uid('m'), role: role, type: 'image', src: src, ts: Date.now() });
+    pushMessage({ id: App.uid('m'), role: role, type: 'image', src: src, sticker: true, ts: Date.now() });
     closeStickerPanel();
     if (role === 'me') scheduleReply(App.chatContactId, '');
   }
@@ -1068,7 +1084,7 @@
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      chat.push({ id: App.uid('m'), role: 'ta', type: 'image', src: src, ts: Date.now() });
+      chat.push({ id: App.uid('m'), role: 'ta', type: 'image', src: src, sticker: true, ts: Date.now() });
       App.save();
       if (App.chatOpen(contactId)) {
         App.renderChat();
@@ -1329,10 +1345,12 @@
         else if (taPool.length) candidates = taPool;
         if (candidates.length) {
           const target = candidates[Math.floor(Math.random() * candidates.length)];
+          const sticker = isStickerMessage(target);
           message.quote = {
             name: messageAuthor(target, contact),
-            text: App.messagePreview(target),
+            text: sticker ? '[表情]' : App.messagePreview(target),
           };
+          if (sticker) message.quote.src = target.src;
         }
       }
 
