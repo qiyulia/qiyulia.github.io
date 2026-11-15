@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261115-08">
+<link rel="stylesheet" href="css/style.css?v=20261115-09">
 </head>
 <body>
 <div class="stage">
@@ -1563,8 +1563,8 @@ if ('caches' in window) {
       <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
     </div>
     <div class="tool-sheet-body jump-body">
-      <p class="field-hint" id="jump-status">竖线在长条上左右滑，滑到合适的距离时点「确定」，正好跳上下一块平台。</p>
-      <div class="jump-score"><span>得分 <strong id="jump-score">0</strong></span><span>最高 <strong id="jump-best">0</strong></span></div>
+      <p class="field-hint" id="jump-status">轮到你：竖线在长条上滑，点一下长条就起跳，落在平台上才站得住。</p>
+      <div class="jump-score"><span>我 <strong id="jump-me">0</strong></span><span>TA <strong id="jump-ta">0</strong></span></div>
       <div class="jump-stage" id="jump-stage">
         <div class="jump-world" id="jump-world">
           <span class="jump-platform" id="jump-plat-cur"></span>
@@ -1572,13 +1572,14 @@ if ('caches' in window) {
           <span class="jump-piece" id="jump-piece"></span>
         </div>
       </div>
-      <div class="jump-track" id="jump-track">
+      <div class="jump-track" id="jump-track" role="button" tabindex="0" aria-label="点这里起跳">
         <span class="jump-marker" id="jump-marker"></span>
+        <span class="jump-track-hint">点这里起跳</span>
       </div>
     </div>
     <div class="sheet-actions">
-      <button type="button" class="btn ghost" id="jump-reset">重新开始</button>
-      <button type="button" class="btn primary" id="jump-stop">确定</button>
+      <button type="button" class="btn ghost" id="jump-end">游戏结束</button>
+      <button type="button" class="btn primary" id="jump-reset">重新开始</button>
     </div>
   </div>
 </div>
@@ -1728,18 +1729,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261115-08"></script>
-<script src="js/store.js?v=20261115-08"></script>
-<script src="js/desktop.js?v=20261115-08"></script>
-<script src="js/chat.js?v=20261115-08"></script>
-<script src="js/cards.js?v=20261115-08"></script>
-<script src="js/settings.js?v=20261115-08"></script>
-<script src="js/moments.js?v=20261115-08"></script>
-<script src="js/calendar.js?v=20261115-08"></script>
-<script src="js/music.js?v=20261115-08"></script>
-<script src="js/market.js?v=20261115-08"></script>
-<script src="js/mail.js?v=20261115-08"></script>
-<script src="js/extras.js?v=20261115-08"></script>
-<script src="js/app.js?v=20261115-08"></script>
+<script src="js/seed.js?v=20261115-09"></script>
+<script src="js/store.js?v=20261115-09"></script>
+<script src="js/desktop.js?v=20261115-09"></script>
+<script src="js/chat.js?v=20261115-09"></script>
+<script src="js/cards.js?v=20261115-09"></script>
+<script src="js/settings.js?v=20261115-09"></script>
+<script src="js/moments.js?v=20261115-09"></script>
+<script src="js/calendar.js?v=20261115-09"></script>
+<script src="js/music.js?v=20261115-09"></script>
+<script src="js/market.js?v=20261115-09"></script>
+<script src="js/mail.js?v=20261115-09"></script>
+<script src="js/extras.js?v=20261115-09"></script>
+<script src="js/app.js?v=20261115-09"></script>
 </body>
 </html>

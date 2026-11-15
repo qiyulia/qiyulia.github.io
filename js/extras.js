@@ -1115,7 +1115,6 @@
   }
 
   /* ---------------- 游戏：跳一跳（长条量距离，跳上平台继续） ---------------- */
-  let jumpBest = 0;
   let jump = null;
   const JUMP_MAX = 200; /* 长条滑到最右对应的最远跳跃距离 */
 
@@ -1149,8 +1148,8 @@
       if (!jump.over) piece.style.transform = 'rotate(' + (jump.spin || 0) + 'deg)';
     }
     if (marker) marker.style.left = (jump.pos * 100) + '%';
-    if (el('#jump-score')) el('#jump-score').textContent = String(jump.score);
-    if (el('#jump-best')) el('#jump-best').textContent = String(jumpBest);
+    if (el('#jump-me')) el('#jump-me').textContent = String(jump.me);
+    if (el('#jump-ta')) el('#jump-ta').textContent = String(jump.ta);
   }
 
   function jumpFrame(now) {
@@ -1163,11 +1162,36 @@
     if (jump.pos >= 1) { jump.pos = 1; jump.dir = -1; }
     if (jump.pos <= 0) { jump.pos = 0; jump.dir = 1; }
     renderJump();
+    /* TA 的回合：竖线滑到它选好的距离就自动起跳 */
+    if (jump.turn === 'ta' && jump.taPlan != null) {
+      const nowDist = jump.pos * JUMP_MAX;
+      const prev = jump.taPrev == null ? nowDist : jump.taPrev;
+      jump.taPrev = nowDist;
+      if ((prev - jump.taPlan) * (nowDist - jump.taPlan) <= 0) {
+        jumpCommit();
+        return;
+      }
+    }
     jump.raf = requestAnimationFrame(jumpFrame);
+  }
+
+  function jumpPlanTa() {
+    const gap = jump.nextX - jump.curX;
+    const half = Math.max(4, jump.nextW / 2 - 2);
+    let dist;
+    if (Math.random() < 0.85) {
+      dist = gap + (Math.random() * 2 - 1) * half;
+    } else {
+      /* 偶尔踩空，让对局有输赢 */
+      dist = gap + (Math.random() < 0.5 ? -1 : 1) * (half + 12 + Math.random() * 36);
+    }
+    jump.taPlan = Math.max(2, Math.min(JUMP_MAX, dist));
+    jump.taPrev = null;
   }
 
   function startJumpRound() {
     if (!jump || jump.running || jump.over) return;
+    if (jump.turn === 'ta') jumpPlanTa();
     jump.locked = false;
     jump.running = true;
     jump.last = 0;
@@ -1193,14 +1217,15 @@
       nextX: 0, nextW: 46, nextH: 56,
       pieceX: 0, pieceBottom: 56, spin: 0,
       camX: 0,
-      score: 0, running: false, locked: false, raf: 0, last: 0, timer: 0, over: false,
+      turn: 'me', me: 0, ta: 0, taPlan: null, taPrev: null,
+      running: false, locked: false, raf: 0, last: 0, timer: 0, over: false,
     };
     jumpSpawnNext();
     jump.camX = jump.curX - jumpBaseX();
     const next = el('#jump-plat-next');
     if (next) next.classList.remove('is-rise');
     if (el('#jump-status')) {
-      el('#jump-status').textContent = '竖线在长条上左右滑，滑到合适的距离时点「确定」，正好跳上下一块平台。';
+      el('#jump-status').textContent = '轮到你：竖线在长条上滑，点一下长条就起跳，落在平台上才站得住。';
     }
     renderJump();
     startJumpRound();
@@ -1232,23 +1257,26 @@
     if (!jump) return;
     const next = el('#jump-plat-next');
     const diff = jump.pieceX - jump.nextX;
-    if (Math.abs(diff) > jump.nextW / 2 - 4) {
+    /* 只要蓝线落在平台范围内就能站住 */
+    if (Math.abs(diff) > jump.nextW / 2) {
       jump.over = true;
-      jumpBest = Math.max(jumpBest, jump.score);
       const piece = el('#jump-piece');
       if (piece) {
         piece.classList.add('is-fall');
         piece.style.transform = '';
       }
       if (el('#jump-status')) {
-        el('#jump-status').textContent = '差一点，掉下去了。本局 ' + jump.score + ' 分，点「重新开始」再来。';
+        el('#jump-status').textContent = jump.turn === 'me'
+          ? '你踩空了，TA 赢了。我 ' + jump.me + ' 分 / TA ' + jump.ta + ' 分。'
+          : 'TA 踩空了，你赢了！我 ' + jump.me + ' 分 / TA ' + jump.ta + ' 分。';
       }
       renderJump();
       return;
     }
     const perfect = Math.abs(diff) <= 8;
-    jump.score += perfect ? 2 : 1;
-    jumpBest = Math.max(jumpBest, jump.score);
+    const gain = perfect ? 2 : 1;
+    if (jump.turn === 'me') jump.me += gain;
+    else jump.ta += gain;
     jump.curX = jump.nextX;
     jump.curW = jump.nextW;
     jump.curH = jump.nextH;
@@ -1257,8 +1285,12 @@
     jumpSpawnNext();
     /* 相机跟着平移到新平台，新平台从下方升起 */
     jump.camX = jump.curX - jumpBaseX();
+    jump.turn = jump.turn === 'me' ? 'ta' : 'me';
+    jump.taPlan = null;
+    jump.taPrev = null;
     if (el('#jump-status')) {
-      el('#jump-status').textContent = (perfect ? '完美落点 +2' : '稳稳落地 +1') + ' · 接着量下一段的距离。';
+      el('#jump-status').textContent = (jump.turn === 'ta' ? '轮到 TA' : '轮到你') +
+        ' · ' + (perfect ? '完美 +2' : '+1') + ' · 我 ' + jump.me + ' / TA ' + jump.ta;
     }
     renderJump();
     if (next) {
@@ -1270,15 +1302,21 @@
     jump.timer = setTimeout(function () {
       const layer = el('#jump-dialog');
       if (jump && !jump.over && layer && !layer.hidden) startJumpRound();
-    }, 380);
+    }, 520);
   }
 
-  function stopJump() {
+  function jumpCommit() {
     if (!jump || jump.locked || !jump.running || jump.over) return;
     jump.running = false;
     jump.locked = true;
     if (jump.raf) cancelAnimationFrame(jump.raf);
-    jumpFly(jump.pos * JUMP_MAX, jumpLand);
+    jumpFly(Math.max(2, jump.pos * JUMP_MAX), jumpLand);
+  }
+
+  function stopJump() {
+    /* 只有轮到我时才能点长条起跳，TA 的回合由它自己跳 */
+    if (!jump || jump.over || jump.turn !== 'me') return;
+    jumpCommit();
   }
 
   /* ---------------- 事件绑定 ---------------- */
@@ -2139,8 +2177,15 @@
         resetMine();
       });
     });
-    const jumpStop = el('#jump-stop');
-    if (jumpStop) jumpStop.addEventListener('click', stopJump);
+    const jumpTrack = el('#jump-track');
+    if (jumpTrack) {
+      jumpTrack.addEventListener('click', stopJump);
+      jumpTrack.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stopJump(); }
+      });
+    }
+    const jumpEnd = el('#jump-end');
+    if (jumpEnd) jumpEnd.addEventListener('click', function () { hideToolPanel('#jump-dialog'); });
     const jumpReset = el('#jump-reset');
     if (jumpReset) jumpReset.addEventListener('click', resetJump);
     const mineBoard = el('#mine-board');
