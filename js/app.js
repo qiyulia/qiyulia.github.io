@@ -3,17 +3,6 @@
   const App = window.App;
   const app = document.getElementById('app');
 
-  /* 记住离开前的聊天页，手机相册选图后如果页面被系统重载，仍能回到聊天 */
-  function rememberView(view) {
-    try {
-      if (view === 'desktop') {
-        sessionStorage.removeItem('xuyu.view');
-      } else if (view === 'chat' && App.chatContactId) {
-        sessionStorage.setItem('xuyu.view', JSON.stringify({ view: 'chat', contactId: App.chatContactId }));
-      }
-    } catch (e) {}
-  }
-
   App.go = function (view) {
     /* 切页面前关掉所有弹窗，避免弹窗留在主界面挡住操作 */
     document.querySelectorAll('dialog[open]').forEach(function (d) {
@@ -22,7 +11,6 @@
     if (App.closePatPicker) App.closePatPicker();
     if (App.hideToolPanels) App.hideToolPanels();
     if (App.hideChatBanner) App.hideChatBanner();
-    rememberView(view);
     if (App.closeMsgActions) App.closeMsgActions();
     document.querySelectorAll('.view').forEach(function (v) {
       v.classList.toggle('is-active', v.id === 'view-' + view);
@@ -278,8 +266,6 @@
   App.initMail();
   if (App.initExtras) App.initExtras();
 
-  let lastView = null;
-  try { lastView = JSON.parse(sessionStorage.getItem('xuyu.view') || 'null'); } catch (e) { lastView = null; }
   /* 选图前写入的记忆，localStorage 比 sessionStorage 更容易在系统重载后保留 */
   let pickView = null;
   try {
@@ -300,9 +286,6 @@
   /* 手机选图时页面可能被系统重载，重载后回到原来的聊天 */
   if (pickView && App.state.contacts.some(function (c) { return c.id === pickView; })) {
     App.openChat(pickView);
-  } else if (lastView && lastView.view === 'chat' && lastView.contactId &&
-      App.state.contacts.some(function (c) { return c.id === lastView.contactId; })) {
-    App.openChat(lastView.contactId);
   }
 
   /* 选图过程中页面被系统重载时，给出明确提示并重新打开表情面板 */
