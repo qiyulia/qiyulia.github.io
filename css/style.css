@@ -1545,7 +1545,7 @@ dialog.moment-sheet {
 }
 .voice-dur { opacity: .85; letter-spacing: .5px; }
 .audio-transcript {
-  margin: 7px 4px 2px;
+  margin: 0 4px 2px;
   padding: 0 2px;
   font-size: 13px;
   line-height: 1.5;
@@ -1555,6 +1555,7 @@ dialog.moment-sheet {
 }
 .msg.me .audio-transcript { color: var(--accent-ink); }
 .bubble-audio .emotion-divider { margin-top: 6px; }
+.bubble-audio .voice-divider { margin: 8px 0 8px; }
 
 /* 字卡列表分批加载提示 */
 .card-more {

@@ -613,7 +613,7 @@
           '<span class="voice-icon" aria-hidden="true"><i></i><i></i><i></i></span>' +
           '<span class="voice-dur">···</span>' +
         '</button>' +
-        (showTranscript ? '<p class="audio-transcript">' + App.esc(m.text) + '</p>' : '') +
+        (showTranscript ? '<span class="emotion-divider voice-divider"></span><p class="audio-transcript">' + App.esc(m.text) + '</p>' : '') +
         meta +
         '</div>';
     } else if (m.surveyAppend) {
