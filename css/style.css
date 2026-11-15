@@ -2127,9 +2127,36 @@ dialog.sheet form {
 .sheet-actions { display: flex; gap: 8px; margin-top: 4px; }
 .sheet-actions .btn { flex: 1; }
 .sheet-spacer { flex: 1 1 auto; }
-/* 站内确认弹窗 */
-.confirm-sheet { width: min(88%, 380px); }
-.confirm-text { font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+/* 站内确认弹窗：居中独立小窗 */
+#confirm-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(80vw, 300px);
+  height: fit-content;
+  max-width: calc(100vw - 48px);
+  max-height: none;
+  border: none;
+  padding: 0;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(20, 20, 20, .34);
+}
+#confirm-dialog::backdrop { background: rgba(18, 16, 14, .42); }
+#confirm-dialog .confirm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 16px 0;
+}
+#confirm-dialog .confirm-head h3 { font-size: 15px; font-weight: 600; }
+#confirm-dialog .confirm-close { width: 24px; height: 24px; flex: 0 0 auto; font-size: 18px; line-height: 1; color: var(--muted); }
+#confirm-dialog .confirm-text { padding: 8px 16px 0; font-size: 13px; line-height: 1.7; color: var(--muted); }
+#confirm-dialog .confirm-actions { display: flex; gap: 10px; padding: 16px; }
+#confirm-dialog .confirm-actions .btn { flex: 1; }
 dialog.sheet { max-height: 86vh; }
 dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 /* 拍一拍选择面板（普通浮层，不是 dialog） */
