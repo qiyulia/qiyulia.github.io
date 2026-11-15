@@ -378,12 +378,18 @@
     }
   }
 
-  function surveyAnswerFor(question, contactId) {
+  /* 每道题独立抽答案：同一份多问卷里不会沿用上一题选中的位置或字卡 */
+  function surveyAnswerFor(question, contactId, used) {
+    const avoid = used || { index: {}, cards: {} };
     if (question.mode === 'single' || question.mode === 'multi') {
       const options = (question.options || []).slice();
       if (!options.length) return { text: question.text, mode: question.mode, answer: '（没有选项）' };
       if (question.mode === 'single') {
-        return { text: question.text, mode: 'single', answer: options[Math.floor(Math.random() * options.length)] };
+        let pool = options.map(function (opt, i) { return i; }).filter(function (i) { return !avoid.index[i]; });
+        if (!pool.length) pool = options.map(function (opt, i) { return i; });
+        const picked = pool[Math.floor(Math.random() * pool.length)];
+        avoid.index[picked] = true;
+        return { text: question.text, mode: 'single', answer: options[picked] };
       }
       const count = 1 + Math.floor(Math.random() * options.length);
       const picked = [];
@@ -392,8 +398,12 @@
       }
       return { text: question.text, mode: 'multi', answer: picked.join('、') };
     }
-    const cards = App.pickCards('', 1, contactId, surveyScopeCats(question.scope));
+    /* 字卡回答：优先避开这份问卷里已经用过的字卡 */
+    const candidates = App.pickCards('', 24, contactId, surveyScopeCats(question.scope))
+      .filter(function (c) { return !avoid.cards[c.id]; });
+    const cards = candidates.length ? candidates : App.pickCards('', 1, contactId, surveyScopeCats(question.scope));
     const card = cards.length ? cards[0] : null;
+    if (card) avoid.cards[card.id] = true;
     return {
       text: question.text,
       mode: 'card',
@@ -417,8 +427,9 @@
       const chat = App.state.chats[contactId] || [];
       const survey = chat.find(function (m) { return m.id === surveyId; });
       if (!survey) return;
+      const used = { index: {}, cards: {} };
       const answers = (survey.questions || []).map(function (q) {
-        return surveyAnswerFor(q, contactId);
+        return surveyAnswerFor(q, contactId, used);
       });
       survey.answered = true;
       deliverMessage(contactId, {
