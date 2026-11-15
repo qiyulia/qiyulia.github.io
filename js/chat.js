@@ -255,6 +255,28 @@
       '</span>';
   }
 
+  /* TA 从最近的聊天里挑一条来引用，大部分引用我说的 */
+  function taQuoteFromPool(chat, contact) {
+    const pool = chat.filter(function (m) {
+      return !m.recalled && m.type !== 'pat' && (m.text || m.type === 'image');
+    }).slice(-12);
+    if (!pool.length) return null;
+    const minePool = pool.filter(function (m) { return m.role === 'me'; });
+    const taPool = pool.filter(function (m) { return m.role !== 'me'; });
+    let candidates = pool;
+    if (minePool.length && (Math.random() < 0.85 || !taPool.length)) candidates = minePool;
+    else if (taPool.length) candidates = taPool;
+    if (!candidates.length) return null;
+    const target = candidates[Math.floor(Math.random() * candidates.length)];
+    const sticker = isStickerMessage(target);
+    const quote = {
+      name: messageAuthor(target, contact),
+      text: sticker ? '[表情]' : App.messagePreview(target),
+    };
+    if (sticker) quote.src = target.src;
+    return quote;
+  }
+
   /* 我发出的消息约两秒后变成已读 */
   function scheduleRead(contactId, message) {
     if (message.noReply) return;
@@ -1042,7 +1064,17 @@
 
     const role = 'me';
     const message = { id: App.uid('m'), role: role, type: 'text', text: text, ts: Date.now() };
-    if (quoteDraft) message.quote = quoteDraft;
+    if (quoteDraft) {
+      message.quote = quoteDraft;
+      /* 引用之后即使没手动加表情，也有概率带着表情包一起发，概率与 TA 文字配表情包相同 */
+      const contact = currentContact();
+      const cs = contact ? App.contactSettings(contact) : {};
+      const comboProb = Math.max(0, Math.min(100, Number(cs.taStickerComboProb) || 0));
+      const pool = (App.state.stickers.public || []).concat(App.state.stickers.me || []);
+      if (pool.length && Math.random() * 100 < comboProb) {
+        message.stickerSrc = pool[Math.floor(Math.random() * pool.length)];
+      }
+    }
     quoteDraft = null;
     renderComposerQuote();
     pushMessage(message);
@@ -1187,7 +1219,15 @@
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      chat.push({ id: App.uid('m'), role: 'ta', type: 'image', src: src, sticker: true, ts: Date.now() });
+      const message = { id: App.uid('m'), role: 'ta', type: 'image', src: src, sticker: true, ts: Date.now() };
+      /* TA 也可能引用我的消息回一张表情包：引用在上，表情包在下方 */
+      const cs = App.contactSettings(contact);
+      const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
+      if (chat.length && Math.random() * 100 < quoteProb) {
+        const quote = taQuoteFromPool(chat, contact);
+        if (quote) message.quote = quote;
+      }
+      chat.push(message);
       App.save();
       if (App.chatOpen(contactId)) {
         App.renderChat();
@@ -1470,24 +1510,8 @@
 
       const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
       if (chat.length && Math.random() * 100 < quoteProb) {
-        const pool = chat.filter(function (m) {
-          return !m.recalled && m.type !== 'pat' && (m.text || m.type === 'image');
-        }).slice(-12);
-        const minePool = pool.filter(function (m) { return m.role === 'me'; });
-        const taPool = pool.filter(function (m) { return m.role !== 'me'; });
-        let candidates = pool;
-        /* 大部分引用我发的消息，很少引用他自己发的 */
-        if (minePool.length && (Math.random() < 0.85 || !taPool.length)) candidates = minePool;
-        else if (taPool.length) candidates = taPool;
-        if (candidates.length) {
-          const target = candidates[Math.floor(Math.random() * candidates.length)];
-          const sticker = isStickerMessage(target);
-          message.quote = {
-            name: messageAuthor(target, contact),
-            text: sticker ? '[表情]' : App.messagePreview(target),
-          };
-          if (sticker) message.quote.src = target.src;
-        }
+        const quote = taQuoteFromPool(chat, contact);
+        if (quote) message.quote = quote;
       }
 
       chat.push(message);
