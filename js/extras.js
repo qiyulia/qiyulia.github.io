@@ -1114,16 +1114,41 @@
     renderMine();
   }
 
-  /* ---------------- 游戏：跳一跳（滑动定位） ---------------- */
+  /* ---------------- 游戏：跳一跳（长条量距离，跳上平台继续） ---------------- */
   let jumpBest = 0;
-  let jump = null; /* { pos, dir, speed, target, score, running, locked, raf, last } */
+  let jump = null;
+  const JUMP_MAX = 200; /* 长条滑到最右对应的最远跳跃距离 */
+
+  function jumpBaseX() {
+    const stage = el('#jump-stage');
+    const w = (stage && stage.clientWidth) || 0;
+    return (w || 320) * 0.2;
+  }
 
   function renderJump() {
     if (!jump) return;
+    const world = el('#jump-world');
+    const cur = el('#jump-plat-cur');
+    const next = el('#jump-plat-next');
+    const piece = el('#jump-piece');
     const marker = el('#jump-marker');
-    const target = el('#jump-target');
+    if (world) world.style.transform = 'translateX(' + (-jump.camX) + 'px)';
+    if (cur) {
+      cur.style.left = (jump.curX - jump.curW / 2) + 'px';
+      cur.style.width = jump.curW + 'px';
+      cur.style.height = jump.curH + 'px';
+    }
+    if (next) {
+      next.style.left = (jump.nextX - jump.nextW / 2) + 'px';
+      next.style.width = jump.nextW + 'px';
+      next.style.height = jump.nextH + 'px';
+    }
+    if (piece) {
+      piece.style.left = (jump.pieceX - 11) + 'px';
+      piece.style.bottom = jump.pieceBottom + 'px';
+      if (!jump.over) piece.style.transform = 'rotate(' + (jump.spin || 0) + 'deg)';
+    }
     if (marker) marker.style.left = (jump.pos * 100) + '%';
-    if (target) target.style.left = ((jump.target - 0.05) * 100) + '%';
     if (el('#jump-score')) el('#jump-score').textContent = String(jump.score);
     if (el('#jump-best')) el('#jump-best').textContent = String(jumpBest);
   }
@@ -1142,52 +1167,118 @@
   }
 
   function startJumpRound() {
-    if (!jump || jump.running) return;
+    if (!jump || jump.running || jump.over) return;
     jump.locked = false;
     jump.running = true;
     jump.last = 0;
     jump.raf = requestAnimationFrame(jumpFrame);
   }
 
+  function jumpSpawnNext() {
+    jump.nextX = jump.curX + 90 + Math.random() * 80;
+    jump.nextW = 44 + Math.random() * 8;
+    jump.nextH = 46 + Math.floor(Math.random() * 3) * 10;
+  }
+
   function resetJump() {
-    if (jump && jump.raf) cancelAnimationFrame(jump.raf);
-    if (jump && jump.timer) clearTimeout(jump.timer);
-    jump = { pos: 0, dir: 1, speed: 0.7, target: 0.5, score: 0, running: false, locked: false, raf: 0, last: 0, timer: 0 };
+    if (jump) {
+      if (jump.raf) cancelAnimationFrame(jump.raf);
+      if (jump.timer) clearTimeout(jump.timer);
+    }
+    const piece = el('#jump-piece');
+    if (piece) piece.classList.remove('is-fall');
+    jump = {
+      pos: 0, dir: 1, speed: 0.55,
+      curX: 0, curW: 46, curH: 56,
+      nextX: 0, nextW: 46, nextH: 56,
+      pieceX: 0, pieceBottom: 56, spin: 0,
+      camX: 0,
+      score: 0, running: false, locked: false, raf: 0, last: 0, timer: 0, over: false,
+    };
+    jumpSpawnNext();
+    jump.camX = jump.curX - jumpBaseX();
+    const next = el('#jump-plat-next');
+    if (next) next.classList.remove('is-rise');
     if (el('#jump-status')) {
-      el('#jump-status').textContent = '竖线会一直左右滑，滑到蓝色区域正中间时点「确定」，越准分越高。';
+      el('#jump-status').textContent = '竖线在长条上左右滑，滑到合适的距离时点「确定」，正好跳上下一块平台。';
     }
     renderJump();
     startJumpRound();
   }
 
-  function stopJump() {
-    if (!jump || jump.locked || !jump.running) return;
-    jump.running = false;
-    jump.locked = true;
-    if (jump.raf) cancelAnimationFrame(jump.raf);
-    const distance = Math.abs(jump.pos - jump.target);
-    let text;
-    if (distance > 0.08) {
+  /* 棋子起跳：横向移动到落点，同时走一段抛物线 */
+  function jumpFly(dist, done) {
+    if (!jump) return;
+    const from = jump.curX;
+    const to = jump.curX + dist;
+    const start = performance.now();
+    const dur = 300 + Math.min(240, dist * 0.9);
+    function frame(now) {
+      if (!jump) return;
+      const layer = el('#jump-dialog');
+      if (!layer || layer.hidden) return;
+      const t = Math.min(1, (now - start) / dur);
+      jump.pieceX = from + (to - from) * t;
+      jump.pieceBottom = jump.curH + Math.sin(Math.PI * t) * 58;
+      jump.spin = Math.sin(Math.PI * t) * 10;
+      renderJump();
+      if (t < 1) requestAnimationFrame(frame);
+      else { jump.spin = 0; done(); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function jumpLand() {
+    if (!jump) return;
+    const next = el('#jump-plat-next');
+    const diff = jump.pieceX - jump.nextX;
+    if (Math.abs(diff) > jump.nextW / 2 - 4) {
+      jump.over = true;
       jumpBest = Math.max(jumpBest, jump.score);
-      text = '没踩准，游戏结束。最终得分 ' + jump.score + '，点「重新开始」再玩。';
-      if (el('#jump-status')) el('#jump-status').textContent = text;
+      const piece = el('#jump-piece');
+      if (piece) {
+        piece.classList.add('is-fall');
+        piece.style.transform = '';
+      }
+      if (el('#jump-status')) {
+        el('#jump-status').textContent = '差一点，掉下去了。本局 ' + jump.score + ' 分，点「重新开始」再来。';
+      }
       renderJump();
       return;
     }
-    let points = 3;
-    if (distance <= 0.015) points = 10;
-    else if (distance <= 0.04) points = 6;
-    jump.score += points;
+    const perfect = Math.abs(diff) <= 8;
+    jump.score += perfect ? 2 : 1;
     jumpBest = Math.max(jumpBest, jump.score);
-    text = (points === 10 ? '完美！+' : (points === 6 ? '很准！+' : '还不错，+')) + points + ' 分，下一局会更快。';
-    if (el('#jump-status')) el('#jump-status').textContent = text;
-    jump.speed = Math.min(2.2, jump.speed + 0.12);
-    jump.target = 0.15 + Math.random() * 0.7;
+    jump.curX = jump.nextX;
+    jump.curW = jump.nextW;
+    jump.curH = jump.nextH;
+    jump.pieceX = jump.curX;
+    jump.pieceBottom = jump.curH;
+    jumpSpawnNext();
+    /* 相机跟着平移到新平台，新平台从下方升起 */
+    jump.camX = jump.curX - jumpBaseX();
+    if (el('#jump-status')) {
+      el('#jump-status').textContent = (perfect ? '完美落点 +2' : '稳稳落地 +1') + ' · 接着量下一段的距离。';
+    }
     renderJump();
+    if (next) {
+      next.classList.remove('is-rise');
+      void next.offsetWidth;
+      next.classList.add('is-rise');
+    }
+    jump.speed = Math.min(1.4, jump.speed + 0.05);
     jump.timer = setTimeout(function () {
       const layer = el('#jump-dialog');
-      if (layer && !layer.hidden) startJumpRound();
-    }, 750);
+      if (jump && !jump.over && layer && !layer.hidden) startJumpRound();
+    }, 380);
+  }
+
+  function stopJump() {
+    if (!jump || jump.locked || !jump.running || jump.over) return;
+    jump.running = false;
+    jump.locked = true;
+    if (jump.raf) cancelAnimationFrame(jump.raf);
+    jumpFly(jump.pos * JUMP_MAX, jumpLand);
   }
 
   /* ---------------- 事件绑定 ---------------- */
@@ -1840,8 +1931,8 @@
           resetMine();
           showToolPanel('#mine-dialog');
         } else if (btn.dataset.tool === 'jump') {
-          resetJump();
           showToolPanel('#jump-dialog');
+          resetJump();
         }
       });
     });

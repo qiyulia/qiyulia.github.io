@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261115-06">
+<link rel="stylesheet" href="css/style.css?v=20261115-07">
 </head>
 <body>
 <div class="stage">
@@ -1563,10 +1563,16 @@ if ('caches' in window) {
       <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
     </div>
     <div class="tool-sheet-body jump-body">
-      <p class="field-hint" id="jump-status">竖线会一直左右滑，滑到蓝色区域正中间时点「确定」，越准分越高。</p>
+      <p class="field-hint" id="jump-status">竖线在长条上左右滑，滑到合适的距离时点「确定」，正好跳上下一块平台。</p>
       <div class="jump-score"><span>得分 <strong id="jump-score">0</strong></span><span>最高 <strong id="jump-best">0</strong></span></div>
+      <div class="jump-stage" id="jump-stage">
+        <div class="jump-world" id="jump-world">
+          <span class="jump-platform" id="jump-plat-cur"></span>
+          <span class="jump-platform is-next" id="jump-plat-next"></span>
+          <span class="jump-piece" id="jump-piece"></span>
+        </div>
+      </div>
       <div class="jump-track" id="jump-track">
-        <span class="jump-target" id="jump-target"></span>
         <span class="jump-marker" id="jump-marker"></span>
       </div>
     </div>
@@ -1722,18 +1728,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261115-06"></script>
-<script src="js/store.js?v=20261115-06"></script>
-<script src="js/desktop.js?v=20261115-06"></script>
-<script src="js/chat.js?v=20261115-06"></script>
-<script src="js/cards.js?v=20261115-06"></script>
-<script src="js/settings.js?v=20261115-06"></script>
-<script src="js/moments.js?v=20261115-06"></script>
-<script src="js/calendar.js?v=20261115-06"></script>
-<script src="js/music.js?v=20261115-06"></script>
-<script src="js/market.js?v=20261115-06"></script>
-<script src="js/mail.js?v=20261115-06"></script>
-<script src="js/extras.js?v=20261115-06"></script>
-<script src="js/app.js?v=20261115-06"></script>
+<script src="js/seed.js?v=20261115-07"></script>
+<script src="js/store.js?v=20261115-07"></script>
+<script src="js/desktop.js?v=20261115-07"></script>
+<script src="js/chat.js?v=20261115-07"></script>
+<script src="js/cards.js?v=20261115-07"></script>
+<script src="js/settings.js?v=20261115-07"></script>
+<script src="js/moments.js?v=20261115-07"></script>
+<script src="js/calendar.js?v=20261115-07"></script>
+<script src="js/music.js?v=20261115-07"></script>
+<script src="js/market.js?v=20261115-07"></script>
+<script src="js/mail.js?v=20261115-07"></script>
+<script src="js/extras.js?v=20261115-07"></script>
+<script src="js/app.js?v=20261115-07"></script>
 </body>
 </html>
