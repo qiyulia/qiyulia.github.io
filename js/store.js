@@ -951,14 +951,18 @@
 
     const picked = [];
     const used = {};
+    /* 命中触发词的字卡：每一张都按 15% 的单次抽中概率加权，其他卡平分剩下的概率 */
+    const HIT_SHARE = 0.15;
     for (let i = 0; i < count; i++) {
       const candidates = pool.filter(function (c) { return !used[c.id]; });
       if (!candidates.length) break;
       const hay = String(userText || '');
+      const n = candidates.length;
+      const hitWeight = n > 1 ? Math.max(1, (HIT_SHARE * n - 1) / (1 - HIT_SHARE)) : 1;
       const weights = candidates.map(function (c) {
         const words = String(c.trigger || '').split(/[/／]/).map(function (w) { return w.trim(); }).filter(Boolean);
         const hit = words.some(function (w) { return hay.indexOf(w) !== -1; });
-        return hit ? 8 : 1;
+        return hit ? hitWeight : 1;
       });
       let total = weights.reduce(function (a, b) { return a + b; }, 0);
       let r = Math.random() * total;
