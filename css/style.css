@@ -1362,9 +1362,9 @@ dialog.moment-sheet {
 .sticker-side-hint { flex: 1 1 100%; font-size: 11px; color: var(--muted); }
 .sticker-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  max-height: 42vh;
-  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
+  max-height: 34vh;
+  gap: 8px;
   overflow-y: auto;
   min-height: 0;
 }
@@ -1373,7 +1373,7 @@ dialog.moment-sheet {
   width: 100%;
   aspect-ratio: 1 / 1;
   padding: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--field);
 }
