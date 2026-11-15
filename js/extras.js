@@ -378,17 +378,14 @@
     }
   }
 
-  /* 每道题独立抽答案：同一份多问卷里不会沿用上一题选中的位置或字卡 */
+  /* 每道题独立抽答案：上一题选过什么不影响这一题，可以选到同一个位置 */
   function surveyAnswerFor(question, contactId, used) {
-    const avoid = used || { index: {}, cards: {} };
+    const avoid = used || { cards: {} };
     if (question.mode === 'single' || question.mode === 'multi') {
       const options = (question.options || []).slice();
       if (!options.length) return { text: question.text, mode: question.mode, answer: '（没有选项）' };
       if (question.mode === 'single') {
-        let pool = options.map(function (opt, i) { return i; }).filter(function (i) { return !avoid.index[i]; });
-        if (!pool.length) pool = options.map(function (opt, i) { return i; });
-        const picked = pool[Math.floor(Math.random() * pool.length)];
-        avoid.index[picked] = true;
+        const picked = Math.floor(Math.random() * options.length);
         return { text: question.text, mode: 'single', answer: options[picked] };
       }
       const count = 1 + Math.floor(Math.random() * options.length);
@@ -427,7 +424,7 @@
       const chat = App.state.chats[contactId] || [];
       const survey = chat.find(function (m) { return m.id === surveyId; });
       if (!survey) return;
-      const used = { index: {}, cards: {} };
+      const used = { cards: {} };
       const answers = (survey.questions || []).map(function (q) {
         return surveyAnswerFor(q, contactId, used);
       });
