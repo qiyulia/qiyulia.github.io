@@ -75,6 +75,9 @@
       if ((m.type === 'redpacket' || m.type === 'gift') && m.role === 'me' && m.status === 'pending') {
         scheduleTaDecision(id, m);
       }
+      if (m.type === 'wish' && m.role === 'me' && m.status === 'pending' && !m.decided) {
+        scheduleWishDecision(id, m);
+      }
     });
     const list = el('#chat-list');
     /* 重绘前记住已经在屏上的消息，重绘后让它们不再播放入场动画，避免整屏闪一下 */
@@ -277,8 +280,10 @@
   function wishHtml(m) {
     const pending = m.status === 'pending';
     const mine = m.role === 'me';
-    const statusText = pending ? (mine ? '等 TA 看见' : '等 TA 回应') : '已买下';
-    return '<div class="bubble bubble-gift bubble-wish' + (pending ? '' : ' is-done') + '">' +
+    const statusText = pending
+      ? (mine ? '等 TA 看见' : '等 TA 回应')
+      : (m.status === 'rejected' ? '已被拒绝' : (m.status === 'accepted' ? '已接受' : '已买下'));
+    return '<div class="bubble bubble-gift bubble-wish' + (pending ? '' : ' is-done') + (m.status === 'rejected' ? ' is-returned' : '') + '">' +
       '<div class="packet-head"><span class="packet-tag">心愿</span><em>' + statusText + '</em></div>' +
       '<p class="gift-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</p>' +
       '<p class="packet-note">' + Number(m.price || 0) + ' 同心币' + (pending && !mine ? ' · 想要这个' : '') + '</p>' +
@@ -313,6 +318,67 @@
     if (App.renderMarket) App.renderMarket();
     App.toast('已买下「' + (wish.productName || '礼物') + '」');
   }
+
+  /* 我许愿后，TA 看到时的三种结果：答应并立马送、拒绝、或者这次不作处理 */
+  const wishTimers = {};
+
+  function refreshWishBubble(contactId) {
+    App.save();
+    if (App.chatOpen(contactId)) {
+      App.renderChat();
+    } else {
+      App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+      if (App.renderContacts) App.renderContacts();
+      if (App.updateBadges) App.updateBadges();
+    }
+    if (App.renderMarket) App.renderMarket();
+  }
+
+  function acceptWish(contactId, wish) {
+    wish.status = 'accepted';
+    wish.decided = true;
+    const price = Number(wish.price || 0);
+    if (App.state.wallet.ta >= price) App.state.wallet.ta -= price;
+    const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+    chat.push({
+      id: App.uid('m'),
+      role: 'ta',
+      type: 'gift',
+      productName: wish.productName,
+      price: wish.price,
+      status: 'pending',
+      ts: Date.now(),
+    });
+    refreshWishBubble(contactId);
+  }
+
+  function rejectWish(contactId, wish) {
+    wish.status = 'rejected';
+    wish.decided = true;
+    refreshWishBubble(contactId);
+  }
+
+  function scheduleWishDecision(contactId, message) {
+    if (!message || message.role !== 'me' || message.decided || wishTimers[message.id]) return;
+    wishTimers[message.id] = setTimeout(function () {
+      delete wishTimers[message.id];
+      const chat = App.state.chats[contactId] || [];
+      const target = chat.find(function (m) { return m.id === message.id; });
+      if (!target || target.type !== 'wish' || target.status !== 'pending' || target.decided) return;
+      const settings = App.state.settings || {};
+      const accept = Math.max(0, Math.min(100, settings.taWishAcceptProb == null ? 25 : Number(settings.taWishAcceptProb) || 0));
+      const reject = Math.max(0, Math.min(100, settings.taWishRejectProb == null ? 20 : Number(settings.taWishRejectProb) || 0));
+      const roll = Math.random() * 100;
+      if (roll < accept) acceptWish(contactId, target);
+      else if (roll < accept + reject) rejectWish(contactId, target);
+      else {
+        /* 这次不处理：保持「等 TA 看见」，不再重复判定 */
+        target.decided = true;
+        App.save();
+      }
+    }, 5000 + Math.random() * 9000);
+  }
+  App.queueWishDecision = scheduleWishDecision;
 
   function surveyModeText(mode) {
     if (mode === 'single') return '单选';

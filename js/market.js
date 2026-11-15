@@ -81,6 +81,8 @@
       status: 'pending',
       ts: Date.now(),
     });
+    const message = App.state.chats[contact.id][App.state.chats[contact.id].length - 1];
+    if (side === 'me' && App.queueWishDecision) App.queueWishDecision(contact.id, message);
     return true;
   }
 

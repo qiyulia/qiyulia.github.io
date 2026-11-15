@@ -291,6 +291,8 @@
     el('#set-ta-market-wish-prob').value = st.settings.taMarketWishProb == null ? 8 : st.settings.taMarketWishProb;
     el('#set-ta-market-fav-prob').value = st.settings.taMarketFavProb == null ? 4 : st.settings.taMarketFavProb;
     el('#set-ta-market-buy-for-me-prob').value = st.settings.taMarketBuyForMeProb == null ? 4 : st.settings.taMarketBuyForMeProb;
+    el('#set-ta-wish-accept-prob').value = st.settings.taWishAcceptProb == null ? 25 : st.settings.taWishAcceptProb;
+    el('#set-ta-wish-reject-prob').value = st.settings.taWishRejectProb == null ? 20 : st.settings.taWishRejectProb;
     el('#set-notify-enabled').checked = !!st.settings.notifyEnabled;
     el('#set-keepalive').checked = !!st.settings.keepAlive;
     refreshNotifyStatus();
@@ -512,6 +514,8 @@
     bindAvatarProb('#set-ta-market-wish-prob', 'taMarketWishProb');
     bindAvatarProb('#set-ta-market-fav-prob', 'taMarketFavProb');
     bindAvatarProb('#set-ta-market-buy-for-me-prob', 'taMarketBuyForMeProb');
+    bindAvatarProb('#set-ta-wish-accept-prob', 'taWishAcceptProb');
+    bindAvatarProb('#set-ta-wish-reject-prob', 'taWishRejectProb');
 
     function bindMinutes(id, key, max) {
       const input = el(id);
