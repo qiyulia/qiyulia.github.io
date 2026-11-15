@@ -606,13 +606,6 @@
       s.stickers.mine = s.stickers.mine.concat(s.stickers.me);
       delete s.stickers.me;
     }
-    /* 一次性清空此前由应用内置/自动补入的表情包，之后用户自己添加的不再动 */
-    if (!s.stickersResetV1) {
-      s.stickers.mine = [];
-      s.stickers.ta = [];
-      s.stickers.public = [];
-      s.stickersResetV1 = true;
-    }
     if (!s.stickers.mine.length && !s.stickers.ta.length && App.DEFAULT_STICKERS) {
       s.stickers.mine = App.DEFAULT_STICKERS.mine.slice();
       s.stickers.ta = App.DEFAULT_STICKERS.ta.slice();
