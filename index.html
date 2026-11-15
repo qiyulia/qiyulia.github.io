@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261114-132">
+<link rel="stylesheet" href="css/style.css?v=20261115-01">
 </head>
 <body>
 <div class="stage">
@@ -92,7 +92,7 @@ if ('caches' in window) {
             <div class="hero">
               <p class="hero-eyebrow">拾 忆</p>
               <h1 class="hero-title" id="d-greeting">你好</h1>
-              <p class="hero-sub">向左滑，看看今天的小组件。</p>
+              <p class="hero-sub">向左滑，看看收藏和小组件。</p>
             </div>
 
             <div class="widget-grid">
@@ -166,11 +166,35 @@ if ('caches' in window) {
               </div>
             </div>
           </section>
+
+          <section class="desk-page fav-page" aria-label="收藏页">
+            <div class="hero">
+              <p class="hero-eyebrow">FAVORITES</p>
+              <h1 class="hero-title">收藏</h1>
+              <p class="hero-sub">我和 TA 收藏的东西，都收在这里。</p>
+            </div>
+
+            <div class="desk-section app-section">
+              <div class="section-head">
+                <span>应用</span>
+                <span>再向左滑是小组件</span>
+              </div>
+              <div class="app-grid">
+                <button type="button" class="app-entry" data-go="favorites">
+                  <span class="software-icon favorites-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l3.6 7.3 8.1 1.2-5.9 5.7 1.4 8.1L16 22.5l-7.2 3.8 1.4-8.1-5.9-5.7 8.1-1.2z"/></svg>
+                  </span>
+                  <span class="app-entry-label">收藏</span>
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
 
         <div class="page-dots" aria-label="主界面分页">
           <span class="is-active" data-desk-page="0" aria-label="主界面"></span>
-          <span data-desk-page="1" aria-label="右侧小组件页"></span>
+          <span data-desk-page="1" aria-label="收藏页"></span>
+          <span data-desk-page="2" aria-label="小组件页"></span>
         </div>
 
         <nav class="dock" aria-label="快捷入口">
@@ -223,6 +247,26 @@ if ('caches' in window) {
           <p>还没有联系人。</p>
           <button type="button" class="btn primary" id="btn-add-contact-2">添加第一个联系人</button>
         </div>
+      </div>
+    </section>
+
+    <!-- ============ 收藏 ============ -->
+    <section id="view-favorites" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>收藏</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body">
+        <div class="fav-tabs" id="fav-tabs">
+          <button type="button" class="fav-tab is-active" data-fav-cat="chat">聊天</button>
+          <button type="button" class="fav-tab" data-fav-cat="moments">朋友圈</button>
+          <button type="button" class="fav-tab" data-fav-cat="mail">信</button>
+          <button type="button" class="fav-tab" data-fav-cat="market">商品</button>
+        </div>
+        <div id="fav-list" class="fav-list"></div>
       </div>
     </section>
 
@@ -1323,7 +1367,8 @@ if ('caches' in window) {
     <button type="button" class="more-app" data-tool="survey" data-cat="tool" title="写一份小问卷"><span class="more-app-icon is-tool">问</span><span>问卷</span></button>
     <button type="button" class="more-app" data-tool="divine" data-cat="tool" title="塔罗牌 / 雷诺曼占卜"><span class="more-app-icon is-divine">签</span><span>占卜</span></button>
     <button type="button" class="more-app" data-tool="avatar" data-cat="tool" title="互换头像"><span class="more-app-icon is-avatar">换</span><span>头像</span></button>
-    <button type="button" class="more-app" data-tool="mine" data-cat="game" title="9 × 9，10 颗雷" hidden><span class="more-app-icon is-game">雷</span><span>扫雷</span></button>
+    <button type="button" class="more-app" data-tool="mine" data-cat="game" title="你一下，TA 一下，双人轮流扫雷" hidden><span class="more-app-icon is-game">雷</span><span>扫雷</span></button>
+    <button type="button" class="more-app" data-tool="jump" data-cat="game" title="滑到正中间时点确定" hidden><span class="more-app-icon is-jump">跳</span><span>跳一跳</span></button>
   </div>
 </dialog>
 
@@ -1485,20 +1530,50 @@ if ('caches' in window) {
   </div>
 </div>
 
-<!-- ============ 游戏：扫雷 ============ -->
+<!-- ============ 游戏：双人扫雷 ============ -->
 <div id="mine-dialog" class="tool-overlay" hidden>
   <div class="tool-overlay-backdrop" data-tool-close></div>
   <div class="tool-overlay-card">
-  <div class="sheet-head">
-    <h3>扫雷</h3>
-    <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    <div class="sheet-head">
+      <h3>双人扫雷</h3>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body mine-body">
+      <div class="mine-diff" id="mine-diff">
+        <button type="button" class="mine-diff-btn is-active" data-mine-diff="easy">简单</button>
+        <button type="button" class="mine-diff-btn" data-mine-diff="hard">困难</button>
+        <button type="button" class="mine-diff-btn" data-mine-diff="extreme">极限</button>
+      </div>
+      <p class="field-hint" id="mine-status">你点一格，TA 点一格，轮流翻。踩到雷的人输。</p>
+      <div id="mine-board" class="mine-board" role="grid" aria-label="扫雷棋盘"></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" id="mine-reset">重新开始</button>
+      <button type="button" class="btn primary" data-tool-close>关闭</button>
+    </div>
   </div>
-  <p class="field-hint" id="mine-status">点格子翻开，长按插旗。9 × 9，10 颗雷。</p>
-  <div id="mine-board" class="mine-board" role="grid" aria-label="扫雷棋盘"></div>
-  <div class="sheet-actions">
-    <button type="button" class="btn ghost" id="mine-reset">重新开始</button>
-    <button type="button" class="btn primary" data-tool-close>关闭</button>
-  </div>
+</div>
+
+<!-- ============ 游戏：跳一跳 ============ -->
+<div id="jump-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card">
+    <div class="sheet-head">
+      <h3>跳一跳</h3>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body jump-body">
+      <p class="field-hint" id="jump-status">竖线会一直左右滑，滑到蓝色区域正中间时点「确定」，越准分越高。</p>
+      <div class="jump-score"><span>得分 <strong id="jump-score">0</strong></span><span>最高 <strong id="jump-best">0</strong></span></div>
+      <div class="jump-track" id="jump-track">
+        <span class="jump-target" id="jump-target"></span>
+        <span class="jump-marker" id="jump-marker"></span>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" id="jump-reset">重新开始</button>
+      <button type="button" class="btn primary" id="jump-stop">确定</button>
+    </div>
   </div>
 </div>
 
@@ -1647,18 +1722,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261114-132"></script>
-<script src="js/store.js?v=20261114-132"></script>
-<script src="js/desktop.js?v=20261114-132"></script>
-<script src="js/chat.js?v=20261114-132"></script>
-<script src="js/cards.js?v=20261114-132"></script>
-<script src="js/settings.js?v=20261114-132"></script>
-<script src="js/moments.js?v=20261114-132"></script>
-<script src="js/calendar.js?v=20261114-132"></script>
-<script src="js/music.js?v=20261114-132"></script>
-<script src="js/market.js?v=20261114-132"></script>
-<script src="js/mail.js?v=20261114-132"></script>
-<script src="js/extras.js?v=20261114-132"></script>
-<script src="js/app.js?v=20261114-132"></script>
+<script src="js/seed.js?v=20261115-01"></script>
+<script src="js/store.js?v=20261115-01"></script>
+<script src="js/desktop.js?v=20261115-01"></script>
+<script src="js/chat.js?v=20261115-01"></script>
+<script src="js/cards.js?v=20261115-01"></script>
+<script src="js/settings.js?v=20261115-01"></script>
+<script src="js/moments.js?v=20261115-01"></script>
+<script src="js/calendar.js?v=20261115-01"></script>
+<script src="js/music.js?v=20261115-01"></script>
+<script src="js/market.js?v=20261115-01"></script>
+<script src="js/mail.js?v=20261115-01"></script>
+<script src="js/extras.js?v=20261115-01"></script>
+<script src="js/app.js?v=20261115-01"></script>
 </body>
 </html>

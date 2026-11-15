@@ -956,32 +956,39 @@
     scheduleDivineReply(contactId, message.id);
   }
 
-  /* ---------------- 游戏：扫雷 ---------------- */
-  const MINE_SIZE = 9;
-  const MINE_COUNT = 10;
-  let mine = null; /* { cells:[{mine,open,flag,n}], over, opened } */
+  /* ---------------- 游戏：双人扫雷（我一下，TA 一下） ---------------- */
+  const MINE_DIFFS = {
+    easy: { size: 9, count: 10, label: '简单 9×9 · 10 雷' },
+    hard: { size: 12, count: 24, label: '困难 12×12 · 24 雷' },
+    extreme: { size: 14, count: 45, label: '极限 14×14 · 45 雷' },
+  };
+  let mineDiff = 'easy';
+  let mine = null; /* { cells:[{mine,open,flag,n,by}], over, opened, turn, meCount, taCount, timer } */
 
   function mineNeighbors(i) {
-    const x = i % MINE_SIZE;
-    const y = Math.floor(i / MINE_SIZE);
+    const size = MINE_DIFFS[mineDiff].size;
+    const x = i % size;
+    const y = Math.floor(i / size);
     const out = [];
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
         if (!dx && !dy) continue;
         const nx = x + dx;
         const ny = y + dy;
-        if (nx < 0 || ny < 0 || nx >= MINE_SIZE || ny >= MINE_SIZE) continue;
-        out.push(ny * MINE_SIZE + nx);
+        if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+        out.push(ny * size + nx);
       }
     }
     return out;
   }
 
   function resetMine() {
+    const diff = MINE_DIFFS[mineDiff];
+    if (mine && mine.timer) clearTimeout(mine.timer);
     const cells = [];
-    for (let i = 0; i < MINE_SIZE * MINE_SIZE; i++) cells.push({ mine: false, open: false, flag: false, n: 0 });
+    for (let i = 0; i < diff.size * diff.size; i++) cells.push({ mine: false, open: false, flag: false, n: 0, by: '' });
     let placed = 0;
-    while (placed < MINE_COUNT) {
+    while (placed < diff.count) {
       const i = Math.floor(Math.random() * cells.length);
       if (cells[i].mine) continue;
       cells[i].mine = true;
@@ -991,13 +998,18 @@
       if (c.mine) return;
       c.n = mineNeighbors(i).filter(function (j) { return cells[j].mine; }).length;
     });
-    mine = { cells: cells, over: false, opened: 0 };
+    mine = { cells: cells, over: false, opened: 0, turn: 'me', meCount: 0, taCount: 0, timer: 0, winner: '' };
+    document.querySelectorAll('[data-mine-diff]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.mineDiff === mineDiff);
+    });
     renderMine();
   }
 
   function renderMine() {
     const board = el('#mine-board');
     if (!board || !mine) return;
+    const diff = MINE_DIFFS[mineDiff];
+    board.style.gridTemplateColumns = 'repeat(' + diff.size + ', 1fr)';
     board.innerHTML = mine.cells.map(function (c, i) {
       let text = '';
       let cls = 'mine-cell';
@@ -1005,6 +1017,7 @@
         cls += ' is-open';
         if (c.mine) { text = '💣'; cls += ' is-boom'; }
         else if (c.n) { text = String(c.n); cls += ' n' + c.n; }
+        if (c.by === 'ta') cls += ' by-ta';
       } else if (c.flag) {
         text = '🚩';
         cls += ' is-flag';
@@ -1014,19 +1027,32 @@
     }).join('');
 
     if (el('#mine-status')) {
-      el('#mine-status').textContent = mine.over === 'win'
-        ? '扫完了，今天也很厉害。'
-        : (mine.over === 'lose' ? '踩到雷了。点下面重新来一局。' : '点格子翻开，长按插旗。9 × 9，10 颗雷。');
+      let text;
+      if (mine.over === 'lose') {
+        text = mine.winner === 'me' ? 'TA 踩到雷了，你赢了！点重新开始再来一局。' : '你踩到雷了，TA 赢了。点重新开始再战。';
+      } else if (mine.over === 'win') {
+        text = mine.winner === 'draw'
+          ? '全部扫完，你们打成了平手。'
+          : (mine.winner === 'me' ? '全部扫完，你翻的格子更多，你赢了！' : '全部扫完，TA 翻的格子更多，TA 赢了。');
+      } else {
+        text = (mine.turn === 'me' ? '轮到你点一格' : 'TA 正在选格子…') +
+          ' · 我 ' + mine.meCount + ' 格 / TA ' + mine.taCount + ' 格 · ' + diff.label;
+      }
+      el('#mine-status').textContent = text;
     }
   }
 
-  function openMineCell(i) {
+  function openMineCell(i, by) {
     if (!mine || mine.over) return;
+    if (mine.turn !== by) return;
+    const diff = MINE_DIFFS[mineDiff];
     const cell = mine.cells[i];
     if (!cell || cell.open || cell.flag) return;
     if (cell.mine) {
       cell.open = true;
+      cell.by = by;
       mine.over = 'lose';
+      mine.winner = by === 'me' ? 'ta' : 'me';
       mine.cells.forEach(function (c) { if (c.mine) c.open = true; });
       renderMine();
       return;
@@ -1037,11 +1063,36 @@
       const c = mine.cells[cur];
       if (!c || c.open || c.flag) continue;
       c.open = true;
+      c.by = by;
       mine.opened++;
+      if (by === 'me') mine.meCount++;
+      else mine.taCount++;
       if (!c.n) mineNeighbors(cur).forEach(function (j) { stack.push(j); });
     }
-    if (mine.opened >= MINE_SIZE * MINE_SIZE - MINE_COUNT) mine.over = 'win';
+    if (mine.opened >= diff.size * diff.size - diff.count) {
+      mine.over = 'win';
+      mine.winner = mine.meCount === mine.taCount ? 'draw' : (mine.meCount > mine.taCount ? 'me' : 'ta');
+      renderMine();
+      return;
+    }
+    mine.turn = by === 'me' ? 'ta' : 'me';
     renderMine();
+    if (mine.turn === 'ta') {
+      mine.timer = setTimeout(taMineMove, 900 + Math.random() * 900);
+    }
+  }
+
+  function taMineMove() {
+    if (!mine || mine.over || mine.turn !== 'ta') return;
+    const layer = el('#mine-dialog');
+    if (layer && layer.hidden) { mine.turn = 'me'; renderMine(); return; }
+    const candidates = [];
+    mine.cells.forEach(function (c, i) {
+      if (!c.open && !c.flag) candidates.push(i);
+    });
+    if (!candidates.length) { mine.turn = 'me'; renderMine(); return; }
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    openMineCell(pick, 'ta');
   }
 
   function toggleMineFlag(i) {
@@ -1050,6 +1101,82 @@
     if (!cell || cell.open) return;
     cell.flag = !cell.flag;
     renderMine();
+  }
+
+  /* ---------------- 游戏：跳一跳（滑动定位） ---------------- */
+  let jumpBest = 0;
+  let jump = null; /* { pos, dir, speed, target, score, running, locked, raf, last } */
+
+  function renderJump() {
+    if (!jump) return;
+    const marker = el('#jump-marker');
+    const target = el('#jump-target');
+    if (marker) marker.style.left = (jump.pos * 100) + '%';
+    if (target) target.style.left = ((jump.target - 0.05) * 100) + '%';
+    if (el('#jump-score')) el('#jump-score').textContent = String(jump.score);
+    if (el('#jump-best')) el('#jump-best').textContent = String(jumpBest);
+  }
+
+  function jumpFrame(now) {
+    if (!jump || !jump.running) return;
+    const layer = el('#jump-dialog');
+    if (!layer || layer.hidden) { jump.running = false; return; }
+    const dt = Math.min(50, now - (jump.last || now));
+    jump.last = now;
+    jump.pos += jump.dir * jump.speed * dt / 1000;
+    if (jump.pos >= 1) { jump.pos = 1; jump.dir = -1; }
+    if (jump.pos <= 0) { jump.pos = 0; jump.dir = 1; }
+    renderJump();
+    jump.raf = requestAnimationFrame(jumpFrame);
+  }
+
+  function startJumpRound() {
+    if (!jump || jump.running) return;
+    jump.locked = false;
+    jump.running = true;
+    jump.last = 0;
+    jump.raf = requestAnimationFrame(jumpFrame);
+  }
+
+  function resetJump() {
+    if (jump && jump.raf) cancelAnimationFrame(jump.raf);
+    if (jump && jump.timer) clearTimeout(jump.timer);
+    jump = { pos: 0, dir: 1, speed: 0.7, target: 0.5, score: 0, running: false, locked: false, raf: 0, last: 0, timer: 0 };
+    if (el('#jump-status')) {
+      el('#jump-status').textContent = '竖线会一直左右滑，滑到蓝色区域正中间时点「确定」，越准分越高。';
+    }
+    renderJump();
+    startJumpRound();
+  }
+
+  function stopJump() {
+    if (!jump || jump.locked || !jump.running) return;
+    jump.running = false;
+    jump.locked = true;
+    if (jump.raf) cancelAnimationFrame(jump.raf);
+    const distance = Math.abs(jump.pos - jump.target);
+    let text;
+    if (distance > 0.08) {
+      jumpBest = Math.max(jumpBest, jump.score);
+      text = '没踩准，游戏结束。最终得分 ' + jump.score + '，点「重新开始」再玩。';
+      if (el('#jump-status')) el('#jump-status').textContent = text;
+      renderJump();
+      return;
+    }
+    let points = 3;
+    if (distance <= 0.015) points = 10;
+    else if (distance <= 0.04) points = 6;
+    jump.score += points;
+    jumpBest = Math.max(jumpBest, jump.score);
+    text = (points === 10 ? '完美！+' : (points === 6 ? '很准！+' : '还不错，+')) + points + ' 分，下一局会更快。';
+    if (el('#jump-status')) el('#jump-status').textContent = text;
+    jump.speed = Math.min(2.2, jump.speed + 0.12);
+    jump.target = 0.15 + Math.random() * 0.7;
+    renderJump();
+    jump.timer = setTimeout(function () {
+      const layer = el('#jump-dialog');
+      if (layer && !layer.hidden) startJumpRound();
+    }, 750);
   }
 
   /* ---------------- 事件绑定 ---------------- */
@@ -1705,6 +1832,9 @@
         } else if (btn.dataset.tool === 'mine') {
           resetMine();
           showToolPanel('#mine-dialog');
+        } else if (btn.dataset.tool === 'jump') {
+          resetJump();
+          showToolPanel('#jump-dialog');
         }
       });
     });
@@ -1905,6 +2035,16 @@
 
     const mineReset = el('#mine-reset');
     if (mineReset) mineReset.addEventListener('click', resetMine);
+    document.querySelectorAll('[data-mine-diff]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        mineDiff = btn.dataset.mineDiff || 'easy';
+        resetMine();
+      });
+    });
+    const jumpStop = el('#jump-stop');
+    if (jumpStop) jumpStop.addEventListener('click', stopJump);
+    const jumpReset = el('#jump-reset');
+    if (jumpReset) jumpReset.addEventListener('click', resetJump);
     const mineBoard = el('#mine-board');
     if (mineBoard) {
       let pressTimer = null;
@@ -1927,7 +2067,7 @@
       mineBoard.addEventListener('click', function (e) {
         const cell = e.target.closest('[data-mine]');
         if (!cell) return;
-        openMineCell(Number(cell.dataset.mine));
+        openMineCell(Number(cell.dataset.mine), 'me');
       });
       mineBoard.addEventListener('contextmenu', function (e) {
         const cell = e.target.closest('[data-mine]');

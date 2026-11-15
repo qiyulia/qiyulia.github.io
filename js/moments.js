@@ -108,6 +108,9 @@
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>' +
         '<span>' + (moment.liked ? '已喜欢' : '喜欢') + '</span>' +
       '</button>');
+      actions.push('<button type="button" class="moment-action moment-fav' + (moment.fav ? ' is-active' : '') + '" data-moment-fav="' + id + '">' +
+        '<span>' + (moment.fav ? '★ 已收藏' : '☆ 收藏') + '</span>' +
+      '</button>');
       actions.push('<button type="button" class="moment-action" data-moment-comment="' + id + '">' +
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
         '<span>评论</span>' +
@@ -282,6 +285,18 @@
         if (form) {
           form.hidden = !form.hidden;
           if (!form.hidden) form.querySelector('input').focus();
+        }
+        return;
+      }
+
+      const fav = e.target.closest('[data-moment-fav]');
+      if (fav) {
+        const moment = App.state.moments.find(function (item) { return item.id === fav.dataset.momentFav; });
+        if (moment) {
+          moment.fav = !moment.fav;
+          App.save();
+          App.renderMoments();
+          App.toast(moment.fav ? '已收藏这条朋友圈' : '已取消收藏');
         }
         return;
       }

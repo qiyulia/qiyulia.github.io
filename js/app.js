@@ -51,6 +51,7 @@
     else if (view === 'calendar') App.renderCalendar();
     else if (view === 'music') App.renderMusic();
     else if (view === 'market') App.renderMarket();
+    else if (view === 'favorites') App.renderFavorites();
     else if (view === 'mail') App.renderMail();
     else if (view === 'anniversary') App.renderAnniversaries();
     else if (view === 'notes') App.renderReminders();

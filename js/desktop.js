@@ -253,27 +253,32 @@
     });
   }
 
-  function paintPager(offset) {
+  function deskPages() {
     const pager = el('#desk-pager');
-    const width = pager.clientWidth || 1;
+    return ['.home-page', '.fav-page', '.widget-page'].map(function (sel) {
+      return pager.querySelector(sel);
+    }).filter(Boolean);
+  }
+
+  function paintPager(offset) {
+    const pages = deskPages();
+    const width = el('#desk-pager').clientWidth || 1;
     const dx = offset || 0;
-    pager.querySelector('.home-page').style.transform = 'translateX(' + (-deskPage * width + dx) + 'px)';
-    pager.querySelector('.widget-page').style.transform = 'translateX(' + ((1 - deskPage) * width + dx) + 'px)';
+    pages.forEach(function (page, i) {
+      page.style.transform = 'translateX(' + ((i - deskPage) * width + dx) + 'px)';
+      page.style.pointerEvents = i === deskPage ? 'auto' : 'none';
+    });
   }
 
   function jumpToDeskPage(index) {
-    const pager = el('#desk-pager');
-    deskPage = index === 1 ? 1 : 0;
-    pager.classList.toggle('show-widgets', deskPage === 1);
+    const pages = deskPages();
+    deskPage = Math.max(0, Math.min(pages.length - 1, Number(index) || 0));
     updatePagerDots();
     paintPager(0);
-
-    const home = pager.querySelector('.home-page');
-    const widgets = pager.querySelector('.widget-page');
-    home.inert = deskPage === 1;
-    widgets.inert = deskPage === 0;
-    home.setAttribute('aria-hidden', String(deskPage === 1));
-    widgets.setAttribute('aria-hidden', String(deskPage === 0));
+    pages.forEach(function (page, i) {
+      page.inert = i !== deskPage;
+      page.setAttribute('aria-hidden', String(i !== deskPage));
+    });
   }
 
   function initPager() {
@@ -297,7 +302,7 @@
       if (!gesture.horizontal) return false;
 
       const atStart = deskPage === 0 && dx > 0;
-      const atEnd = deskPage === 1 && dx < 0;
+      const atEnd = deskPage === deskPages().length - 1 && dx < 0;
       paintPager(atStart || atEnd ? dx * 0.22 : dx);
       return true;
     }
@@ -360,8 +365,8 @@
       pager.classList.remove('is-dragging');
       let next = deskPage;
       if (!cancelled && Math.abs(current.dx) >= 55) {
-        if (deskPage === 0 && current.dx < 0) next = 1;
-        else if (deskPage === 1 && current.dx > 0) next = 0;
+        if (current.dx < 0) next = deskPage + 1;
+        else if (current.dx > 0) next = deskPage - 1;
       }
       jumpToDeskPage(next);
       suppressClick = true;
@@ -391,8 +396,86 @@
     });
   }
 
+  /* ---------------- 收藏应用：聊天 / 朋友圈 / 信 / 商品 ---------------- */
+  let favCat = 'chat';
+
+  function favItems() {
+    const items = [];
+    const contacts = App.state.contacts || [];
+    const nameOf = function (cid) {
+      const c = contacts.find(function (x) { return x.id === cid; });
+      return c ? c.name : 'TA';
+    };
+    if (favCat === 'chat') {
+      Object.keys(App.state.chats || {}).forEach(function (cid) {
+        (App.state.chats[cid] || []).forEach(function (m) {
+          if (!m.favMine && !m.favTa) return;
+          const who = [];
+          if (m.favMine) who.push('我');
+          if (m.favTa) who.push(nameOf(cid));
+          items.push({
+            ts: m.ts || 0,
+            title: m.text || m.title || m.question || (m.src ? '[语音]' : (m.sticker ? '[表情包]' : '[卡片消息]')),
+            who: who.join('、') + '收藏了',
+            from: '和 ' + nameOf(cid) + ' 的聊天',
+          });
+        });
+      });
+    } else if (favCat === 'moments') {
+      (App.state.moments || []).forEach(function (m) {
+        if (!m.fav && !m.favTa) return;
+        const who = [];
+        if (m.fav) who.push('我');
+        if (m.favTa) who.push(m.favTaName || 'TA');
+        items.push({ ts: m.ts || 0, title: m.text || '[图片动态]', who: who.join('、') + '收藏了', from: '朋友圈' });
+      });
+    } else if (favCat === 'mail') {
+      (App.state.mail || []).forEach(function (m) {
+        if (!m.fav) return;
+        items.push({ ts: m.ts || 0, title: m.title || '一封信', who: '我收藏了', from: String(m.body || '').slice(0, 40) });
+      });
+    } else if (favCat === 'market') {
+      const products = (App.state.market && App.state.market.products) || [];
+      products.forEach(function (p) {
+        if (!p.fav || (!p.fav.me && !p.fav.ta)) return;
+        const who = [];
+        if (p.fav.me) who.push('我');
+        if (p.fav.ta) who.push('TA');
+        items.push({ ts: 0, title: (p.icon ? p.icon + ' ' : '') + p.name, who: who.join('、') + '收藏了', from: '集市 · ' + p.price + ' 同心币' });
+      });
+    }
+    return items.sort(function (a, b) { return b.ts - a.ts; });
+  }
+
+  App.renderFavorites = function () {
+    const list = el('#fav-list');
+    if (!list) return;
+    document.querySelectorAll('[data-fav-cat]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.favCat === favCat);
+    });
+    const items = favItems();
+    if (!items.length) {
+      list.innerHTML = '<div class="empty-state"><p>这一类还没有收藏。</p><p class="panel-note">聊天里长按消息、朋友圈点 ☆、信箱和集市里都能收藏。</p></div>';
+      return;
+    }
+    list.innerHTML = items.map(function (item) {
+      return '<article class="fav-item">' +
+        '<p class="fav-item-text">' + App.esc(item.title) + '</p>' +
+        '<div class="fav-item-foot"><span class="fav-item-from">' + App.esc(item.from) + '</span>' +
+        '<span class="fav-item-who">★ ' + App.esc(item.who) + '</span></div>' +
+        (item.ts ? '<time class="fav-item-time">' + App.fmtDate(new Date(item.ts)) + '</time>' : '') +
+      '</article>';
+    }).join('');
+  };
+
   App.initDesktop = function () {
     initPager();
+    document.querySelectorAll('[data-fav-cat]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        favCat = btn.dataset.favCat || 'chat';
+        App.renderFavorites();
+      });
+    });
 
     document.querySelectorAll('[data-icon-shape]').forEach(function (btn) {
       btn.addEventListener('click', function () {
