@@ -400,6 +400,15 @@
 
   /* ---------------- 收藏应用：聊天 / 朋友圈 / 信 / 商品 ---------------- */
   let favCat = 'chat';
+  let favSelectMode = false;
+  let favPicked = {};
+
+  function favKey(item) {
+    if (item.kind === 'chat') return 'chat:' + item.cid + ':' + item.mid;
+    if (item.kind === 'moments') return 'moments:' + item.mid;
+    if (item.kind === 'mail') return 'mail:' + item.mid;
+    return 'market:' + item.pid;
+  }
 
   function favItems() {
     const items = [];
@@ -416,6 +425,9 @@
           if (m.favMine) who.push('我');
           if (m.favTa) who.push(nameOf(cid));
           items.push({
+            kind: 'chat',
+            cid: cid,
+            mid: m.id,
             ts: m.ts || 0,
             title: m.text || m.title || m.question || (m.src ? '[语音]' : (m.sticker ? '[表情包]' : '[卡片消息]')),
             who: who.join('、') + '收藏了',
@@ -429,12 +441,26 @@
         const who = [];
         if (m.fav) who.push('我');
         if (m.favTa) who.push(m.favTaName || 'TA');
-        items.push({ ts: m.ts || 0, title: m.text || '[图片动态]', who: who.join('、') + '收藏了', from: '朋友圈' });
+        items.push({
+          kind: 'moments',
+          mid: m.id,
+          ts: m.ts || 0,
+          title: m.text || '[图片动态]',
+          who: who.join('、') + '收藏了',
+          from: '朋友圈',
+        });
       });
     } else if (favCat === 'mail') {
       (App.state.mail || []).forEach(function (m) {
         if (!m.fav) return;
-        items.push({ ts: m.ts || 0, title: m.title || '一封信', who: '我收藏了', from: String(m.body || '').slice(0, 40) });
+        items.push({
+          kind: 'mail',
+          mid: m.id,
+          ts: m.ts || 0,
+          title: m.title || '一封信',
+          who: '我收藏了',
+          from: String(m.body || '').slice(0, 40),
+        });
       });
     } else if (favCat === 'market') {
       const products = (App.state.market && App.state.market.products) || [];
@@ -443,10 +469,47 @@
         const who = [];
         if (p.fav.me) who.push('我');
         if (p.fav.ta) who.push('TA');
-        items.push({ ts: 0, title: (p.icon ? p.icon + ' ' : '') + p.name, who: who.join('、') + '收藏了', from: '集市 · ' + p.price + ' 同心币' });
+        items.push({
+          kind: 'market',
+          pid: p.id,
+          ts: 0,
+          title: (p.icon ? p.icon + ' ' : '') + p.name,
+          who: who.join('、') + '收藏了',
+          from: '集市 · ' + p.price + ' 同心币',
+        });
       });
     }
     return items.sort(function (a, b) { return b.ts - a.ts; });
+  }
+
+  /* 取消一条收藏（只去掉收藏标记，不删原来的消息和信件） */
+  function dropFav(item) {
+    if (item.kind === 'chat') {
+      (App.state.chats[item.cid] || []).forEach(function (m) {
+        if (m.id !== item.mid) return;
+        m.favMine = false;
+        m.favTa = false;
+      });
+    } else if (item.kind === 'moments') {
+      const m = (App.state.moments || []).find(function (x) { return x.id === item.mid; });
+      if (m) { m.fav = false; m.favTa = false; }
+    } else if (item.kind === 'mail') {
+      const m = (App.state.mail || []).find(function (x) { return x.id === item.mid; });
+      if (m) m.fav = false;
+    } else if (item.kind === 'market') {
+      const p = ((App.state.market && App.state.market.products) || []).find(function (x) { return x.id === item.pid; });
+      if (p) p.fav = { me: false, ta: false };
+    }
+  }
+
+  function removeFavorites(list) {
+    if (!list.length) return;
+    list.forEach(dropFav);
+    App.save();
+    favPicked = {};
+    favSelectMode = false;
+    App.renderFavorites();
+    if (App.toast) App.toast(list.length > 1 ? '已删除 ' + list.length + ' 条收藏' : '已删除这条收藏');
   }
 
   App.renderFavorites = function () {
@@ -456,18 +519,46 @@
       btn.classList.toggle('is-active', btn.dataset.favCat === favCat);
     });
     const items = favItems();
+    if (!items.length) favSelectMode = false;
+    if (!items.length) favPicked = {};
+
+    const toggle = el('#fav-select-toggle');
+    const bulk = el('#fav-delete-selected');
+    const pickedCount = Object.keys(favPicked).length;
+    if (toggle) {
+      toggle.textContent = favSelectMode ? '取消' : '多选';
+      toggle.hidden = false;
+      toggle.classList.toggle('is-active', favSelectMode);
+    }
+    if (bulk) {
+      bulk.hidden = !favSelectMode;
+      bulk.disabled = pickedCount === 0;
+      bulk.textContent = pickedCount ? '删除(' + pickedCount + ')' : '删除';
+    }
+
     if (!items.length) {
       list.innerHTML = '<div class="empty-state"><p>这一类还没有收藏。</p><p class="panel-note">聊天里长按消息、朋友圈点 ☆、信箱和集市里都能收藏。</p></div>';
       return;
     }
     list.innerHTML = items.map(function (item) {
-      return '<article class="fav-item">' +
-        '<p class="fav-item-text">' + App.esc(item.title) + '</p>' +
-        '<div class="fav-item-foot"><span class="fav-item-from">' + App.esc(item.from) + '</span>' +
-        '<span class="fav-item-who">★ ' + App.esc(item.who) + '</span></div>' +
-        (item.ts ? '<time class="fav-item-time">' + App.fmtDate(new Date(item.ts)) + '</time>' : '') +
+      const key = favKey(item);
+      const picked = !!favPicked[key];
+      return '<article class="fav-item' + (favSelectMode ? ' is-select' : '') + (picked ? ' is-picked' : '') + '" data-fav-key="' + App.esc(key) + '">' +
+        (favSelectMode ? '<span class="fav-check" aria-hidden="true">' + (picked ? '✓' : '') + '</span>' : '') +
+        '<div class="fav-item-body">' +
+          '<p class="fav-item-text">' + App.esc(item.title) + '</p>' +
+          '<div class="fav-item-foot"><span class="fav-item-from">' + App.esc(item.from) + '</span>' +
+          '<span class="fav-item-who">★ ' + App.esc(item.who) + '</span></div>' +
+          (item.ts ? '<time class="fav-item-time">' + App.fmtDate(new Date(item.ts)) + '</time>' : '') +
+        '</div>' +
+        '<button type="button" class="fav-del" data-fav-del="' + App.esc(key) + '" aria-label="删除这条收藏">删除</button>' +
       '</article>';
     }).join('');
+  };
+
+  App.resetFavSelect = function () {
+    favSelectMode = false;
+    favPicked = {};
   };
 
   App.initDesktop = function () {
@@ -475,9 +566,46 @@
     document.querySelectorAll('[data-fav-cat]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         favCat = btn.dataset.favCat || 'chat';
+        favSelectMode = false;
+        favPicked = {};
         App.renderFavorites();
       });
     });
+
+    const favToggle = el('#fav-select-toggle');
+    if (favToggle) {
+      favToggle.addEventListener('click', function () {
+        favSelectMode = !favSelectMode;
+        favPicked = {};
+        App.renderFavorites();
+      });
+    }
+    const favBulk = el('#fav-delete-selected');
+    if (favBulk) {
+      favBulk.addEventListener('click', function () {
+        const picked = favItems().filter(function (item) { return favPicked[favKey(item)]; });
+        removeFavorites(picked);
+      });
+    }
+    const favList = el('#fav-list');
+    if (favList) {
+      favList.addEventListener('click', function (e) {
+        const del = e.target.closest('[data-fav-del]');
+        if (del) {
+          const key = del.dataset.favDel;
+          const item = favItems().find(function (x) { return favKey(x) === key; });
+          if (item) removeFavorites([item]);
+          return;
+        }
+        if (!favSelectMode) return;
+        const row = e.target.closest('[data-fav-key]');
+        if (!row) return;
+        const key = row.dataset.favKey;
+        if (favPicked[key]) delete favPicked[key];
+        else favPicked[key] = true;
+        App.renderFavorites();
+      });
+    }
 
     document.querySelectorAll('[data-icon-shape]').forEach(function (btn) {
       btn.addEventListener('click', function () {

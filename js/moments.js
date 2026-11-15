@@ -71,6 +71,14 @@
     const ta = taContact();
     el('#m-avatar').innerHTML = App.avatarHtml(profile.userAvatar);
 
+    /* 顶部封面：选了相册图片就用图片，没有就保持默认渐变 */
+    const hero = el('#moments-hero');
+    if (hero) {
+      const cover = App.state.momentsCover || '';
+      hero.classList.toggle('has-cover', !!cover);
+      hero.style.backgroundImage = cover ? 'url("' + cover + '")' : '';
+    }
+
     const moments = App.state.moments.slice().sort(function (a, b) { return b.ts - a.ts; });
     el('#moment-empty').hidden = moments.length > 0;
     el('#moment-list').innerHTML = moments.map(function (moment) {
@@ -264,6 +272,28 @@
       App.toast('动态已发布');
       scheduleTaReact(moment.id);
     });
+
+    /* 顶部封面可以换成相册里的图 */
+    const coverBtn = el('#moments-cover-btn');
+    const coverInput = el('#moments-cover-input');
+    if (coverBtn && coverInput) {
+      coverBtn.addEventListener('click', function () { coverInput.click(); });
+      coverInput.addEventListener('change', function () {
+        const file = coverInput.files && coverInput.files[0];
+        coverInput.value = '';
+        if (!file) return;
+        if (!App.compressImage) return;
+        App.toast('正在处理封面…');
+        App.compressImage(file, 1200, { quality: 0.82, maxLength: 420000 }).then(function (url) {
+          App.state.momentsCover = url;
+          App.save();
+          App.renderMoments();
+          App.toast('封面已更换，点「换封面」可以再改');
+        }).catch(function () {
+          App.toast('这张图读取失败了');
+        });
+      });
+    }
 
     el('#moment-list').addEventListener('click', function (e) {
       const commentLike = e.target.closest('[data-comment-like]');

@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261115-11">
+<link rel="stylesheet" href="css/style.css?v=20261115-12">
 </head>
 <body>
 <div class="stage">
@@ -257,7 +257,10 @@ if ('caches' in window) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
         <h2>收藏</h2>
-        <span class="topbar-spacer"></span>
+        <div class="topbar-actions">
+          <button type="button" class="topbar-text-btn" id="fav-select-toggle">多选</button>
+          <button type="button" class="topbar-text-btn is-danger" id="fav-delete-selected" hidden>删除</button>
+        </div>
       </header>
       <div class="page-body">
         <div class="fav-tabs" id="fav-tabs">
@@ -280,20 +283,24 @@ if ('caches' in window) {
         <span class="topbar-spacer"></span>
       </header>
       <div class="page-body moments-body">
-        <div class="moments-hero">
-          <div>
+        <div class="moments-hero" id="moments-hero">
+          <div class="moments-hero-main">
             <p class="hero-eyebrow">MY MOMENTS</p>
             <h3>把普通的一天，<br>留成以后记得的片段。</h3>
           </div>
           <span class="avatar" id="m-avatar">🍊</span>
+          <div class="moments-hero-foot">
+            <button type="button" class="moments-cover-btn" id="moments-cover-btn">换封面</button>
+            <button type="submit" form="moment-form" class="btn primary moments-publish">发布</button>
+          </div>
         </div>
+        <input type="file" id="moments-cover-input" accept="image/*" hidden>
 
         <form id="moment-form" class="moment-composer">
           <label for="moment-input">分享此刻</label>
           <textarea id="moment-input" rows="3" maxlength="300" placeholder="今天发生了什么？" required></textarea>
           <div class="moment-compose-foot">
             <span id="moment-count">0 / 300</span>
-            <button type="submit" class="btn primary">发布</button>
           </div>
         </form>
 
@@ -1759,18 +1766,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261115-11"></script>
-<script src="js/store.js?v=20261115-11"></script>
-<script src="js/desktop.js?v=20261115-11"></script>
-<script src="js/chat.js?v=20261115-11"></script>
-<script src="js/cards.js?v=20261115-11"></script>
-<script src="js/settings.js?v=20261115-11"></script>
-<script src="js/moments.js?v=20261115-11"></script>
-<script src="js/calendar.js?v=20261115-11"></script>
-<script src="js/music.js?v=20261115-11"></script>
-<script src="js/market.js?v=20261115-11"></script>
-<script src="js/mail.js?v=20261115-11"></script>
-<script src="js/extras.js?v=20261115-11"></script>
-<script src="js/app.js?v=20261115-11"></script>
+<script src="js/seed.js?v=20261115-12"></script>
+<script src="js/store.js?v=20261115-12"></script>
+<script src="js/desktop.js?v=20261115-12"></script>
+<script src="js/chat.js?v=20261115-12"></script>
+<script src="js/cards.js?v=20261115-12"></script>
+<script src="js/settings.js?v=20261115-12"></script>
+<script src="js/moments.js?v=20261115-12"></script>
+<script src="js/calendar.js?v=20261115-12"></script>
+<script src="js/music.js?v=20261115-12"></script>
+<script src="js/market.js?v=20261115-12"></script>
+<script src="js/mail.js?v=20261115-12"></script>
+<script src="js/extras.js?v=20261115-12"></script>
+<script src="js/app.js?v=20261115-12"></script>
 </body>
 </html>

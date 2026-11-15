@@ -2245,7 +2245,7 @@
         if (!cell) return;
         e.preventDefault();
         /* 手机长按本身会补发 contextmenu，刚插过旗就忽略，避免把旗子又取消掉 */
-        if (Date.now() - flagAt < 900) return;
+        if (Date.now() - flagAt < 3000) return;
         toggleMineFlag(Number(cell.dataset.mine));
       });
     }
