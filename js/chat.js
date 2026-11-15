@@ -1064,17 +1064,8 @@
 
     const role = 'me';
     const message = { id: App.uid('m'), role: role, type: 'text', text: text, ts: Date.now() };
-    if (quoteDraft) {
-      message.quote = quoteDraft;
-      /* 引用之后即使没手动加表情，也有概率带着表情包一起发，概率与 TA 文字配表情包相同 */
-      const contact = currentContact();
-      const cs = contact ? App.contactSettings(contact) : {};
-      const comboProb = Math.max(0, Math.min(100, Number(cs.taStickerComboProb) || 0));
-      const pool = (App.state.stickers.public || []).concat(App.state.stickers.me || []);
-      if (pool.length && Math.random() * 100 < comboProb) {
-        message.stickerSrc = pool[Math.floor(Math.random() * pool.length)];
-      }
-    }
+    /* 引用之后只打字发送：保持纯文字，不自动配表情包 */
+    if (quoteDraft) message.quote = quoteDraft;
     quoteDraft = null;
     renderComposerQuote();
     pushMessage(message);
@@ -1499,19 +1490,20 @@
       if (group.length === 1 && card.category === '语音') message.src = card.audio;
       if (Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
 
-      /* TA 也会把文字和表情包一起发：表情包在上，文字在下；概率在聊天设置 → 回复里调 */
-      if (message.type === 'text' && group.length === 1) {
+      const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
+      if (chat.length && Math.random() * 100 < quoteProb) {
+        const quote = taQuoteFromPool(chat, contact);
+        if (quote) message.quote = quote;
+      }
+
+      /* TA 也会把文字和表情包一起发：表情包在上，文字在下；概率在聊天设置 → 回复里调
+         引用消息时只打字就不配表情包，保持纯文字 */
+      if (message.type === 'text' && group.length === 1 && !message.quote) {
         const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerComboProb) || 0));
         const stickerPool = (App.state.stickers.ta || []).concat(App.state.stickers.public || []);
         if (stickerPool.length && Math.random() * 100 < stickerProb) {
           message.stickerSrc = stickerPool[Math.floor(Math.random() * stickerPool.length)];
         }
-      }
-
-      const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
-      if (chat.length && Math.random() * 100 < quoteProb) {
-        const quote = taQuoteFromPool(chat, contact);
-        if (quote) message.quote = quote;
       }
 
       chat.push(message);
