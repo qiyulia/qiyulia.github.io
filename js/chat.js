@@ -643,18 +643,21 @@
       body = '<div class="bubble bubble-emotion survey-append-bubble">' +
         '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta +
         '</div>';
+    } else if (m.stickerSrc) {
+      /* 文字 + 表情包：同一张卡片里，表情包在上，文字在下 */
+      const tail = hasEmotion
+        ? '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta
+        : '<span class="bubble-text">' + App.esc(m.text) + '</span>' + readChip(m);
+      body = '<div class="bubble bubble-combo' + (hasEmotion ? ' bubble-emotion' : '') + '">' +
+        '<img class="bubble-sticker" loading="lazy" decoding="async" src="' + App.esc(m.stickerSrc) + '" alt="表情包">' +
+        tail +
+        '</div>';
     } else if (hasEmotion) {
       body = '<div class="bubble bubble-emotion">' +
         '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta +
         '</div>';
     } else {
       body = '<div class="bubble bubble-with-read"><span class="bubble-text">' + App.esc(m.text) + '</span>' + readChip(m) + '</div>';
-    }
-    /* 文字 + 表情包一起发：文字在上，表情包在下 */
-    if (m.stickerSrc) {
-      body = '<div class="bubble-combo">' + body +
-        '<img class="bubble-sticker" loading="lazy" decoding="async" src="' + App.esc(m.stickerSrc) + '" alt="表情包">' +
-        '</div>';
     }
     const quote = quoteHtml(m.quote);
     const marks = [];
@@ -1056,7 +1059,7 @@
     if (!App.chatContactId || !src) return;
     const role = sendRole();
     const input = el('#msg-input');
-    /* 输入框里已经打了字：文字和表情包合成一条消息发出去，表情包在文字下面 */
+    /* 输入框里已经打了字：文字和表情包合成一条消息发出去，表情包在上、文字在下 */
     const text = input ? input.value.trim() : '';
     if (text) {
       const message = { id: App.uid('m'), role: role, type: 'text', text: text, stickerSrc: src, ts: Date.now() };
@@ -1448,7 +1451,7 @@
       if (group.length === 1 && card.category === '语音') message.src = card.audio;
       if (Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
 
-      /* TA 也会把文字和表情包一起发：文字在上，表情包在下 */
+      /* TA 也会把文字和表情包一起发：表情包在上，文字在下 */
       if (message.type === 'text' && group.length === 1) {
         const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerProb) || 0));
         const stickerPool = (App.state.stickers.ta || []).concat(App.state.stickers.public || []);
