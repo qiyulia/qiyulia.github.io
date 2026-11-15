@@ -991,6 +991,7 @@
       scheduleReply(App.chatContactId, text);
       maybeTaSticker(App.chatContactId);
       maybeOfferCard(App.chatContactId, text);
+      if (App.maybeHangupOnWords) App.maybeHangupOnWords(App.chatContactId, text);
     }
   }
 
@@ -1956,18 +1957,37 @@
     if (contact) scheduleTaHangup(session, contact);
   }
 
-  /* 通话中 TA 按概率挂断，结果随机显示忙音或拒接 */
+  /* 通话满 30 分钟后 TA 才会开始有概率挂断 */
+  const TA_HANGUP_AFTER = 30 * 60 * 1000;
+
   function scheduleTaHangup(session, contact) {
     const prob = clampProb(App.contactSettings(contact).callHangupProb);
+    const wait = Math.max(0, TA_HANGUP_AFTER - (Date.now() - (session.startedAt || Date.now())));
     session.hangupTimer = setTimeout(function () {
       if (callState !== session || !session.connected) return;
       if (Math.random() * 100 < prob) {
-        endCallWithNotice(session, Math.random() < 0.5 ? 'busy' : 'reject');
+        endCallWithNotice(session, 'hangup');
       } else {
         scheduleTaHangup(session, contact);
       }
-    }, 7000 + Math.random() * 5000);
+    }, wait + 7000 + Math.random() * 5000);
   }
+
+  /* 聊天里我说了「挂电话」，TA 才可能挂断 */
+  App.maybeHangupOnWords = function (contactId, text) {
+    const session = callState;
+    if (!session || !session.connected) return;
+    if (session.contactId !== contactId) return;
+    if (String(text || '').indexOf('挂电话') === -1) return;
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact) return;
+    const prob = clampProb(App.contactSettings(contact).callHangupProb);
+    const target = session;
+    setTimeout(function () {
+      if (callState !== target || !target.connected) return;
+      if (Math.random() * 100 < prob) endCallWithNotice(target, 'hangup');
+    }, 1200 + Math.random() * 1800);
+  };
 
   function endCallWithNotice(session, kind) {
     if (callState !== session || session.phase === 'ending') return;
