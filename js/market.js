@@ -108,6 +108,25 @@
     return settings[key] == null ? fallback : Math.max(0, Math.min(100, Number(settings[key]) || 0));
   }
 
+  /* 「TA 收藏的商品被我买下」后，要到第二天 00:00 才允许再次收藏 */
+  function nextMidnight() {
+    const d = new Date();
+    d.setHours(24, 0, 0, 0);
+    return d.getTime();
+  }
+
+  function favLocked(p) {
+    return (Number(p.favTaUntil) || 0) > Date.now();
+  }
+
+  /* 我买下或送给 TA TA 收藏的商品：取消这条收藏，今天不再收藏它 */
+  function settleTaFav(product, side) {
+    if (side !== 'me' || !product.fav || !product.fav.ta) return;
+    product.fav.ta = false;
+    product.favTaUntil = nextMidnight();
+    App.save();
+  }
+
   const TA_MARKET_TICK = 60000;
   const TA_MARKET_COOLDOWN = 6 * 60000;
 
@@ -121,7 +140,9 @@
 
     const wallet = App.state.wallet;
     const affordable = products().filter(function (p) { return Number(p.price) <= wallet.ta; });
-    const favPool = products().filter(function (p) { return !(p.fav && p.fav.ta); });
+    const favPool = products().filter(function (p) {
+      return !(p.fav && p.fav.ta) && !favLocked(p);
+    });
 
     const actions = [
       { key: 'gift', prob: marketProb('taMarketGiftProb', 6) },
@@ -159,11 +180,14 @@
     } else if (picked.key === 'wish') {
       postWish(randomOf(products()), 'ta');
     } else if (picked.key === 'fav') {
-      const product = favPool.length ? randomOf(favPool) : randomOf(products());
-      product.fav = product.fav && typeof product.fav === 'object' ? product.fav : { me: false, ta: false };
-      product.fav.ta = true;
-      App.save();
-      postSystem(taName() + '收藏了「' + product.name + '」');
+      if (!favPool.length) done = false;
+      else {
+        const product = randomOf(favPool);
+        product.fav = product.fav && typeof product.fav === 'object' ? product.fav : { me: false, ta: false };
+        product.fav.ta = true;
+        App.save();
+        postSystem(taName() + '收藏了「' + product.name + '」');
+      }
     } else if (picked.key === 'buyForMe') {
       const chat = App.state.chats[contact.id] || [];
       const wish = chat.slice().reverse().find(function (m) {
@@ -377,6 +401,7 @@
       }
 
       if (buyBtn) {
+        settleTaFav(product, side);
         App.state.wallet[side] -= product.price;
         App.save();
         postPurchase(product, side);
@@ -386,6 +411,7 @@
       }
 
       if (giftBtn) {
+        settleTaFav(product, side);
         App.state.wallet[side] -= product.price;
         App.save();
         if (postGift(product, side)) {
