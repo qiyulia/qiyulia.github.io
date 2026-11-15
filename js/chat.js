@@ -1452,9 +1452,9 @@
       if (group.length === 1 && card.category === '语音') message.src = card.audio;
       if (Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
 
-      /* TA 也会把文字和表情包一起发：表情包在上，文字在下 */
+      /* TA 也会把文字和表情包一起发：表情包在上，文字在下；概率在聊天设置 → 回复里调 */
       if (message.type === 'text' && group.length === 1) {
-        const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerProb) || 0));
+        const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerComboProb) || 0));
         const stickerPool = (App.state.stickers.ta || []).concat(App.state.stickers.public || []);
         if (stickerPool.length && Math.random() * 100 < stickerProb) {
           message.stickerSrc = stickerPool[Math.floor(Math.random() * stickerPool.length)];

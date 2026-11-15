@@ -261,6 +261,7 @@
     el('#set-ta-moment-cooldown').value = st.settings.taMomentCooldownMin == null ? 10 : st.settings.taMomentCooldownMin;
     el('#set-pat-back').value = st.settings.taPatProb == null ? 10 : st.settings.taPatProb;
     el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
+    el('#set-ta-sticker-combo').value = st.settings.taStickerComboProb == null ? 25 : st.settings.taStickerComboProb;
     el('#set-ta-voice-prob').value = st.settings.taVoiceProb == null ? 20 : st.settings.taVoiceProb;
     el('#set-ta-recall').value = st.settings.taRecallProb == null ? 5 : st.settings.taRecallProb;
     el('#set-ta-quote').value = st.settings.taQuoteProb == null ? 20 : st.settings.taQuoteProb;
@@ -840,6 +841,11 @@
 
     App.bindStepper('#set-ta-sticker', function (v) {
       App.state.settings.taStickerProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-ta-sticker-combo', function (v) {
+      App.state.settings.taStickerComboProb = v;
       markDirty();
     });
 

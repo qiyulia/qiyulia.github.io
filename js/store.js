@@ -848,6 +848,7 @@
       taMarketFavProb: pick('taMarketFavProb', 4),
       taMarketBuyForMeProb: pick('taMarketBuyForMeProb', 4),
       taStickerProb: pick('taStickerProb', 30),
+      taStickerComboProb: pick('taStickerComboProb', 25),
       taVoiceProb: pick('taVoiceProb', 20),
       taRecallProb: pick('taRecallProb', 5),
       taQuoteProb: pick('taQuoteProb', 20),
