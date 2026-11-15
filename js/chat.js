@@ -15,6 +15,7 @@
   let suppressCallClick = false;
   const readTimers = {};
   const decisionTimers = {};
+  let chatImageDraft = '';
 
   function sendRole() {
     return App.stickerTab === 'ta' ? 'ta' : 'me';
@@ -1479,11 +1480,25 @@
   }
 
   function renderStickerPanel() {
+    const kind = App.panelKind || 'sticker';
     document.querySelectorAll('[data-panel-kind]').forEach(function (btn) {
-      btn.classList.toggle('is-on', btn.dataset.panelKind === (App.panelKind || 'sticker'));
+      btn.classList.toggle('is-on', btn.dataset.panelKind === kind);
     });
 
+    const imageMode = kind === 'image';
+    ['#sticker-side-head', '#sticker-grid', '#btn-add-sticker', '#btn-paste-sticker'].forEach(function (sel) {
+      const node = el(sel);
+      if (node) node.hidden = imageMode;
+    });
+    const imageView = el('#sticker-image-view');
+    if (imageView) imageView.hidden = !imageMode;
+
     setStickerStatus('');
+    if (imageMode) {
+      paintChatImageDraft();
+      return;
+    }
+
     const stickers = stickerList();
     el('#sticker-grid').innerHTML = stickers.length
       ? stickers.map(function (src, index) {
@@ -1543,6 +1558,7 @@
   function closeStickerPanel() {
     const panel = el('#sticker-panel');
     if (panel) panel.hidden = true;
+    resetChatImageDraft();
   }
 
   App.openStickerPanel = function () {
@@ -1559,6 +1575,7 @@
     if (opening) {
       /* 每次打开表情包面板都从「公共」分类开始 */
       App.stickerTab = 'public';
+      App.panelKind = 'sticker';
       renderStickerPanel();
     }
   }
@@ -1566,6 +1583,54 @@
   function compressImage(file) {
     /* 表情包尽量保留画质：400px、JPEG 0.9，超出约 190KB 再逐级压缩 */
     return App.compressImage(file, 400, { quality: 0.9, maxLength: 260000 });
+  }
+
+  /* 图片分类：只作为发送工具，选好图后确定就发到聊天，不存进表情库 */
+  function paintChatImageDraft() {
+    const preview = el('#sticker-image-preview');
+    if (!preview) return;
+    preview.innerHTML = chatImageDraft
+      ? '<img src="' + App.esc(chatImageDraft) + '" alt="待发送的图片">'
+      : '点这里从相册选择一张图片';
+  }
+
+  function resetChatImageDraft() {
+    chatImageDraft = '';
+    const input = el('#chat-image-file');
+    if (input) input.value = '';
+    paintChatImageDraft();
+  }
+
+  function pickChatImage(file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type || '')) {
+      App.toast('只能选择图片');
+      return;
+    }
+    setStickerStatus('正在读取图片…');
+    App.compressImage(file, 900, { quality: 0.88, maxLength: 900000 }).then(function (src) {
+      if (!src) {
+        setStickerStatus('这张图片读取失败，换一张试试', true);
+        return;
+      }
+      chatImageDraft = src;
+      setStickerStatus('');
+      paintChatImageDraft();
+    }).catch(function () {
+      setStickerStatus('这张图片读取失败，换一张试试', true);
+    });
+  }
+
+  function sendChatImageDraft() {
+    if (!chatImageDraft) {
+      setStickerStatus('先从相册选一张图片', true);
+      return;
+    }
+    if (!App.chatContactId) return;
+    pushMessage({ id: App.uid('m'), role: 'me', type: 'image', src: chatImageDraft, ts: Date.now() });
+    chatImageDraft = '';
+    closeStickerPanel();
+    scheduleReply(App.chatContactId, '');
   }
 
   App.stickerNotice = function (text, isError) { setStickerStatus(text, isError); };
@@ -2177,6 +2242,18 @@
       }
     });
     el('#btn-sticker').addEventListener('click', toggleStickerPanel);
+
+    const chatImageFile = el('#chat-image-file');
+    if (chatImageFile) {
+      chatImageFile.addEventListener('change', function (e) {
+        const file = (e.target.files || [])[0];
+        pickChatImage(file);
+      });
+    }
+    const chatImageSend = el('#sticker-image-send');
+    if (chatImageSend) chatImageSend.addEventListener('click', sendChatImageDraft);
+    const chatImageCancel = el('#sticker-image-cancel');
+    if (chatImageCancel) chatImageCancel.addEventListener('click', function () { closeStickerPanel(); });
     el('#redpacket-form').addEventListener('submit', function (e) {
       e.preventDefault();
       const amount = Math.round(Number(el('#redpacket-amount').value));
