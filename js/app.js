@@ -49,6 +49,33 @@
     if (App.applyLook && (view === 'chat-settings' || view === 'desktop' || view === 'chat')) App.applyLook();
   };
 
+  /* 站内确认弹窗：返回 Promise<boolean>，替代系统 confirm */
+  App.confirmDialog = function (text, options) {
+    const dialog = document.getElementById('confirm-dialog');
+    if (!dialog) return Promise.resolve(window.confirm(text));
+    const opts = options || {};
+    document.getElementById('confirm-title').textContent = opts.title || '确认操作';
+    document.getElementById('confirm-text').textContent = text;
+    const okBtn = document.getElementById('confirm-ok');
+    okBtn.textContent = opts.okText || '确定';
+    return new Promise(function (resolve) {
+      let settled = false;
+      function finish(value) {
+        if (settled) return;
+        settled = true;
+        okBtn.removeEventListener('click', onOk);
+        dialog.removeEventListener('close', onClose);
+        if (dialog.open) dialog.close();
+        resolve(value);
+      }
+      function onOk() { finish(true); }
+      function onClose() { finish(false); }
+      okBtn.addEventListener('click', onOk);
+      dialog.addEventListener('close', onClose);
+      dialog.showModal();
+    });
+  };
+
   App.toast = function (message) {
     const box = document.getElementById('toast');
     box.textContent = message;

@@ -2630,10 +2630,13 @@
       }, 3000);
     });
 
-    el('#btn-clear-chat').addEventListener('click', function () {
+    el('#btn-clear-chat').addEventListener('click', async function () {
       const id = App.chatContactId;
       if (!id) return;
-      if (!confirm('清空这段对话？此操作不可撤销。')) return;
+      const ok = App.confirmDialog
+        ? await App.confirmDialog('清空这段对话？此操作不可撤销。', { title: '删除本次聊天', okText: '删除' })
+        : confirm('清空这段对话？此操作不可撤销。');
+      if (!ok) return;
       App.state.chats[id] = [];
       App.save();
       App.renderChat();

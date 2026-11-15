@@ -2127,6 +2127,9 @@ dialog.sheet form {
 .sheet-actions { display: flex; gap: 8px; margin-top: 4px; }
 .sheet-actions .btn { flex: 1; }
 .sheet-spacer { flex: 1 1 auto; }
+/* 站内确认弹窗 */
+.confirm-sheet { width: min(88%, 380px); }
+.confirm-text { font-size: 13.5px; line-height: 1.7; color: var(--ink); }
 dialog.sheet { max-height: 86vh; }
 dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 /* 拍一拍选择面板（普通浮层，不是 dialog） */
