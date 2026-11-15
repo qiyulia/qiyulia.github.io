@@ -272,6 +272,66 @@
       { id: 'p-cherry', name: '车厘子', price: 68, icon: '🍒', fav: { me: false, ta: false } },
       { id: 'p-mango', name: '芒果', price: 22, icon: '🥭', fav: { me: false, ta: false } },
       { id: 'p-watermelon', name: '冰镇西瓜', price: 18, icon: '🍉', fav: { me: false, ta: false } },
+      /* 追加的日常用品 */
+      { id: 'p-comb', name: '气垫梳', price: 23, icon: '🪮', fav: { me: false, ta: false } },
+      { id: 'p-hairdry', name: '干发帽', price: 24, icon: '🧖', fav: { me: false, ta: false } },
+      { id: 'p-soap', name: '香皂', price: 8, icon: '🧼', fav: { me: false, ta: false } },
+      { id: 'p-bag', name: '帆布袋', price: 49, icon: '👜', fav: { me: false, ta: false } },
+      { id: 'p-keychain', name: '钥匙扣', price: 16, icon: '🔑', fav: { me: false, ta: false } },
+      { id: 'p-calendar', name: '桌面日历', price: 21, icon: '📅', fav: { me: false, ta: false } },
+      { id: 'p-speaker', name: '小音箱', price: 99, icon: '🔊', fav: { me: false, ta: false } },
+      /* 追加的小吃 */
+      { id: 'p-eggroll', name: '蛋卷', price: 11, icon: '🥠', fav: { me: false, ta: false } },
+      { id: 'p-ricecracker', name: '米饼', price: 7, icon: '🍘', fav: { me: false, ta: false } },
+      { id: 'p-hotpot', name: '自热火锅', price: 32, icon: '🍲', fav: { me: false, ta: false } },
+      { id: 'p-konjac', name: '魔芋爽', price: 9, icon: '🥡', fav: { me: false, ta: false } },
+      { id: 'p-chickenfeet', name: '泡椒凤爪', price: 16, icon: '🐔', fav: { me: false, ta: false } },
+      { id: 'p-nugget', name: '鸡米花', price: 18, icon: '🍤', fav: { me: false, ta: false } },
+      { id: 'p-edamame', name: '盐水毛豆', price: 12, icon: '🫛', fav: { me: false, ta: false } },
+      /* 追加的甜品 */
+      { id: 'p-mousse', name: '慕斯杯', price: 26, icon: '🥣', fav: { me: false, ta: false } },
+      { id: 'p-brownie', name: '布朗尼', price: 22, icon: '🍫', fav: { me: false, ta: false } },
+      { id: 'p-waffle', name: '华夫饼', price: 19, icon: '🧇', fav: { me: false, ta: false } },
+      /* 追加的饮品与水果 */
+      { id: 'p-orangejuice', name: '鲜榨橙汁', price: 15, icon: '🍊', fav: { me: false, ta: false } },
+      { id: 'p-greentea', name: '茉莉绿茶', price: 10, icon: '🍵', fav: { me: false, ta: false } },
+      { id: 'p-grape', name: '阳光玫瑰葡萄', price: 45, icon: '🍇', fav: { me: false, ta: false } },
+      { id: 'p-blueberry', name: '蓝莓', price: 28, icon: '🫐', fav: { me: false, ta: false } },
+      { id: 'p-peach', name: '水蜜桃', price: 20, icon: '🍑', fav: { me: false, ta: false } },
+      { id: 'p-pineapple', name: '菠萝', price: 16, icon: '🍍', fav: { me: false, ta: false } },
+      { id: 'p-coconut', name: '椰子', price: 20, icon: '🥥', fav: { me: false, ta: false } },
+      { id: 'p-orange', name: '橙子', price: 15, icon: '🍊', fav: { me: false, ta: false } },
+      { id: 'p-banana', name: '香蕉', price: 8, icon: '🍌', fav: { me: false, ta: false } },
     ];
   };
+
+  /* 集市商品分组：按 id 归类，列表里水果等分类单独成组 */
+  App.MARKET_CATEGORIES = [
+    {
+      name: '日常用品',
+      ids: ['p-moon', 'p-tissue', 'p-toothbrush', 'p-towel', 'p-laundry', 'p-umbrella', 'p-thermos', 'p-slippers', 'p-lamp', 'p-storage',
+        'p-candle', 'p-cable', 'p-pillow', 'p-eyemask', 'p-earplug', 'p-notebook', 'p-pen', 'p-mug', 'p-socks', 'p-mask',
+        'p-mirror', 'p-hairclip', 'p-tape', 'p-sponge', 'p-detergent', 'p-tissuebox', 'p-hanger', 'p-clock', 'p-plant', 'p-thermometer',
+        'p-bandage', 'p-comb', 'p-hairdry', 'p-soap', 'p-bag', 'p-keychain', 'p-calendar', 'p-speaker'],
+    },
+    {
+      name: '小吃',
+      ids: ['p-latiao', 'p-chips', 'p-popcorn', 'p-sausage', 'p-oden', 'p-noodle', 'p-beefjerky', 'p-seeds', 'p-nuts', 'p-jelly',
+        'p-biscuit', 'p-seaweed', 'p-duckneck', 'p-corn', 'p-teaegg', 'p-sweetpotato', 'p-skewer', 'p-friedchicken', 'p-eggroll', 'p-ricecracker',
+        'p-hotpot', 'p-konjac', 'p-chickenfeet', 'p-nugget', 'p-edamame'],
+    },
+    {
+      name: '甜品',
+      ids: ['p-cake', 'p-eggtart', 'p-pudding', 'p-macaron', 'p-icecream', 'p-tiramisu', 'p-donut', 'p-croissant', 'p-mochi', 'p-creampuff',
+        'p-chocolate', 'p-cookies', 'p-pancake', 'p-mousse', 'p-brownie', 'p-waffle'],
+    },
+    {
+      name: '饮品',
+      ids: ['p-cocoa', 'p-milktea', 'p-latte', 'p-lemontea', 'p-soda', 'p-soymilk', 'p-orangejuice', 'p-greentea'],
+    },
+    {
+      name: '水果',
+      ids: ['p-strawberry', 'p-cherry', 'p-mango', 'p-watermelon', 'p-grape', 'p-blueberry', 'p-peach', 'p-pineapple', 'p-coconut', 'p-orange', 'p-banana'],
+    },
+  ];
 })();

@@ -2763,6 +2763,14 @@ dialog.more-sheet::backdrop {
 .market-subsidy-actions .btn { flex: 1 1 0; }
 .market-add-form { display: flex; flex-direction: column; gap: 10px; }
 .market-list { display: flex; flex-direction: column; gap: 10px; }
+.market-group-title {
+  margin: 6px 2px -2px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.market-group-title:first-child { margin-top: 0; }
 .market-item {
   display: flex;
   align-items: flex-start;

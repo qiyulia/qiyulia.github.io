@@ -205,6 +205,39 @@
     App.toast('次元银行补贴 ' + amount + ' 同心币');
   }
 
+  function categoryOf(product) {
+    if (product.cat) return product.cat;
+    const groups = App.MARKET_CATEGORIES || [];
+    for (let i = 0; i < groups.length; i++) {
+      if (groups[i].ids.indexOf(product.id) !== -1) return groups[i].name;
+    }
+    return '其他';
+  }
+
+  function itemHtml(p) {
+    const favMine = !!(p.fav && p.fav.me);
+    const favTa = !!(p.fav && p.fav.ta);
+    const favOn = App.marketAs === 'me' ? favMine : favTa;
+    return '<article class="market-item">' +
+      '<span class="market-item-icon">' + App.esc(p.icon || '🎁') + '</span>' +
+      '<div class="market-item-main">' +
+        '<strong>' + App.esc(p.name) + '</strong>' +
+        '<span class="market-item-price">' + p.price + ' 同心币</span>' +
+        '<div class="market-item-favs">' +
+          '<span class="market-fav' + (favMine ? ' is-on' : '') + '">我 ♡</span>' +
+          '<span class="market-fav' + (favTa ? ' is-on' : '') + '">' + App.esc(taName()) + ' ♡</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="market-item-actions">' +
+        '<button type="button" data-market-fav="' + p.id + '">' + (favOn ? '取消收藏' : '收藏') + '</button>' +
+        '<button type="button" data-market-buy="' + p.id + '">买下</button>' +
+        '<button type="button" data-market-gift="' + p.id + '">赠送</button>' +
+        '<button type="button" data-market-wish="' + p.id + '">许愿</button>' +
+        '<button type="button" class="market-remove" data-market-del="' + p.id + '" aria-label="下架商品">×</button>' +
+      '</div>' +
+    '</article>';
+  }
+
   App.renderMarket = function () {
     if (!App.state.market || !el('#market-list')) return;
     el('#market-balance-me').textContent = App.state.wallet.me;
@@ -216,29 +249,16 @@
 
     const list = el('#market-list');
     const items = products();
+    const order = (App.MARKET_CATEGORIES || []).map(function (g) { return g.name; }).concat('其他');
+    const groups = {};
+    items.forEach(function (p) {
+      const cat = categoryOf(p);
+      (groups[cat] || (groups[cat] = [])).push(p);
+    });
     list.innerHTML = items.length
-      ? items.map(function (p) {
-          const favMine = !!(p.fav && p.fav.me);
-          const favTa = !!(p.fav && p.fav.ta);
-          const favOn = App.marketAs === 'me' ? favMine : favTa;
-          return '<article class="market-item">' +
-            '<span class="market-item-icon">' + App.esc(p.icon || '🎁') + '</span>' +
-            '<div class="market-item-main">' +
-              '<strong>' + App.esc(p.name) + '</strong>' +
-              '<span class="market-item-price">' + p.price + ' 同心币</span>' +
-              '<div class="market-item-favs">' +
-                '<span class="market-fav' + (favMine ? ' is-on' : '') + '">我 ♡</span>' +
-                '<span class="market-fav' + (favTa ? ' is-on' : '') + '">' + App.esc(taName()) + ' ♡</span>' +
-              '</div>' +
-            '</div>' +
-            '<div class="market-item-actions">' +
-              '<button type="button" data-market-fav="' + p.id + '">' + (favOn ? '取消收藏' : '收藏') + '</button>' +
-              '<button type="button" data-market-buy="' + p.id + '">买下</button>' +
-              '<button type="button" data-market-gift="' + p.id + '">赠送</button>' +
-              '<button type="button" data-market-wish="' + p.id + '">许愿</button>' +
-              '<button type="button" class="market-remove" data-market-del="' + p.id + '" aria-label="下架商品">×</button>' +
-            '</div>' +
-          '</article>';
+      ? order.filter(function (cat) { return groups[cat] && groups[cat].length; }).map(function (cat) {
+          return '<h3 class="market-group-title">' + App.esc(cat) + '</h3>' +
+            groups[cat].map(itemHtml).join('');
         }).join('')
       : '<p class="market-empty">集市还是空的，上架一件商品吧。</p>';
   };
@@ -265,6 +285,8 @@
       const name = el('#market-name').value.trim().slice(0, 20);
       const price = Math.round(Number(el('#market-price').value));
       const icon = el('#market-icon').value.trim().slice(0, 4) || '🎁';
+      const catSelect = el('#market-cat');
+      const cat = catSelect && catSelect.value ? catSelect.value : '其他';
       if (!name || !(price > 0)) {
         App.toast('先写好商品名和价格');
         return;
@@ -274,6 +296,7 @@
         name: name,
         price: price,
         icon: icon,
+        cat: cat,
         fav: { me: false, ta: false },
       });
       App.save();
