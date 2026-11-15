@@ -2271,7 +2271,7 @@ dialog.sheet.more-sheet {
   width: min(92vw, 420px);
   max-width: min(92vw, 420px);
   height: fit-content;
-  min-height: 300px;
+  min-height: 0;
   max-height: 60vh;
   border-radius: 22px;
 }

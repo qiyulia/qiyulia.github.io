@@ -1793,11 +1793,7 @@
       moreBtn.addEventListener('click', function () {
         const d = el('#more-dialog');
         if (!d) return;
-        d.style.height = 'auto';
         d.showModal();
-        const natural = d.offsetHeight;
-        d.style.height = Math.min(natural * 1.5, window.innerHeight * 0.86) + 'px';
-        d.addEventListener('close', function () { d.style.height = ''; }, { once: true });
       });
     }
     document.querySelectorAll('[data-more-cat]').forEach(function (tab) {
