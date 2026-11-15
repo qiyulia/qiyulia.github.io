@@ -57,6 +57,7 @@
     App.renderChat();
     App.renderContacts();
     App.updateBadges();
+    syncCallVisibility();
     App.go('chat');
   };
 
@@ -2027,7 +2028,39 @@
     renderCallToggle('mute');
     renderCallToggle('speaker');
     setCallMinimized(false);
-    el('#call-overlay').hidden = false;
+    syncCallVisibility();
+  }
+
+  /* 来电和拨打中可以显示在任何页面；接通后通话弹窗只留在聊天里，切到别的页面就收起 */
+  function syncCallVisibility() {
+    const overlay = el('#call-overlay');
+    if (!overlay) return;
+    if (!callState) {
+      overlay.hidden = true;
+      return;
+    }
+    if (!callState.connected) {
+      overlay.hidden = false;
+      return;
+    }
+    const view = document.getElementById('view-chat');
+    const inChat = !!view && view.classList.contains('is-active') &&
+      App.chatContactId === callState.contactId;
+    overlay.hidden = !inChat;
+  }
+
+  /* 接通时把通话带进聊天页 */
+  function enterCallChat(session) {
+    if (App.chatContactId !== session.contactId) {
+      App.chatContactId = session.contactId;
+      App.state.currentContactId = session.contactId;
+      App.unread[session.contactId] = 0;
+      App.save();
+      App.renderChat();
+      App.renderContacts();
+      App.updateBadges();
+    }
+    App.go('chat');
   }
 
   function clearCallTimers(session) {
@@ -2064,6 +2097,8 @@
     el('#call-timer').textContent = '00:00';
     setCallControls('connected');
     updateCallTimer();
+    enterCallChat(session);
+    syncCallVisibility();
     session.ticker = setInterval(updateCallTimer, 1000);
     const contact = callContact(session);
     if (contact) scheduleTaHangup(session, contact);
@@ -2219,6 +2254,15 @@
   App.initChat = function () {
     const input = el('#msg-input');
     const form = el('#composer');
+
+    /* 切页面时同步通话弹窗：接通后的通话只留在聊天里 */
+    if (typeof App.go === 'function') {
+      const baseGo = App.go;
+      App.go = function () {
+        baseGo.apply(App, arguments);
+        syncCallVisibility();
+      };
+    }
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
