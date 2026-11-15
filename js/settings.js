@@ -377,15 +377,25 @@
     }).catch(function () { return false; });
   }
 
+  /* 通知正文优先显示消息本身的内容，卡片类给出可读说明 */
+  function notifyBody(message) {
+    if (!message) return '发来一条新消息。';
+    const preview = App.messagePreview ? App.messagePreview(message) : '';
+    if (preview) return preview;
+    const fallback = {
+      survey: '[问卷] 想听听你的答案',
+      surveyAnswer: '[问卷回答] 已经答好了',
+      divine: '[占卜] 抽了一张牌',
+      cardOffer: '[字卡] 想把这句话收进字卡库',
+    };
+    return fallback[message.type] || message.text || '发来一条新消息。';
+  }
+
   App.notifyMessage = function (contactId, message) {
     if (!App.state.settings.notifyEnabled) return;
     if (!document.hidden) return;
     const contact = (App.state.contacts || []).find(function (c) { return c.id === contactId; });
-    let body = '发来一条新消息。';
-    if (message && message.text) body = message.text;
-    else if (message && message.type === 'voice') body = '[语音]';
-    else if (message && message.sticker) body = '[表情包]';
-    sendNotification(contact ? contact.name : 'TA', body, 'shiyi-' + contactId);
+    sendNotification(contact ? contact.name : 'TA', notifyBody(message), 'shiyi-' + contactId);
   };
 
   function stopKeepAlive() {
