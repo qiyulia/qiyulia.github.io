@@ -99,11 +99,28 @@
   let heightRaf = 0;
   let expandTimer = 0;
 
+  /* 问卷浮层打开时，键盘弹出不改外壳高度：弹窗按原尺寸停在原位置 */
+  function surveyOverlayOpen() {
+    const ids = ['survey-dialog', 'survey-answer-dialog'];
+    for (let i = 0; i < ids.length; i++) {
+      const node = document.getElementById(ids[i]);
+      if (node && !node.hidden) return true;
+    }
+    return false;
+  }
+
   function applyAppHeight() {
     heightRaf = 0;
     const viewport = window.visualViewport;
     const height = Math.round((viewport ? viewport.height : window.innerHeight) || 0);
     if (!height) return;
+    if (surveyOverlayOpen()) {
+      if (viewport && viewport.offsetTop > 0) {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+      }
+      return;
+    }
     const diff = lastAppHeight > 0 ? height - lastAppHeight : 0;
     lastAppHeight = height;
     if (Math.abs(diff) > 24) {
@@ -128,6 +145,7 @@
     heightRaf = requestAnimationFrame(applyAppHeight);
   }
   syncAppHeight();
+  App.syncAppHeight = syncAppHeight;
   window.addEventListener('resize', syncAppHeight);
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', syncAppHeight);

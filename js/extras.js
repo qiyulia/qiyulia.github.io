@@ -1410,6 +1410,7 @@
   function hideToolPanel(sel) {
     const layer = document.querySelector(sel);
     if (layer) layer.hidden = true;
+    if (App.syncAppHeight) App.syncAppHeight();
   }
 
   function showToolPanel(sel) {
@@ -1419,6 +1420,7 @@
     layer.hidden = false;
     const body = layer.querySelector('.tool-sheet-body');
     if (body) body.scrollTop = 0;
+    if (App.syncAppHeight) App.syncAppHeight();
   }
 
   App.hideToolPanels = hideAllToolPanels;

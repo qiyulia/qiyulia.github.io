@@ -3462,8 +3462,8 @@ dialog.sheet.more-sheet { padding: 20px 14px 16px; }
 .tool-overlay-card {
   position: relative;
   width: min(430px, calc(100vw - 20px));
-  height: 52vh;
-  max-height: 52vh;
+  height: calc(var(--app-height, 100vh) * .52);
+  max-height: calc(var(--app-height, 100vh) * .52);
   margin: 0 auto calc(76px + var(--safe-bottom));
   background: var(--surface);
   color: var(--ink);
