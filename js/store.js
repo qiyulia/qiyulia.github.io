@@ -543,6 +543,12 @@
     if (s.settings.taPatProb == null) s.settings.taPatProb = 10;
     if (s.settings.taSurveyProb == null) s.settings.taSurveyProb = 10;
     if (s.settings.taSurveyCooldownMin == null) s.settings.taSurveyCooldownMin = 30;
+    if (s.settings.taMarketGiftProb == null) s.settings.taMarketGiftProb = 6;
+    if (s.settings.taMarketBuyProb == null) s.settings.taMarketBuyProb = 6;
+    if (s.settings.taMarketWishProb == null) s.settings.taMarketWishProb = 8;
+    if (s.settings.taMarketFavProb == null) s.settings.taMarketFavProb = 4;
+    if (s.settings.taMarketBuyForMeProb == null) s.settings.taMarketBuyForMeProb = 4;
+    if (s.settings.taMarketLastAt == null) s.settings.taMarketLastAt = 0;
     if (s.settings.mailCardMin == null) s.settings.mailCardMin = 1;
     if (s.settings.mailCardMax == null) s.settings.mailCardMax = 3;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;
@@ -739,6 +745,11 @@
       taMomentCardMin: pick('taMomentCardMin', 1),
       taMomentCardMax: pick('taMomentCardMax', 3),
       taPatProb: pick('taPatProb', 10),
+      taMarketGiftProb: pick('taMarketGiftProb', 6),
+      taMarketBuyProb: pick('taMarketBuyProb', 6),
+      taMarketWishProb: pick('taMarketWishProb', 8),
+      taMarketFavProb: pick('taMarketFavProb', 4),
+      taMarketBuyForMeProb: pick('taMarketBuyForMeProb', 4),
       taStickerProb: pick('taStickerProb', 30),
       taVoiceProb: pick('taVoiceProb', 20),
       taRecallProb: pick('taRecallProb', 5),
@@ -878,6 +889,8 @@
     if (m.type === 'pat') return m.text || '拍了拍';
     if (m.type === 'redpacket') return '[红包] ' + (m.amount || 0) + ' 同心币';
     if (m.type === 'gift') return '[礼物] ' + (m.productName || '');
+    if (m.type === 'wish') return '[心愿] ' + (m.productName || '');
+    if (m.type === 'marketBuy') return '[已买下] ' + (m.productName || '');
     return m.text || '';
   };
 

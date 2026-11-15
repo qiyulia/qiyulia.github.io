@@ -286,6 +286,11 @@
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
     el('#set-ta-survey-prob').value = st.settings.taSurveyProb == null ? 10 : st.settings.taSurveyProb;
     el('#set-ta-survey-cooldown').value = st.settings.taSurveyCooldownMin == null ? 30 : st.settings.taSurveyCooldownMin;
+    el('#set-ta-market-gift-prob').value = st.settings.taMarketGiftProb == null ? 6 : st.settings.taMarketGiftProb;
+    el('#set-ta-market-buy-prob').value = st.settings.taMarketBuyProb == null ? 6 : st.settings.taMarketBuyProb;
+    el('#set-ta-market-wish-prob').value = st.settings.taMarketWishProb == null ? 8 : st.settings.taMarketWishProb;
+    el('#set-ta-market-fav-prob').value = st.settings.taMarketFavProb == null ? 4 : st.settings.taMarketFavProb;
+    el('#set-ta-market-buy-for-me-prob').value = st.settings.taMarketBuyForMeProb == null ? 4 : st.settings.taMarketBuyForMeProb;
     el('#set-notify-enabled').checked = !!st.settings.notifyEnabled;
     el('#set-keepalive').checked = !!st.settings.keepAlive;
     refreshNotifyStatus();
@@ -492,6 +497,11 @@
     bindAvatarProb('#set-ta-mail-prob', 'taMailProb');
     bindAvatarProb('#set-card-offer-prob', 'cardOfferProb');
     bindAvatarProb('#set-ta-survey-prob', 'taSurveyProb');
+    bindAvatarProb('#set-ta-market-gift-prob', 'taMarketGiftProb');
+    bindAvatarProb('#set-ta-market-buy-prob', 'taMarketBuyProb');
+    bindAvatarProb('#set-ta-market-wish-prob', 'taMarketWishProb');
+    bindAvatarProb('#set-ta-market-fav-prob', 'taMarketFavProb');
+    bindAvatarProb('#set-ta-market-buy-for-me-prob', 'taMarketBuyForMeProb');
 
     function bindMinutes(id, key, max) {
       const input = el(id);

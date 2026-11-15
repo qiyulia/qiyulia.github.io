@@ -274,6 +274,46 @@
       '</div>';
   }
 
+  function wishHtml(m) {
+    const pending = m.status === 'pending';
+    const mine = m.role === 'me';
+    const statusText = pending ? (mine ? '等 TA 看见' : '等 TA 回应') : '已买下';
+    return '<div class="bubble bubble-gift bubble-wish' + (pending ? '' : ' is-done') + '">' +
+      '<div class="packet-head"><span class="packet-tag">心愿</span><em>' + statusText + '</em></div>' +
+      '<p class="gift-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</p>' +
+      '<p class="packet-note">' + Number(m.price || 0) + ' 同心币' + (pending && !mine ? ' · 想要这个' : '') + '</p>' +
+      (pending && !mine
+        ? '<div class="packet-actions"><button type="button" data-wish-buy="' + App.esc(m.id) + '">买给他</button></div>'
+        : '') +
+      '</div>';
+  }
+
+  function marketBuyHtml(m) {
+    return '<div class="bubble bubble-gift bubble-market">' +
+      '<div class="packet-head"><span class="packet-tag">集市订单</span><em>已买下</em></div>' +
+      '<p class="gift-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</p>' +
+      '<p class="packet-note">' + Number(m.price || 0) + ' 同心币</p>' +
+      '</div>';
+  }
+
+  /* 我替 TA 买下他许愿的东西 */
+  function buyWish(contactId, messageId) {
+    const chat = App.state.chats[contactId] || [];
+    const wish = chat.find(function (m) { return m.id === messageId; });
+    if (!wish || wish.type !== 'wish' || wish.status !== 'pending' || wish.role !== 'ta') return;
+    const price = Number(wish.price || 0);
+    if (App.state.wallet.me < price) {
+      App.toast('同心币不够，先领点补贴吧');
+      return;
+    }
+    App.state.wallet.me -= price;
+    wish.status = 'fulfilled';
+    App.save();
+    App.addChatSystemMessage(contactId, '你给 TA 买下了「' + (wish.productName || '礼物') + '」，花掉 ' + price + ' 同心币');
+    if (App.renderMarket) App.renderMarket();
+    App.toast('已买下「' + (wish.productName || '礼物') + '」');
+  }
+
   function surveyModeText(mode) {
     if (mode === 'single') return '单选';
     if (mode === 'multi') return '多选';
@@ -433,18 +473,22 @@
     if (m.type === 'divine') {
       return messageCardShell(m, contact, divineCardHtml(m));
     }
-    if (m.type === 'redpacket' || m.type === 'gift') {
+    if (m.type === 'redpacket' || m.type === 'gift' || m.type === 'wish' || m.type === 'marketBuy') {
       const avatarSrc = mine ? App.state.profile.userAvatar : (contact && contact.avatar);
       const avatarHtml = mine
         ? '<span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>'
         : '<button type="button" class="msg-avatar msg-avatar-button" data-pat-current="1" aria-label="拍一拍 ' + App.esc(taName) + '" title="拍一拍">' + App.avatarHtml(avatarSrc) + '</button>';
+      const cardHtml = m.type === 'redpacket' ? packetHtml(m)
+        : m.type === 'gift' ? giftHtml(m)
+        : m.type === 'wish' ? wishHtml(m)
+        : marketBuyHtml(m);
       return '<div class="msg ' + (mine ? 'me' : 'ta') + '" data-msg-id="' + App.esc(m.id) + '">' +
         '<div class="msg-main">' +
           '<div class="msg-content">' +
             '<div class="msg-side">' + avatarHtml +
               '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
             '</div>' +
-            '<div class="msg-bubble-hit" data-msg-bubble="1">' + (m.type === 'redpacket' ? packetHtml(m) : giftHtml(m)) + '</div>' +
+            '<div class="msg-bubble-hit" data-msg-bubble="1">' + cardHtml + '</div>' +
           '</div>' +
         '</div>' +
         '</div>';
@@ -1912,6 +1956,13 @@
         e.stopPropagation();
         closeMsgActions();
         resolveCardOffer(App.chatContactId, offerBtn.dataset.cardOfferMsg, offerBtn.dataset.cardOfferAct);
+        return;
+      }
+      const wishBuyBtn = e.target.closest('[data-wish-buy]');
+      if (wishBuyBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        buyWish(App.chatContactId, wishBuyBtn.dataset.wishBuy);
         return;
       }
       const packetBtn = e.target.closest('[data-rp-accept], [data-rp-return], [data-gift-accept], [data-gift-return]');

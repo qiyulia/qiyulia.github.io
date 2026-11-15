@@ -900,6 +900,38 @@ button.widget:active { transform: scale(.99); }
   font-weight: 600;
 }
 .moments-hero .avatar { flex: 0 0 auto; border: 2px solid rgba(255, 255, 255, .7); position: relative; z-index: 1; }
+.moments-hero-avatar {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  width: 66px;
+  height: 66px;
+  border-width: 3px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(20, 40, 70, .22);
+  z-index: 2;
+}
+.moments-hero-avatar img { border-radius: 13px; }
+.moments-add {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 23px;
+  line-height: 1;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .6);
+  border: 1px solid rgba(255, 255, 255, .7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.moments-add:active { transform: scale(.94); }
 .moments-hero-foot {
   position: relative;
   z-index: 1;
@@ -910,6 +942,7 @@ button.widget:active { transform: scale(.99); }
   gap: 10px;
   margin-top: auto;
   padding-top: 6px;
+  padding-right: 78px;
 }
 .moments-cover-btn {
   padding: 6px 12px;
@@ -921,12 +954,10 @@ button.widget:active { transform: scale(.99); }
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
-.moments-hero .moments-publish {
-  flex: 0 0 auto;
-  width: auto;
-  min-width: 0;
-  padding: 8px 24px;
-  border-radius: 999px;
+.moments-hero.has-cover .moments-add {
+  color: #fff;
+  background: rgba(255, 255, 255, .2);
+  border-color: rgba(255, 255, 255, .38);
 }
 /* 自定义封面：压一层暗色保证文字可读 */
 .moments-hero.has-cover::before {
@@ -2694,6 +2725,9 @@ dialog.more-sheet::backdrop {
 .msg .bubble.bubble-packet.is-returned .packet-actions button { color: #5f5f5f; }
 .bubble-packet.is-done, .bubble-gift.is-done { opacity: .88; }
 .gift-title { padding: 8px 12px 0; font-size: 14px; font-weight: 600; }
+.msg .bubble.bubble-wish { background: linear-gradient(150deg, #8fb8e0, #6d94c4); box-shadow: 0 8px 20px rgba(70, 110, 160, .24); }
+.bubble-wish .packet-actions button { color: #3c6591; }
+.msg .bubble.bubble-market { background: linear-gradient(150deg, #9dc3a8, #74a184); box-shadow: 0 8px 20px rgba(80, 130, 100, .22); }
 
 /* ============ 集市 ============ */
 .market-body { gap: 12px; }
