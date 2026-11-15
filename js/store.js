@@ -951,8 +951,8 @@
 
     const picked = [];
     const used = {};
-    /* 命中触发词的字卡：每一张都按 15% 的单次抽中概率加权，其他卡平分剩下的概率 */
-    const HIT_SHARE = 0.15;
+    /* 命中触发词的字卡：每一张都按 6% 的单次抽中概率加权，其他卡平分剩下的概率 */
+    const HIT_SHARE = 0.06;
     for (let i = 0; i < count; i++) {
       const candidates = pool.filter(function (c) { return !used[c.id]; });
       if (!candidates.length) break;
