@@ -2115,6 +2115,11 @@
     session.connected = true;
     session.phase = 'connected';
     session.startedAt = Date.now();
+    /* 重新拨通电话，挂电话判定的 10 分钟冷却重新开始 */
+    if (App.state.callHangupCooldown && App.state.callHangupCooldown[session.contactId]) {
+      delete App.state.callHangupCooldown[session.contactId];
+      App.save();
+    }
     el('#call-avatar-wrap').classList.remove('is-ringing');
     el('#call-status').textContent = '正在通话';
     el('#call-timer').textContent = '00:00';
@@ -2151,10 +2156,18 @@
     if (String(text || '').indexOf('挂电话') === -1) return;
     const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
     if (!contact) return;
+    /* 没触发后 10 分钟内不再判定；重新拨通电话会清掉这个冷却 */
+    const cooldown = App.state.callHangupCooldown || (App.state.callHangupCooldown = {});
+    if (Date.now() - Number(cooldown[contactId] || 0) < 10 * 60 * 1000) return;
     const target = session;
     setTimeout(function () {
       if (callState !== target || !target.connected) return;
-      if (Math.random() * 100 >= 50) return;
+      if (Math.random() * 100 >= 50) {
+        cooldown[contactId] = Date.now();
+        App.save();
+        return;
+      }
+      delete cooldown[contactId];
       /* 先回一句「好」，紧接着挂断 */
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
       chat.push({ id: App.uid('m'), role: 'ta', type: 'text', text: '好', ts: Date.now() });
