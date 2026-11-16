@@ -3849,11 +3849,22 @@ dialog.sheet.more-sheet { padding: 20px 14px 16px; }
 }
 .survey-answer-input {
   width: 100%;
+  min-height: 38px;
   padding: 9px 11px;
   border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--field);
   font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+  outline: none;
+}
+.survey-answer-input:focus { border-color: var(--accent); }
+.survey-answer-input[contenteditable]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
 }
 .survey-append-row .emotion-chip { color: var(--accent); background: var(--accent-soft); }
 .divine-chat-cards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }

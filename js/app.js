@@ -324,12 +324,18 @@
   });
 
   /* 关掉系统输入法上方自带的站外填充条（密码 / 银行卡 / 联系人），让键盘只属于本站 */
+  function isIOS() {
+    return /iP(hone|ad|od)/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
   function applyNoAutofill(node) {
     if (!node || !node.getAttribute) return;
     const type = String(node.getAttribute('type') || '').toLowerCase();
     if (type === 'file' || type === 'checkbox' || type === 'radio' || type === 'date' || type === 'time') return;
-    /* iOS Safari 对 autocomplete="off" 仍会弹出填充条，用 one-time-code 才能压掉 */
-    node.setAttribute('autocomplete', 'one-time-code');
+    /* iOS Safari 对 autocomplete="off" 仍会弹出填充条，用 one-time-code 才能压掉；
+       其他浏览器用 off，避免触发 OTP / 密码填充建议 */
+    node.setAttribute('autocomplete', isIOS() ? 'one-time-code' : 'off');
     node.setAttribute('autocorrect', 'off');
     node.setAttribute('autocapitalize', 'off');
     node.setAttribute('spellcheck', 'false');

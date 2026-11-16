@@ -610,8 +610,9 @@
               '" data-value="' + App.esc(opt) + '">' + App.esc(opt) + '</button>';
           }).join('') + '</div>';
       } else {
-        body = '<input type="text" class="survey-answer-input" data-q="' + index +
-          '" maxlength="80" placeholder="写一句回答">';
+        /* 用可编辑文本块代替 input，避开浏览器/输入法在上方弹出的站外自动填充条 */
+        body = '<div class="survey-answer-input" contenteditable="true" role="textbox" aria-multiline="false"' +
+          ' data-q="' + index + '" data-placeholder="写一句回答" aria-label="写一句回答"></div>';
       }
       return '<div class="survey-answer-item">' + head + body + '</div>';
     }).join('');
@@ -653,7 +654,7 @@
         answer = chosen.join('、');
       } else {
         const input = document.querySelector('#survey-answer-body .survey-answer-input[data-q="' + i + '"]');
-        answer = input ? String(input.value || '').trim() : '';
+        answer = input ? String(input.value != null ? input.value : input.textContent || '').trim() : '';
         if (!answer) { App.toast('第 ' + (i + 1) + ' 题还没写'); return; }
       }
       answers.push({ text: q.text, mode: q.mode, answer: answer });
@@ -2722,6 +2723,27 @@
             node.classList.toggle('is-on', node === btn);
           });
           surveyAnswerState.picked[qIndex] = [btn.dataset.value];
+        }
+      });
+      answerBody.addEventListener('keydown', function (e) {
+        const field = e.target.closest('.survey-answer-input');
+        if (field && e.key === 'Enter') e.preventDefault();
+      });
+      answerBody.addEventListener('input', function (e) {
+        const field = e.target.closest('.survey-answer-input');
+        if (!field) return;
+        const text = field.textContent || '';
+        /* 删空后清掉残留的 <br>，占位文字才能重新出现 */
+        if (!text) { field.innerHTML = ''; return; }
+        if (text.length <= 80) return;
+        field.textContent = text.slice(0, 80);
+        const range = document.createRange();
+        range.selectNodeContents(field);
+        range.collapse(false);
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
         }
       });
     }
