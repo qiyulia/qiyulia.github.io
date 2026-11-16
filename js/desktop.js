@@ -313,7 +313,7 @@
       const dy = y - gesture.y;
       gesture.dx = dx;
 
-      if (!gesture.decided && Math.max(Math.abs(dx), Math.abs(dy)) > 6) {
+      if (!gesture.decided && Math.max(Math.abs(dx), Math.abs(dy)) > 4) {
         gesture.decided = true;
         gesture.horizontal = Math.abs(dx) > Math.abs(dy);
         if (gesture.horizontal) pager.classList.add('is-dragging');
@@ -384,7 +384,7 @@
 
       pager.classList.remove('is-dragging');
       let next = deskPage;
-      if (!cancelled && Math.abs(current.dx) >= 55) {
+      if (!cancelled && Math.abs(current.dx) >= 40) {
         if (current.dx < 0) next = deskPage + 1;
         else if (current.dx > 0) next = deskPage - 1;
       }
@@ -426,6 +426,13 @@
       const page = document.querySelector('#desk-pager ' + sel);
       return page ? page.querySelector('.app-grid') : null;
     }).filter(Boolean);
+  }
+
+  /* 只有带应用网格的页面才能拖动摆放，小组件页不参与 */
+  function appPageIndexes() {
+    return deskPages().map(function (page, index) {
+      return page.querySelector('.app-grid') ? index : -1;
+    }).filter(function (index) { return index >= 0; });
   }
 
   function appKeyOf(entry) {
@@ -496,9 +503,11 @@
   function requestAppEdgeSwitch(dir) {
     if (!appDrag || dir === appEdgeDir) return;
     cancelAppEdgeSwitch();
-    const pages = deskPages().length;
-    const target = deskPage + dir;
-    if (target < 0 || target >= pages) return;
+    const indexes = appPageIndexes();
+    const pos = indexes.indexOf(deskPage);
+    if (pos === -1) return;
+    const target = indexes[pos + dir];
+    if (target == null) return;
     appEdgeDir = dir;
     appEdgeTimer = setTimeout(function () {
       appEdgeTimer = null;
@@ -508,8 +517,8 @@
       /* 翻页动画结束后再按落点摆一次，避免停在半路时插不进去 */
       setTimeout(function () {
         if (appDrag) moveAppDragAt(appDrag.lastX, appDrag.lastY);
-      }, 360);
-    }, 460);
+      }, 240);
+    }, 300);
   }
 
   function moveAppDragAt(x, y) {
@@ -535,8 +544,8 @@
     /* 拖到屏幕边缘停一下就翻页 */
     const pager = el('#desk-pager');
     const rect = pager.getBoundingClientRect();
-    if (x < rect.left + 44) requestAppEdgeSwitch(-1);
-    else if (x > rect.right - 44) requestAppEdgeSwitch(1);
+    if (x < rect.left + 56) requestAppEdgeSwitch(-1);
+    else if (x > rect.right - 56) requestAppEdgeSwitch(1);
     else cancelAppEdgeSwitch();
   }
 
@@ -588,8 +597,9 @@
     if (appDrag.touchMove) document.removeEventListener('touchmove', appDrag.touchMove);
     cancelAppEdgeSwitch();
     /* 松手时按当前翻到的那一页再放一次，避免翻页动画中途松手落到旧页 */
-    const grids = appGrids();
-    const grid = grids[Math.min(deskPage, grids.length - 1)];
+    const pages = deskPages();
+    const page = pages[Math.min(deskPage, pages.length - 1)];
+    const grid = page ? page.querySelector('.app-grid') : null;
     if (grid) {
       const index = appInsertIndex(grid, dropX, dropY, entry);
       const items = Array.from(grid.querySelectorAll('.app-entry')).filter(function (node) {

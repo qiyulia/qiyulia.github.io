@@ -232,7 +232,7 @@ html.is-keyboard-animating .stage { transition: height .18s ease-out; }
   gap: 16px;
   padding: 0 2px 4px;
   scrollbar-width: none;
-  transition: transform .32s cubic-bezier(.22, .8, .28, 1), opacity .24s ease;
+  transition: transform .26s cubic-bezier(.22, .8, .28, 1), opacity .2s ease;
   will-change: transform;
 }
 .desk-page::-webkit-scrollbar { display: none; }
