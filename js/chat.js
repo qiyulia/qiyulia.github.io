@@ -59,6 +59,10 @@
     App.updateBadges();
     syncCallVisibility();
     App.go('chat');
+    /* 视图显示后再滚一次，刷新后进来也稳定停在最新一张字卡 */
+    scrollBottom(true);
+    requestAnimationFrame(function () { scrollBottom(true); });
+    setTimeout(function () { scrollBottom(true); }, 160);
   };
 
   App.renderChat = function () {
@@ -1262,6 +1266,8 @@
     };
     if (isVoice) message.src = card.audio;
     if (card.category === '情绪') message.emotion = App.emotionLabel(card);
+    const emotionProb = Math.max(0, Math.min(100, Number(cs.emotionProb) || 0));
+    if (!message.emotion && Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
     if (App.chatOpen(contactId)) message.read = true;
     chat.push(message);
     App.save();
