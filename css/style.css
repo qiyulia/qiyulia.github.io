@@ -533,6 +533,7 @@ button.widget:active { transform: scale(.99); }
 /* 长按拖动、跨页摆放 */
 .app-entry {
   -webkit-touch-callout: none;
+  -webkit-user-drag: none;
   user-select: none;
   -webkit-user-select: none;
   transition: transform .16s ease, opacity .16s ease;

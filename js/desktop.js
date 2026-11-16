@@ -576,7 +576,7 @@
     document.addEventListener('click', blocker, true);
     setTimeout(function () {
       document.removeEventListener('click', blocker, true);
-    }, 420);
+    }, 700);
   }
 
   function endAppDrag() {
@@ -614,27 +614,84 @@
 
   function initAppDrag() {
     applyDeskAppsLayout();
-    document.querySelectorAll('#desk-pager .app-entry').forEach(function (entry) {
+    const entries = Array.from(document.querySelectorAll('#desk-pager .app-entry'));
+
+    function arm(entry, x, y, delay) {
+      let timer = setTimeout(function () {
+        timer = null;
+        beginAppDrag(entry, x, y);
+      }, delay);
+      return {
+        pending: function () { return !!timer; },
+        cancel: function () {
+          if (!timer) return;
+          clearTimeout(timer);
+          timer = null;
+        },
+      };
+    }
+
+    function touchById(list, id) {
+      for (let i = 0; i < list.length; i++) {
+        if (list[i].identifier === id) return list[i];
+      }
+      return null;
+    }
+
+    /* 触摸单独处理：部分浏览器（如夸克）长按后会取消 Pointer 手势，
+       导致拖到一半的图标弹回原位，这里改用 touch 事件保证拖动完整 */
+    function bindTouch(entry) {
+      entry.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1 || appDrag) return;
+        const start = e.touches[0];
+        const touchId = start.identifier;
+        const press = arm(entry, start.clientX, start.clientY, 300);
+
+        function onMove(ev) {
+          const touch = touchById(ev.touches, touchId);
+          if (!touch) return;
+          if (appDrag && appDrag.entry === entry) {
+            ev.preventDefault();
+            moveAppDragAt(touch.clientX, touch.clientY);
+            return;
+          }
+          /* 还没长按就开始滑动，交给翻页手势 */
+          if (press.pending() && (Math.abs(touch.clientX - start.clientX) > 8 || Math.abs(touch.clientY - start.clientY) > 8)) {
+            cleanup(false);
+          }
+        }
+
+        function onEnd(ev) {
+          const ended = !ev.touches.length || !!touchById(ev.changedTouches || [], touchId);
+          if (!ended) return;
+          cleanup(!!appDrag && appDrag.entry === entry);
+        }
+
+        function cleanup(drop) {
+          press.cancel();
+          document.removeEventListener('touchmove', onMove);
+          document.removeEventListener('touchend', onEnd);
+          document.removeEventListener('touchcancel', onEnd);
+          if (drop) endAppDrag();
+        }
+
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onEnd);
+        document.addEventListener('touchcancel', onEnd);
+      }, { passive: true });
+    }
+
+    entries.forEach(function (entry) {
+      bindTouch(entry);
+
       entry.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'touch') return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (appDrag) return;
         const startX = e.clientX;
         const startY = e.clientY;
         const pointerId = e.pointerId;
-        let timer = setTimeout(function () {
-          timer = null;
-          beginAppDrag(entry, startX, startY);
-        }, e.pointerType === 'mouse' ? 200 : 300);
-
-        function cleanup() {
-          if (timer) {
-            clearTimeout(timer);
-            timer = null;
-          }
-          document.removeEventListener('pointermove', onMove, true);
-          document.removeEventListener('pointerup', onUp, true);
-          document.removeEventListener('pointercancel', onUp, true);
-        }
+        const press = arm(entry, startX, startY, e.pointerType === 'mouse' ? 200 : 300);
 
         function onMove(ev) {
           if (ev.pointerId !== pointerId) return;
@@ -644,7 +701,7 @@
             return;
           }
           /* 还没长按就开始滑动，交给翻页手势 */
-          if (timer && (Math.abs(ev.clientX - startX) > 8 || Math.abs(ev.clientY - startY) > 8)) {
+          if (press.pending() && (Math.abs(ev.clientX - startX) > 8 || Math.abs(ev.clientY - startY) > 8)) {
             cleanup();
           }
         }
@@ -655,10 +712,21 @@
           if (appDrag && appDrag.entry === entry) endAppDrag();
         }
 
+        function cleanup() {
+          press.cancel();
+          document.removeEventListener('pointermove', onMove, true);
+          document.removeEventListener('pointerup', onUp, true);
+          document.removeEventListener('pointercancel', onUp, true);
+        }
+
         document.addEventListener('pointermove', onMove, true);
         document.addEventListener('pointerup', onUp, true);
         document.addEventListener('pointercancel', onUp, true);
       });
+
+      /* 长按图标时不要弹出夸克/系统的长按菜单，否则手势会被系统抢走 */
+      entry.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+      entry.addEventListener('dragstart', function (e) { e.preventDefault(); });
     });
   }
 
