@@ -1838,6 +1838,7 @@
   function dgNewRound() {
     if (!drawGuess) return;
     if (drawGuess.timer) clearTimeout(drawGuess.timer);
+    if (drawGuess.thinkTimer) { clearInterval(drawGuess.thinkTimer); drawGuess.thinkTimer = 0; }
     const cats = Object.keys(DG_WORDS);
     const cat = cats[Math.floor(Math.random() * cats.length)];
     const pool = DG_WORDS[cat];
@@ -1864,8 +1865,11 @@
   }
 
   function resetDrawGuess() {
-    if (drawGuess && drawGuess.timer) clearTimeout(drawGuess.timer);
-    drawGuess = { right: 0, total: 0, lastWord: '', word: '', cat: '', options: [], correct: 0, picked: null, over: false, timer: null };
+    if (drawGuess) {
+      if (drawGuess.timer) clearTimeout(drawGuess.timer);
+      if (drawGuess.thinkTimer) clearInterval(drawGuess.thinkTimer);
+    }
+    drawGuess = { right: 0, total: 0, lastWord: '', word: '', cat: '', options: [], correct: 0, picked: null, over: false, timer: null, thinkTimer: 0 };
     dgSetupCanvas();
     dgNewRound();
   }
@@ -1874,22 +1878,43 @@
     if (!drawGuess || drawGuess.over || drawGuess.picked !== null) return;
     const desc = el('#dg-desc');
     const text = desc ? String(desc.value || '').trim() : '';
+    const longDesc = text.length >= 6;
     dgRenderOptions();
     const guessBtn = el('#dg-guess');
     if (guessBtn) { guessBtn.hidden = true; guessBtn.disabled = true; }
-    dgSetHint(text.length >= 6 ? 'TA 一边看你的描述一边想…' : 'TA 盯着画看了好一会儿…');
-    const accuracy = text.length >= 6 ? 0.82 : 0.6;
+    const accuracy = longDesc ? 0.82 : 0.6;
     let pick = drawGuess.correct;
     if (Math.random() >= accuracy) {
       const others = [0, 1, 2, 3].filter(function (i) { return i !== drawGuess.correct; });
       pick = others[Math.floor(Math.random() * others.length)];
     }
     drawGuess.picked = pick;
+    /* 先想 9~15 秒，结束再选；也有机会想一会儿就提前选 */
+    const thinkMs = 9000 + Math.random() * 6000;
+    const pickAt = Math.random() < 0.4 ? thinkMs * (0.35 + Math.random() * 0.4) : thinkMs;
+    const startedAt = Date.now();
+    const tick = function () {
+      if (!drawGuess || drawGuess.picked === null) {
+        if (drawGuess && drawGuess.thinkTimer) {
+          clearInterval(drawGuess.thinkTimer);
+          drawGuess.thinkTimer = 0;
+        }
+        return;
+      }
+      const left = Math.max(0, Math.ceil((pickAt - (Date.now() - startedAt)) / 1000));
+      dgSetHint((longDesc ? 'TA 一边看你的描述一边想…' : 'TA 盯着画想…') + ' 还剩 ' + left + ' 秒');
+    };
+    tick();
+    drawGuess.thinkTimer = setInterval(tick, 200);
     drawGuess.timer = setTimeout(function () {
+      if (drawGuess && drawGuess.thinkTimer) {
+        clearInterval(drawGuess.thinkTimer);
+        drawGuess.thinkTimer = 0;
+      }
       const layer = el('#drawguess-dialog');
       if (!drawGuess || !layer || layer.hidden) return;
       dgReveal(pick);
-    }, 1000 + Math.random() * 900);
+    }, pickAt);
   }
 
   function dgReveal(pick) {
