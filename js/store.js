@@ -879,25 +879,47 @@
     const opts = options || {};
     const min = opts.min != null ? opts.min : 0;
     const max = opts.max != null ? opts.max : 100;
-    const step = opts.step != null ? opts.step : 5;
+    const step = opts.step != null ? opts.step : 1;
     const decimals = Math.max(0, Math.min(3, Number(opts.decimals) || 0));
     const factor = Math.pow(10, decimals);
+    const fallback = opts.fallback != null ? opts.fallback : min;
     const input = document.querySelector(selector);
     if (!input) return;
+    if (input.value !== '') input.dataset.last = input.value;
 
     function commit(raw) {
-      const num = Number(raw);
-      let v = isNaN(num) ? min : Math.round(num * factor) / factor;
+      const text = String(raw == null ? '' : raw).trim();
+      let v;
+      if (text === '') {
+        /* 清空输入框时保留上一次的数值，不能悄悄变成 0 或默认值 */
+        v = input.dataset.last != null ? Number(input.dataset.last) : fallback;
+      } else {
+        const num = Number(text);
+        v = isNaN(num)
+          ? (input.dataset.last != null ? Number(input.dataset.last) : fallback)
+          : Math.round(num * factor) / factor;
+      }
       v = Math.max(min, Math.min(max, v));
-      const text = v.toFixed(decimals);
-      if (input.value !== text) input.value = text;
-      onCommit(Number(text));
+      const next = v.toFixed(decimals);
+      input.dataset.last = String(v);
+      if (input.value !== next) input.value = next;
+      onCommit(Number(next));
     }
 
+    input.addEventListener('input', function () {
+      const text = String(input.value || '').trim();
+      /* 记住用户刚输入的值，哪怕只有 1% */
+      if (text !== '' && !isNaN(Number(text))) input.dataset.last = text;
+    });
     input.addEventListener('change', function () { commit(input.value); });
+    input.addEventListener('blur', function () { commit(input.value); });
     document.querySelectorAll('[data-step-for="' + selector.slice(1) + '"]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        commit((Number(input.value) || 0) + Number(btn.dataset.step));
+        const raw = String(input.value || '').trim();
+        const base = raw !== '' && !isNaN(Number(raw))
+          ? Number(raw)
+          : (input.dataset.last != null ? Number(input.dataset.last) : fallback);
+        commit(base + Number(btn.dataset.step != null ? btn.dataset.step : step));
       });
     });
   };

@@ -199,17 +199,25 @@
     let fast = Math.max(0, Math.min(300, Math.round(Number(el('#ct-typing-min').value) || 0)));
     let slow = Math.max(0, Math.min(300, Math.round(Number(el('#ct-typing-max').value) || 0)));
     if (slow < fast) slow = fast;
-    const settings = {
+    const percent = function (id, fallback) {
+      const raw = String(el(id).value || '').trim();
+      if (raw === '') return fallback;
+      const value = Number(raw);
+      if (isNaN(value)) return fallback;
+      return Math.max(0, Math.min(100, Math.round(value)));
+    };
+    const prevSettings = editingContact && editingContact.settings ? editingContact.settings : {};
+    const settings = Object.assign({}, prevSettings, {
       replyMin: min,
       replyMax: max,
       replyDelayMinSec: fast,
       replyDelayMaxSec: slow,
-      taPatProb: Number(el('#ct-pat-back').value) || 0,
-      taStickerProb: Math.max(0, Math.min(100, Number(el('#ct-sticker').value) || 0)),
-      taLikeProb: Number(el('#ct-like').value) || 0,
-      taCommentProb: Number(el('#ct-comment').value) || 0,
+      taPatProb: percent('#ct-pat-back', prevSettings.taPatProb != null ? prevSettings.taPatProb : 10),
+      taStickerProb: percent('#ct-sticker', prevSettings.taStickerProb != null ? prevSettings.taStickerProb : 30),
+      taLikeProb: percent('#ct-like', prevSettings.taLikeProb != null ? prevSettings.taLikeProb : 60),
+      taCommentProb: percent('#ct-comment', prevSettings.taCommentProb != null ? prevSettings.taCommentProb : 40),
       taMomentCards: Math.max(1, Math.min(3, Number(el('#ct-moment-cards').value) || 1)),
-    };
+    });
 
     if (editingContact) {
       editingContact.name = name;

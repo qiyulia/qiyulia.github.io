@@ -88,18 +88,20 @@
       const name = mine ? (profile.userName || '我') : owner.name;
       const avatar = mine ? (profile.userAvatar || App.DEFAULT_AVATAR) : (owner.avatar || App.DEFAULT_AVATAR);
 
-      // 点赞行：用户点赞 + 各联系人点赞
+      // 点赞行：用户点赞 + 联系人点赞（联系人只在意我发的动态）
       const likeParts = [];
       if (moment.liked) likeParts.push('我');
       const taLikNames = [];
-      if (moment.likedByTa) taLikNames.push(moment.likedByTaName || ta.name);
-      if (Array.isArray(moment.likedByTaList)) {
-        moment.likedByTaList.forEach(function (item) {
-          if (!item) return;
-          const liker = contactOf(item.contactId) || ta;
-          const likName = item.name || liker.name;
-          if (taLikNames.indexOf(likName) === -1) taLikNames.push(likName);
-        });
+      if (isMine(moment)) {
+        if (moment.likedByTa) taLikNames.push(moment.likedByTaName || ta.name);
+        if (Array.isArray(moment.likedByTaList)) {
+          moment.likedByTaList.forEach(function (item) {
+            if (!item) return;
+            const liker = contactOf(item.contactId) || ta;
+            const likName = item.name || liker.name;
+            if (taLikNames.indexOf(likName) === -1) taLikNames.push(likName);
+          });
+        }
       }
       if (taLikNames.length) likeParts.push(taLikNames.map(function (n) { return App.esc(n); }).join('、'));
       const likeLine = likeParts.length
