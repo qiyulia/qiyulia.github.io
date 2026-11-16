@@ -1709,13 +1709,22 @@
     return set;
   });
 
-  /* 四角基地：经典棋盘的四色停机坪（我 = 左下蓝，TA = 右上橙） */
+  /* 四角停机坪：经典棋盘的四色停机坪（我 = 左下蓝，TA = 右上橙） */
   const LUDO_BASES = [
     { key: 'pink', label: 'tl' },
     { key: 'ta', label: 'tr' },
     { key: 'me', label: 'bl' },
     { key: 'green', label: 'br' }
   ];
+
+  /* 每位玩家 4 架飞机，起飞前停在停机坪的 4 个圆位上（百分比坐标） */
+  const LUDO_HANGAR = [
+    [[10.8, 89.2], [29.5, 89.2], [10.8, 70.5], [29.5, 70.5]],
+    [[89.2, 10.8], [70.5, 10.8], [89.2, 29.5], [70.5, 29.5]],
+    [[10.8, 10.8], [29.5, 10.8], [10.8, 29.5], [29.5, 29.5]],
+    [[89.2, 89.2], [70.5, 89.2], [89.2, 70.5], [70.5, 70.5]]
+  ];
+  const LUDO_PIECES = 4;
 
   function ludoContactSeats() {
     const contacts = App.state.contacts || [];
@@ -1748,7 +1757,10 @@
     if (ludo && ludo.timer) clearTimeout(ludo.timer);
     const seats = ludoContactSeats();
     const pos = {};
-    seats.forEach(function (s) { pos[s.key] = [0, 0]; });
+    seats.forEach(function (s) {
+      /* -1 表示还在停机坪，掷出 6 才能起飞 */
+      pos[s.key] = [-1, -1, -1, -1];
+    });
     ludo = {
       seats: seats,
       pos: pos,
@@ -1762,9 +1774,9 @@
     renderLudo();
     renderLudoPlayers();
     renderLudoDice(0);
-    ludoSetHint('轮到你掷骰子');
+    ludoSetHint('轮到你掷骰子（掷出 6 才能起飞）');
     const status = el('#ludo-status');
-    if (status) status.textContent = '最多四人轮流：掷出点数就一格一格前进，踩到其他棋子会把它送回起点，掷出 6 可以再掷一次；两枚棋子都到终点就赢。';
+    if (status) status.textContent = '经典玩法：每人 4 架飞机，掷出 6 才能起飞；踩到其他棋子会把它送回停机坪，掷出 6 可以再掷一次；4 架飞机都到终点就赢。';
   }
 
   function ludoCellOf(seatIndex, pos) {
@@ -1820,6 +1832,7 @@
     const groups = {};
     ludo.seats.forEach(function (seat, si) {
       ludo.pos[seat.key].forEach(function (pos, pi) {
+        if (pos < 0) return;
         const cell = ludoCellOf(si, pos);
         const key = cell[0] + ',' + cell[1];
         if (!groups[key]) groups[key] = [];
@@ -1837,6 +1850,20 @@
           ' style="left:calc(' + ((piece.cell[0] + 0.5) / 15 * 100) + '% + ' + dx + '%);top:' + ((piece.cell[1] + 0.5) / 15 * 100) + '%" aria-label="' +
           (piece.seat === 0 ? '我的棋子' : App.esc(ludo.seats[piece.seat].name) + '的棋子') + '">' +
           App.avatarHtml(piece.avatar) + '</div>';
+      });
+    });
+    /* 停机坪里的飞机：掷出 6 时高亮可以起飞 */
+    ludo.seats.forEach(function (seat, si) {
+      ludo.pos[seat.key].forEach(function (pos, pi) {
+        if (pos >= 0) return;
+        const spot = LUDO_HANGAR[si][pi];
+        const movable = ludo.phase === 'pick' && ludo.turn === 0 && si === 0 &&
+          ludo.movable && ludo.movable.indexOf(pi) !== -1;
+        html += '<div class="ludo-piece is-p' + si + (movable ? ' is-movable' : '') + '"' +
+          ' data-ludo-piece="p' + si + '-' + pi + '"' +
+          ' style="left:' + spot[0] + '%;top:' + spot[1] + '%" aria-label="' +
+          (si === 0 ? '我的飞机（停机坪）' : App.esc(seat.name) + '的飞机（停机坪）') + '">' +
+          App.avatarHtml(seat.avatar) + '</div>';
       });
     });
     board.innerHTML = html;
@@ -1894,6 +1921,11 @@
   function ludoMovable(player, steps) {
     const out = [];
     ludo.pos[player].forEach(function (pos, i) {
+      /* 停机坪里的飞机只有掷出 6 才能起飞 */
+      if (pos < 0) {
+        if (steps === 6) out.push(i);
+        return;
+      }
       if (pos + steps <= LUDO_END) out.push(i);
     });
     return out;
@@ -1914,7 +1946,10 @@
       return;
     }
     if (movable.length === 1) {
-      ludoSetHint(ludoSeatName(seatIndex) + ' 掷出 ' + steps + ' 点，走 ' + steps + ' 格');
+      const isLaunch = ludo.pos[seat.key][movable[0]] < 0;
+      ludoSetHint(isLaunch
+        ? ludoSeatName(seatIndex) + ' 掷出 6，飞机起飞'
+        : ludoSeatName(seatIndex) + ' 掷出 ' + steps + ' 点，走 ' + steps + ' 格');
       ludo.timer = setTimeout(function () {
         if (!ludo) return;
         ludoMove(seatIndex, movable[0], steps);
@@ -1923,12 +1958,20 @@
     }
     if (seatIndex === 0) {
       renderLudo();
-      ludoSetHint('掷出 ' + steps + ' 点，点一下要走的棋子');
+      const hasLaunch = movable.some(function (i) { return ludo.pos[seat.key][i] < 0; });
+      ludoSetHint(hasLaunch
+        ? '掷出 ' + steps + ' 点，点一下要起飞或要走的飞机'
+        : '掷出 ' + steps + ' 点，点一下要走的棋子');
       return;
     }
-    /* 其他联系人选更接近终点的那一枚 */
+    /* 其他联系人优先起飞，其次选更接近终点的一架 */
     const pick = movable.slice().sort(function (a, b) {
-      return ludo.pos[seat.key][b] - ludo.pos[seat.key][a];
+      const pa = ludo.pos[seat.key][a];
+      const pb = ludo.pos[seat.key][b];
+      const launchA = pa < 0 ? 1 : 0;
+      const launchB = pb < 0 ? 1 : 0;
+      if (launchA !== launchB) return launchB - launchA;
+      return pb - pa;
     })[0];
     ludoSetHint(ludoSeatName(seatIndex) + ' 掷出 ' + steps + ' 点，正在选棋子…');
     ludo.timer = setTimeout(function () {
@@ -1941,6 +1984,17 @@
     const seat = ludo.seats[seatIndex];
     ludo.phase = 'moving';
     const from = ludo.pos[seat.key][pieceIndex];
+    if (from < 0) {
+      /* 起飞：直接停在起点 */
+      ludo.pos[seat.key][pieceIndex] = 0;
+      renderLudo();
+      ludoSetHint(ludoSeatName(seatIndex) + ' 起飞了');
+      ludo.timer = setTimeout(function () {
+        if (!ludo) return;
+        ludoFinishMove(seatIndex, pieceIndex);
+      }, 320);
+      return;
+    }
     const to = Math.min(LUDO_END, from + steps);
     let cur = from;
     const tick = function () {
@@ -1967,18 +2021,18 @@
       ludo.seats.forEach(function (other, oi) {
         if (oi === seatIndex) return;
         ludo.pos[other.key].forEach(function (p, i) {
-          if (p >= LUDO_PATH.length) return;
+          if (p < 0 || p >= LUDO_PATH.length) return;
           const cell = ludoCellOf(oi, p);
           if (cell[0] === myCell[0] && cell[1] === myCell[1]) {
-            ludo.pos[other.key][i] = 0;
+            ludo.pos[other.key][i] = -1;
             hitName = oi === 0 ? '你' : other.name;
           }
         });
       });
       if (hitName) {
         ludoSetHint(seatIndex === 0
-          ? '踩到 ' + hitName + ' 的棋子，把它送回起点了'
-          : ludoSeatName(seatIndex) + ' 踩到了' + (hitName === '你' ? '你的' : hitName + ' 的') + '棋子，送回起点');
+          ? '踩到 ' + hitName + ' 的棋子，把它送回停机坪了'
+          : ludoSeatName(seatIndex) + ' 踩到了' + (hitName === '你' ? '你的' : hitName + ' 的') + '棋子，送回停机坪');
       }
     }
     const done = ludo.pos[seat.key].every(function (p) { return p >= LUDO_END; });
@@ -1989,8 +2043,8 @@
       const status = el('#ludo-status');
       if (status) {
         status.textContent = seatIndex === 0
-          ? '你的两枚棋子都到终点了，你赢了！点「重新开始」再来一局。'
-          : seat.name + ' 的两枚棋子都到终点了，这局 ' + seat.name + ' 赢了。点「重新开始」再战。';
+          ? '你的 4 架飞机都到终点了，你赢了！点「重新开始」再来一局。'
+          : seat.name + ' 的 4 架飞机都到终点了，这局 ' + seat.name + ' 赢了。点「重新开始」再战。';
       }
       ludoSetHint('本局结束');
       return;
