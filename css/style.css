@@ -680,7 +680,8 @@ button.widget:active { transform: scale(.99); }
   top: 0;
   right: calc(50% - 25px);
 }
-#d-badge-mail {
+#d-badge-mail,
+#d-badge-moments {
   top: -3px;
   right: calc(50% - 31px);
 }
@@ -3111,6 +3112,18 @@ dialog.more-sheet::backdrop {
 .mail-list-pane { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .mail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .mail-summary { font-size: 11.5px; color: var(--muted); }
+.mail-read-all {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11.5px;
+  transition: color .2s ease, border-color .2s ease;
+}
+.mail-read-all:hover { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.mail-read-all[hidden] { display: none; }
 .mail-compose-wrap { display: flex; justify-content: center; padding: 6px 0 2px; }
 
 .mail-list { display: flex; flex-direction: column; gap: 8px; }

@@ -3,6 +3,29 @@
   const App = window.App;
   const el = function (sel) { return document.querySelector(sel); };
 
+  /* 朋友圈角标：TA 在上次查看之后新发的动态数 */
+  App.momentsUnreadCount = function () {
+    const seen = Number(App.state.momentsSeenTs) || 0;
+    return (App.state.moments || []).filter(function (m) {
+      return m && m.role !== 'me' && Number(m.ts) > seen;
+    }).length;
+  };
+
+  App.updateMomentsBadge = function () {
+    const badge = document.getElementById('d-badge-moments');
+    if (!badge) return;
+    const unread = App.momentsUnreadCount();
+    badge.hidden = unread === 0;
+    badge.textContent = unread > 99 ? '99+' : String(unread);
+  };
+
+  /* 进入朋友圈即视为看过当前所有动态，退出后角标重新从 0 开始算 */
+  App.markMomentsSeen = function () {
+    App.state.momentsSeenTs = Date.now();
+    App.save();
+    App.updateMomentsBadge();
+  };
+
   // TA 取当前角色
   function taContact() {
     const contacts = App.state.contacts || [];
@@ -260,8 +283,12 @@
       if (maybeContactPosts(contact, now)) posted = true;
     });
     if (!posted) return false;
+    /* 正在看朋友圈时新动态当场就看到了，不算未读 */
+    const viewing = el('#view-moments').classList.contains('is-active');
+    if (viewing) App.state.momentsSeenTs = now;
     App.save();
-    if (el('#view-moments').classList.contains('is-active')) App.renderMoments();
+    if (App.updateMomentsBadge) App.updateMomentsBadge();
+    if (viewing) App.renderMoments();
     return true;
   };
 

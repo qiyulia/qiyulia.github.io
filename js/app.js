@@ -25,6 +25,7 @@
     else if (view === 'chat') App.renderChat();
     else if (view === 'moments') {
       if (App.maybeTaPosts) App.maybeTaPosts();
+      if (App.markMomentsSeen) App.markMomentsSeen();
       App.renderMoments();
     }
     else if (view === 'cards') {
@@ -167,6 +168,7 @@
       chatDot.textContent = total > 99 ? '99+' : String(total);
     }
     if (App.updateMailBadge) App.updateMailBadge();
+    if (App.updateMomentsBadge) App.updateMomentsBadge();
   };
 
   /* ---------- 主页新消息横幅 ---------- */

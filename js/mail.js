@@ -108,6 +108,8 @@
       replies: items.length ? '共 ' + items.length + ' 封回信' : '还没有回信',
     };
     el('#mail-summary').textContent = tabText[mailTab] || '';
+    const readAllBtn = el('#btn-mail-read-all');
+    if (readAllBtn) readAllBtn.hidden = unread === 0;
     el('#mail-empty-text').textContent = mailTab === 'ta'
       ? 'TA 还没有寄信来，再等等吧。'
       : (mailTab === 'replies'
@@ -401,6 +403,22 @@
     if (el('#view-mail').classList.contains('is-active') && !currentMailId) renderList();
   }
 
+  /* 一键已读：不用逐封点开，TA 的来信全部标为已读 */
+  function markAllRead() {
+    let changed = 0;
+    mailList().forEach(function (m) {
+      if (m.from === 'ta' && !m.read) {
+        m.read = true;
+        changed++;
+      }
+    });
+    if (!changed) return;
+    App.save();
+    App.updateMailBadge();
+    renderList();
+    App.toast('全部信件已标记为已读');
+  }
+
   App.renderMail = function () {
     showList();
     App.updateMailBadge();
@@ -410,6 +428,9 @@
     document.querySelectorAll('#btn-mail-compose-2, #btn-mail-compose-3').forEach(function (btn) {
       btn.addEventListener('click', function () { openCompose('new'); });
     });
+
+    const readAll = el('#btn-mail-read-all');
+    if (readAll) readAll.addEventListener('click', markAllRead);
 
     const preview = el('#mail-preview');
     if (preview) {

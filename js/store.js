@@ -406,6 +406,28 @@
     });
   };
 
+  /* 清除缓存：孤儿语音/音乐 + 浏览器里的过期临时缓存，不动聊天、字卡等功能数据 */
+  App.clearAppCache = function () {
+    return App.cleanOrphanMedia().then(function (result) {
+      const jobs = [];
+      /* 旧版本 Service Worker 留下的站点缓存 */
+      if (window.caches && window.caches.keys) {
+        jobs.push(window.caches.keys().then(function (keys) {
+          return Promise.all(keys.map(function (key) { return window.caches.delete(key); }));
+        }).catch(function () {}));
+      }
+      /* 选图跳转时的一次性记录，清掉不影响任何内容 */
+      try { localStorage.removeItem('xuyu.pickView'); } catch (e) {}
+      try { sessionStorage.removeItem('xuyu.stickerPick'); } catch (e) {}
+      /* 数据已经以 IndexedDB 为准时，localStorage 里的旧副本可以安全删掉；
+         如果当前是 localStorage 兜底模式，那就是主数据，不能碰 */
+      if (storageMode !== 'local') {
+        try { localStorage.removeItem(KEY); } catch (e) {}
+      }
+      return Promise.all(jobs).then(function () { return result; });
+    });
+  };
+
   App.clearVoiceMedia = function () {
     Object.keys(voiceUrls).forEach(revokeVoiceUrl);
     return withMediaStore('voice', 'readwrite', function (store) { return store.clear(); });
@@ -657,6 +679,7 @@
     if (!s.theme) s.theme = 'mist';
     if (typeof s.notes !== 'string') s.notes = '';
     if (!Array.isArray(s.moments)) s.moments = [];
+    if (s.momentsSeenTs == null) s.momentsSeenTs = Date.now();
     if (!Array.isArray(s.mail)) s.mail = [];
     s.mail = s.mail.filter(function (m) {
       return m && typeof m === 'object' && m.text;
