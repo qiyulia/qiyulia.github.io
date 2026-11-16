@@ -532,50 +532,6 @@
 
   App.maybeTaSurvey = maybeTaSendSurvey;
 
-  /* TA 主动补贴同心币：概率和冷却时间在 设置 → 资料 里改 */
-  const SUBSIDY_MAX = 999;
-  const SUBSIDY_SPECIAL = [66, 88, 99, 520, 521, 666, 888, 999];
-
-  function taSubsidyAmount() {
-    /* 特殊数字的出现概率写死，不放进设置 */
-    if (Math.random() < 0.2) {
-      return SUBSIDY_SPECIAL[Math.floor(Math.random() * SUBSIDY_SPECIAL.length)];
-    }
-    return 1 + Math.floor(Math.random() * SUBSIDY_MAX);
-  }
-
-  App.maybeTaSubsidy = function () {
-    if (document.hidden) return;
-    const st = App.state;
-    if (!st || !st.contacts.length || !st.wallet) return;
-    const settings = st.settings || {};
-    const cooldownMin = settings.taSubsidyCooldownMin == null
-      ? 30
-      : Math.max(0, Math.min(1440, Number(settings.taSubsidyCooldownMin) || 0));
-    const last = Number(settings.taSubsidyLastAt) || 0;
-    if (last && Date.now() - last < cooldownMin * 60000) return;
-    const prob = settings.taSubsidyProb == null
-      ? 8
-      : Math.max(0, Math.min(100, Number(settings.taSubsidyProb) || 0));
-    if (Math.random() * 100 >= prob) return;
-    settings.taSubsidyLastAt = Date.now();
-
-    const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
-    const side = Math.random() < 0.5 ? 'me' : 'ta';
-    const amount = taSubsidyAmount();
-    st.wallet[side] = Math.round(Number(st.wallet[side]) || 0) + amount;
-    App.save();
-    if (App.renderMarket) App.renderMarket();
-
-    setTimeout(function () {
-      if (!App.state.contacts.some(function (c) { return c.id === contact.id; })) return;
-      if (App.addChatSystemMessage) {
-        App.addChatSystemMessage(contact.id, '次元银行为' + (side === 'me' ? '你' : contact.name) + '补贴 ' + amount + ' 同心币');
-      }
-      if (App.renderMarket) App.renderMarket();
-    }, 1200 + Math.random() * 2600);
-  };
-
   function scheduleSurveyAppend(contactId) {
     if (Math.random() >= 0.4) return;
     setTimeout(function () {

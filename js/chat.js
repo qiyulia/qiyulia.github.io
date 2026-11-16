@@ -983,8 +983,8 @@
     if (!contact) return false;
     const role = sendRole();
     const wallet = App.state.wallet;
-    if (!(amount >= 1) || amount > 1000000) {
-      App.toast('红包金额要在 1 ~ 1000000 之间');
+    if (!(amount >= 1)) {
+      App.toast('红包金额至少 1 同心币');
       return false;
     }
     if (wallet[role] < amount) {
@@ -1303,7 +1303,6 @@
   setInterval(function () {
     maybeTaStartsChat();
     if (App.maybeTaSurvey) App.maybeTaSurvey();
-    if (App.maybeTaSubsidy) App.maybeTaSubsidy();
     if (document.hidden || callState) return;
     const st = App.state;
     if (!st || !st.contacts.length) return;

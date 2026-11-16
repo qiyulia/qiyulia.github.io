@@ -627,8 +627,6 @@
     if (s.settings.avatarMeProb == null) s.settings.avatarMeProb = 25;
     if (s.settings.nameSelfProb == null) s.settings.nameSelfProb = 20;
     if (s.settings.nameMeProb == null) s.settings.nameMeProb = 10;
-    if (s.settings.taSubsidyProb == null) s.settings.taSubsidyProb = 8;
-    if (s.settings.taSubsidyCooldownMin == null) s.settings.taSubsidyCooldownMin = 30;
     if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
     if (s.settings.taMsgGapMin == null) s.settings.taMsgGapMin = 1;
     if (s.settings.taMsgMin == null) s.settings.taMsgMin = 1;
