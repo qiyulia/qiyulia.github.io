@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261115-89">
+<link rel="stylesheet" href="css/style.css?v=20261115-90">
 </head>
 <body>
 <div class="stage">
@@ -1145,6 +1145,20 @@ if ('caches' in window) {
           <p class="field-hint">每隔几分钟 TA 会在集市里做一件事：送你礼物、买下东西、说出想要的、收藏，或者把你在聊天里许的愿买下来。冷却约 6 分钟。</p>
           <p class="field-hint">你在集市许愿后，TA 看到时有概率直接答应并送你（已接受），也可能拒绝（已被拒绝）；剩下的概率不作处理，保持等待。</p>
         </div>
+
+        <div class="panel">
+          <h3>通话</h3>
+          <div class="setting-switch-row">
+            <div class="setting-switch-copy">
+              <strong>说「挂电话」后 TA 可能挂断</strong>
+              <span class="field-hint">开启后，你在通话中说「挂电话」，TA 有 50% 概率回一句「好」再挂断；关闭后 TA 不会因为这个挂断。</span>
+            </div>
+            <label class="switch" title="说挂电话后 TA 可能挂断">
+              <input type="checkbox" id="set-call-words-hangup" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
         </div>
 
         <div class="settings-page" data-settings-panel="look" hidden>
@@ -1490,7 +1504,7 @@ if ('caches' in window) {
     <button type="button" class="more-app" data-tool="avatar" data-cat="tool" title="互换头像"><span class="more-app-icon is-avatar">换</span><span>头像与名字</span></button>
     <button type="button" class="more-app" data-tool="mine" data-cat="game" title="你一下，TA 一下，双人轮流扫雷" hidden><span class="more-app-icon is-game">雷</span><span>扫雷</span></button>
     <button type="button" class="more-app" data-tool="jump" data-cat="game" title="滑到正中间时点确定" hidden><span class="more-app-icon is-jump">跳</span><span>跳一跳</span></button>
-    <button type="button" class="more-app" data-tool="sheep" data-cat="game" title="牌堆三层，凑三张同款消掉，双人轮流" hidden><span class="more-app-icon is-sheep">羊</span><span>羊了个羊</span></button>
+    <button type="button" class="more-app" data-tool="sheep" data-cat="game" title="凑三张同款消掉一组，消掉一组后换人" hidden><span class="more-app-icon is-sheep">羊</span><span>羊了个羊</span></button>
     <button type="button" class="more-app" data-tool="gomoku" data-cat="game" title="我执黑，TA 执白，连成五子即胜" hidden><span class="more-app-icon is-gomoku">棋</span><span>五子棋</span></button>
     <button type="button" class="more-app" data-tool="drawguess" data-cat="game" title="你画或描述，TA 从四个同类选项里猜" hidden><span class="more-app-icon is-drawguess">画</span><span>你画我猜</span></button>
   </div>
@@ -1755,7 +1769,7 @@ if ('caches' in window) {
     </div>
     <div class="tool-sheet-body sheep-body">
       <div class="jump-score"><span>我 <strong id="sheep-me">0</strong> 组</span><span>TA <strong id="sheep-ta">0</strong> 组</span></div>
-      <p class="field-hint" id="sheep-status">你一张、TA 一张轮流选。三张同款自动消掉，槽位满 7 张就输。</p>
+      <p class="field-hint" id="sheep-status">连续选牌，凑够三张同款消掉一组，消掉一组后换人；槽位满 7 张就输。</p>
       <div id="sheep-board" class="sheep-board" aria-label="羊了个羊牌堆"></div>
       <div id="sheep-slots" class="sheep-slots" aria-label="暂存槽位"></div>
     </div>
@@ -2007,18 +2021,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261115-89"></script>
-<script src="js/store.js?v=20261115-89"></script>
-<script src="js/desktop.js?v=20261115-89"></script>
-<script src="js/chat.js?v=20261115-89"></script>
-<script src="js/cards.js?v=20261115-89"></script>
-<script src="js/settings.js?v=20261115-89"></script>
-<script src="js/moments.js?v=20261115-89"></script>
-<script src="js/calendar.js?v=20261115-89"></script>
-<script src="js/music.js?v=20261115-89"></script>
-<script src="js/market.js?v=20261115-89"></script>
-<script src="js/mail.js?v=20261115-89"></script>
-<script src="js/extras.js?v=20261115-89"></script>
-<script src="js/app.js?v=20261115-89"></script>
+<script src="js/seed.js?v=20261115-90"></script>
+<script src="js/store.js?v=20261115-90"></script>
+<script src="js/desktop.js?v=20261115-90"></script>
+<script src="js/chat.js?v=20261115-90"></script>
+<script src="js/cards.js?v=20261115-90"></script>
+<script src="js/settings.js?v=20261115-90"></script>
+<script src="js/moments.js?v=20261115-90"></script>
+<script src="js/calendar.js?v=20261115-90"></script>
+<script src="js/music.js?v=20261115-90"></script>
+<script src="js/market.js?v=20261115-90"></script>
+<script src="js/mail.js?v=20261115-90"></script>
+<script src="js/extras.js?v=20261115-90"></script>
+<script src="js/app.js?v=20261115-90"></script>
 </body>
 </html>

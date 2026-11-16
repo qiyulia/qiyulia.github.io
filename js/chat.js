@@ -2148,12 +2148,13 @@
     }, wait + 7000 + Math.random() * 5000);
   }
 
-  /* 聊天里我说了「挂电话」，TA 有 50% 概率回一句「好」再挂断；没触发就不说话也不挂 */
+  /* 聊天里我说了「挂电话」，开关打开时 TA 有 50% 概率回一句「好」再挂断；关了则完全不判定 */
   App.maybeHangupOnWords = function (contactId, text) {
     const session = callState;
     if (!session || !session.connected) return;
     if (session.contactId !== contactId) return;
     if (String(text || '').indexOf('挂电话') === -1) return;
+    if (App.state.settings && App.state.settings.callWordsHangup === false) return;
     const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
     if (!contact) return;
     /* 没触发后 10 分钟内不再判定；重新拨通电话会清掉这个冷却 */

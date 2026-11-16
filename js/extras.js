@@ -1484,7 +1484,7 @@
         : (sheep.winner === 'me' ? '牌都清完了，你消掉的组数更多，你赢了！' : '牌都清完了，TA 消掉的组数更多，TA 赢了。');
     } else {
       status.textContent = (sheep.turn === 'me' ? '轮到你选一张牌' : 'TA 正在选牌…') +
-        ' · 剩余 ' + left + ' 张 · 槽位 ' + sheep.slots.length + '/7 · 三张同款自动消掉';
+        ' · 剩余 ' + left + ' 张 · 槽位 ' + sheep.slots.length + '/7 · 消掉一组后换人';
     }
   }
 
@@ -1498,9 +1498,10 @@
     }
     tile.taken = true;
     sheep.slots.push(tile.emoji);
-    /* 槽里凑够三张同款就消掉，记一组 */
+    /* 槽里凑够三张同款就消掉，记一组；消掉一组才换人 */
     const same = sheep.slots.filter(function (e) { return e === tile.emoji; }).length;
-    if (same >= 3) {
+    const cleared = same >= 3;
+    if (cleared) {
       let removed = 0;
       sheep.slots = sheep.slots.filter(function (e) {
         if (e === tile.emoji && removed < 3) { removed++; return false; }
@@ -1521,7 +1522,7 @@
       renderSheep();
       return;
     }
-    sheep.turn = by === 'me' ? 'ta' : 'me';
+    if (cleared) sheep.turn = by === 'me' ? 'ta' : 'me';
     renderSheep();
     if (sheep.turn === 'ta') sheep.timer = setTimeout(taSheepMove, 800 + Math.random() * 900);
   }

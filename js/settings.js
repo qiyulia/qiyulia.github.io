@@ -300,6 +300,8 @@
     el('#set-ta-wish-reject-prob').value = st.settings.taWishRejectProb == null ? 20 : st.settings.taWishRejectProb;
     el('#set-notify-enabled').checked = !!st.settings.notifyEnabled;
     el('#set-keepalive').checked = !!st.settings.keepAlive;
+    const wordsHangupToggle = el('#set-call-words-hangup');
+    if (wordsHangupToggle) wordsHangupToggle.checked = st.settings.callWordsHangup !== false;
     refreshNotifyStatus();
 
     const partnerSelect = el('#set-partner');
@@ -647,6 +649,15 @@
     }
     if (App.state.settings.keepAlive) startKeepAlive();
     else if (App.state.settings.notifyEnabled) ensureServiceWorker();
+
+    const wordsHangupToggle = el('#set-call-words-hangup');
+    if (wordsHangupToggle) {
+      wordsHangupToggle.addEventListener('change', function () {
+        App.state.settings.callWordsHangup = !!wordsHangupToggle.checked;
+        App.save();
+        App.toast(wordsHangupToggle.checked ? '说「挂电话」后 TA 可能挂断' : '说「挂电话」后 TA 不会挂断');
+      });
+    }
 
     ['#set-mail-card-min', '#set-mail-card-max'].forEach(function (sel) {
       const node = el(sel);
