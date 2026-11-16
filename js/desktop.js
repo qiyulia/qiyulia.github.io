@@ -308,6 +308,7 @@
 
     function updateGesture(x, y) {
       if (!gesture) return false;
+      if (appDrag) return false;
       const dx = x - gesture.x;
       const dy = y - gesture.y;
       gesture.dx = dx;
@@ -376,6 +377,7 @@
 
     function finishGesture(e, cancelled) {
       if (!gesture || gesture.id !== e.pointerId) return;
+      if (appDrag) { gesture = null; return; }
       const current = gesture;
       gesture = null;
       if (!current.horizontal) return;
@@ -411,6 +413,252 @@
     }, true);
     window.addEventListener('resize', function () {
       if (!gesture || !gesture.horizontal) paintPager(0);
+    });
+  }
+
+  /* ---------------- 主界面应用图标：长按拖动，跨页自动对齐 ---------------- */
+  let appDrag = null;
+  let appEdgeTimer = null;
+  let appEdgeDir = 0;
+
+  function appGrids() {
+    return ['.home-page', '.fav-page'].map(function (sel) {
+      const page = document.querySelector('#desk-pager ' + sel);
+      return page ? page.querySelector('.app-grid') : null;
+    }).filter(Boolean);
+  }
+
+  function appKeyOf(entry) {
+    if (entry.dataset.appKey) return entry.dataset.appKey;
+    if (entry.hasAttribute('data-open-current-chat')) return 'chat';
+    return entry.dataset.go || String(entry.textContent || '').trim();
+  }
+
+  const DESK_APPS_KEY = 'shiyi.deskApps.v1';
+
+  function readDeskAppsLayout() {
+    if (Array.isArray(App.state.deskApps)) return App.state.deskApps;
+    try {
+      const raw = JSON.parse(localStorage.getItem(DESK_APPS_KEY) || 'null');
+      return Array.isArray(raw) ? raw : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function applyDeskAppsLayout() {
+    const saved = readDeskAppsLayout();
+    if (!Array.isArray(saved)) return;
+    const grids = appGrids();
+    const entries = Array.from(document.querySelectorAll('#desk-pager .app-entry'));
+    const map = {};
+    entries.forEach(function (entry) { map[appKeyOf(entry)] = entry; });
+    grids.forEach(function (grid, gi) {
+      const keys = Array.isArray(saved[gi]) ? saved[gi] : [];
+      keys.forEach(function (key) {
+        /* 逐个 appendChild，既跨页也恢复同页内的顺序 */
+        if (map[key]) grid.appendChild(map[key]);
+      });
+    });
+  }
+
+  function saveDeskAppsLayout() {
+    const layout = appGrids().map(function (grid) {
+      return Array.from(grid.querySelectorAll('.app-entry')).map(appKeyOf);
+    });
+    App.state.deskApps = layout;
+    try {
+      localStorage.setItem(DESK_APPS_KEY, JSON.stringify(layout));
+    } catch (err) { /* 忽略存储失败 */ }
+    App.save();
+    if (App.flushSave) App.flushSave();
+  }
+
+  function appInsertIndex(grid, x, y, entry) {
+    const items = Array.from(grid.querySelectorAll('.app-entry')).filter(function (node) {
+      return node !== entry;
+    });
+    for (let i = 0; i < items.length; i++) {
+      const rect = items[i].getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      if (y < rect.top) return i;
+      if (y <= rect.bottom && x < cx) return i;
+    }
+    return items.length;
+  }
+
+  function cancelAppEdgeSwitch() {
+    if (appEdgeTimer) clearTimeout(appEdgeTimer);
+    appEdgeTimer = null;
+    appEdgeDir = 0;
+  }
+
+  function requestAppEdgeSwitch(dir) {
+    if (!appDrag || dir === appEdgeDir) return;
+    cancelAppEdgeSwitch();
+    const pages = deskPages().length;
+    const target = deskPage + dir;
+    if (target < 0 || target >= pages) return;
+    appEdgeDir = dir;
+    appEdgeTimer = setTimeout(function () {
+      appEdgeTimer = null;
+      appEdgeDir = 0;
+      if (!appDrag) return;
+      jumpToDeskPage(target);
+      /* 翻页动画结束后再按落点摆一次，避免停在半路时插不进去 */
+      setTimeout(function () {
+        if (appDrag) moveAppDragAt(appDrag.lastX, appDrag.lastY);
+      }, 360);
+    }, 460);
+  }
+
+  function moveAppDragAt(x, y) {
+    if (!appDrag) return;
+    appDrag.lastX = x;
+    appDrag.lastY = y;
+    const ghost = appDrag.ghost;
+    ghost.style.transform = 'translate3d(' + (x - appDrag.dx) + 'px,' + (y - appDrag.dy) + 'px,0)';
+    const grids = appGrids();
+    let grid = null;
+    grids.forEach(function (item) {
+      const rect = item.getBoundingClientRect();
+      if (x >= rect.left - 16 && x <= rect.right + 16 && y >= rect.top - 48 && y <= rect.bottom + 48) {
+        grid = item;
+      }
+    });
+    if (!grid) return;
+    const index = appInsertIndex(grid, x, y, appDrag.entry);
+    const items = Array.from(grid.querySelectorAll('.app-entry')).filter(function (node) {
+      return node !== appDrag.entry;
+    });
+    grid.insertBefore(appDrag.entry, items[index] || null);
+    /* 拖到屏幕边缘停一下就翻页 */
+    const pager = el('#desk-pager');
+    const rect = pager.getBoundingClientRect();
+    if (x < rect.left + 44) requestAppEdgeSwitch(-1);
+    else if (x > rect.right - 44) requestAppEdgeSwitch(1);
+    else cancelAppEdgeSwitch();
+  }
+
+  function beginAppDrag(entry, x, y) {
+    const rect = entry.getBoundingClientRect();
+    if (!rect.width) return;
+    const ghost = entry.cloneNode(true);
+    ghost.classList.add('app-drag-ghost');
+    ghost.removeAttribute('data-open-current-chat');
+    ghost.style.width = rect.width + 'px';
+    document.body.appendChild(ghost);
+    entry.classList.add('is-drag-source');
+    appDrag = {
+      entry: entry,
+      ghost: ghost,
+      dx: x - rect.left,
+      dy: y - rect.top,
+      lastX: x,
+      lastY: y,
+      touchMove: null,
+    };
+    const pager = el('#desk-pager');
+    if (pager) pager.classList.add('is-app-dragging');
+    moveAppDragAt(x, y);
+    appDrag.touchMove = function (ev) { ev.preventDefault(); };
+    document.addEventListener('touchmove', appDrag.touchMove, { passive: false });
+    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) { /* 忽略 */ } }
+    blockAppClick();
+  }
+
+  function blockAppClick() {
+    const blocker = function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      document.removeEventListener('click', blocker, true);
+    };
+    document.addEventListener('click', blocker, true);
+    setTimeout(function () {
+      document.removeEventListener('click', blocker, true);
+    }, 420);
+  }
+
+  function endAppDrag() {
+    if (!appDrag) return;
+    const entry = appDrag.entry;
+    const ghost = appDrag.ghost;
+    const dropX = appDrag.lastX;
+    const dropY = appDrag.lastY;
+    if (appDrag.touchMove) document.removeEventListener('touchmove', appDrag.touchMove);
+    cancelAppEdgeSwitch();
+    /* 松手时按当前翻到的那一页再放一次，避免翻页动画中途松手落到旧页 */
+    const grids = appGrids();
+    const grid = grids[Math.min(deskPage, grids.length - 1)];
+    if (grid) {
+      const index = appInsertIndex(grid, dropX, dropY, entry);
+      const items = Array.from(grid.querySelectorAll('.app-entry')).filter(function (node) {
+        return node !== entry;
+      });
+      grid.insertBefore(entry, items[index] || null);
+    }
+    entry.classList.remove('is-drag-source');
+    const pager = el('#desk-pager');
+    if (pager) pager.classList.remove('is-app-dragging');
+    const rect = entry.getBoundingClientRect();
+    ghost.style.transition = 'transform .16s ease, opacity .16s ease';
+    ghost.style.transform = 'translate3d(' + rect.left + 'px,' + rect.top + 'px,0)';
+    ghost.style.opacity = '0';
+    appDrag = null;
+    setTimeout(function () {
+      if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    }, 180);
+    saveDeskAppsLayout();
+    blockAppClick();
+  }
+
+  function initAppDrag() {
+    applyDeskAppsLayout();
+    document.querySelectorAll('#desk-pager .app-entry').forEach(function (entry) {
+      entry.addEventListener('pointerdown', function (e) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (appDrag) return;
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const pointerId = e.pointerId;
+        let timer = setTimeout(function () {
+          timer = null;
+          beginAppDrag(entry, startX, startY);
+        }, e.pointerType === 'mouse' ? 200 : 300);
+
+        function cleanup() {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          document.removeEventListener('pointermove', onMove, true);
+          document.removeEventListener('pointerup', onUp, true);
+          document.removeEventListener('pointercancel', onUp, true);
+        }
+
+        function onMove(ev) {
+          if (ev.pointerId !== pointerId) return;
+          if (appDrag && appDrag.entry === entry) {
+            ev.preventDefault();
+            moveAppDragAt(ev.clientX, ev.clientY);
+            return;
+          }
+          /* 还没长按就开始滑动，交给翻页手势 */
+          if (timer && (Math.abs(ev.clientX - startX) > 8 || Math.abs(ev.clientY - startY) > 8)) {
+            cleanup();
+          }
+        }
+
+        function onUp(ev) {
+          if (ev.pointerId !== pointerId) return;
+          cleanup();
+          if (appDrag && appDrag.entry === entry) endAppDrag();
+        }
+
+        document.addEventListener('pointermove', onMove, true);
+        document.addEventListener('pointerup', onUp, true);
+        document.addEventListener('pointercancel', onUp, true);
+      });
     });
   }
 
@@ -579,6 +827,7 @@
 
   App.initDesktop = function () {
     initPager();
+    initAppDrag();
     document.querySelectorAll('[data-fav-cat]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         favCat = btn.dataset.favCat || 'chat';

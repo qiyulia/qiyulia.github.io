@@ -1671,6 +1671,233 @@
     gomokuPlace(best, 'ta');
   }
 
+  /* ---------------- 游戏：你画我猜 ---------------- */
+  const DG_WORDS = {
+    水果: ['香蕉', '苹果', '西瓜', '草莓', '葡萄', '菠萝', '橙子', '桃子', '梨', '樱桃'],
+    动物: ['大象', '熊猫', '长颈鹿', '小猫', '小狗', '兔子', '老虎', '企鹅', '海豚', '蝴蝶'],
+    食物: ['汉堡', '披萨', '面条', '饺子', '蛋糕', '冰淇淋', '火锅', '寿司', '包子', '薯条'],
+    日用品: ['雨伞', '牙刷', '水杯', '闹钟', '台灯', '剪刀', '钥匙', '眼镜', '梳子', '手套'],
+    交通工具: ['自行车', '汽车', '飞机', '火车', '轮船', '热气球', '摩托车', '地铁', '滑板', '火箭'],
+    自然: ['月亮', '太阳', '彩虹', '雪人', '大树', '山峰', '云朵', '星星', '海浪', '火山'],
+    运动: ['篮球', '足球', '乒乓球', '羽毛球', '游泳', '跳绳', '跑步', '滑雪', '瑜伽', '排球'],
+    乐器: ['吉他', '钢琴', '小提琴', '架子鼓', '口琴', '笛子', '萨克斯', '竖琴', '二胡', '手鼓'],
+  };
+  let drawGuess = null;
+  let dgDraw = null;
+
+  function dgShuffle(list) {
+    const arr = list.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function dgSetHint(text) {
+    const hint = el('#dg-hint');
+    if (hint) hint.textContent = text;
+  }
+
+  function dgPoint(e) {
+    const canvas = dgDraw.canvas;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * canvas.width / (rect.width || 1),
+      y: (e.clientY - rect.top) * canvas.height / (rect.height || 1),
+    };
+  }
+
+  function dgClearCanvas() {
+    if (!dgDraw) return;
+    const ctx = dgDraw.ctx;
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, dgDraw.canvas.width, dgDraw.canvas.height);
+    ctx.restore();
+  }
+
+  function dgSetupCanvas() {
+    const canvas = el('#dg-canvas');
+    if (!canvas || !canvas.getContext) return;
+    if (!dgDraw || dgDraw.canvas !== canvas) {
+      dgDraw = { canvas: canvas, ctx: canvas.getContext('2d'), color: '#2f3b4a', erasing: false, drawing: false, undo: [], moved: false };
+    }
+    canvas.style.touchAction = 'none';
+    if (!canvas.dataset.bound) {
+      canvas.dataset.bound = '1';
+      canvas.addEventListener('pointerdown', function (e) {
+        if (!dgDraw) return;
+        e.preventDefault();
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+        dgDraw.drawing = true;
+        dgDraw.moved = false;
+        dgDraw.undo.push(dgDraw.ctx.getImageData(0, 0, canvas.width, canvas.height));
+        if (dgDraw.undo.length > 12) dgDraw.undo.shift();
+        const p = dgPoint(e);
+        dgDraw.last = p;
+      });
+      canvas.addEventListener('pointermove', function (e) {
+        if (!dgDraw || !dgDraw.drawing) return;
+        e.preventDefault();
+        const p = dgPoint(e);
+        const ctx = dgDraw.ctx;
+        ctx.strokeStyle = dgDraw.erasing ? '#ffffff' : dgDraw.color;
+        ctx.lineWidth = dgDraw.erasing ? 18 : 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(dgDraw.last.x, dgDraw.last.y);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        dgDraw.last = p;
+        dgDraw.moved = true;
+      }, { passive: false });
+      const end = function () {
+        if (!dgDraw || !dgDraw.drawing) return;
+        if (!dgDraw.moved) {
+          const ctx = dgDraw.ctx;
+          ctx.fillStyle = dgDraw.erasing ? '#ffffff' : dgDraw.color;
+          ctx.beginPath();
+          ctx.arc(dgDraw.last.x, dgDraw.last.y, dgDraw.erasing ? 9 : 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        dgDraw.drawing = false;
+      };
+      canvas.addEventListener('pointerup', end);
+      canvas.addEventListener('pointercancel', end);
+      canvas.addEventListener('pointerleave', end);
+    }
+    dgClearCanvas();
+  }
+
+  function dgRenderScore() {
+    if (!drawGuess) return;
+    const right = el('#dg-right');
+    const total = el('#dg-total');
+    if (right) right.textContent = drawGuess.right;
+    if (total) total.textContent = drawGuess.total;
+  }
+
+  function dgRenderWord() {
+    if (!drawGuess) return;
+    const word = el('#dg-word');
+    const cat = el('#dg-cat');
+    if (word) word.textContent = drawGuess.word;
+    if (cat) cat.textContent = drawGuess.cat;
+  }
+
+  function dgRenderOptions() {
+    const box = el('#dg-options');
+    if (!box || !drawGuess) return;
+    const letters = ['A', 'B', 'C', 'D'];
+    box.innerHTML = drawGuess.options.map(function (option, i) {
+      return '<button type="button" class="dg-option" data-dg-option="' + i + '">' +
+        '<b>' + letters[i] + '</b><span>' + App.esc(option) + '</span></button>';
+    }).join('');
+    box.hidden = false;
+  }
+
+  function dgResetUi() {
+    const options = el('#dg-options');
+    if (options) { options.hidden = true; options.innerHTML = ''; }
+    const result = el('#dg-result');
+    if (result) { result.hidden = true; result.className = 'dg-result'; result.textContent = ''; }
+    const guess = el('#dg-guess');
+    if (guess) { guess.hidden = false; guess.disabled = false; }
+    const next = el('#dg-next');
+    if (next) next.hidden = true;
+    const desc = el('#dg-desc');
+    if (desc) desc.value = '';
+  }
+
+  function dgNewRound() {
+    if (!drawGuess) return;
+    if (drawGuess.timer) clearTimeout(drawGuess.timer);
+    const cats = Object.keys(DG_WORDS);
+    const cat = cats[Math.floor(Math.random() * cats.length)];
+    const pool = DG_WORDS[cat];
+    let word = pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length > 1 && word === drawGuess.lastWord) {
+      word = pool[(pool.indexOf(word) + 1) % pool.length];
+    }
+    const wrongs = dgShuffle(pool.filter(function (item) { return item !== word; })).slice(0, 3);
+    const options = dgShuffle([word].concat(wrongs));
+    drawGuess.word = word;
+    drawGuess.cat = cat;
+    drawGuess.options = options;
+    drawGuess.correct = options.indexOf(word);
+    drawGuess.lastWord = word;
+    drawGuess.picked = null;
+    drawGuess.over = false;
+    dgRenderWord();
+    dgRenderScore();
+    dgResetUi();
+    dgSetHint('画出这个词，或者写一句描述，再让 TA 从四个同类选项里猜。');
+    dgClearCanvas();
+    if (dgDraw) dgDraw.undo = [];
+    dgRenderScore();
+  }
+
+  function resetDrawGuess() {
+    if (drawGuess && drawGuess.timer) clearTimeout(drawGuess.timer);
+    drawGuess = { right: 0, total: 0, lastWord: '', word: '', cat: '', options: [], correct: 0, picked: null, over: false, timer: null };
+    dgSetupCanvas();
+    dgNewRound();
+  }
+
+  function dgGuess() {
+    if (!drawGuess || drawGuess.over || drawGuess.picked !== null) return;
+    const desc = el('#dg-desc');
+    const text = desc ? String(desc.value || '').trim() : '';
+    dgRenderOptions();
+    const guessBtn = el('#dg-guess');
+    if (guessBtn) { guessBtn.hidden = true; guessBtn.disabled = true; }
+    dgSetHint(text.length >= 6 ? 'TA 一边看你的描述一边想…' : 'TA 盯着画看了好一会儿…');
+    const accuracy = text.length >= 6 ? 0.82 : 0.6;
+    let pick = drawGuess.correct;
+    if (Math.random() >= accuracy) {
+      const others = [0, 1, 2, 3].filter(function (i) { return i !== drawGuess.correct; });
+      pick = others[Math.floor(Math.random() * others.length)];
+    }
+    drawGuess.picked = pick;
+    drawGuess.timer = setTimeout(function () {
+      const layer = el('#drawguess-dialog');
+      if (!drawGuess || !layer || layer.hidden) return;
+      dgReveal(pick);
+    }, 1000 + Math.random() * 900);
+  }
+
+  function dgReveal(pick) {
+    const box = el('#dg-options');
+    if (!box || !drawGuess) return;
+    const correct = pick === drawGuess.correct;
+    const letters = ['A', 'B', 'C', 'D'];
+    Array.from(box.querySelectorAll('.dg-option')).forEach(function (btn, i) {
+      btn.disabled = true;
+      if (i === pick) btn.classList.add('is-picked');
+      if (i === drawGuess.correct) btn.classList.add('is-right');
+      else if (i === pick) btn.classList.add('is-wrong');
+    });
+    drawGuess.total += 1;
+    if (correct) drawGuess.right += 1;
+    dgRenderScore();
+    const result = el('#dg-result');
+    if (result) {
+      result.hidden = false;
+      result.className = 'dg-result ' + (correct ? 'is-right' : 'is-wrong');
+      result.textContent = correct
+        ? 'TA 猜对了：' + letters[pick] + ' · ' + drawGuess.word
+        : 'TA 选了 ' + letters[pick] + ' · ' + drawGuess.options[pick] + '，正确答案是 ' + letters[drawGuess.correct] + ' · ' + drawGuess.word;
+    }
+    dgSetHint(correct ? '猜对啦，换一个词再来。' : '没猜中，换个画法再试试。');
+    const next = el('#dg-next');
+    if (next) next.hidden = false;
+    drawGuess.over = true;
+  }
+
   /* ---------------- 事件绑定 ---------------- */
   function hideAllToolPanels() {
     document.querySelectorAll('.tool-overlay').forEach(function (layer) {
@@ -2334,6 +2561,9 @@
         } else if (btn.dataset.tool === 'gomoku') {
           showToolPanel('#gomoku-dialog');
           resetGomoku();
+        } else if (btn.dataset.tool === 'drawguess') {
+          resetDrawGuess();
+          showToolPanel('#drawguess-dialog');
         }
       });
     });
@@ -2578,6 +2808,48 @@
     }
     const gomokuReset = el('#gomoku-reset');
     if (gomokuReset) gomokuReset.addEventListener('click', resetGomoku);
+
+    /* 你画我猜 */
+    const dgGuessBtn = el('#dg-guess');
+    if (dgGuessBtn) dgGuessBtn.addEventListener('click', dgGuess);
+    const dgNextBtn = el('#dg-next');
+    if (dgNextBtn) dgNextBtn.addEventListener('click', dgNewRound);
+    const dgResetBtn = el('#dg-reset');
+    if (dgResetBtn) dgResetBtn.addEventListener('click', resetDrawGuess);
+    const dgClearBtn = el('#dg-clear');
+    if (dgClearBtn) {
+      dgClearBtn.addEventListener('click', function () {
+        if (!dgDraw) return;
+        dgClearCanvas();
+        dgDraw.undo = [];
+      });
+    }
+    const dgUndoBtn = el('#dg-undo');
+    if (dgUndoBtn) {
+      dgUndoBtn.addEventListener('click', function () {
+        if (!dgDraw || !dgDraw.undo.length) return;
+        dgDraw.ctx.putImageData(dgDraw.undo.pop(), 0, 0);
+      });
+    }
+    const dgEraserBtn = el('#dg-eraser');
+    if (dgEraserBtn) {
+      dgEraserBtn.addEventListener('click', function () {
+        if (!dgDraw) return;
+        dgDraw.erasing = !dgDraw.erasing;
+        dgEraserBtn.classList.toggle('is-active', dgDraw.erasing);
+      });
+    }
+    document.querySelectorAll('[data-dg-color]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!dgDraw) return;
+        dgDraw.color = btn.dataset.dgColor;
+        dgDraw.erasing = false;
+        if (dgEraserBtn) dgEraserBtn.classList.remove('is-active');
+        document.querySelectorAll('[data-dg-color]').forEach(function (other) {
+          other.classList.toggle('is-active', other === btn);
+        });
+      });
+    });
     const mineBoard = el('#mine-board');
     if (mineBoard) {
       let pressTimer = null;

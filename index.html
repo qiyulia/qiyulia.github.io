@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261115-88">
+<link rel="stylesheet" href="css/style.css?v=20261115-89">
 </head>
 <body>
 <div class="stage">
@@ -110,7 +110,7 @@ if ('caches' in window) {
             <div class="desk-section app-section">
               <div class="section-head">
                 <span>应用</span>
-                <span>把想说的话放在这里</span>
+                <span>长按图标可以移到收藏页</span>
               </div>
               <div class="app-grid">
                 <button type="button" class="app-entry" data-open-current-chat="1">
@@ -1492,6 +1492,7 @@ if ('caches' in window) {
     <button type="button" class="more-app" data-tool="jump" data-cat="game" title="滑到正中间时点确定" hidden><span class="more-app-icon is-jump">跳</span><span>跳一跳</span></button>
     <button type="button" class="more-app" data-tool="sheep" data-cat="game" title="牌堆三层，凑三张同款消掉，双人轮流" hidden><span class="more-app-icon is-sheep">羊</span><span>羊了个羊</span></button>
     <button type="button" class="more-app" data-tool="gomoku" data-cat="game" title="我执黑，TA 执白，连成五子即胜" hidden><span class="more-app-icon is-gomoku">棋</span><span>五子棋</span></button>
+    <button type="button" class="more-app" data-tool="drawguess" data-cat="game" title="你画或描述，TA 从四个同类选项里猜" hidden><span class="more-app-icon is-drawguess">画</span><span>你画我猜</span></button>
   </div>
 </dialog>
 
@@ -1788,6 +1789,53 @@ if ('caches' in window) {
   </div>
 </div>
 
+<!-- ============ 游戏：你画我猜 ============ -->
+<div id="drawguess-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card">
+    <div class="sheet-head">
+      <h3>你画我猜</h3>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body dg-body">
+      <div class="dg-top">
+        <div class="dg-word-box">
+          <span class="dg-label">你要画的词</span>
+          <strong id="dg-word">—</strong>
+          <span class="dg-cat" id="dg-cat"></span>
+        </div>
+        <div class="dg-score">答对 <strong id="dg-right">0</strong> / <span id="dg-total">0</span></div>
+      </div>
+      <p class="field-hint" id="dg-hint">画出这个词，或者写一句描述，再让 TA 从四个同类选项里猜。</p>
+      <div class="dg-paper">
+        <canvas id="dg-canvas" width="640" height="400" aria-label="画布"></canvas>
+      </div>
+      <div class="dg-tools">
+        <button type="button" class="dg-color is-active" data-dg-color="#2f3b4a" aria-label="深色" style="background:#2f3b4a"></button>
+        <button type="button" class="dg-color" data-dg-color="#d9534f" aria-label="红色" style="background:#d9534f"></button>
+        <button type="button" class="dg-color" data-dg-color="#e6a23c" aria-label="橙色" style="background:#e6a23c"></button>
+        <button type="button" class="dg-color" data-dg-color="#5aa469" aria-label="绿色" style="background:#5aa469"></button>
+        <button type="button" class="dg-color" data-dg-color="#5b8fc9" aria-label="蓝色" style="background:#5b8fc9"></button>
+        <button type="button" class="dg-color" data-dg-color="#a06bc9" aria-label="紫色" style="background:#a06bc9"></button>
+        <button type="button" class="dg-tool" id="dg-eraser">橡皮</button>
+        <button type="button" class="dg-tool" id="dg-undo">撤销</button>
+        <button type="button" class="dg-tool" id="dg-clear">清空</button>
+      </div>
+      <input id="dg-desc" class="dg-desc" maxlength="40" placeholder="也可以写一句描述：黄色、弯弯的、猴子爱吃">
+      <div id="dg-options" class="dg-options" hidden></div>
+      <p class="dg-result" id="dg-result" hidden></p>
+      <div class="dg-actions">
+        <button type="button" class="btn primary" id="dg-guess">让 TA 猜</button>
+        <button type="button" class="btn ghost" id="dg-next" hidden>下一题</button>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" id="dg-reset">重新开始</button>
+      <button type="button" class="btn primary" data-tool-close>关闭</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ 联系人弹窗 ============ -->
 <dialog id="contact-dialog" class="sheet">
   <form id="contact-form">
@@ -1959,18 +2007,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261115-88"></script>
-<script src="js/store.js?v=20261115-88"></script>
-<script src="js/desktop.js?v=20261115-88"></script>
-<script src="js/chat.js?v=20261115-88"></script>
-<script src="js/cards.js?v=20261115-88"></script>
-<script src="js/settings.js?v=20261115-88"></script>
-<script src="js/moments.js?v=20261115-88"></script>
-<script src="js/calendar.js?v=20261115-88"></script>
-<script src="js/music.js?v=20261115-88"></script>
-<script src="js/market.js?v=20261115-88"></script>
-<script src="js/mail.js?v=20261115-88"></script>
-<script src="js/extras.js?v=20261115-88"></script>
-<script src="js/app.js?v=20261115-88"></script>
+<script src="js/seed.js?v=20261115-89"></script>
+<script src="js/store.js?v=20261115-89"></script>
+<script src="js/desktop.js?v=20261115-89"></script>
+<script src="js/chat.js?v=20261115-89"></script>
+<script src="js/cards.js?v=20261115-89"></script>
+<script src="js/settings.js?v=20261115-89"></script>
+<script src="js/moments.js?v=20261115-89"></script>
+<script src="js/calendar.js?v=20261115-89"></script>
+<script src="js/music.js?v=20261115-89"></script>
+<script src="js/market.js?v=20261115-89"></script>
+<script src="js/mail.js?v=20261115-89"></script>
+<script src="js/extras.js?v=20261115-89"></script>
+<script src="js/app.js?v=20261115-89"></script>
 </body>
 </html>
