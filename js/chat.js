@@ -2143,7 +2143,7 @@
     }, wait + 7000 + Math.random() * 5000);
   }
 
-  /* 聊天里我说了「挂电话」，TA 才可能挂断 */
+  /* 聊天里我说了「挂电话」，TA 有 50% 概率回一句「好」再挂断；没触发就不说话也不挂 */
   App.maybeHangupOnWords = function (contactId, text) {
     const session = callState;
     if (!session || !session.connected) return;
@@ -2151,11 +2151,25 @@
     if (String(text || '').indexOf('挂电话') === -1) return;
     const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
     if (!contact) return;
-    const prob = clampProb(App.contactSettings(contact).callHangupProb);
     const target = session;
     setTimeout(function () {
       if (callState !== target || !target.connected) return;
-      if (Math.random() * 100 < prob) endCallWithNotice(target, 'hangup');
+      if (Math.random() * 100 >= 50) return;
+      /* 先回一句「好」，紧接着挂断 */
+      const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+      chat.push({ id: App.uid('m'), role: 'ta', type: 'text', text: '好', ts: Date.now() });
+      App.save();
+      if (App.chatContactId === contactId && App.chatOpen(contactId)) {
+        App.renderChat();
+      } else {
+        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+      setTimeout(function () {
+        if (callState !== target || !target.connected) return;
+        endCallWithNotice(target, 'hangup');
+      }, 900);
     }, 1200 + Math.random() * 1800);
   };
 
