@@ -4698,3 +4698,4 @@ input::-webkit-strong-password-auto-fill-button {
 }
 .about-line + .about-line { margin-top: 10px; }
 .about-line strong { font-weight: 700; }
+.about-line.about-warn strong { color: #d9534f; }
