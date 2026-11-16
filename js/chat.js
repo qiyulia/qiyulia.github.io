@@ -644,7 +644,7 @@
     if (m.type === 'avatarNotice') {
       return '<div class="msg-notice">★ ' + App.esc(m.text) + '</div>';
     }
-    const hasEmotion = !!m.emotion || m.type === 'emotion';
+    const hasEmotion = m.type !== 'audio' && (!!m.emotion || m.type === 'emotion');
     const meta = m.surveyAppend
       ? '<span class="emotion-divider"></span>' +
         '<div class="emotion-row survey-append-row"><span class="emotion-chip">问卷追加</span></div>'
@@ -1266,8 +1266,6 @@
     };
     if (isVoice) message.src = card.audio;
     if (card.category === '情绪') message.emotion = App.emotionLabel(card);
-    const emotionProb = Math.max(0, Math.min(100, Number(cs.emotionProb) || 0));
-    if (!message.emotion && Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
     if (App.chatOpen(contactId)) message.read = true;
     chat.push(message);
     App.save();
@@ -1493,7 +1491,7 @@
       };
       if (group.length > 1) message.cardIds = group.map(function (c) { return c.id; });
       if (group.length === 1 && card.category === '语音') message.src = card.audio;
-      if (Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
+      if (message.type !== 'audio' && Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
 
       const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
       if (chat.length && Math.random() * 100 < quoteProb) {
