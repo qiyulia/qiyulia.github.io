@@ -1424,23 +1424,91 @@
     });
   }
 
+  /* 同一组三张尽量放在同一层，保证翻开后能凑齐；生成后再模拟一遍能否走通 */
+  function sheepShuffle(list) {
+    const arr = list.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function sheepAssignEmoji(tiles) {
+    const byLayer = {};
+    tiles.forEach(function (t, i) {
+      (byLayer[t.layer] || (byLayer[t.layer] = [])).push(i);
+    });
+    const pools = sheepShuffle(SHEEP_EMOJI);
+    let ai = 0;
+    Object.keys(byLayer).map(Number).sort(function (a, b) { return a - b; }).forEach(function (layer) {
+      const idxs = sheepShuffle(byLayer[layer]);
+      while (idxs.length >= 3) {
+        const emoji = pools[ai++ % pools.length];
+        for (let k = 0; k < 3; k++) tiles[idxs.pop()].emoji = emoji;
+      }
+      /* 层内不足三张时，补给下一层一起凑组 */
+      if (idxs.length) {
+        const next = Object.keys(byLayer).map(Number).filter(function (l) { return l > layer; })[0];
+        if (next != null) byLayer[next] = byLayer[next].concat(idxs);
+      }
+    });
+    /* 万一还有空位（层数不能整除 3），用剩下的 emoji 补齐 */
+    tiles.forEach(function (t) {
+      if (!t.emoji) t.emoji = pools[ai++ % pools.length];
+    });
+  }
+
+  function sheepSolvable(tiles) {
+    const copy = tiles.map(function (t) {
+      return { layer: t.layer, x: t.x, y: t.y, emoji: t.emoji, taken: false };
+    });
+    const slots = [];
+    const total = copy.length;
+    let taken = 0;
+    while (taken < total) {
+      const free = copy.filter(function (t) { return !t.taken && !sheepBlocked(t, copy); });
+      if (!free.length) return false;
+      const countIn = function (emoji) {
+        return slots.filter(function (e) { return e === emoji; }).length;
+      };
+      const freeCount = function (emoji) {
+        return free.filter(function (t) { return t.emoji === emoji; }).length;
+      };
+      let pick = free.filter(function (t) { return countIn(t.emoji) === 2; })[0];
+      if (!pick) pick = free.filter(function (t) { return countIn(t.emoji) === 1; })[0];
+      if (!pick) pick = free.filter(function (t) { return freeCount(t.emoji) >= 2; })[0];
+      if (!pick) pick = free[0];
+      pick.taken = true;
+      taken++;
+      slots.push(pick.emoji);
+      if (countIn(pick.emoji) >= 3) {
+        let removed = 0;
+        for (let i = slots.length - 1; i >= 0 && removed < 3; i--) {
+          if (slots[i] === pick.emoji) { slots.splice(i, 1); removed++; }
+        }
+      }
+      if (slots.length >= 7) return false;
+    }
+    return true;
+  }
+
   function resetSheep() {
     if (sheep && sheep.timer) clearTimeout(sheep.timer);
-    const tiles = SHEEP_LAYOUT.map(function (item) {
-      return { layer: item[0], x: item[1], y: item[2], emoji: '', taken: false };
-    });
-    /* 每种 emoji 正好三张，打乱后铺满牌堆 */
-    const deck = [];
-    const sets = Math.floor(tiles.length / 3);
-    for (let i = 0; i < sets; i++) {
-      const e = SHEEP_EMOJI[i % SHEEP_EMOJI.length];
-      deck.push(e, e, e);
+    let tiles = null;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const draft = SHEEP_LAYOUT.map(function (item) {
+        return { layer: item[0], x: item[1], y: item[2], emoji: '', taken: false };
+      });
+      sheepAssignEmoji(draft);
+      if (sheepSolvable(draft)) { tiles = draft; break; }
     }
-    for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const t = deck[i]; deck[i] = deck[j]; deck[j] = t;
+    if (!tiles) {
+      tiles = SHEEP_LAYOUT.map(function (item) {
+        return { layer: item[0], x: item[1], y: item[2], emoji: '', taken: false };
+      });
+      sheepAssignEmoji(tiles);
     }
-    tiles.forEach(function (t, i) { t.emoji = deck[i]; });
     sheep = { tiles: tiles, slots: [], turn: 'me', me: 0, ta: 0, over: '', winner: '', timer: 0 };
     renderSheep();
   }
