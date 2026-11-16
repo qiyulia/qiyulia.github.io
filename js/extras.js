@@ -1424,7 +1424,6 @@
     });
   }
 
-  /* 同一组三张尽量放在同一层，保证翻开后能凑齐；生成后再模拟一遍能否走通 */
   function sheepShuffle(list) {
     const arr = list.slice();
     for (let i = arr.length - 1; i > 0; i--) {
@@ -1434,81 +1433,48 @@
     return arr;
   }
 
-  function sheepAssignEmoji(tiles) {
-    const byLayer = {};
-    tiles.forEach(function (t, i) {
-      (byLayer[t.layer] || (byLayer[t.layer] = [])).push(i);
+  /* 随机生成一条合法的拿牌顺序：每一步只从当前没有被压住的牌里挑 */
+  function sheepPeelOrder(tiles) {
+    const work = tiles.map(function (t, i) {
+      return { layer: t.layer, x: t.x, y: t.y, taken: false, index: i };
     });
-    const pools = sheepShuffle(SHEEP_EMOJI);
-    let ai = 0;
-    Object.keys(byLayer).map(Number).sort(function (a, b) { return a - b; }).forEach(function (layer) {
-      const idxs = sheepShuffle(byLayer[layer]);
-      while (idxs.length >= 3) {
-        const emoji = pools[ai++ % pools.length];
-        for (let k = 0; k < 3; k++) tiles[idxs.pop()].emoji = emoji;
-      }
-      /* 层内不足三张时，补给下一层一起凑组 */
-      if (idxs.length) {
-        const next = Object.keys(byLayer).map(Number).filter(function (l) { return l > layer; })[0];
-        if (next != null) byLayer[next] = byLayer[next].concat(idxs);
-      }
-    });
-    /* 万一还有空位（层数不能整除 3），用剩下的 emoji 补齐 */
-    tiles.forEach(function (t) {
-      if (!t.emoji) t.emoji = pools[ai++ % pools.length];
-    });
+    const order = [];
+    while (order.length < work.length) {
+      const free = work.filter(function (t) { return !t.taken && !sheepBlocked(t, work); });
+      if (!free.length) break;
+      const pick = free[Math.floor(Math.random() * free.length)];
+      pick.taken = true;
+      order.push(pick.index);
+    }
+    return order;
   }
 
-  function sheepSolvable(tiles) {
-    const copy = tiles.map(function (t) {
-      return { layer: t.layer, x: t.x, y: t.y, emoji: t.emoji, taken: false };
-    });
-    const slots = [];
-    const total = copy.length;
-    let taken = 0;
-    while (taken < total) {
-      const free = copy.filter(function (t) { return !t.taken && !sheepBlocked(t, copy); });
-      if (!free.length) return false;
-      const countIn = function (emoji) {
-        return slots.filter(function (e) { return e === emoji; }).length;
-      };
-      const freeCount = function (emoji) {
-        return free.filter(function (t) { return t.emoji === emoji; }).length;
-      };
-      let pick = free.filter(function (t) { return countIn(t.emoji) === 2; })[0];
-      if (!pick) pick = free.filter(function (t) { return countIn(t.emoji) === 1; })[0];
-      if (!pick) pick = free.filter(function (t) { return freeCount(t.emoji) >= 2; })[0];
-      if (!pick) pick = free[0];
-      pick.taken = true;
-      taken++;
-      slots.push(pick.emoji);
-      if (countIn(pick.emoji) >= 3) {
-        let removed = 0;
-        for (let i = slots.length - 1; i >= 0 && removed < 3; i--) {
-          if (slots[i] === pick.emoji) { slots.splice(i, 1); removed++; }
+  /* 顺着合法顺序把同款三张交错隔开：整副牌一定清得完，
+     但又不像按层成组那样一眼就能消，需要先垫上几张牌顶着槽位 */
+  function sheepDeal(tiles) {
+    const order = sheepPeelOrder(tiles);
+    const pools = sheepShuffle(SHEEP_EMOJI);
+    const BLOCK = 9; /* 9 张 3 组交错放置，同时最多占 6 个槽位，不会爆槽 */
+    let ei = 0;
+    for (let start = 0; start < order.length; start += BLOCK) {
+      const block = order.slice(start, start + BLOCK);
+      const groups = Math.ceil(block.length / 3);
+      for (let g = 0; g < groups; g++) {
+        const emoji = pools[ei++ % pools.length];
+        for (let k = 0; k < 3; k++) {
+          const pos = g + k * groups;
+          if (pos < block.length) tiles[block[pos]].emoji = emoji;
         }
       }
-      if (slots.length >= 7) return false;
     }
-    return true;
   }
 
   function resetSheep() {
     if (sheep && sheep.timer) clearTimeout(sheep.timer);
-    let tiles = null;
-    for (let attempt = 0; attempt < 40; attempt++) {
-      const draft = SHEEP_LAYOUT.map(function (item) {
-        return { layer: item[0], x: item[1], y: item[2], emoji: '', taken: false };
-      });
-      sheepAssignEmoji(draft);
-      if (sheepSolvable(draft)) { tiles = draft; break; }
-    }
-    if (!tiles) {
-      tiles = SHEEP_LAYOUT.map(function (item) {
-        return { layer: item[0], x: item[1], y: item[2], emoji: '', taken: false };
-      });
-      sheepAssignEmoji(tiles);
-    }
+    const tiles = SHEEP_LAYOUT.map(function (item) {
+      return { layer: item[0], x: item[1], y: item[2], emoji: '', taken: false };
+    });
+    sheepDeal(tiles);
     sheep = { tiles: tiles, slots: [], turn: 'me', me: 0, ta: 0, over: '', winner: '', timer: 0 };
     renderSheep();
   }
