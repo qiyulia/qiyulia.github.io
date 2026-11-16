@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261115-83">
+<link rel="stylesheet" href="css/style.css?v=20261115-84">
 </head>
 <body>
 <div class="stage">
@@ -1032,7 +1032,7 @@ if ('caches' in window) {
           <button type="button" class="settings-tab" role="tab" data-settings-page="look">美化</button>
           <button type="button" class="settings-tab" role="tab" data-settings-page="backend" aria-selected="false">后台</button>
           <button type="button" class="settings-tab" role="tab" data-settings-page="backup">数据</button>
-          <button type="button" class="settings-tab" role="tab" data-settings-page="memory" aria-selected="false">内存</button>
+          <button type="button" class="settings-tab" role="tab" data-settings-page="about" aria-selected="false">关于</button>
         </div>
 
         <div class="settings-page" data-settings-panel="profile">
@@ -1286,10 +1286,7 @@ if ('caches' in window) {
             <input type="file" id="file-import-all" accept="application/json,.json" hidden>
           </div>
 
-          <p class="panel-note">所有内容只保存在本机浏览器，不会上传。备份包含图片与语音卡数据，但不包含导入的音乐音频文件。</p>
-        </div>
 
-        <div class="settings-page" data-settings-panel="memory" hidden>
           <div class="panel">
             <h3>内存占用</h3>
             <p class="field-hint">所有内容都保存在浏览器本地的 IndexedDB 里，容量比原来的 localStorage 大得多。</p>
@@ -1306,6 +1303,16 @@ if ('caches' in window) {
               <button type="button" class="btn" id="btn-memory-clean">清理孤儿媒体</button>
             </div>
             <p class="field-hint" id="memory-hint">清理没有被任何字卡或消息引用的语音，以及歌单里已不存在的本地音乐，不会动聊天记录。</p>
+          </div>
+          <p class="panel-note">所有内容只保存在本机浏览器，不会上传。备份包含图片与语音卡数据，但不包含导入的音乐音频文件。</p>
+        </div>
+
+
+        <div class="settings-page" data-settings-panel="about" hidden>
+          <div class="panel">
+            <h3>关于</h3>
+            <p class="about-line">本网站为<strong>小红书：祁雨 49794629331</strong> 用 tare 制作，<strong>原创网站，为爱发电，禁止以盈利为目的</strong>。</p>
+            <p class="about-line"><strong>如若遇到付费获取该网站的一律为骗子</strong></p>
           </div>
         </div>
 
@@ -1442,7 +1449,7 @@ if ('caches' in window) {
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
     <p class="field-hint" id="redpacket-side-hint">以「我」的身份发出</p>
-    <label class="field"><span>金额（同心币）</span><input id="redpacket-amount" type="number" min="1" max="1000000" step="1" inputmode="numeric" placeholder="比如 88" required></label>
+    <label class="field"><span>金额（同心币）</span><input id="redpacket-amount" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="比如 88" autocomplete="one-time-code" required></label>
     <label class="field"><span>备注（可选）</span><input id="redpacket-note" maxlength="20" placeholder="恭喜发财，大吉大利"></label>
     <div class="sheet-actions">
       <button type="button" class="btn ghost" data-close>取消</button>
@@ -1482,6 +1489,9 @@ if ('caches' in window) {
     <button type="button" class="more-app" data-tool="avatar" data-cat="tool" title="互换头像"><span class="more-app-icon is-avatar">换</span><span>头像与名字</span></button>
     <button type="button" class="more-app" data-tool="mine" data-cat="game" title="你一下，TA 一下，双人轮流扫雷" hidden><span class="more-app-icon is-game">雷</span><span>扫雷</span></button>
     <button type="button" class="more-app" data-tool="jump" data-cat="game" title="滑到正中间时点确定" hidden><span class="more-app-icon is-jump">跳</span><span>跳一跳</span></button>
+    <button type="button" class="more-app" data-tool="sheep" data-cat="game" title="牌堆三层，凑三张同款消掉，双人轮流" hidden><span class="more-app-icon is-sheep">羊</span><span>羊了个羊</span></button>
+    <button type="button" class="more-app" data-tool="gomoku" data-cat="game" title="我执黑，TA 执白，连成五子即胜" hidden><span class="more-app-icon is-gomoku">棋</span><span>五子棋</span></button>
+    <button type="button" class="more-app" data-tool="ludo" data-cat="game" title="双人飞行棋，棋子用头像，掷骰子走格" hidden><span class="more-app-icon is-ludo">飞</span><span>飞行棋</span></button>
   </div>
 </dialog>
 
@@ -1734,6 +1744,90 @@ if ('caches' in window) {
   </div>
 </div>
 
+<!-- ============ 游戏：羊了个羊 ============ -->
+<div id="sheep-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card">
+    <div class="sheet-head">
+      <h3>羊了个羊</h3>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body sheep-body">
+      <div class="jump-score"><span>我 <strong id="sheep-me">0</strong> 组</span><span>TA <strong id="sheep-ta">0</strong> 组</span></div>
+      <p class="field-hint" id="sheep-status">你一张、TA 一张轮流选。三张同款自动消掉，槽位满 7 张就输。</p>
+      <div id="sheep-board" class="sheep-board" aria-label="羊了个羊牌堆"></div>
+      <div id="sheep-slots" class="sheep-slots" aria-label="暂存槽位"></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" id="sheep-reset">重新开始</button>
+      <button type="button" class="btn primary" data-tool-close>关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 游戏：五子棋 ============ -->
+<div id="gomoku-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card">
+    <div class="sheet-head">
+      <h3>五子棋</h3>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body gomoku-body">
+      <div class="jump-score gomoku-score">
+        <span id="gomoku-me-side"><i class="gomoku-dot is-black"></i>我 · 黑</span>
+        <span id="gomoku-ta-side"><i class="gomoku-dot is-white"></i>TA · 白</span>
+      </div>
+      <p class="field-hint" id="gomoku-status">你执黑先手，TA 执白。横、竖、斜连成五子即胜。</p>
+      <div id="gomoku-board" class="gomoku-board" aria-label="五子棋棋盘"></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" id="gomoku-reset">重新开始</button>
+      <button type="button" class="btn primary" data-tool-close>关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 游戏：飞行棋 ============ -->
+<div id="ludo-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card">
+    <div class="sheet-head">
+      <h3>飞行棋</h3>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body ludo-body">
+      <p class="field-hint" id="ludo-status">最多四人轮流：掷出点数就走一格一格前进，踩到其他棋子会把它送回起点，掷出 6 可以再掷一次。</p>
+      <div class="ludo-players-row">
+        <div class="ludo-players" id="ludo-players"></div>
+        <button type="button" class="ludo-invite-btn" id="ludo-invite-btn">邀请</button>
+      </div>
+      <div id="ludo-board" class="ludo-board" aria-label="飞行棋棋盘"></div>
+      <div class="ludo-dice-row">
+        <button type="button" class="ludo-dice" id="ludo-roll" aria-label="掷骰子">
+          <span class="ludo-dice-face" id="ludo-dice-face"></span>
+        </button>
+        <span class="ludo-hint" id="ludo-hint">轮到你掷骰子</span>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" id="ludo-reset">重新开始</button>
+      <button type="button" class="btn primary" data-tool-close>关闭</button>
+    </div>
+    <div class="ludo-invite-panel" id="ludo-invite-panel" hidden>
+      <div class="ludo-invite-card">
+        <h4>邀请一起玩</h4>
+        <p class="field-hint">最多 4 人（含你），已选 <strong id="ludo-invite-count">1</strong> / 4</p>
+        <div class="ludo-invite-list" id="ludo-invite-list"></div>
+        <div class="btn-row">
+          <button type="button" class="btn ghost" id="ludo-invite-cancel">取消</button>
+          <button type="button" class="btn primary" id="ludo-invite-start">开始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ 联系人弹窗 ============ -->
 <dialog id="contact-dialog" class="sheet">
   <form id="contact-form">
@@ -1905,18 +1999,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261115-83"></script>
-<script src="js/store.js?v=20261115-83"></script>
-<script src="js/desktop.js?v=20261115-83"></script>
-<script src="js/chat.js?v=20261115-83"></script>
-<script src="js/cards.js?v=20261115-83"></script>
-<script src="js/settings.js?v=20261115-83"></script>
-<script src="js/moments.js?v=20261115-83"></script>
-<script src="js/calendar.js?v=20261115-83"></script>
-<script src="js/music.js?v=20261115-83"></script>
-<script src="js/market.js?v=20261115-83"></script>
-<script src="js/mail.js?v=20261115-83"></script>
-<script src="js/extras.js?v=20261115-83"></script>
-<script src="js/app.js?v=20261115-83"></script>
+<script src="js/seed.js?v=20261115-84"></script>
+<script src="js/store.js?v=20261115-84"></script>
+<script src="js/desktop.js?v=20261115-84"></script>
+<script src="js/chat.js?v=20261115-84"></script>
+<script src="js/cards.js?v=20261115-84"></script>
+<script src="js/settings.js?v=20261115-84"></script>
+<script src="js/moments.js?v=20261115-84"></script>
+<script src="js/calendar.js?v=20261115-84"></script>
+<script src="js/music.js?v=20261115-84"></script>
+<script src="js/market.js?v=20261115-84"></script>
+<script src="js/mail.js?v=20261115-84"></script>
+<script src="js/extras.js?v=20261115-84"></script>
+<script src="js/app.js?v=20261115-84"></script>
 </body>
 </html>

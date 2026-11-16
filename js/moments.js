@@ -88,10 +88,20 @@
       const name = mine ? (profile.userName || '我') : owner.name;
       const avatar = mine ? (profile.userAvatar || App.DEFAULT_AVATAR) : (owner.avatar || App.DEFAULT_AVATAR);
 
-      // 点赞行：用户点赞 + TA 点赞
+      // 点赞行：用户点赞 + 各联系人点赞
       const likeParts = [];
       if (moment.liked) likeParts.push('我');
-      if (moment.likedByTa) likeParts.push(App.esc(moment.likedByTaName || ta.name));
+      const taLikNames = [];
+      if (moment.likedByTa) taLikNames.push(moment.likedByTaName || ta.name);
+      if (Array.isArray(moment.likedByTaList)) {
+        moment.likedByTaList.forEach(function (item) {
+          if (!item) return;
+          const liker = contactOf(item.contactId) || ta;
+          const likName = item.name || liker.name;
+          if (taLikNames.indexOf(likName) === -1) taLikNames.push(likName);
+        });
+      }
+      if (taLikNames.length) likeParts.push(taLikNames.map(function (n) { return App.esc(n); }).join('、'));
       const likeLine = likeParts.length
         ? '<div class="moment-likes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg><span>' + likeParts.join('、') + ' 觉得很赞</span></div>'
         : '';
@@ -150,31 +160,33 @@
     }).join('');
   };
 
-  // 用户发动态后，TA 可能点赞 + 评论
+  // 用户发动态后，每个联系人都可能点赞 + 评论
   function scheduleTaReact(momentId) {
-    const contact = taContact();
-    const cs = App.contactSettings(contact);
-    const likeProb = Math.max(0, Math.min(100, Number(cs.taLikeProb) || 0));
-    const commentProb = Math.max(0, Math.min(100, Number(cs.taCommentProb) || 0));
+    const contacts = (App.state.contacts || []).slice();
+    contacts.forEach(function (contact, index) {
+      const cs = App.contactSettings(contact);
+      const likeProb = Math.max(0, Math.min(100, Number(cs.taLikeProb) || 0));
+      const commentProb = Math.max(0, Math.min(100, Number(cs.taCommentProb) || 0));
+      const likeDelay = 3000 + index * 1200 + Math.random() * 5000;
 
-    const likeDelay = 3000 + Math.random() * 5000;
-    setTimeout(function () {
-      const moment = App.state.moments.find(function (m) { return m.id === momentId; });
-      if (!moment || !isMine(moment)) return;
-      if (Math.random() * 100 < likeProb) {
-        moment.likedByTa = true;
-        moment.likedByTaName = contact.name;
-        App.save();
-        App.renderMoments();
-      }
-    }, likeDelay);
-
-    if (commentProb > 0) {
-      const commentDelay = likeDelay + 3000 + Math.random() * 5000;
       setTimeout(function () {
         const moment = App.state.moments.find(function (m) { return m.id === momentId; });
         if (!moment || !isMine(moment)) return;
-        if (Math.random() * 100 < commentProb) {
+        if (Math.random() * 100 >= likeProb) return;
+        if (!Array.isArray(moment.likedByTaList)) moment.likedByTaList = [];
+        const already = moment.likedByTaList.some(function (item) { return item && item.contactId === contact.id; });
+        if (already) return;
+        moment.likedByTaList.push({ contactId: contact.id, name: contact.name });
+        App.save();
+        App.renderMoments();
+      }, likeDelay);
+
+      if (commentProb > 0) {
+        const commentDelay = likeDelay + 2500 + Math.random() * 5000;
+        setTimeout(function () {
+          const moment = App.state.moments.find(function (m) { return m.id === momentId; });
+          if (!moment || !isMine(moment)) return;
+          if (Math.random() * 100 >= commentProb) return;
           const card = pickCardForMoment();
           if (!card) return;
           if (!Array.isArray(moment.comments)) moment.comments = [];
@@ -187,9 +199,9 @@
           });
           App.save();
           App.renderMoments();
-        }
-      }, commentDelay);
-    }
+        }, commentDelay);
+      }
+    });
   }
 
   function dayKey(ts) {
@@ -197,28 +209,27 @@
     return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
   }
 
-  /* 按概率、每日上限和间隔决定 TA 要不要发一条朋友圈 */
-  App.maybeTaPosts = function () {
-    const now = Date.now();
-    const taMoments = App.state.moments.filter(function (m) { return !isMine(m); });
-    const contact = taContact();
-    if (!contact) return false;
+  /* 单个联系人按概率、每日上限和间隔决定要不要发一条朋友圈 */
+  function maybeContactPosts(contact, now) {
     const cs = App.contactSettings(contact);
+    const own = App.state.moments.filter(function (m) {
+      return !isMine(m) && m.contactId === contact.id;
+    });
 
     const dailyMax = Math.max(1, Math.min(20, Number(cs.taMomentDailyMax) || 1));
     const today = dayKey(now);
-    const todayCount = taMoments.filter(function (m) { return dayKey(m.ts) === today; }).length;
+    const todayCount = own.filter(function (m) { return dayKey(m.ts) === today; }).length;
     if (todayCount >= dailyMax) return false;
 
     const gapMin = Math.max(0, Number(cs.taMomentGapMin) || 0) * 60000;
     const gapMax = Math.max(gapMin, (Number(cs.taMomentGapMax) || 0) * 60000);
-    /* 冷却时间：两次 TA 朋友圈之间至少要隔这么久 */
+    /* 冷却时间：同一个联系人两次朋友圈之间至少要隔这么久 */
     const cooldown = Math.max(gapMin, (Number(cs.taMomentCooldownMin) || 0) * 60000);
-    const lastTa = taMoments.length ? taMoments.reduce(function (a, b) { return a.ts > b.ts ? a : b; }) : null;
-    const elapsed = lastTa ? now - lastTa.ts : gapMin;
+    const last = own.length ? own.reduce(function (a, b) { return a.ts > b.ts ? a : b; }) : null;
+    const elapsed = last ? now - last.ts : gapMin;
 
-    if (lastTa && elapsed < cooldown) return false;
-    const mustPost = !!lastTa && elapsed >= gapMax;
+    if (last && elapsed < cooldown) return false;
+    const mustPost = !!last && elapsed >= gapMax;
     if (!mustPost && Math.random() * 100 >= Math.max(0, Math.min(100, Number(cs.taMomentProb) || 0))) return false;
 
     const content = taMomentContent(contact, cs);
@@ -233,8 +244,20 @@
       ts: now,
       liked: false,
       likedByTa: false,
+      likedByTaList: [],
       comments: [],
     });
+    return true;
+  }
+
+  /* 所有联系人都可能发朋友圈，各按自己的设置走 */
+  App.maybeTaPosts = function () {
+    const now = Date.now();
+    let posted = false;
+    (App.state.contacts || []).forEach(function (contact) {
+      if (maybeContactPosts(contact, now)) posted = true;
+    });
+    if (!posted) return false;
     App.save();
     if (el('#view-moments').classList.contains('is-active')) App.renderMoments();
     return true;

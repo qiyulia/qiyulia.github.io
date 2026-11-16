@@ -4291,3 +4291,410 @@ dialog.sheet.more-sheet { padding: 20px 14px 16px; }
   transform: translateX(-50%);
   pointer-events: none;
 }
+
+/* ============ 游戏：羊了个羊 ============ */
+#sheep-dialog .tool-overlay-card {
+  height: calc(var(--app-height, 100vh) * .82);
+  max-height: calc(var(--app-height, 100vh) * .82);
+}
+.sheep-body { display: flex; flex-direction: column; gap: 6px; padding: 2px 14px 6px; }
+.sheep-board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 10 / 7;
+  margin: 0;
+}
+.sheep-tile {
+  position: absolute;
+  width: 12.5%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 2px 6px var(--shadow);
+  transition: transform .16s ease, opacity .16s ease;
+}
+.sheep-tile:active { transform: translate(-50%, -50%) scale(.93); }
+.sheep-tile.is-blocked { filter: brightness(.92); }
+.sheep-slots {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+.sheep-slot {
+  aspect-ratio: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  border-radius: 8px;
+  border: 1px dashed var(--line);
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+}
+.sheep-slot.is-filled { border-style: solid; background: var(--surface); }
+.more-app-icon.is-sheep { background: linear-gradient(145deg, #a9d8a4, #6aa86a); color: #fff; }
+
+/* ============ 游戏：五子棋 ============ */
+#gomoku-dialog .tool-overlay-card {
+  height: calc(var(--app-height, 100vh) * .86);
+  max-height: calc(var(--app-height, 100vh) * .86);
+}
+.gomoku-body { padding: 4px 12px 8px; }
+.gomoku-score { margin-top: 0; }
+.gomoku-score > span { display: inline-flex; align-items: center; gap: 6px; }
+.gomoku-score > span.is-turn { color: var(--accent); font-weight: 600; }
+.gomoku-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+.gomoku-dot.is-black { background: radial-gradient(circle at 35% 30%, #5b6472, #20242c 72%); }
+.gomoku-dot.is-white { background: #fff; border: 1px solid rgba(0, 0, 0, .18); }
+.gomoku-board {
+  height: 100%;
+  width: auto;
+  flex: 0 1 auto;
+  min-height: 0;
+  align-self: center;
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  border-radius: 14px;
+  background: linear-gradient(165deg, var(--wall-1), var(--wall-2));
+  border: 1px solid var(--line);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, .05);
+  padding: 6px;
+  overflow: hidden;
+}
+.gomoku-cell { position: relative; display: grid; place-items: center; }
+.gomoku-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat,
+    linear-gradient(var(--line), var(--line)) center / 1px 100% no-repeat;
+  pointer-events: none;
+}
+.gomoku-stone {
+  position: relative;
+  z-index: 1;
+  width: 84%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.gomoku-stone.is-black {
+  background: radial-gradient(circle at 34% 28%, #626c7a, #23272f 72%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+}
+.gomoku-stone.is-white {
+  background: radial-gradient(circle at 34% 28%, #ffffff, #dfe6ee 76%);
+  border: 1px solid rgba(0, 0, 0, .14);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .16);
+}
+.gomoku-stone.is-last::before {
+  content: "";
+  position: absolute;
+  inset: 36%;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: .9;
+}
+
+/* ============ 游戏：飞行棋 ============ */
+#ludo-dialog .tool-overlay-card {
+  height: calc(var(--app-height, 100vh) * .9);
+  max-height: calc(var(--app-height, 100vh) * .9);
+}
+.ludo-body { padding: 4px 12px 6px; gap: 8px; }
+.ludo-board {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  flex: 0 0 auto;
+  align-self: center;
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ludo-cell { position: relative; }
+.ludo-cell.is-track {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(48, 79, 112, .16);
+  border-radius: 3px;
+}
+.ludo-cell.is-start-me { background: rgba(91, 143, 201, .5); box-shadow: inset 0 0 0 1.5px #5b8fc9; }
+.ludo-cell.is-start-ta { background: rgba(216, 160, 92, .55); box-shadow: inset 0 0 0 1.5px #cf9450; }
+.ludo-cell.is-lane-me { background: rgba(91, 143, 201, .36); box-shadow: inset 0 0 0 1px rgba(91, 143, 201, .5); }
+.ludo-cell.is-lane-ta { background: rgba(216, 160, 92, .38); box-shadow: inset 0 0 0 1px rgba(216, 160, 92, .52); }
+.ludo-cell.is-lane-l { background: rgba(217, 140, 175, .26); box-shadow: inset 0 0 0 1px rgba(217, 140, 175, .44); }
+.ludo-cell.is-lane-r { background: rgba(126, 178, 146, .26); box-shadow: inset 0 0 0 1px rgba(126, 178, 146, .44); }
+/* 跑道上的小箭头，指向中心终点 */
+.ludo-cell.is-lane-me::after,
+.ludo-cell.is-lane-ta::after,
+.ludo-cell.is-lane-l::after,
+.ludo-cell.is-lane-r::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border: 2.8px solid transparent;
+  transform: translate(-50%, -50%);
+  opacity: .62;
+}
+.ludo-cell.is-lane-me::after { border-top-width: 0; border-bottom-color: #5b8fc9; }
+.ludo-cell.is-lane-ta::after { border-bottom-width: 0; border-top-color: #cf9450; }
+.ludo-cell.is-lane-l::after { border-right-width: 0; border-left-color: #d98caf; }
+.ludo-cell.is-lane-r::after { border-left-width: 0; border-right-color: #7eb292; }
+
+/* 四角停机坪 */
+.ludo-base {
+  position: absolute;
+  width: 37.5%;
+  height: 37.5%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  place-items: center;
+  padding: 7%;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1.5px solid rgba(91, 143, 201, .28);
+  pointer-events: none;
+  z-index: 1;
+}
+.ludo-base i {
+  display: block;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+.ludo-base.is-base-me { background: rgba(91, 143, 201, .22); border-color: rgba(91, 143, 201, .48); color: #5b8fc9; }
+.ludo-base.is-base-ta { background: rgba(216, 160, 92, .24); border-color: rgba(216, 160, 92, .5); color: #cf9450; }
+.ludo-base.is-base-pink { background: rgba(217, 140, 175, .2); border-color: rgba(217, 140, 175, .44); color: #d98caf; }
+.ludo-base.is-base-green { background: rgba(126, 178, 146, .2); border-color: rgba(126, 178, 146, .44); color: #7eb292; }
+.ludo-base.is-corner-tl { left: 1.4%; top: 1.4%; }
+.ludo-base.is-corner-tr { right: 1.4%; top: 1.4%; }
+.ludo-base.is-corner-bl { left: 1.4%; bottom: 1.4%; }
+.ludo-base.is-corner-br { right: 1.4%; bottom: 1.4%; }
+
+/* 中心四色终点 */
+.ludo-center-mark {
+  position: absolute;
+  left: 40%;
+  top: 40%;
+  width: 20%;
+  height: 20%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 1;
+  background: conic-gradient(from 45deg,
+    rgba(126, 178, 146, .82) 0 25%,
+    rgba(91, 143, 201, .85) 0 50%,
+    rgba(217, 140, 175, .82) 0 75%,
+    rgba(216, 160, 92, .85) 0 100%);
+}
+.ludo-center-mark span {
+  width: 42%;
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--surface-2);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .55);
+}
+.ludo-piece {
+  position: absolute;
+  width: 5.6%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface);
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 6px var(--shadow);
+  display: grid;
+  place-items: center;
+  z-index: 3;
+  transition: left .12s ease, top .12s ease;
+}
+.ludo-piece.is-p0 { box-shadow: 0 0 0 1.5px #5b8fc9, 0 2px 6px var(--shadow); }
+.ludo-piece.is-p1 { box-shadow: 0 0 0 1.5px #d8a05c, 0 2px 6px var(--shadow); }
+.ludo-piece.is-p2 { box-shadow: 0 0 0 1.5px #d98caf, 0 2px 6px var(--shadow); }
+.ludo-piece.is-p3 { box-shadow: 0 0 0 1.5px #7eb292, 0 2px 6px var(--shadow); }
+.ludo-piece.is-movable { cursor: pointer; animation: ludoPiecePulse .9s ease-in-out infinite; }
+@keyframes ludoPiecePulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.18); }
+}
+.ludo-piece img,
+.ludo-piece .avatar-emoji {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  border-radius: 50%;
+}
+.ludo-dice-row { display: flex; align-items: center; gap: 14px; }
+.ludo-dice {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 16px var(--shadow);
+  padding: 8px;
+}
+.ludo-dice-face {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+}
+.ludo-dice-q {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ludo-dice:disabled { opacity: .5; }
+.ludo-dice.is-rolling { animation: ludoShake .26s ease-in-out infinite; }
+@keyframes ludoShake {
+  0% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-11deg) scale(1.07); }
+  50% { transform: rotate(7deg) scale(.95); }
+  75% { transform: rotate(-5deg) scale(1.05); }
+  100% { transform: rotate(0) scale(1); }
+}
+.ludo-pip { border-radius: 50%; background: transparent; }
+.ludo-pip.is-on { background: var(--ink); }
+.ludo-hint { flex: 1 1 auto; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.ludo-cell.is-start-l { background: rgba(217, 140, 175, .5); box-shadow: inset 0 0 0 1.5px #d98caf; }
+.ludo-cell.is-start-r { background: rgba(126, 178, 146, .5); box-shadow: inset 0 0 0 1.5px #7eb292; }
+
+/* 飞行棋：玩家与邀请 */
+.ludo-players-row { display: flex; align-items: center; gap: 8px; }
+.ludo-players { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.ludo-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.ludo-player i { width: 7px; height: 7px; border-radius: 50%; background: #5b8fc9; flex: 0 0 auto; }
+.ludo-player.is-p1 i { background: #d8a05c; }
+.ludo-player.is-p2 i { background: #d98caf; }
+.ludo-player.is-p3 i { background: #7eb292; }
+.ludo-invite-btn {
+  flex: 0 0 auto;
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11.5px;
+}
+.ludo-invite-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 35, 52, .34);
+  backdrop-filter: blur(2px);
+}
+.ludo-invite-panel[hidden] { display: none; }
+.ludo-invite-card {
+  width: 100%;
+  max-width: 320px;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px var(--shadow);
+}
+.ludo-invite-card h4 { margin: 0; font-size: 15px; color: var(--ink); }
+.ludo-invite-list { display: flex; flex-direction: column; gap: 6px; }
+.ludo-invite-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 13px;
+}
+.ludo-invite-item input { accent-color: var(--accent); }
+.ludo-invite-avatar {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.ludo-invite-avatar img,
+.ludo-invite-avatar .avatar-emoji {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  font-size: 13px;
+}
+.ludo-invite-name { flex: 1 1 auto; }
+
+/* 关闭浏览器/输入法的站外自动填充入口 */
+input::-webkit-credentials-auto-fill-button,
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-strong-password-auto-fill-button {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none;
+}
+.more-app-icon.is-gomoku { background: linear-gradient(145deg, #cfd9e5, #77879b); color: #fff; }
+.more-app-icon.is-ludo { background: linear-gradient(145deg, #f3c58d, #d1915a); color: #fff; }
+
+/* 关于页 */
+.about-line {
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--ink);
+}
+.about-line + .about-line { margin-top: 10px; }
+.about-line strong { font-weight: 700; }

@@ -1400,6 +1400,684 @@
     jumpCommit();
   }
 
+  /* ---------------- 游戏：羊了个羊（三层牌堆，双人回合制） ---------------- */
+  const SHEEP_EMOJI = ['🐑', '🍎', '🍓', '🍋', '🍇', '🌰', '🥕', '🌽', '🍄', '🍰', '🐟'];
+  /* 每一层牌的位置（百分比，相对牌桌宽高）；越靠后的层越在上面 */
+  const SHEEP_LAYOUT = [
+    [0, 12, 26], [0, 31, 26], [0, 50, 26], [0, 69, 26], [0, 88, 26],
+    [0, 12, 50], [0, 31, 50], [0, 50, 50], [0, 69, 50], [0, 88, 50],
+    [0, 12, 74], [0, 31, 74], [0, 50, 74], [0, 69, 74], [0, 88, 74],
+    [1, 21, 38], [1, 40, 38], [1, 59, 38], [1, 78, 38],
+    [1, 21, 62], [1, 40, 62], [1, 59, 62], [1, 78, 62],
+    [1, 50, 50],
+    [2, 31, 38], [2, 50, 38], [2, 69, 38],
+    [2, 31, 62], [2, 50, 62], [2, 69, 62],
+    [3, 38, 50], [3, 50, 50], [3, 62, 50]
+  ];
+  let sheep = null; /* { tiles:[{x,y,layer,emoji,taken}], slots:[], turn, me, ta, over, winner, timer } */
+
+  /* 上面一层的牌压住了就点不动 */
+  function sheepBlocked(tile, tiles) {
+    return tiles.some(function (other) {
+      if (other.taken || other.layer <= tile.layer) return false;
+      return Math.abs(other.x - tile.x) < 11.5 && Math.abs(other.y - tile.y) < 13;
+    });
+  }
+
+  function resetSheep() {
+    if (sheep && sheep.timer) clearTimeout(sheep.timer);
+    const tiles = SHEEP_LAYOUT.map(function (item) {
+      return { layer: item[0], x: item[1], y: item[2], emoji: '', taken: false };
+    });
+    /* 每种 emoji 正好三张，打乱后铺满牌堆 */
+    const deck = [];
+    const sets = Math.floor(tiles.length / 3);
+    for (let i = 0; i < sets; i++) {
+      const e = SHEEP_EMOJI[i % SHEEP_EMOJI.length];
+      deck.push(e, e, e);
+    }
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = deck[i]; deck[i] = deck[j]; deck[j] = t;
+    }
+    tiles.forEach(function (t, i) { t.emoji = deck[i]; });
+    sheep = { tiles: tiles, slots: [], turn: 'me', me: 0, ta: 0, over: '', winner: '', timer: 0 };
+    renderSheep();
+  }
+
+  function renderSheepSlots() {
+    const box = el('#sheep-slots');
+    if (!box || !sheep) return;
+    let html = '';
+    for (let i = 0; i < 7; i++) {
+      const e = sheep.slots[i] || '';
+      html += '<span class="sheep-slot' + (e ? ' is-filled' : '') + '">' + e + '</span>';
+    }
+    box.innerHTML = html;
+  }
+
+  function renderSheep() {
+    if (!sheep) return;
+    const board = el('#sheep-board');
+    if (board) {
+      board.innerHTML = sheep.tiles.map(function (t, i) {
+        if (t.taken) return '';
+        const blocked = sheepBlocked(t, sheep.tiles);
+        return '<button type="button" class="sheep-tile' + (blocked ? ' is-blocked' : '') + '" data-sheep="' + i + '"' +
+          ' style="left:' + t.x + '%;top:' + t.y + '%;z-index:' + (t.layer + 1) + '"' +
+          ' aria-label="' + (blocked ? '被上面的牌压住' : '选这张牌') + '">' + t.emoji + '</button>';
+      }).join('');
+    }
+    renderSheepSlots();
+    if (el('#sheep-me')) el('#sheep-me').textContent = String(sheep.me);
+    if (el('#sheep-ta')) el('#sheep-ta').textContent = String(sheep.ta);
+    const status = el('#sheep-status');
+    if (!status) return;
+    const left = sheep.tiles.filter(function (t) { return !t.taken; }).length;
+    if (sheep.over === 'overflow') {
+      status.textContent = sheep.winner === 'me'
+        ? 'TA 把槽位塞满了，你赢了！点「重新开始」再来一局。'
+        : '槽位满了，TA 赢了。点「重新开始」再来一局。';
+    } else if (sheep.over === 'clear') {
+      status.textContent = sheep.winner === 'draw'
+        ? '牌都清完了，你们打成平手。'
+        : (sheep.winner === 'me' ? '牌都清完了，你消掉的组数更多，你赢了！' : '牌都清完了，TA 消掉的组数更多，TA 赢了。');
+    } else {
+      status.textContent = (sheep.turn === 'me' ? '轮到你选一张牌' : 'TA 正在选牌…') +
+        ' · 剩余 ' + left + ' 张 · 槽位 ' + sheep.slots.length + '/7 · 三张同款自动消掉';
+    }
+  }
+
+  function sheepTake(index, by) {
+    if (!sheep || sheep.over || sheep.turn !== by) return;
+    const tile = sheep.tiles[index];
+    if (!tile || tile.taken) return;
+    if (sheepBlocked(tile, sheep.tiles)) {
+      if (by === 'me') App.toast('这张被上面的牌压住了');
+      return;
+    }
+    tile.taken = true;
+    sheep.slots.push(tile.emoji);
+    /* 槽里凑够三张同款就消掉，记一组 */
+    const same = sheep.slots.filter(function (e) { return e === tile.emoji; }).length;
+    if (same >= 3) {
+      let removed = 0;
+      sheep.slots = sheep.slots.filter(function (e) {
+        if (e === tile.emoji && removed < 3) { removed++; return false; }
+        return true;
+      });
+      if (by === 'me') sheep.me++;
+      else sheep.ta++;
+    }
+    if (sheep.tiles.every(function (t) { return t.taken; })) {
+      sheep.over = 'clear';
+      sheep.winner = sheep.me === sheep.ta ? 'draw' : (sheep.me > sheep.ta ? 'me' : 'ta');
+      renderSheep();
+      return;
+    }
+    if (sheep.slots.length >= 7) {
+      sheep.over = 'overflow';
+      sheep.winner = by === 'me' ? 'ta' : 'me';
+      renderSheep();
+      return;
+    }
+    sheep.turn = by === 'me' ? 'ta' : 'me';
+    renderSheep();
+    if (sheep.turn === 'ta') sheep.timer = setTimeout(taSheepMove, 800 + Math.random() * 900);
+  }
+
+  function taSheepMove() {
+    if (!sheep || sheep.over || sheep.turn !== 'ta') return;
+    const layer = el('#sheep-dialog');
+    if (layer && layer.hidden) { sheep.turn = 'me'; return; }
+    const free = [];
+    sheep.tiles.forEach(function (t, i) {
+      if (!t.taken && !sheepBlocked(t, sheep.tiles)) free.push(i);
+    });
+    if (!free.length) { sheep.turn = 'me'; renderSheep(); return; }
+    const countOf = function (e) {
+      return sheep.slots.filter(function (x) { return x === e; }).length;
+    };
+    /* 优先补齐槽里已有的两张，其次是有一张的，否则随机挑一张 */
+    const two = free.filter(function (i) { return countOf(sheep.tiles[i].emoji) >= 2; });
+    const one = free.filter(function (i) { return countOf(sheep.tiles[i].emoji) === 1; });
+    const pool = two.length ? two : (one.length ? one : free);
+    sheepTake(pool[Math.floor(Math.random() * pool.length)], 'ta');
+  }
+
+  /* ---------------- 游戏：五子棋（我执黑先手，TA 执白） ---------------- */
+  const GOMOKU_SIZE = 15;
+  let gomoku = null; /* { cells:[], turn, over, winner, last, timer } */
+
+  function gomokuIndex(x, y) { return y * GOMOKU_SIZE + x; }
+
+  function resetGomoku() {
+    if (gomoku && gomoku.timer) clearTimeout(gomoku.timer);
+    gomoku = {
+      cells: new Array(GOMOKU_SIZE * GOMOKU_SIZE).fill(''),
+      turn: 'me', over: '', winner: '', last: -1, timer: 0
+    };
+    renderGomoku();
+  }
+
+  function renderGomoku() {
+    const board = el('#gomoku-board');
+    if (!board || !gomoku) return;
+    board.innerHTML = gomoku.cells.map(function (cell, i) {
+      return '<button type="button" class="gomoku-cell" data-gomoku="' + i + '" aria-label="' +
+        (cell === 'me' ? '黑棋' : cell === 'ta' ? '白棋' : '空位') + '">' +
+        (cell ? '<span class="gomoku-stone is-' + (cell === 'me' ? 'black' : 'white') + (gomoku.last === i ? ' is-last' : '') + '"></span>' : '') +
+        '</button>';
+    }).join('');
+    const meSide = el('#gomoku-me-side');
+    const taSide = el('#gomoku-ta-side');
+    if (meSide) meSide.classList.toggle('is-turn', !gomoku.over && gomoku.turn === 'me');
+    if (taSide) taSide.classList.toggle('is-turn', !gomoku.over && gomoku.turn === 'ta');
+    const status = el('#gomoku-status');
+    if (!status) return;
+    if (gomoku.over === 'win') {
+      status.textContent = gomoku.winner === 'me'
+        ? '五子连成，你赢了！点「重新开始」再来一局。'
+        : 'TA 连成了五子，这局 TA 赢了。点「重新开始」再战。';
+    } else if (gomoku.over === 'draw') {
+      status.textContent = '棋盘下满了，平局。点「重新开始」再来一局。';
+    } else {
+      status.textContent = gomoku.turn === 'me' ? '轮到你落黑子。' : 'TA 正在想白子落在哪里…';
+    }
+  }
+
+  function gomokuWin(cells, index, role) {
+    const x = index % GOMOKU_SIZE;
+    const y = Math.floor(index / GOMOKU_SIZE);
+    const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+    for (let d = 0; d < dirs.length; d++) {
+      const dx = dirs[d][0];
+      const dy = dirs[d][1];
+      let count = 1;
+      for (let s = 1; s <= 4; s++) {
+        const nx = x + dx * s;
+        const ny = y + dy * s;
+        if (nx < 0 || ny < 0 || nx >= GOMOKU_SIZE || ny >= GOMOKU_SIZE) break;
+        if (cells[gomokuIndex(nx, ny)] !== role) break;
+        count++;
+      }
+      for (let s = 1; s <= 4; s++) {
+        const nx = x - dx * s;
+        const ny = y - dy * s;
+        if (nx < 0 || ny < 0 || nx >= GOMOKU_SIZE || ny >= GOMOKU_SIZE) break;
+        if (cells[gomokuIndex(nx, ny)] !== role) break;
+        count++;
+      }
+      if (count >= 5) return true;
+    }
+    return false;
+  }
+
+  function gomokuPlace(index, role) {
+    if (!gomoku || gomoku.over || gomoku.turn !== role) return;
+    if (gomoku.cells[index]) return;
+    gomoku.cells[index] = role;
+    gomoku.last = index;
+    if (gomokuWin(gomoku.cells, index, role)) {
+      gomoku.over = 'win';
+      gomoku.winner = role;
+      renderGomoku();
+      return;
+    }
+    if (gomoku.cells.every(function (c) { return c; })) {
+      gomoku.over = 'draw';
+      renderGomoku();
+      return;
+    }
+    gomoku.turn = role === 'me' ? 'ta' : 'me';
+    renderGomoku();
+    if (gomoku.turn === 'ta') gomoku.timer = setTimeout(taGomokuMove, 480 + Math.random() * 420);
+  }
+
+  /* TA 落子：先看能不能自己连成五子，再堵我的棋，其余按周围密度挑位置 */
+  function taGomokuMove() {
+    if (!gomoku || gomoku.over || gomoku.turn !== 'ta') return;
+    const layer = el('#gomoku-dialog');
+    if (layer && layer.hidden) { gomoku.turn = 'me'; return; }
+    const empty = [];
+    gomoku.cells.forEach(function (c, i) { if (!c) empty.push(i); });
+    if (!empty.length) { gomoku.turn = 'me'; renderGomoku(); return; }
+    const score = function (index, role) {
+      const x = index % GOMOKU_SIZE;
+      const y = Math.floor(index / GOMOKU_SIZE);
+      const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+      let total = 0;
+      for (let d = 0; d < dirs.length; d++) {
+        let run = 1;
+        for (let sign = -1; sign <= 1; sign += 2) {
+          for (let s = 1; s <= 4; s++) {
+            const nx = x + dirs[d][0] * s * sign;
+            const ny = y + dirs[d][1] * s * sign;
+            if (nx < 0 || ny < 0 || nx >= GOMOKU_SIZE || ny >= GOMOKU_SIZE) break;
+            if (gomoku.cells[gomokuIndex(nx, ny)] !== role) break;
+            run++;
+          }
+        }
+        total += run * run;
+      }
+      return total;
+    };
+    let best = empty[Math.floor(Math.random() * empty.length)];
+    let bestValue = -1;
+    empty.forEach(function (i) {
+      const value = score(i, 'ta') * 1.05 + score(i, 'me');
+      if (value > bestValue) { bestValue = value; best = i; }
+    });
+    gomokuPlace(best, 'ta');
+  }
+
+  /* ---------------- 游戏：飞行棋（双人，棋子用头像） ---------------- */
+  /* 15×15 十字棋盘外圈 52 格 */
+  const LUDO_PATH = [
+    [6, 9], [6, 10], [6, 11], [6, 12], [6, 13],
+    [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8],
+    [0, 7],
+    [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6],
+    [6, 5], [6, 4], [6, 3], [6, 2], [6, 1], [6, 0],
+    [7, 0],
+    [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5],
+    [9, 6], [10, 6], [11, 6], [12, 6], [13, 6], [14, 6],
+    [14, 7],
+    [14, 8], [13, 8], [12, 8], [11, 8], [10, 8], [9, 8],
+    [8, 9], [8, 10], [8, 11], [8, 12], [8, 13], [8, 14],
+    [7, 14],
+    [6, 14]
+  ];
+  /* 经典四色棋盘：四个座位对应四条跑道（0 下蓝 / 1 上橙 / 2 左粉 / 3 右绿） */
+  const LUDO_SEATS = [
+    { lane: [[7, 14], [7, 13], [7, 12], [7, 11], [7, 10], [7, 9]], start: 0 },
+    { lane: [[7, 0], [7, 1], [7, 2], [7, 3], [7, 4], [7, 5]], start: 26 },
+    { lane: [[0, 7], [1, 7], [2, 7], [3, 7], [4, 7], [5, 7]], start: 13 },
+    { lane: [[14, 7], [13, 7], [12, 7], [11, 7], [10, 7], [9, 7]], start: 39 }
+  ];
+  const LUDO_MAX_PLAYERS = LUDO_SEATS.length;
+  const LUDO_END = LUDO_PATH.length + LUDO_SEATS[0].lane.length; /* 58：全部走完 */
+  let ludo = null;
+  let ludoInvites = null; /* 额外邀请的联系人 id，最多 3 位 */
+  /* { seats:[...], pos:{p0:[..],..}, turn:0, phase:'roll'|'rolling'|'pick'|'moving'|'over', dice, winner, timer } */
+
+  const ludoTrackSet = {};
+  LUDO_PATH.forEach(function (p) { ludoTrackSet[p[0] + ',' + p[1]] = true; });
+  const ludoLaneSets = LUDO_SEATS.map(function (seat) {
+    const set = {};
+    seat.lane.forEach(function (p) { set[p[0] + ',' + p[1]] = true; });
+    return set;
+  });
+
+  /* 四角基地：经典棋盘的四色停机坪（我 = 左下蓝，TA = 右上橙） */
+  const LUDO_BASES = [
+    { key: 'pink', label: 'tl' },
+    { key: 'ta', label: 'tr' },
+    { key: 'me', label: 'bl' },
+    { key: 'green', label: 'br' }
+  ];
+
+  function ludoContactSeats() {
+    const contacts = App.state.contacts || [];
+    let ids = Array.isArray(ludoInvites) ? ludoInvites.slice() : [];
+    if (!Array.isArray(ludoInvites)) {
+      const def = App.state.currentContactId || (contacts[0] && contacts[0].id);
+      ids = def ? [def] : [];
+    }
+    const seats = [{
+      key: 'p0',
+      contactId: null,
+      name: App.state.profile.userName || '我',
+      avatar: App.state.profile.userAvatar || '🙂'
+    }];
+    ids.forEach(function (id) {
+      if (seats.length >= LUDO_MAX_PLAYERS) return;
+      const contact = contacts.find(function (c) { return c.id === id; });
+      if (!contact) return;
+      seats.push({
+        key: 'p' + seats.length,
+        contactId: contact.id,
+        name: contact.name || 'TA',
+        avatar: contact.avatar || '🐱'
+      });
+    });
+    return seats;
+  }
+
+  function resetLudo() {
+    if (ludo && ludo.timer) clearTimeout(ludo.timer);
+    const seats = ludoContactSeats();
+    const pos = {};
+    seats.forEach(function (s) { pos[s.key] = [0, 0]; });
+    ludo = {
+      seats: seats,
+      pos: pos,
+      turn: 0,
+      phase: 'roll',
+      dice: 0,
+      winner: -1,
+      timer: 0,
+      movable: []
+    };
+    renderLudo();
+    renderLudoPlayers();
+    renderLudoDice(0);
+    ludoSetHint('轮到你掷骰子');
+    const status = el('#ludo-status');
+    if (status) status.textContent = '最多四人轮流：掷出点数就一格一格前进，踩到其他棋子会把它送回起点，掷出 6 可以再掷一次；两枚棋子都到终点就赢。';
+  }
+
+  function ludoCellOf(seatIndex, pos) {
+    if (pos >= LUDO_END) return [7, 7];
+    if (pos >= LUDO_PATH.length) return LUDO_SEATS[seatIndex].lane[pos - LUDO_PATH.length];
+    return LUDO_PATH[(LUDO_SEATS[seatIndex].start + pos) % LUDO_PATH.length];
+  }
+
+  function ludoSeatName(index) {
+    if (!ludo || !ludo.seats[index]) return '';
+    return index === 0 ? '你' : (ludo.seats[index].name || 'TA');
+  }
+
+  function renderLudoPlayers() {
+    const box = el('#ludo-players');
+    if (!box || !ludo) return;
+    box.innerHTML = ludo.seats.map(function (seat, i) {
+      return '<span class="ludo-player is-p' + i + '"><i aria-hidden="true"></i>' +
+        App.esc(i === 0 ? '我' : seat.name) + '</span>';
+    }).join('');
+  }
+
+  function renderLudo() {
+    const board = el('#ludo-board');
+    if (!board || !ludo) return;
+    const laneCls = ['is-lane-me', 'is-lane-ta', 'is-lane-l', 'is-lane-r'];
+    const startCls = ['is-start-me', 'is-start-ta', 'is-start-l', 'is-start-r'];
+    let html = '';
+    for (let y = 0; y < 15; y++) {
+      for (let x = 0; x < 15; x++) {
+        const key = x + ',' + y;
+        let cls = 'ludo-cell';
+        let lane = '';
+        for (let i = 0; i < LUDO_SEATS.length; i++) {
+          if (ludoLaneSets[i][key]) { lane = laneCls[i]; break; }
+        }
+        if (lane) cls += ' ' + lane;
+        else if (ludoTrackSet[key]) cls += ' is-track';
+        for (let i = 0; i < LUDO_SEATS.length; i++) {
+          const start = LUDO_PATH[LUDO_SEATS[i].start];
+          if (start[0] === x && start[1] === y) cls += ' ' + startCls[i];
+        }
+        html += '<div class="' + cls + '"></div>';
+      }
+    }
+    /* 四角停机坪 + 中心四色三角，拼出经典飞行棋的样子 */
+    LUDO_BASES.forEach(function (base) {
+      html += '<div class="ludo-base is-base-' + base.key + ' is-corner-' + base.label + '" aria-hidden="true">' +
+        '<i></i><i></i><i></i><i></i></div>';
+    });
+    html += '<div class="ludo-center-mark" aria-hidden="true"><span></span></div>';
+    /* 同一格里的棋子错开一点，避免完全叠住 */
+    const groups = {};
+    ludo.seats.forEach(function (seat, si) {
+      ludo.pos[seat.key].forEach(function (pos, pi) {
+        const cell = ludoCellOf(si, pos);
+        const key = cell[0] + ',' + cell[1];
+        if (!groups[key]) groups[key] = [];
+        groups[key].push({ seat: si, index: pi, cell: cell, avatar: seat.avatar });
+      });
+    });
+    Object.keys(groups).forEach(function (key) {
+      const list = groups[key];
+      list.forEach(function (piece, n) {
+        const dx = (n - (list.length - 1) / 2) * 3.2;
+        const movable = ludo.phase === 'pick' && ludo.turn === 0 && piece.seat === 0 &&
+          ludo.movable && ludo.movable.indexOf(piece.index) !== -1;
+        html += '<div class="ludo-piece is-p' + piece.seat + (movable ? ' is-movable' : '') + '"' +
+          ' data-ludo-piece="p' + piece.seat + '-' + piece.index + '"' +
+          ' style="left:calc(' + ((piece.cell[0] + 0.5) / 15 * 100) + '% + ' + dx + '%);top:' + ((piece.cell[1] + 0.5) / 15 * 100) + '%" aria-label="' +
+          (piece.seat === 0 ? '我的棋子' : App.esc(ludo.seats[piece.seat].name) + '的棋子') + '">' +
+          App.avatarHtml(piece.avatar) + '</div>';
+      });
+    });
+    board.innerHTML = html;
+  }
+
+  function ludoSetHint(text) {
+    const hint = el('#ludo-hint');
+    if (hint) hint.textContent = text;
+  }
+
+  /* 骰子的点用九宫格画，避免不同系统 emoji / 符号字体不一致 */
+  function renderLudoDice(value) {
+    const face = el('#ludo-dice-face');
+    if (!face) return;
+    if (!value) {
+      face.innerHTML = '<span class="ludo-dice-q">?</span>';
+      return;
+    }
+    const pips = {
+      1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
+    }[value] || [];
+    let html = '';
+    for (let i = 0; i < 9; i++) {
+      html += '<span class="ludo-pip' + (pips.indexOf(i) !== -1 ? ' is-on' : '') + '"></span>';
+    }
+    face.innerHTML = html;
+  }
+
+  function ludoRoll() {
+    if (!ludo || ludo.phase !== 'roll' || ludo.turn !== 0) return;
+    ludoDoRoll();
+  }
+
+  function ludoDoRoll() {
+    if (!ludo || ludo.phase !== 'roll') return;
+    ludo.phase = 'rolling';
+    const btn = el('#ludo-roll');
+    if (btn) btn.classList.add('is-rolling');
+    ludoSetHint(ludo.turn === 0 ? '骰子转起来了…' : ludoSeatName(ludo.turn) + ' 正在掷骰子…');
+    const spin = setInterval(function () {
+      renderLudoDice(1 + Math.floor(Math.random() * 6));
+    }, 85);
+    ludo.timer = setTimeout(function () {
+      clearInterval(spin);
+      if (!ludo) return;
+      const value = 1 + Math.floor(Math.random() * 6);
+      ludo.dice = value;
+      renderLudoDice(value);
+      if (btn) btn.classList.remove('is-rolling');
+      ludo.phase = 'pick';
+      ludoChoose(value);
+    }, 760);
+  }
+
+  function ludoMovable(player, steps) {
+    const out = [];
+    ludo.pos[player].forEach(function (pos, i) {
+      if (pos + steps <= LUDO_END) out.push(i);
+    });
+    return out;
+  }
+
+  function ludoChoose(steps) {
+    const seatIndex = ludo.turn;
+    const seat = ludo.seats[seatIndex];
+    const movable = ludoMovable(seat.key, steps);
+    ludo.movable = movable;
+    if (!movable.length) {
+      ludoSetHint(ludoSeatName(seatIndex) + ' 掷出 ' + steps + '，这轮没有能走的棋子');
+      renderLudo();
+      ludo.timer = setTimeout(function () {
+        if (!ludo) return;
+        ludoNextTurn(steps !== 6);
+      }, 760);
+      return;
+    }
+    if (movable.length === 1) {
+      ludoSetHint(ludoSeatName(seatIndex) + ' 掷出 ' + steps + ' 点，走 ' + steps + ' 格');
+      ludo.timer = setTimeout(function () {
+        if (!ludo) return;
+        ludoMove(seatIndex, movable[0], steps);
+      }, 420);
+      return;
+    }
+    if (seatIndex === 0) {
+      renderLudo();
+      ludoSetHint('掷出 ' + steps + ' 点，点一下要走的棋子');
+      return;
+    }
+    /* 其他联系人选更接近终点的那一枚 */
+    const pick = movable.slice().sort(function (a, b) {
+      return ludo.pos[seat.key][b] - ludo.pos[seat.key][a];
+    })[0];
+    ludoSetHint(ludoSeatName(seatIndex) + ' 掷出 ' + steps + ' 点，正在选棋子…');
+    ludo.timer = setTimeout(function () {
+      if (!ludo) return;
+      ludoMove(seatIndex, pick, steps);
+    }, 620);
+  }
+
+  function ludoMove(seatIndex, pieceIndex, steps) {
+    const seat = ludo.seats[seatIndex];
+    ludo.phase = 'moving';
+    const from = ludo.pos[seat.key][pieceIndex];
+    const to = Math.min(LUDO_END, from + steps);
+    let cur = from;
+    const tick = function () {
+      if (!ludo) return;
+      cur++;
+      ludo.pos[seat.key][pieceIndex] = cur;
+      renderLudo();
+      if (cur < to) {
+        ludo.timer = setTimeout(tick, 135);
+      } else {
+        ludoFinishMove(seatIndex, pieceIndex);
+      }
+    };
+    ludo.timer = setTimeout(tick, 170);
+  }
+
+  function ludoFinishMove(seatIndex, pieceIndex) {
+    const seat = ludo.seats[seatIndex];
+    const pos = ludo.pos[seat.key][pieceIndex];
+    /* 踩到其他玩家的棋子，把它送回起点 */
+    if (pos < LUDO_PATH.length) {
+      const myCell = ludoCellOf(seatIndex, pos);
+      let hitName = '';
+      ludo.seats.forEach(function (other, oi) {
+        if (oi === seatIndex) return;
+        ludo.pos[other.key].forEach(function (p, i) {
+          if (p >= LUDO_PATH.length) return;
+          const cell = ludoCellOf(oi, p);
+          if (cell[0] === myCell[0] && cell[1] === myCell[1]) {
+            ludo.pos[other.key][i] = 0;
+            hitName = oi === 0 ? '你' : other.name;
+          }
+        });
+      });
+      if (hitName) {
+        ludoSetHint(seatIndex === 0
+          ? '踩到 ' + hitName + ' 的棋子，把它送回起点了'
+          : ludoSeatName(seatIndex) + ' 踩到了' + (hitName === '你' ? '你的' : hitName + ' 的') + '棋子，送回起点');
+      }
+    }
+    const done = ludo.pos[seat.key].every(function (p) { return p >= LUDO_END; });
+    if (done) {
+      ludo.phase = 'over';
+      ludo.winner = seatIndex;
+      renderLudo();
+      const status = el('#ludo-status');
+      if (status) {
+        status.textContent = seatIndex === 0
+          ? '你的两枚棋子都到终点了，你赢了！点「重新开始」再来一局。'
+          : seat.name + ' 的两枚棋子都到终点了，这局 ' + seat.name + ' 赢了。点「重新开始」再战。';
+      }
+      ludoSetHint('本局结束');
+      return;
+    }
+    ludoNextTurn(ludo.dice !== 6);
+  }
+
+  function ludoNextTurn(advance) {
+    if (!ludo) return;
+    if (advance) ludo.turn = (ludo.turn + 1) % ludo.seats.length;
+    ludo.phase = 'roll';
+    ludo.movable = [];
+    renderLudo();
+    if (ludo.turn === 0) {
+      ludoSetHint(ludo.dice === 6 && !advance ? '掷出 6，再掷一次' : '轮到你掷骰子');
+      ludo.dice = 0;
+      return;
+    }
+    ludoSetHint(ludo.dice === 6 && !advance
+      ? ludoSeatName(ludo.turn) + ' 掷出 6，再掷一次'
+      : ludoSeatName(ludo.turn) + ' 正在掷骰子…');
+    ludo.dice = 0;
+    ludo.timer = setTimeout(function () {
+      if (!ludo || ludo.turn === 0 || ludo.phase !== 'roll') return;
+      const layer = el('#ludo-dialog');
+      if (layer && layer.hidden) return;
+      ludoDoRoll();
+    }, 700 + Math.random() * 500);
+  }
+
+  function ludoPickPiece(id) {
+    if (!ludo || ludo.phase !== 'pick' || ludo.turn !== 0) return;
+    const parts = String(id || '').split('-');
+    if (parts[0] !== 'p0') return;
+    const index = Number(parts[1]);
+    if (!ludo.movable || ludo.movable.indexOf(index) === -1) return;
+    ludoMove(0, index, ludo.dice);
+  }
+
+  /* ---------------- 飞行棋：邀请联系人 ---------------- */
+  function openLudoInvite() {
+    if (!ludo) return;
+    const panel = el('#ludo-invite-panel');
+    const list = el('#ludo-invite-list');
+    if (!panel || !list) return;
+    const contacts = App.state.contacts || [];
+    const chosen = {};
+    ludo.seats.forEach(function (seat) { if (seat.contactId) chosen[seat.contactId] = true; });
+    list.innerHTML = contacts.length
+      ? contacts.map(function (c) {
+          return '<label class="ludo-invite-item">' +
+            '<input type="checkbox" value="' + App.esc(c.id) + '"' + (chosen[c.id] ? ' checked' : '') + '>' +
+            '<span class="ludo-invite-avatar">' + App.avatarHtml(c.avatar) + '</span>' +
+            '<span class="ludo-invite-name">' + App.esc(c.name) + '</span>' +
+          '</label>';
+        }).join('')
+      : '<p class="field-hint">还没有联系人，先回聊天里建一个吧。</p>';
+    syncLudoInviteCount();
+    panel.hidden = false;
+  }
+
+  function syncLudoInviteCount() {
+    const list = el('#ludo-invite-list');
+    const count = el('#ludo-invite-count');
+    if (!list) return;
+    const boxes = Array.from(list.querySelectorAll('input[type="checkbox"]'));
+    const picked = boxes.filter(function (b) { return b.checked; });
+    if (count) count.textContent = String(picked.length + 1);
+    boxes.forEach(function (box) {
+      if (!box.checked) box.disabled = picked.length >= LUDO_MAX_PLAYERS - 1;
+    });
+  }
+
+  function applyLudoInvite() {
+    const list = el('#ludo-invite-list');
+    if (!list) return;
+    const ids = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(function (b) { return b.value; });
+    if (!ids.length) {
+      ludoSetHint('至少要邀请一位联系人一起玩');
+      return;
+    }
+    ludoInvites = ids.slice(0, LUDO_MAX_PLAYERS - 1);
+    const panel = el('#ludo-invite-panel');
+    if (panel) panel.hidden = true;
+    resetLudo();
+  }
+
   /* ---------------- 事件绑定 ---------------- */
   function hideAllToolPanels() {
     document.querySelectorAll('.tool-overlay').forEach(function (layer) {
@@ -2057,6 +2735,15 @@
         } else if (btn.dataset.tool === 'jump') {
           showToolPanel('#jump-dialog');
           resetJump();
+        } else if (btn.dataset.tool === 'sheep') {
+          showToolPanel('#sheep-dialog');
+          resetSheep();
+        } else if (btn.dataset.tool === 'gomoku') {
+          showToolPanel('#gomoku-dialog');
+          resetGomoku();
+        } else if (btn.dataset.tool === 'ludo') {
+          showToolPanel('#ludo-dialog');
+          resetLudo();
         }
       });
     });
@@ -2281,6 +2968,54 @@
     });
     const jumpStart = el('#jump-start');
     if (jumpStart) jumpStart.addEventListener('click', startJumpGame);
+    const sheepBoard = el('#sheep-board');
+    if (sheepBoard) {
+      sheepBoard.addEventListener('click', function (e) {
+        const tile = e.target.closest('[data-sheep]');
+        if (!tile) return;
+        sheepTake(Number(tile.dataset.sheep), 'me');
+      });
+    }
+    const sheepReset = el('#sheep-reset');
+    if (sheepReset) sheepReset.addEventListener('click', resetSheep);
+    const gomokuBoard = el('#gomoku-board');
+    if (gomokuBoard) {
+      gomokuBoard.addEventListener('click', function (e) {
+        const cell = e.target.closest('[data-gomoku]');
+        if (!cell) return;
+        gomokuPlace(Number(cell.dataset.gomoku), 'me');
+      });
+    }
+    const gomokuReset = el('#gomoku-reset');
+    if (gomokuReset) gomokuReset.addEventListener('click', resetGomoku);
+    const ludoRollBtn = el('#ludo-roll');
+    if (ludoRollBtn) ludoRollBtn.addEventListener('click', ludoRoll);
+    const ludoBoard = el('#ludo-board');
+    if (ludoBoard) {
+      ludoBoard.addEventListener('click', function (e) {
+        const piece = e.target.closest('[data-ludo-piece]');
+        if (piece) ludoPickPiece(piece.dataset.ludoPiece);
+      });
+    }
+    const ludoReset = el('#ludo-reset');
+    if (ludoReset) ludoReset.addEventListener('click', resetLudo);
+    const ludoInviteBtn = el('#ludo-invite-btn');
+    if (ludoInviteBtn) ludoInviteBtn.addEventListener('click', openLudoInvite);
+    const ludoInvitePanel = el('#ludo-invite-panel');
+    if (ludoInvitePanel) {
+      ludoInvitePanel.addEventListener('change', function (e) {
+        if (e.target.matches('input[type="checkbox"]')) syncLudoInviteCount();
+      });
+      ludoInvitePanel.addEventListener('click', function (e) {
+        if (e.target === ludoInvitePanel) ludoInvitePanel.hidden = true;
+      });
+    }
+    const ludoInviteCancel = el('#ludo-invite-cancel');
+    if (ludoInviteCancel) ludoInviteCancel.addEventListener('click', function () {
+      if (ludoInvitePanel) ludoInvitePanel.hidden = true;
+    });
+    const ludoInviteStart = el('#ludo-invite-start');
+    if (ludoInviteStart) ludoInviteStart.addEventListener('click', applyLudoInvite);
     const mineBoard = el('#mine-board');
     if (mineBoard) {
       let pressTimer = null;

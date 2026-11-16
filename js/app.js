@@ -326,7 +326,8 @@
     if (!node || !node.getAttribute) return;
     const type = String(node.getAttribute('type') || '').toLowerCase();
     if (type === 'file' || type === 'checkbox' || type === 'radio' || type === 'date' || type === 'time') return;
-    node.setAttribute('autocomplete', 'off');
+    /* iOS Safari 对 autocomplete="off" 仍会弹出填充条，用 one-time-code 才能压掉 */
+    node.setAttribute('autocomplete', 'one-time-code');
     node.setAttribute('autocorrect', 'off');
     node.setAttribute('autocapitalize', 'off');
     node.setAttribute('spellcheck', 'false');

@@ -219,7 +219,7 @@
         tab.classList.toggle('is-on', active);
         tab.setAttribute('aria-selected', String(active));
       });
-      if (name === 'memory' && App.refreshMemoryStats) App.refreshMemoryStats();
+      if ((name === 'memory' || name === 'backup') && App.refreshMemoryStats) App.refreshMemoryStats();
       if (name === 'backend') refreshNotifyStatus();
     }
 
