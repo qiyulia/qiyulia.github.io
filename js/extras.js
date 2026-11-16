@@ -2010,7 +2010,6 @@
   let avatarPoolSide = 'mine';
   let avatarToolView = 'avatar';
   let nameSide = 'mine';
-  const avatarSwapTimers = {};
 
   function avatarPoolData() {
     const st = App.state;
@@ -2289,7 +2288,9 @@
     App.state.profile.userAvatar = avatarPoolData().mine[index];
     App.save();
     App.renderChat();
+    App.renderContacts();
     App.renderSettings();
+    if (App.renderDesktop) App.renderDesktop();
     return true;
   }
 
@@ -2315,42 +2316,6 @@
     return contact ? contact.name : 'TA';
   }
 
-  let avatarRequest = null;
-  let avatarRequestTimer = 0;
-
-  function closeAvatarRequest() {
-    if (avatarRequestTimer) clearTimeout(avatarRequestTimer);
-    avatarRequestTimer = 0;
-    avatarRequest = null;
-    const dialog = el('#avatar-request-dialog');
-    if (dialog) dialog.hidden = true;
-  }
-
-  function openAvatarRequest(slot, src) {
-    if (avatarRequest || !src) return;
-    avatarRequest = { slot: slot, src: src };
-    const img = el('#avatar-request-img');
-    if (img) img.src = src;
-    const title = el('#avatar-request-title');
-    if (title) title.textContent = taDisplayName() + ' 想给你换个头像';
-    const note = el('#avatar-request-note');
-    if (note) note.textContent = '他挑的是「我的头像」里的第 ' + (slot + 1) + ' 张，同意就换成这张。';
-    const dialog = el('#avatar-request-dialog');
-    if (dialog) dialog.hidden = false;
-    avatarRequestTimer = setTimeout(function () {
-      if (!avatarRequest) return;
-      closeAvatarRequest();
-      pushAvatarNotice(taDisplayName() + ' 等了一会儿，先不换了');
-    }, 90000);
-  }
-
-  function rejectAvatarRequest() {
-    if (!avatarRequest) return;
-    const name = taDisplayName();
-    closeAvatarRequest();
-    pushAvatarNotice('你拒绝了换头像，' + name + ' 说那就下次再问');
-  }
-
   function avatarCooldownMs() {
     const raw = Number(App.state.settings && App.state.settings.avatarCooldownMin);
     const minutes = isFinite(raw) ? Math.max(0, Math.min(1440, raw)) : 30;
@@ -2363,6 +2328,8 @@
   }
 
   function runAvatarSwap(auto) {
+    /* 设置里的总开关关掉时，TA 不会换任何一边的头像 */
+    if (App.state.settings && App.state.settings.avatarEnabled === false) return;
     const pool = avatarPoolData();
     if (!pool.mine.length && !pool.ta.length) {
       if (!auto) App.toast('先导入几张头像');
@@ -2400,19 +2367,15 @@
       renderAvatarPool();
       return;
     }
-    if (avatarRequest) {
-      renderAvatarPool();
-      return;
-    }
+    /* 不再弹窗征询，直接换上 */
     const base = selfSlot >= 0
       ? selfSlot
       : (mySlot === -1 ? Math.floor(Math.random() * pool.mine.length) : mySlot);
     const slot = pickIndexBySameSlot(pool.mine, base, 0.78);
-    const src = pool.mine[slot];
-    clearTimeout(avatarSwapTimers.mine);
-    avatarSwapTimers.mine = setTimeout(function () {
-      openAvatarRequest(slot, src);
-    }, selfOn ? 4000 + Math.random() * 5000 : 1500 + Math.random() * 1500);
+    if (changeMyAvatar(slot)) {
+      markAvatarSwap();
+      pushAvatarNotice(name + ' 把你的头像换成了第 ' + (slot + 1) + ' 张');
+    }
     renderAvatarPool();
   }
 
@@ -2851,26 +2814,6 @@
         if (use) usePoolName(use.dataset.nameUse);
       });
     }
-
-    const avatarAccept = el('#avatar-request-accept');
-    if (avatarAccept) avatarAccept.addEventListener('click', function () {
-      if (!avatarRequest) return;
-      const slot = avatarRequest.slot;
-      const name = taDisplayName();
-      closeAvatarRequest();
-      if (changeMyAvatar(slot)) {
-        markAvatarSwap();
-        pushAvatarNotice('你同意了，' + name + ' 把你的头像换成了第 ' + (slot + 1) + ' 张');
-      }
-      renderAvatarPool();
-    });
-    const avatarReject = el('#avatar-request-reject');
-    if (avatarReject) avatarReject.addEventListener('click', rejectAvatarRequest);
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape' || !avatarRequest) return;
-      e.stopImmediatePropagation();
-      rejectAvatarRequest();
-    }, true);
 
     const mineReset = el('#mine-reset');
     if (mineReset) mineReset.addEventListener('click', resetMine);

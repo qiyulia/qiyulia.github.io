@@ -2653,59 +2653,6 @@ dialog.more-sheet::backdrop {
   font-size: 10.5px;
 }
 
-/* 更换头像征询弹窗 */
-.avatar-request-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 99;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 22px;
-}
-.avatar-request-overlay[hidden] { display: none; }
-.avatar-request-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(18, 16, 14, .45);
-  backdrop-filter: blur(3px);
-}
-.avatar-request-card {
-  position: relative;
-  width: min(300px, 100%);
-  background: var(--surface);
-  border-radius: 20px;
-  padding: 18px 16px 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  box-shadow: 0 18px 40px var(--shadow);
-}
-.avatar-request-title {
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-}
-.avatar-request-img {
-  width: 108px;
-  height: 108px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid var(--accent-soft);
-}
-.avatar-request-card .field-hint {
-  text-align: center;
-  margin: 0;
-}
-.avatar-request-actions {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  margin-top: 2px;
-}
-.avatar-request-actions .btn { flex: 1; }
-
 .msg-actions {
   position: absolute;
   z-index: 60;

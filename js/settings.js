@@ -276,6 +276,7 @@
     el('#set-call-reject').value = st.settings.callRejectProb == null ? 15 : st.settings.callRejectProb;
     el('#set-call-hangup').value = st.settings.callHangupProb == null ? 10 : st.settings.callHangupProb;
     el('#set-voice-transcript').checked = st.settings.voiceTranscript !== false;
+    el('#set-avatar-enabled').checked = st.settings.avatarEnabled !== false;
     el('#set-avatar-self-prob').value = st.settings.avatarSelfProb == null ? 40 : st.settings.avatarSelfProb;
     el('#set-avatar-me-prob').value = st.settings.avatarMeProb == null ? 25 : st.settings.avatarMeProb;
     el('#set-avatar-cooldown').value = st.settings.avatarCooldownMin == null ? 30 : st.settings.avatarCooldownMin;
@@ -529,6 +530,11 @@
       App.state.settings.voiceTranscript = !!e.target.checked;
       markDirty();
       if (App.renderChat) App.renderChat();
+    });
+
+    el('#set-avatar-enabled').addEventListener('change', function (e) {
+      App.state.settings.avatarEnabled = !!e.target.checked;
+      markDirty();
     });
 
     function bindAvatarProb(id, key) {
