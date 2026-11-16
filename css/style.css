@@ -4531,6 +4531,30 @@ input::-webkit-strong-password-auto-fill-button {
 .dg-actions .btn { flex: 1 1 0; }
 .more-app-icon.is-drawguess { background: linear-gradient(145deg, #a9c6e8, #6d92c4); color: #fff; }
 
+/* 你画我猜全屏：卡片铺满手机框，画布自动撑高 */
+#drawguess-dialog.is-full .tool-overlay-card {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+}
+#drawguess-dialog.is-full .sheet-head { padding: calc(12px + var(--safe-top)) 14px 4px; }
+#drawguess-dialog.is-full .dg-body {
+  padding: 4px 12px 6px;
+  overflow: hidden;
+}
+#drawguess-dialog.is-full .dg-paper {
+  flex: 1 1 auto;
+  aspect-ratio: auto;
+  min-height: 0;
+}
+#drawguess-dialog.is-full .sheet-actions {
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: calc(10px + var(--safe-bottom));
+}
+
 /* 关于页 */
 .about-line {
   font-size: 13.5px;

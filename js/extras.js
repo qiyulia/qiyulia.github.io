@@ -1720,6 +1720,27 @@
     ctx.restore();
   }
 
+  /* 全屏/退出全屏时把画布分辨率对齐显示尺寸，并把已有笔迹等比搬过去 */
+  function dgResizeCanvas() {
+    if (!dgDraw) return;
+    const canvas = dgDraw.canvas;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return;
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+    if (Math.abs(canvas.width - w) < 2 && Math.abs(canvas.height - h) < 2) return;
+    const tmp = document.createElement('canvas');
+    tmp.width = canvas.width;
+    tmp.height = canvas.height;
+    tmp.getContext('2d').drawImage(canvas, 0, 0);
+    canvas.width = w;
+    canvas.height = h;
+    dgDraw.ctx = canvas.getContext('2d');
+    dgClearCanvas();
+    dgDraw.ctx.drawImage(tmp, 0, 0, w, h);
+    dgDraw.undo = [];
+  }
+
   function dgSetupCanvas() {
     const canvas = el('#dg-canvas');
     if (!canvas || !canvas.getContext) return;
@@ -2564,6 +2585,13 @@
           resetGomoku();
         } else if (btn.dataset.tool === 'drawguess') {
           resetDrawGuess();
+          const dgLayer = el('#drawguess-dialog');
+          if (dgLayer) dgLayer.classList.remove('is-full');
+          const dgFs = el('#dg-fullscreen');
+          if (dgFs) {
+            dgFs.setAttribute('aria-label', '全屏');
+            dgFs.title = '全屏';
+          }
           showToolPanel('#drawguess-dialog');
         }
       });
@@ -2851,6 +2879,26 @@
         });
       });
     });
+    const dgFsBtn = el('#dg-fullscreen');
+    if (dgFsBtn) {
+      dgFsBtn.addEventListener('click', function () {
+        const layer = el('#drawguess-dialog');
+        if (!layer) return;
+        const on = !layer.classList.contains('is-full');
+        layer.classList.toggle('is-full', on);
+        dgFsBtn.setAttribute('aria-label', on ? '退出全屏' : '全屏');
+        dgFsBtn.title = on ? '退出全屏' : '全屏';
+        /* 等布局稳定后再按新的显示尺寸调整画布 */
+        setTimeout(dgResizeCanvas, 40);
+      });
+    }
+    if (!document.body.dataset.dgFsResize) {
+      document.body.dataset.dgFsResize = '1';
+      window.addEventListener('resize', function () {
+        const layer = el('#drawguess-dialog');
+        if (layer && !layer.hidden && layer.classList.contains('is-full')) dgResizeCanvas();
+      });
+    }
     const mineBoard = el('#mine-board');
     if (mineBoard) {
       let pressTimer = null;
