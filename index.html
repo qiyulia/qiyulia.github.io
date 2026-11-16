@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261115-87">
+<link rel="stylesheet" href="css/style.css?v=20261115-88">
 </head>
 <body>
 <div class="stage">
@@ -1492,7 +1492,6 @@ if ('caches' in window) {
     <button type="button" class="more-app" data-tool="jump" data-cat="game" title="滑到正中间时点确定" hidden><span class="more-app-icon is-jump">跳</span><span>跳一跳</span></button>
     <button type="button" class="more-app" data-tool="sheep" data-cat="game" title="牌堆三层，凑三张同款消掉，双人轮流" hidden><span class="more-app-icon is-sheep">羊</span><span>羊了个羊</span></button>
     <button type="button" class="more-app" data-tool="gomoku" data-cat="game" title="我执黑，TA 执白，连成五子即胜" hidden><span class="more-app-icon is-gomoku">棋</span><span>五子棋</span></button>
-    <button type="button" class="more-app" data-tool="ludo" data-cat="game" title="2–4 人经典飞行棋，可邀请其他联系人，每人 4 架飞机，棋子用头像" hidden><span class="more-app-icon is-ludo">飞</span><span>飞行棋</span></button>
   </div>
 </dialog>
 
@@ -1789,46 +1788,6 @@ if ('caches' in window) {
   </div>
 </div>
 
-<!-- ============ 游戏：飞行棋 ============ -->
-<div id="ludo-dialog" class="tool-overlay" hidden>
-  <div class="tool-overlay-backdrop" data-tool-close></div>
-  <div class="tool-overlay-card">
-    <div class="sheet-head">
-      <h3>飞行棋</h3>
-      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
-    </div>
-    <div class="tool-sheet-body ludo-body">
-      <p class="field-hint" id="ludo-status">经典玩法：每人 4 架飞机，掷出 6 才能起飞；踩到其他棋子会把它送回停机坪，掷出 6 可以再掷一次；4 架飞机都到终点就赢。</p>
-      <div class="ludo-players-row">
-        <div class="ludo-players" id="ludo-players"></div>
-        <button type="button" class="ludo-invite-btn" id="ludo-invite-btn">邀请</button>
-      </div>
-      <div id="ludo-board" class="ludo-board" aria-label="飞行棋棋盘"></div>
-      <div class="ludo-dice-row">
-        <button type="button" class="ludo-dice" id="ludo-roll" aria-label="掷骰子">
-          <span class="ludo-dice-face" id="ludo-dice-face"></span>
-        </button>
-        <span class="ludo-hint" id="ludo-hint">轮到你掷骰子</span>
-      </div>
-    </div>
-    <div class="sheet-actions">
-      <button type="button" class="btn ghost" id="ludo-reset">重新开始</button>
-      <button type="button" class="btn primary" data-tool-close>关闭</button>
-    </div>
-    <div class="ludo-invite-panel" id="ludo-invite-panel" hidden>
-      <div class="ludo-invite-card">
-        <h4>邀请一起玩</h4>
-        <p class="field-hint">最多 4 人（含你），已选 <strong id="ludo-invite-count">1</strong> / 4</p>
-        <div class="ludo-invite-list" id="ludo-invite-list"></div>
-        <div class="btn-row">
-          <button type="button" class="btn ghost" id="ludo-invite-cancel">取消</button>
-          <button type="button" class="btn primary" id="ludo-invite-start">开始</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ============ 联系人弹窗 ============ -->
 <dialog id="contact-dialog" class="sheet">
   <form id="contact-form">
@@ -2000,18 +1959,18 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261115-87"></script>
-<script src="js/store.js?v=20261115-87"></script>
-<script src="js/desktop.js?v=20261115-87"></script>
-<script src="js/chat.js?v=20261115-87"></script>
-<script src="js/cards.js?v=20261115-87"></script>
-<script src="js/settings.js?v=20261115-87"></script>
-<script src="js/moments.js?v=20261115-87"></script>
-<script src="js/calendar.js?v=20261115-87"></script>
-<script src="js/music.js?v=20261115-87"></script>
-<script src="js/market.js?v=20261115-87"></script>
-<script src="js/mail.js?v=20261115-87"></script>
-<script src="js/extras.js?v=20261115-87"></script>
-<script src="js/app.js?v=20261115-87"></script>
+<script src="js/seed.js?v=20261115-88"></script>
+<script src="js/store.js?v=20261115-88"></script>
+<script src="js/desktop.js?v=20261115-88"></script>
+<script src="js/chat.js?v=20261115-88"></script>
+<script src="js/cards.js?v=20261115-88"></script>
+<script src="js/settings.js?v=20261115-88"></script>
+<script src="js/moments.js?v=20261115-88"></script>
+<script src="js/calendar.js?v=20261115-88"></script>
+<script src="js/music.js?v=20261115-88"></script>
+<script src="js/market.js?v=20261115-88"></script>
+<script src="js/mail.js?v=20261115-88"></script>
+<script src="js/extras.js?v=20261115-88"></script>
+<script src="js/app.js?v=20261115-88"></script>
 </body>
 </html>
