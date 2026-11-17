@@ -272,6 +272,9 @@
     el('#set-music-play').value = st.settings.musicPlayProb == null ? 60 : st.settings.musicPlayProb;
     el('#set-music-fav').value = st.settings.musicFavProb == null ? 25 : st.settings.musicFavProb;
     el('#set-music-switch').value = st.settings.musicSwitchProb == null ? 30 : st.settings.musicSwitchProb;
+    el('#set-music-invite').value = st.settings.musicInviteProb == null ? 5 : st.settings.musicInviteProb;
+    el('#set-jealousy-prob').value = st.settings.jealousyProb == null ? 30 : st.settings.jealousyProb;
+    el('#set-context-reply').checked = st.settings.contextReplyEnabled !== false;
     el('#set-call-incoming').value = st.settings.callIncomingProb == null ? 12 : st.settings.callIncomingProb;
     el('#set-call-answer').value = st.settings.callAnswerProb == null ? 70 : st.settings.callAnswerProb;
     el('#set-call-busy').value = st.settings.callBusyProb == null ? 15 : st.settings.callBusyProb;
@@ -931,6 +934,24 @@
       App.state.settings.musicSwitchProb = v;
       markDirty();
     });
+
+    App.bindStepper('#set-music-invite', function (v) {
+      App.state.settings.musicInviteProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-jealousy-prob', function (v) {
+      App.state.settings.jealousyProb = v;
+      markDirty();
+    });
+
+    const contextReplyToggle = el('#set-context-reply');
+    if (contextReplyToggle) {
+      contextReplyToggle.addEventListener('change', function () {
+        App.state.settings.contextReplyEnabled = contextReplyToggle.checked;
+        markDirty();
+      });
+    }
 
     App.bindStepper('#set-call-incoming', function (v) {
       App.state.settings.callIncomingProb = v;

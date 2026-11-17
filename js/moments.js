@@ -167,12 +167,24 @@
         '<button type="submit" class="btn primary">发送</button>' +
       '</form>';
 
+      /* 分组可见标记：只给我自己的动态显示 */
+      let visibilityTag = '';
+      if (mine && Array.isArray(moment.visibleTo) && moment.visibleTo.length) {
+        const names = moment.visibleTo.map(function (cid) {
+          const c = contactOf(cid);
+          return c ? c.name : '';
+        }).filter(Boolean);
+        if (names.length) visibilityTag = '<span class="moment-visibility-tag">仅 ' + App.esc(names.join('、')) + ' 可见</span>';
+      }
+
       return '<article class="moment-card' + (mine ? '' : ' moment-ta') + '">' +
         '<div class="moment-card-head">' +
           '<span class="avatar">' + App.avatarHtml(avatar) + '</span>' +
           '<strong>' + App.esc(name) + '</strong>' +
+          visibilityTag +
         '</div>' +
         (moment.text ? '<p class="moment-card-text">' + App.esc(moment.text) + '</p>' : '') +
+        (moment.image ? '<div class="moment-image"><img loading="lazy" decoding="async" src="' + App.esc(moment.image) + '" alt="配图"></div>' : '') +
         (moment.sticker ? '<div class="moment-sticker"><img loading="lazy" decoding="async" src="' + App.esc(moment.sticker) + '" alt="表情包"></div>' : '') +
         likeLine +
         (commentHtml ? '<div class="moment-comments">' + commentHtml + '</div>' : '') +
@@ -185,9 +197,14 @@
     }).join('');
   };
 
-  // 用户发动态后，每个联系人都可能点赞 + 评论
+  // 用户发动态后，每个「可见」的联系人都可能点赞 + 评论
   function scheduleTaReact(momentId) {
-    const contacts = (App.state.contacts || []).slice();
+    const moment = (App.state.moments || []).find(function (m) { return m.id === momentId; });
+    const visibleTo = moment && Array.isArray(moment.visibleTo) ? moment.visibleTo : [];
+    const contacts = (App.state.contacts || []).filter(function (contact) {
+      /* 分组可见：设了可见名单时，只有名单里的联系人会互动 */
+      return !visibleTo.length || visibleTo.indexOf(contact.id) !== -1;
+    });
     contacts.forEach(function (contact, index) {
       const cs = App.contactSettings(contact);
       const likeProb = Math.max(0, Math.min(100, Number(cs.taLikeProb) || 0));
@@ -296,24 +313,88 @@
     const form = el('#moment-form');
     const input = el('#moment-input');
     const dialog = el('#moment-dialog');
+    let imageDraft = '';
 
     input.addEventListener('input', function () {
       el('#moment-count').textContent = input.value.length + ' / 300';
     });
 
+    /* 分组可见选择器：默认「所有联系人可见」，勾掉后变成指定联系人可见 */
+    function fillVisibilityList() {
+      const box = el('#moment-visibility-list');
+      if (!box) return;
+      const contacts = App.state.contacts || [];
+      let html = '<label class="moment-visibility-item"><input type="checkbox" id="moment-vis-all" checked> 所有联系人可见</label>';
+      html += contacts.map(function (c) {
+        return '<label class="moment-visibility-item"><input type="checkbox" data-moment-vis="' + App.esc(c.id) + '"> ' + App.esc(c.name) + '</label>';
+      }).join('');
+      box.innerHTML = html;
+      const all = el('#moment-vis-all');
+      box.addEventListener('change', function (e) {
+        if (e.target.id === 'moment-vis-all' && e.target.checked) {
+          box.querySelectorAll('[data-moment-vis]').forEach(function (cb) { cb.checked = false; });
+        } else if (e.target.dataset.momentVis && e.target.checked && all) {
+          all.checked = false;
+        }
+      });
+    }
+
+    function selectedVisibility() {
+      const all = el('#moment-vis-all');
+      if (all && all.checked) return [];
+      const ids = [];
+      document.querySelectorAll('[data-moment-vis]:checked').forEach(function (cb) {
+        ids.push(cb.dataset.momentVis);
+      });
+      return ids;
+    }
+
     el('#moment-open').addEventListener('click', function () {
       if (!dialog) return;
+      imageDraft = '';
+      const preview = el('#moment-image-preview');
+      if (preview) preview.hidden = true;
+      fillVisibilityList();
       dialog.showModal();
       setTimeout(function () { input.focus(); }, 60);
     });
 
+    /* 配图：本地图片压缩后以 dataURL 存进动态 */
+    const imageBtn = el('#moment-image-btn');
+    const imageInput = el('#moment-image-input');
+    if (imageBtn && imageInput) {
+      imageBtn.addEventListener('click', function () { imageInput.click(); });
+      imageInput.addEventListener('change', function () {
+        const file = imageInput.files && imageInput.files[0];
+        imageInput.value = '';
+        if (!file) return;
+        if (!App.compressImage) return;
+        App.toast('正在处理图片…');
+        App.compressImage(file, 1200, { quality: 0.82, maxLength: 420000 }).then(function (url) {
+          imageDraft = url;
+          el('#moment-image-img').src = url;
+          el('#moment-image-preview').hidden = false;
+        }).catch(function () {
+          App.toast('这张图读取失败了');
+        });
+      });
+    }
+    const imageRemove = el('#moment-image-remove');
+    if (imageRemove) {
+      imageRemove.addEventListener('click', function () {
+        imageDraft = '';
+        el('#moment-image-preview').hidden = true;
+      });
+    }
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       const text = input.value.trim();
-      if (!text) {
+      if (!text && !imageDraft) {
         input.focus();
         return;
       }
+      const visibleTo = selectedVisibility();
       const moment = {
         id: App.uid('m'),
         role: 'me',
@@ -323,9 +404,13 @@
         likedByTa: false,
         comments: [],
       };
+      if (imageDraft) moment.image = imageDraft;
+      if (visibleTo.length) moment.visibleTo = visibleTo;
       App.state.moments.unshift(moment);
       App.save();
       form.reset();
+      imageDraft = '';
+      el('#moment-image-preview').hidden = true;
       el('#moment-count').textContent = '0 / 300';
       if (dialog && dialog.open) dialog.close();
       App.renderMoments();
@@ -415,6 +500,41 @@
       }
     });
 
+    /* 我回复了某条评论后，对应的角色有概率再回一句 */
+    function scheduleCommentReply(momentId) {
+      const moment = (App.state.moments || []).find(function (m) { return m.id === momentId; });
+      if (!moment) return;
+      /* 找最近一个评论过的角色；动态本身是角色发的就用它 */
+      let contact = null;
+      const taComments = (moment.comments || []).filter(function (c) { return c.role === 'ta' && c.contactId; });
+      if (taComments.length) {
+        contact = contactOf(taComments[taComments.length - 1].contactId);
+      } else if (!isMine(moment) && moment.contactId) {
+        contact = contactOf(moment.contactId);
+      }
+      if (!contact) return;
+      const cs = App.contactSettings(contact);
+      /* 回复评论的再互动概率：沿用该角色的评论概率，减半处理 */
+      const prob = Math.max(0, Math.min(100, Number(cs.taCommentProb) || 0)) / 2;
+      if (Math.random() * 100 >= prob) return;
+      setTimeout(function () {
+        const target = (App.state.moments || []).find(function (m) { return m.id === momentId; });
+        if (!target) return;
+        const card = pickCardForMoment();
+        if (!card) return;
+        if (!Array.isArray(target.comments)) target.comments = [];
+        target.comments.push({
+          id: App.uid('mc'),
+          role: 'ta',
+          contactId: contact.id,
+          text: card.text,
+          ts: Date.now(),
+        });
+        App.save();
+        App.renderMoments();
+      }, 3000 + Math.random() * 5000);
+    }
+
     // 我评论任意一条动态（含 TA 的）
     el('#moment-list').addEventListener('submit', function (e) {
       const commentForm = e.target.closest('[data-comment-form]');
@@ -437,6 +557,7 @@
       App.renderMoments();
       const reopened = el('[data-comment-form="' + moment.id + '"]');
       if (reopened) reopened.hidden = false;
+      scheduleCommentReply(moment.id);
     });
 
     /* 每分钟检查一次 TA 是否要发朋友圈 */

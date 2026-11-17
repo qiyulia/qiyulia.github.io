@@ -562,6 +562,19 @@
       s.chats[id] = out;
     });
     if (!Array.isArray(s.cards)) s.cards = App.BUILTIN_CARDS.map(function (c) { return Object.assign({}, c); });
+    /* 字卡按联系人隔离：owner 为联系人 id 的是某个角色专属的字卡，
+       空 owner 是大家一起用的默认（内置）字卡；
+       每个联系人各自记住自己删掉/去重掉的内置卡，刷新后不会再恢复 */
+    if (!s.builtinRemoved || typeof s.builtinRemoved !== 'object' || Array.isArray(s.builtinRemoved)) s.builtinRemoved = {};
+    if (!s.cardsOwnerMigrated) {
+      const ownerId = s.currentContactId || (s.contacts[0] && s.contacts[0].id) || '';
+      s.cards.forEach(function (c) {
+        if (!c) return;
+        if (c.builtin) c.owner = '';
+        else if (typeof c.owner !== 'string') c.owner = ownerId;
+      });
+      s.cardsOwnerMigrated = true;
+    }
     /* 情绪卡只作为气泡里的情绪标签，不再作为一条独立消息；清掉以前误发出来的那些 */
     if (!s.emotionTextCleaned) {
       const moodIds = {};
@@ -675,6 +688,10 @@
     if (s.settings.musicPlayProb == null) s.settings.musicPlayProb = 60;
     if (s.settings.musicFavProb == null) s.settings.musicFavProb = 25;
     if (s.settings.musicSwitchProb == null) s.settings.musicSwitchProb = 30;
+    if (s.settings.musicInviteProb == null) s.settings.musicInviteProb = 5;
+    if (s.settings.jealousyProb == null) s.settings.jealousyProb = 30;
+    if (typeof s.settings.contextReplyEnabled !== 'boolean') s.settings.contextReplyEnabled = true;
+    if (s.settings.followupDelaySec == null) s.settings.followupDelaySec = 60;
     if (s.settings.callIncomingProb == null) s.settings.callIncomingProb = 12;
     if (s.settings.callAnswerProb == null) s.settings.callAnswerProb = 70;
     if (s.settings.callBusyProb == null) s.settings.callBusyProb = 15;
@@ -885,6 +902,10 @@
       musicPlayProb: pick('musicPlayProb', 60),
       musicFavProb: pick('musicFavProb', 25),
       musicSwitchProb: pick('musicSwitchProb', 30),
+      musicInviteProb: pick('musicInviteProb', 5),
+      jealousyProb: pick('jealousyProb', 30),
+      contextReplyEnabled: pick('contextReplyEnabled', true) !== false,
+      followupDelaySec: pick('followupDelaySec', 60),
       callIncomingProb: pick('callIncomingProb', 12),
       callAnswerProb: pick('callAnswerProb', 70),
       callBusyProb: pick('callBusyProb', 15),
@@ -1017,6 +1038,50 @@
     return before - s.cards.length;
   };
 
+  /* ---------- 字卡的联系人归属与内置卡删除记忆 ---------- */
+  App.activeContactId = function () {
+    const s = App.state;
+    if (!s) return null;
+    if (s.currentContactId && (s.contacts || []).some(function (c) { return c.id === s.currentContactId; })) {
+      return s.currentContactId;
+    }
+    return s.contacts && s.contacts.length ? s.contacts[0].id : null;
+  };
+
+  /* 当前联系人「删掉」的内置字卡 id 表 */
+  App.builtinRemovedSet = function (contactId) {
+    const s = App.state;
+    if (!s) return {};
+    if (!s.builtinRemoved || typeof s.builtinRemoved !== 'object') s.builtinRemoved = {};
+    const id = contactId || App.activeContactId() || '_';
+    if (!s.builtinRemoved[id] || typeof s.builtinRemoved[id] !== 'object') s.builtinRemoved[id] = {};
+    return s.builtinRemoved[id];
+  };
+
+  App.markBuiltinRemoved = function (cardId, contactId) {
+    App.builtinRemovedSet(contactId)[cardId] = true;
+  };
+
+  App.isBuiltinRemoved = function (card, contactId) {
+    if (!card || !card.builtin) return false;
+    return !!App.builtinRemovedSet(contactId)[card.id];
+  };
+
+  /* 当前联系人实际看到的字卡：共享的默认卡 + 自己导入的卡，
+     并排除被自己删掉/去重掉的内置卡 */
+  App.visibleCards = function (contactId) {
+    const s = App.state;
+    if (!s || !Array.isArray(s.cards)) return [];
+    const id = contactId || App.activeContactId();
+    const removed = App.builtinRemovedSet(id);
+    return s.cards.filter(function (c) {
+      if (!c) return false;
+      if (c.builtin && removed[c.id]) return false;
+      if (!c.owner) return true;
+      return c.owner === id;
+    });
+  };
+
   /* ---------- 时间与文案工具 ---------- */
   function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -1058,13 +1123,14 @@
     if (m.type === 'wish') return '[心愿] ' + (m.productName || '');
     if (m.type === 'marketBuy') return '[已买下] ' + (m.productName || '');
     if (m.type === 'location') return '[位置] ' + (m.placeName || '');
+    if (m.type === 'musicInvite') return '[一起听] 《' + (m.trackTitle || '') + '》';
     return m.text || '';
   };
 
   /* ---------- 字卡抽取 ---------- */
   App.pickCards = function (userText, count, contactId, categories) {
     const cats = categories && categories.length ? categories : ['聊天', '情绪', '语音'];
-    const enabled = App.state.cards.filter(function (c) {
+    const enabled = App.visibleCards(contactId).filter(function (c) {
       if (!c.enabled || !c.text) return false;
       if (cats.indexOf(c.category) === -1) return false;
       if (c.category === '语音' && !c.audio) return false;
@@ -1110,7 +1176,7 @@
 
   /* 随机抽一张“拍一拍”字卡 */
   App.pickPatCard = function () {
-    const pool = App.state.cards.filter(function (c) {
+    const pool = App.visibleCards().filter(function (c) {
       return c.enabled && c.category === '拍一拍' && c.text;
     });
     if (!pool.length) return null;

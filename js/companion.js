@@ -2125,6 +2125,18 @@
     if (play) play.textContent = '▶';
   }
 
+  /* 关闭听音识曲弹窗时调用：立刻暂停还在播放的片段 */
+  App.stopSongQuiz = function () {
+    stopSongMelody();
+    if (songRecorder && songRecorder.state === 'recording') {
+      try { songRecorder.stop(); } catch (err) {}
+    }
+    if (songHumStream) {
+      songHumStream.getTracks().forEach(function (track) { track.stop(); });
+      songHumStream = null;
+    }
+  };
+
   function playSongSnippet(song) {
     if (!song) return;
     stopSongMelody();

@@ -402,6 +402,7 @@
   App.initMail();
   if (App.initExtras) App.initExtras();
   if (App.initCompanion) App.initCompanion();
+  if (App.initMemoir) App.initMemoir();
 
   /* 选图前写入的记忆，localStorage 比 sessionStorage 更容易在系统重载后保留 */
   let pickView = null;

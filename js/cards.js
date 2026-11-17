@@ -20,7 +20,7 @@
 
   App.renderCards = function () {
     const filter = App.cardFilter;
-    const cards = App.state.cards;
+    const cards = App.visibleCards();
     const cats = ['全部'].concat(App.CATEGORIES);
 
     /* 分类数量和启用数量一次遍历算完，避免每个分类都扫一遍全部字卡 */
@@ -92,6 +92,13 @@
     el('#card-count').textContent = '共 ' + cards.length + ' 张，已启用 ' + enabled + ' 张';
   };
 
+  function followupParentText(c) {
+    const parent = (App.state.cards || []).find(function (x) { return x.id === c.parentId; });
+    if (!parent) return '未关联';
+    const text = String(parent.text || '');
+    return text.length > 12 ? text.slice(0, 12) + '…' : text;
+  }
+
   function cardRow(c) {
     const extra =
       (c.category === '情绪'
@@ -99,6 +106,9 @@
         : '') +
       (c.category === '语音'
         ? '<span class="tag">语音' + (c.audio ? ' · mp3' : ' · 未添加') + '</span>'
+        : '') +
+      (c.category === '追加'
+        ? '<span class="tag">' + (c.kind === 'noreply' ? '未回复追问 · ' + (Number(c.delaySec) || 60) + '秒' : '追发回复') + ' · 接「' + App.esc(followupParentText(c)) + '」</span>'
         : '');
     const picked = !!selected[c.id];
     const check = batchMode
@@ -148,7 +158,7 @@
 
   function existingTextKeys() {
     const keys = {};
-    App.state.cards.forEach(function (c) {
+    App.visibleCards().forEach(function (c) {
       const key = cardTextKey(c);
       if (key) keys[key] = true;
     });
@@ -156,19 +166,39 @@
   }
 
   function dedupeCards() {
-    /* 先按「内置优先」清掉和内置卡内容重复的导入卡，再清余下的重复项 */
-    let removed = App.dedupeBuiltinCards ? App.dedupeBuiltinCards(App.state) : 0;
+    /* 先按「内置优先」清掉和内置卡内容重复的导入卡（只动当前联系人的卡），
+       再清余下的重复项。内置卡不真正从数据里删掉，而是记进当前联系人的
+       「已删除内置卡」名单，这样刷新 / 重新打开后不会再被自动恢复 */
+    let removed = 0;
+    const contactId = App.activeContactId();
+    const builtinTexts = {};
+    (App.BUILTIN_CARDS || []).forEach(function (c) {
+      const text = String(c.text || '').trim();
+      if (text) builtinTexts[(c.category || '') + '|' + text] = true;
+    });
     const seen = {};
+    const dropBuiltin = [];
     App.state.cards = App.state.cards.filter(function (c) {
+      /* 别的联系人导入的字卡不参与这次去重 */
+      if (!c.builtin && c.owner && c.owner !== contactId) return true;
+      if (c.builtin && App.isBuiltinRemoved(c, contactId)) return true;
+      const text = String(c.text || '').trim();
+      /* 和内置卡内容重复的导入卡直接清掉（语音卡除外） */
+      if (!c.builtin && !c.audio && text && builtinTexts[(c.category || '') + '|' + text]) {
+        removed++;
+        return false;
+      }
       const key = cardTextKey(c);
       if (!key) return true;
       if (seen[key]) {
         removed++;
+        if (c.builtin) dropBuiltin.push(c.id);
         return false;
       }
       seen[key] = true;
       return true;
     });
+    dropBuiltin.forEach(function (id) { App.markBuiltinRemoved(id, contactId); });
     if (removed) {
       App.save();
       App.renderCards();
@@ -177,27 +207,69 @@
     return removed;
   }
 
+  function fillFollowupParents(selectedId) {
+    const select = el('#card-followup-parent');
+    if (!select) return;
+    const parents = App.visibleCards().filter(function (c) {
+      return c.text && ['聊天', '情绪', '语音'].indexOf(c.category) !== -1;
+    });
+    select.innerHTML = '<option value="">选择要接在哪句话后面…</option>' + parents.map(function (c) {
+      const text = String(c.text || '');
+      const short = text.length > 24 ? text.slice(0, 24) + '…' : text;
+      return '<option value="' + App.esc(c.id) + '"' + (c.id === selectedId ? ' selected' : '') + '>' + App.esc(short) + '</option>';
+    }).join('');
+  }
+
+  function toggleFollowupKind(kind) {
+    const delayRow = el('#card-followup-delay-row');
+    if (delayRow) delayRow.style.display = kind === 'noreply' ? '' : 'none';
+    const hint = el('#card-followup-kind-hint');
+    if (hint) {
+      hint.textContent = kind === 'noreply'
+        ? 'TA 说完关联的那句话后，你超过设定秒数没回复，TA 就追问这句。'
+        : 'TA 说完关联的那句话后，会隔一小会儿追发这一句（带正在输入动效）。';
+    }
+  }
+
   function toggleExtraFields(category, card) {
     const emotionBox = el('#card-emotion-fields');
     const voiceBox = el('#card-voice-fields');
+    const followupBox = el('#card-followup-fields');
     const isVoice = category === '语音';
+    const isFollowup = category === '追加';
     emotionBox.style.display = category === '情绪' ? '' : 'none';
     voiceBox.style.display = isVoice ? '' : 'none';
+    if (followupBox) {
+      followupBox.style.display = isFollowup ? '' : 'none';
+      if (isFollowup) {
+        fillFollowupParents(card && card.parentId);
+        const kind = card && card.kind === 'noreply' ? 'noreply' : 'next';
+        const kindSelect = el('#card-followup-kind');
+        if (kindSelect) kindSelect.value = kind;
+        const delay = el('#card-followup-delay');
+        if (delay) delay.value = Number(card && card.delaySec) || 60;
+        toggleFollowupKind(kind);
+      }
+    }
     el('#card-emotion').value = card && card.emotion ? card.emotion : '';
 
     const textLabel = el('#card-text-label');
-    if (textLabel) textLabel.textContent = isVoice ? '语音文字（显示在语音下方）' : '内容';
+    if (textLabel) textLabel.textContent = isVoice ? '语音文字（显示在语音下方）' : (isFollowup ? '追发 / 追问的内容' : '内容');
     const textHint = el('#card-text-hint');
     if (textHint) {
       textHint.textContent = isVoice
         ? '自己写下这段语音的内容，会显示在语音下方。'
-        : '一行一张字卡，可一次粘贴多行批量添加。';
+        : (isFollowup
+          ? '写一句接在关联字卡后面的话。'
+          : '一行一张字卡，可一次粘贴多行批量添加。');
     }
     const textArea = el('#card-text');
     if (textArea) {
       textArea.placeholder = isVoice
         ? '写下这段语音说的话，TA 发语音时会显示在下方…'
-        : '写一句想被随机说出口的话…';
+        : (isFollowup
+          ? '比如：怎么不理我？ / 睡着了吗？'
+          : '写一句想被随机说出口的话…');
     }
 
     const fileInput = el('#card-audio-file');
@@ -246,7 +318,16 @@
   function deleteCard(card) {
     App.confirmDialog('删除这张字卡？\n\n“' + card.text + '”', { title: '删除字卡', okText: '删除' }).then(function (ok) {
       if (!ok) return;
-      App.state.cards = App.state.cards.filter(function (c) { return c.id !== card.id; });
+      if (card.builtin) {
+        /* 内置卡只记进当前联系人的删除名单，刷新后不会再恢复；其他联系人的默认卡不受影响 */
+        App.markBuiltinRemoved(card.id);
+      } else {
+        App.state.cards = App.state.cards.filter(function (c) { return c.id !== card.id; });
+        /* 顺带清掉挂在它身上的追加卡 */
+        App.state.cards = App.state.cards.filter(function (c) {
+          return !(c.category === '追加' && c.parentId === card.id);
+        });
+      }
       App.save();
       App.renderCards();
       App.renderDesktop();
@@ -282,6 +363,7 @@
 
       let added = 0;
       let duplicated = 0;
+      const owner = App.activeContactId() || '';
       normalized.forEach(function (entry) {
         const key = cardKey(entry.category, entry.text, entry.audio);
         if (existing[key]) {
@@ -295,9 +377,15 @@
           trigger: String(entry.item.trigger || '').slice(0, 40),
           enabled: entry.item.enabled !== false,
           builtin: false,
+          owner: owner,
         };
         if (entry.category === '情绪') {
           card.emotion = String(entry.item.emotion || '平常').slice(0, 12);
+        }
+        if (entry.category === '追加') {
+          card.parentId = String(entry.item.parentId || '');
+          card.kind = entry.item.kind === 'noreply' ? 'noreply' : 'next';
+          card.delaySec = Math.max(5, Math.min(3600, Math.round(Number(entry.item.delaySec) || 60)));
         }
         if (entry.audio) card.audio = entry.audio;
         App.state.cards.unshift(card);
@@ -369,12 +457,30 @@
         added++;
       }
     });
-    /* 恢复内置卡时顺手清掉内容和内置卡重复的导入卡 */
-    if (App.dedupeBuiltinCards) App.dedupeBuiltinCards(App.state);
+    /* 恢复当前联系人删掉/去重掉的内置卡 */
+    const removed = App.builtinRemovedSet();
+    let restored = 0;
+    Object.keys(removed).forEach(function (id) {
+      if (removed[id]) restored++;
+      delete removed[id];
+    });
+    /* 恢复内置卡时顺手清掉内容和内置卡重复的导入卡（仅当前联系人的） */
+    const contactId = App.activeContactId();
+    const builtinTexts = {};
+    (App.BUILTIN_CARDS || []).forEach(function (c) {
+      const text = String(c.text || '').trim();
+      if (text) builtinTexts[(c.category || '') + '|' + text] = true;
+    });
+    App.state.cards = App.state.cards.filter(function (c) {
+      if (c.builtin || c.audio) return true;
+      if (c.owner && c.owner !== contactId) return true;
+      const text = String(c.text || '').trim();
+      return !text || !builtinTexts[(c.category || '') + '|' + text];
+    });
     App.save();
     App.renderCards();
     App.renderDesktop();
-    App.toast(added ? '已恢复 ' + added + ' 张内置字卡' : '内置字卡都在');
+    App.toast(restored ? '已恢复 ' + restored + ' 张内置字卡' : (added ? '已补齐 ' + added + ' 张内置字卡' : '内置字卡都在'));
   }
 
   App.initCards = function () {
@@ -403,6 +509,13 @@
     el('#card-cat').addEventListener('change', function (e) {
       toggleExtraFields(e.target.value, editingCard);
     });
+
+    const followupKind = el('#card-followup-kind');
+    if (followupKind) {
+      followupKind.addEventListener('change', function (e) {
+        toggleFollowupKind(e.target.value === 'noreply' ? 'noreply' : 'next');
+      });
+    }
 
     el('#card-audio-file').addEventListener('change', function (e) {
       const file = e.target.files && e.target.files[0];
@@ -461,11 +574,24 @@
         }
         if (category === '语音' && audio) card.audio = audio;
         if (category !== '语音') delete card.audio;
+        if (category === '追加') {
+          card.parentId = el('#card-followup-parent') ? el('#card-followup-parent').value : '';
+          card.kind = el('#card-followup-kind') && el('#card-followup-kind').value === 'noreply' ? 'noreply' : 'next';
+          card.delaySec = Math.max(5, Math.min(3600, Math.round(Number(el('#card-followup-delay') && el('#card-followup-delay').value) || 60)));
+        } else {
+          delete card.parentId;
+          delete card.kind;
+          delete card.delaySec;
+        }
       }
 
       let added = 0;
       let duplicated = 0;
       if (editingCard) {
+        if (category === '追加' && !el('#card-followup-parent').value) {
+          App.toast('先选择要接在哪句话后面');
+          return;
+        }
         fillCard(editingCard, texts[0]);
       } else {
         const existing = existingTextKeys();
@@ -482,8 +608,13 @@
           App.toast('这些字卡都已经存在了');
           return;
         }
+        if (category === '追加' && !el('#card-followup-parent').value) {
+          App.toast('先选择要接在哪句话后面');
+          return;
+        }
+        const owner = App.activeContactId() || '';
         fresh.slice().reverse().forEach(function (text) {
-          const card = { id: App.uid('card'), enabled: true, builtin: false };
+          const card = { id: App.uid('card'), enabled: true, builtin: false, owner: owner };
           fillCard(card, text);
           App.state.cards.unshift(card);
           added++;
@@ -499,7 +630,7 @@
     });
 
     el('#btn-export-cards').addEventListener('click', function () {
-      const cards = JSON.parse(JSON.stringify(App.state.cards));
+      const cards = JSON.parse(JSON.stringify(App.visibleCards()));
       App.inlineVoice(cards).catch(function () { return cards; }).then(function (list) {
         App.downloadJSON({
           app: 'xuyu',

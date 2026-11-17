@@ -352,6 +352,11 @@
     return Promise.resolve(setSource(src));
   }
 
+  /* 给聊天里的「TA 邀请一起听歌」等功能使用：查询播放状态 / 直接播放某首歌 */
+  App.musicPlaying = function () { return playing; };
+  App.playTrackById = function (id) { return selectTrack(id, true); };
+  App.musicTracks = function () { return tracks().slice(); };
+
   /* 给听音识曲等页面复用同一套地址解析；本地音频返回 Promise，网络音频直接返回地址 */
   App.musicSourceUrl = function (track) {
     if (!track) return '';
@@ -396,12 +401,12 @@
       if (currentTrack().id !== track.id) return false;
       playing = false;
       statusText = track.source === 'netease'
-        ? '这首歌需要会员或受版权限制，无法站外播放；请打开原平台或导入本地音频'
+        ? '这首歌需要会员或受版权限制，暂时播放不了；可以改从本地导入音频'
         : (track.source === 'kugou'
-          ? '酷狗页面无法直接播放，请打开原平台或导入本地音频'
+          ? '这首歌暂时播放不了，可以改从本地导入音频'
           : (err && /本地音频文件缺失|音频链接无效/.test(err.message || '')
             ? err.message
-            : (err && err.name === 'NotAllowedError' ? '浏览器阻止了播放，请再点一次播放' : '音频加载失败，请检查直链或改从本地导入')));
+            : (err && err.name === 'NotAllowedError' ? '浏览器阻止了播放，请再点一次播放' : '音频加载失败，请改从本地导入')));
       App.renderMusic();
       App.toast(statusText);
       return false;
@@ -535,6 +540,9 @@
   function isNeteaseUrl(url) {
     try { return /(^|\.)(163cn\.tv|163\.com)$/.test(new URL(url).hostname); } catch (e) { return false; }
   }
+  function isAudioFileUrl(url) {
+    return /\.(mp3|m4a|aac|ogg|wav|flac)(\?|#|$)/i.test(url || '');
+  }
   function fetchTextViaProxy(url) {
     const enc = encodeURIComponent;
     const proxies = [
@@ -622,9 +630,7 @@
       });
     });
   }
-  function isAudioFileUrl(url) {
-    return /\.(mp3|m4a|aac|ogg|wav|flac)(\?|#|$)/i.test(url || '');
-  }
+
   function importLink(e) {
     e.preventDefault();
     const input = el('#music-url');
@@ -907,10 +913,10 @@
       playing = false;
       const track = currentTrack();
       statusText = track.source === 'netease'
-        ? '这首歌需要会员或受版权限制，无法站外播放；请打开原平台或导入本地音频'
+        ? '这首歌需要会员或受版权限制，暂时播放不了；可以改从本地导入音频'
         : (track.source === 'kugou'
-          ? '酷狗页面无法直接播放，请打开原平台或导入本地音频'
-          : '音频加载失败，请检查链接或重新导入');
+          ? '这首歌暂时播放不了，可以改从本地导入音频'
+          : '音频加载失败，请重新导入');
       App.renderMusic();
     });
 

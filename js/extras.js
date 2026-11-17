@@ -1939,7 +1939,10 @@
   /* ---------------- 事件绑定 ---------------- */
   function hideAllToolPanels() {
     document.querySelectorAll('.tool-overlay').forEach(function (layer) {
+      if (layer.hidden) return;
       layer.hidden = true;
+      /* 关闭听音识曲弹窗的同时自动暂停音乐 */
+      if (layer.id === 'songquiz-dialog' && App.stopSongQuiz) App.stopSongQuiz();
     });
   }
 
@@ -2340,7 +2343,11 @@
       const closer = e.target.closest('[data-tool-close]');
       if (!closer) return;
       const layer = closer.closest('.tool-overlay');
-      if (layer) layer.hidden = true;
+      if (layer) {
+        layer.hidden = true;
+        /* 关闭听音识曲弹窗的同时自动暂停音乐 */
+        if (layer.id === 'songquiz-dialog' && App.stopSongQuiz) App.stopSongQuiz();
+      }
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') hideAllToolPanels();

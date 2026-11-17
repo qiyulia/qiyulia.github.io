@@ -539,6 +539,23 @@
       '</div>';
   }
 
+  function musicInviteHtml(m) {
+    const status = m.status || 'pending';
+    const label = status === 'accepted' ? '已接受，一起听' : (status === 'rejected' ? '已拒绝' : '等你决定');
+    const actions = status === 'pending'
+      ? '<div class="card-offer-actions">' +
+          '<button type="button" class="is-ghost" data-music-invite-act="reject" data-music-invite-msg="' + App.esc(m.id) + '">拒绝</button>' +
+          '<button type="button" data-music-invite-act="accept" data-music-invite-msg="' + App.esc(m.id) + '">一起听</button>' +
+        '</div>'
+      : '';
+    return '<div class="bubble bubble-card-offer bubble-music-invite">' +
+      '<div class="survey-card-head"><span class="survey-card-tag">一起听</span><em>' + label + '</em></div>' +
+      '<p class="survey-card-title">TA 邀请你一起听音乐</p>' +
+      '<p class="card-offer-text">🎵 《' + App.esc(m.trackTitle || '未知歌曲') + '》 · ' + App.esc(m.trackArtist || '未知歌手') + '</p>' +
+      actions +
+      '</div>';
+  }
+
   function divineCardHtml(m) {
     const cards = (m.cards || []).map(function (card) {
       return '<span class="divine-chat-card">' +
@@ -621,6 +638,9 @@
     }
     if (m.type === 'cardOffer') {
       return '<div class="msg-center" data-msg-id="' + App.esc(m.id) + '">' + cardOfferHtml(m) + '</div>';
+    }
+    if (m.type === 'musicInvite') {
+      return messageCardShell(m, contact, musicInviteHtml(m));
     }
     if (m.type === 'divine') {
       return messageCardShell(m, contact, divineCardHtml(m));
@@ -998,6 +1018,29 @@
     App.renderChat();
   }
 
+  /* TA 发一条纯文字消息（修罗场、追加卡、追问都走这里） */
+  function pushTaText(contactId, text, extra) {
+    const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+    const message = Object.assign({
+      id: App.uid('m'),
+      role: 'ta',
+      type: 'text',
+      text: text,
+      ts: Date.now(),
+    }, extra || {});
+    if (App.chatOpen(contactId)) message.read = true;
+    chat.push(message);
+    App.save();
+    if (App.chatOpen(contactId)) {
+      App.renderChat();
+    } else {
+      App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+      App.updateBadges();
+      App.renderContacts();
+    }
+    return message;
+  }
+
   function sendRedPacket(amount, note) {
     const contact = currentContact();
     if (!contact) return false;
@@ -1094,9 +1137,13 @@
     input.style.height = 'auto';
 
     if (role === 'me') {
-      scheduleReply(App.chatContactId, text);
-      maybeTaSticker(App.chatContactId);
-      maybeOfferCard(App.chatContactId, text);
+      cancelNoReply(App.chatContactId);
+      /* 提到了其他联系人的名字：优先触发 TA 的吃醋回复，打断普通抽卡 */
+      if (!maybeJealousy(App.chatContactId, text)) {
+        scheduleReply(App.chatContactId, text);
+        maybeTaSticker(App.chatContactId);
+        maybeOfferCard(App.chatContactId, text);
+      }
       if (App.maybeHangupOnWords) App.maybeHangupOnWords(App.chatContactId, text);
     }
   }
@@ -1117,8 +1164,11 @@
       pushMessage(message);
       closeStickerPanel();
       if (role === 'me') {
-        scheduleReply(App.chatContactId, text);
-        maybeOfferCard(App.chatContactId, text);
+        cancelNoReply(App.chatContactId);
+        if (!maybeJealousy(App.chatContactId, text)) {
+          scheduleReply(App.chatContactId, text);
+          maybeOfferCard(App.chatContactId, text);
+        }
         if (App.maybeHangupOnWords) App.maybeHangupOnWords(App.chatContactId, text);
       }
       return;
@@ -1130,7 +1180,10 @@
     renderComposerQuote();
     pushMessage(message);
     closeStickerPanel();
-    if (role === 'me') scheduleReply(App.chatContactId, '');
+    if (role === 'me') {
+      cancelNoReply(App.chatContactId);
+      scheduleReply(App.chatContactId, '');
+    }
   }
 
   function openRedPacketDialog() {
@@ -1166,6 +1219,7 @@
     });
     closeStickerPanel();
 
+    cancelNoReply(contact.id);
     scheduleReply(contact.id, '');
     maybeTaSticker(contact.id);
   };
@@ -1258,10 +1312,11 @@
     const contact = st.contacts.find(function (c) { return c.id === contactId; });
     if (!contact) return;
     const cs = App.contactSettings(contact);
-    const voicePool = (st.cards || []).filter(function (c) {
+    const contactCards = App.visibleCards(contactId);
+    const voicePool = contactCards.filter(function (c) {
       return c.enabled !== false && c.text && c.category === '语音' && c.audio;
     });
-    const textPool = (st.cards || []).filter(function (c) {
+    const textPool = contactCards.filter(function (c) {
       return c.enabled !== false && c.text && c.category === '聊天';
     });
     const voiceProb = Math.max(0, Math.min(100, Number(cs.taVoiceProb) || 0));
@@ -1327,7 +1382,9 @@
     const st = App.state;
     if (!st || !st.contacts.length) return;
     const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
+    const cs = App.contactSettings(contact);
     maybeTaPat(contact.id, contact);
+    maybeTaMusicInvite(contact.id, contact, cs);
   }, 60000);
 
   App.openCurrentChat = function () {
@@ -1346,7 +1403,7 @@
 
   function pickReplyEmotion(card) {
     if (card.category === '情绪') return App.emotionLabel(card);
-    const pool = App.state.cards.filter(function (c) {
+    const pool = App.visibleCards().filter(function (c) {
       return c.category === '情绪';
     });
     return pool.length ? App.emotionLabel(pool[Math.floor(Math.random() * pool.length)]) : '平常';
@@ -1442,7 +1499,7 @@
       cards = App.pickCards(userText, count, contactId, ['聊天', '语音']);
     }
     if (wantVoice && !cards.some(function (c) { return c.category === '语音' && c.audio; })) {
-      const voicePool = (App.state.cards || []).filter(function (c) {
+      const voicePool = App.visibleCards(contactId).filter(function (c) {
         return c.enabled !== false && c.text && c.category === '语音' && c.audio;
       });
       if (voicePool.length) {
@@ -1537,11 +1594,15 @@
         App.renderContacts();
       }
 
+      /* 说完这句后，追发挂在它身上的追加卡 / 登记未回复追问 */
+      await runFollowups(contactId, card, cs);
+
       await sleep(240);
     }
     maybeTaCall(contactId, contact, cs);
     maybeTaPacket(contactId, contact, cs);
     maybeTaPat(contactId, contact);
+    maybeTaMusicInvite(contactId, contact, cs);
   }
 
   /* TA 发红包的金额：37% 是特殊含义数额，其余在 1 ~ 1000000 之间随机 */
@@ -1581,6 +1642,155 @@
     }, 2600 + Math.random() * 3200);
   }
 
+  /* ---------- 修罗场：在聊天里提到别的联系人，TA 会吃醋 ---------- */
+  function maybeJealousy(contactId, text) {
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact) return false;
+    const value = String(text || '');
+    if (value.length < 2) return false;
+    const others = (App.state.contacts || []).filter(function (c) { return c.id !== contactId; })
+      .map(function (c) { return String(c.name || '').trim(); })
+      .filter(function (n) { return n.length >= 2; });
+    if (!others.length) return false;
+    const hit = others.some(function (name) { return value.indexOf(name) !== -1; });
+    if (!hit) return false;
+    const cs = App.contactSettings(contact);
+    if (Math.random() * 100 >= clampProb(cs.jealousyProb)) return false;
+    const pool = App.visibleCards(contactId).filter(function (c) {
+      return c.category === '修罗场' && c.enabled !== false && c.text;
+    });
+    if (!pool.length) return false;
+    (async function () {
+      const count = Math.random() < 0.4 ? 2 : 1;
+      for (let i = 0; i < count; i++) {
+        setTyping(contactId, true);
+        await sleep(1400 + Math.random() * 2200);
+        setTyping(contactId, false);
+        if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+        const card = pool[Math.floor(Math.random() * pool.length)];
+        pushTaText(contactId, card.text, { cardId: card.id, jealousy: true });
+      }
+    })();
+    return true;
+  }
+
+  /* ---------- 上下文连贯：追发回复 + 未回复追问 ---------- */
+  const noreplyTimers = {};
+
+  function cancelNoReply(contactId) {
+    if (noreplyTimers[contactId]) {
+      clearTimeout(noreplyTimers[contactId]);
+      delete noreplyTimers[contactId];
+    }
+  }
+
+  function followupCardsOf(contactId, parentCardId) {
+    if (!parentCardId) return [];
+    return App.visibleCards(contactId).filter(function (c) {
+      return c.category === '追加' && c.enabled !== false && c.parentId === parentCardId && c.text;
+    });
+  }
+
+  function scheduleNoReply(contactId, cards) {
+    cancelNoReply(contactId);
+    const card = cards[Math.floor(Math.random() * cards.length)];
+    const delaySec = Math.max(5, Number(card.delaySec) || 60);
+    const chat = App.state.chats[contactId] || [];
+    const anchor = chat.length ? chat[chat.length - 1] : null;
+    if (!anchor) return;
+    noreplyTimers[contactId] = setTimeout(async function () {
+      delete noreplyTimers[contactId];
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const list = App.state.chats[contactId] || [];
+      const last = list[list.length - 1];
+      /* 你已经回过话了，就不追问 */
+      if (!last || last.id !== anchor.id) return;
+      setTyping(contactId, true);
+      await sleep(1200 + Math.random() * 1600);
+      setTyping(contactId, false);
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      const list2 = App.state.chats[contactId] || [];
+      const last2 = list2[list2.length - 1];
+      if (!last2 || last2.id !== anchor.id) return;
+      pushTaText(contactId, card.text, { cardId: card.id, followup: true });
+    }, delaySec * 1000);
+  }
+
+  /* 说完一张字卡后：连着追发「追发回复」卡；登记「未回复追问」 */
+  async function runFollowups(contactId, parentCard, cs) {
+    if (!parentCard || cs.contextReplyEnabled === false) return;
+    const followups = followupCardsOf(contactId, parentCard.id);
+    if (!followups.length) return;
+    const nexts = followups.filter(function (c) { return c.kind !== 'noreply'; });
+    const noreplys = followups.filter(function (c) { return c.kind === 'noreply'; });
+    for (let i = 0; i < nexts.length; i++) {
+      setTyping(contactId, true);
+      await sleep(1200 + Math.random() * 1800);
+      setTyping(contactId, false);
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      pushTaText(contactId, nexts[i].text, { cardId: nexts[i].id, followup: true });
+      await sleep(240);
+    }
+    if (noreplys.length) scheduleNoReply(contactId, noreplys);
+  }
+
+  /* ---------- TA 邀请一起听音乐 ---------- */
+  function maybeTaMusicInvite(contactId, contact, cs) {
+    if (!contact) return;
+    cs = cs || App.contactSettings(contact);
+    if (Math.random() * 100 >= clampProb(cs.musicInviteProb)) return;
+    /* 正在听歌的时候不会邀请 */
+    if (App.musicPlaying && App.musicPlaying()) return;
+    const tracks = App.musicTracks ? App.musicTracks() : [];
+    const pool = tracks.filter(function (t) { return t && t.title; });
+    if (!pool.length) return;
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      if (App.musicPlaying && App.musicPlaying()) return;
+      const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+      /* 已经有一条待回应的邀请就不重复发 */
+      if (chat.some(function (m) { return m.type === 'musicInvite' && (m.status || 'pending') === 'pending'; })) return;
+      const track = pool[Math.floor(Math.random() * pool.length)];
+      chat.push({
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'musicInvite',
+        trackId: track.id,
+        trackTitle: track.title,
+        trackArtist: track.artist || '未知歌手',
+        status: 'pending',
+        ts: Date.now(),
+      });
+      App.save();
+      if (App.chatOpen(contactId)) {
+        App.renderChat();
+      } else {
+        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+    }, 2600 + Math.random() * 3200);
+  }
+  App.maybeTaMusicInvite = maybeTaMusicInvite;
+
+  function resolveMusicInvite(contactId, msgId, action) {
+    const chat = App.state.chats[contactId] || [];
+    const msg = chat.find(function (m) { return m.id === msgId; });
+    if (!msg || msg.type !== 'musicInvite' || (msg.status || 'pending') !== 'pending') return;
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    const name = contact ? contact.name : 'TA';
+    const accept = action === 'accept';
+    msg.status = accept ? 'accepted' : 'rejected';
+    App.save();
+    if (App.chatOpen(contactId)) App.renderChat();
+    if (accept) {
+      App.addChatSystemMessage(contactId, '你接受了' + name + '的邀请，一起听《' + (msg.trackTitle || '') + '》');
+      if (App.playTrackById) App.playTrackById(msg.trackId);
+    } else {
+      App.addChatSystemMessage(contactId, '你拒绝了' + name + '的一起听邀请');
+    }
+  }
+
   /* TA 偶尔会问：这句话能不能收进字卡库 */
   function maybeOfferCard(contactId, text) {
     const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
@@ -1590,7 +1800,7 @@
     const value = String(text || '').trim();
     if (value.length < 2 || value.length > 60) return;
     if (Math.random() * 100 >= prob) return;
-    const exists = (App.state.cards || []).some(function (c) {
+    const exists = App.visibleCards(contactId).some(function (c) {
       return String(c.text || '').trim() === value;
     });
     if (exists) return;
@@ -1624,7 +1834,7 @@
     msg.status = accept ? 'accepted' : 'rejected';
     if (accept) {
       const value = String(msg.text || '').trim();
-      const exists = (App.state.cards || []).some(function (c) {
+      const exists = App.visibleCards(contactId).some(function (c) {
         return String(c.text || '').trim() === value;
       });
       if (!exists) {
@@ -1635,6 +1845,7 @@
           trigger: '',
           enabled: true,
           builtin: false,
+          owner: contactId || '',
         });
       }
     }
@@ -1708,7 +1919,7 @@
     if (!grid) return;
     let cards = [];
     try {
-      cards = (App.state.cards || []).filter(function (c) {
+      cards = App.visibleCards().filter(function (c) {
         return c.category === '拍一拍' && c.enabled !== false && c.text;
       });
     } catch (err) {
@@ -1824,6 +2035,7 @@
     pushMessage({ id: App.uid('m'), role: 'me', type: 'image', src: chatImageDraft, ts: Date.now() });
     chatImageDraft = '';
     closeStickerPanel();
+    cancelNoReply(App.chatContactId);
     scheduleReply(App.chatContactId, '');
   }
 
@@ -2403,6 +2615,14 @@
         e.stopPropagation();
         closeMsgActions();
         resolveCardOffer(App.chatContactId, offerBtn.dataset.cardOfferMsg, offerBtn.dataset.cardOfferAct);
+        return;
+      }
+      const inviteBtn = e.target.closest('[data-music-invite-act]');
+      if (inviteBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMsgActions();
+        resolveMusicInvite(App.chatContactId, inviteBtn.dataset.musicInviteMsg, inviteBtn.dataset.musicInviteAct);
         return;
       }
       const wishBuyBtn = e.target.closest('[data-wish-buy]');

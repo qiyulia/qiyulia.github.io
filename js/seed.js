@@ -2,7 +2,7 @@
 (function () {
   const App = (window.App = window.App || {});
 
-  App.CATEGORIES = ['聊天', '拍一拍', '情绪', '语音', '默契问答', '地点'];
+  App.CATEGORIES = ['聊天', '拍一拍', '情绪', '语音', '修罗场', '追加', '默契问答', '地点'];
 
   /* 默认头像：灰底人物剪影 */
   App.DEFAULT_AVATAR = 'data:image/svg+xml,' + encodeURIComponent(
@@ -77,7 +77,30 @@
     '碰了碰{name}的手背',
   ];
 
+  /* 修罗场：在聊天里提到其他联系人名字时，TA 的吃醋回复 */
+  const JEALOUS_RAW = [
+    '你刚才叫的是谁的名字？',
+    'TA 是谁？我认识吗？',
+    '当着我的面提别人，嗯？',
+    '我吃醋了，哄我，就现在。',
+    '你和 TA 是什么关系，从实招来。',
+    '名字我都听见了，解释一下。',
+    '哼，你去找 TA 好了。',
+    '再说一遍，你刚刚想跟谁说这句话？',
+  ];
+
   App.BUILTIN_CARDS = [];
+
+  JEALOUS_RAW.forEach(function (text, i) {
+    App.BUILTIN_CARDS.push({
+      id: 'builtin-jealous-' + i,
+      category: '修罗场',
+      text: text,
+      trigger: '',
+      enabled: true,
+      builtin: true,
+    });
+  });
 
   CHAT_RAW.forEach(function (row, i) {
     App.BUILTIN_CARDS.push({
@@ -308,6 +331,29 @@
     });
   });
 
+  /* 追加卡示例：kind=next 表示说完主卡后追发一条；kind=noreply 表示你没及时回复时 TA 追问 */
+  App.BUILTIN_CARDS.push({
+    id: 'builtin-followup-0',
+    category: '追加',
+    kind: 'next',
+    parentId: 'builtin-chat-8',
+    text: '想我了就直说，我又不会笑话你。',
+    trigger: '',
+    enabled: true,
+    builtin: true,
+  });
+  App.BUILTIN_CARDS.push({
+    id: 'builtin-followup-1',
+    category: '追加',
+    kind: 'noreply',
+    parentId: 'builtin-chat-29',
+    delaySec: 60,
+    text: '睡着了吗？那明天早上再聊，做个好梦。',
+    trigger: '',
+    enabled: true,
+    builtin: true,
+  });
+
   App.DEFAULT_STICKERS = { mine: [], ta: [], public: [] };
 
   App.MUSIC_SEED = function () {
@@ -365,6 +411,10 @@
         musicPlayProb: 60,
         musicFavProb: 25,
         musicSwitchProb: 30,
+        musicInviteProb: 5,
+        jealousyProb: 30,
+        contextReplyEnabled: true,
+        followupDelaySec: 60,
         iconsFollowTheme: true,
       },
       contacts: [
