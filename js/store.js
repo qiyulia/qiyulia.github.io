@@ -1004,13 +1004,13 @@
     const texts = {};
     (App.BUILTIN_CARDS || []).forEach(function (c) {
       const text = String(c.text || '').trim();
-      if (text) texts[text] = true;
+      if (text) texts[(c.category || '') + '|' + text] = true;
     });
     const before = s.cards.length;
     s.cards = s.cards.filter(function (c) {
       if (c.builtin || c.audio) return true;
       const text = String(c.text || '').trim();
-      return !text || !texts[text];
+      return !text || !texts[(c.category || '') + '|' + text];
     });
     return before - s.cards.length;
   };
@@ -1055,6 +1055,7 @@
     if (m.type === 'gift') return '[礼物] ' + (m.productName || '');
     if (m.type === 'wish') return '[心愿] ' + (m.productName || '');
     if (m.type === 'marketBuy') return '[已买下] ' + (m.productName || '');
+    if (m.type === 'location') return '[位置] ' + (m.placeName || '');
     return m.text || '';
   };
 

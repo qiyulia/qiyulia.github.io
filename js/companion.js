@@ -34,11 +34,11 @@
     return st.contacts && st.contacts.length ? st.contacts[0].id : null;
   }
 
-  function pushChat(role, text) {
+  function pushChat(role, text, extra) {
     const id = contactId();
     if (!id || !text) return;
     const chat = App.state.chats[id] || (App.state.chats[id] = []);
-    chat.push({ id: App.uid('m'), role: role, type: 'pat', text: text, ts: Date.now() });
+    chat.push(Object.assign({ id: App.uid('m'), role: role, type: 'pat', text: text, ts: Date.now() }, extra || {}));
     if (App.chatOpen && App.chatOpen(id)) {
       if (App.renderChat) App.renderChat();
     } else {
@@ -426,6 +426,16 @@
     return day;
   }
 
+  function taMoodRecordedOn(key, hasMine) {
+    if (key === todayKey()) {
+      const day = taMoodDay();
+      return day.recorded ? { recorded: true, mood: day.mood } : { recorded: false };
+    }
+    if (!hasMine) return { recorded: false };
+    const recorded = seedHash(key + '|ta|roll') % 100 < taMoodProbability();
+    return recorded ? { recorded: true, mood: taMoodOf(key).id } : { recorded: false };
+  }
+
   function refreshTaMood(force) {
     if (!App.state) return;
     const data = moodState();
@@ -540,9 +550,16 @@
         const key = year + '-' + pad(month + 1) + '-' + pad(day);
         const entry = entries[key];
         const mood = entry ? moodOf(entry.mood) : null;
+        const taDay = taMoodRecordedOn(key, !!entry);
+        const taMood = taDay.recorded ? moodOf(taDay.mood) : null;
         const isToday = key === todayKey();
-        html += '<i class="' + (isToday ? 'is-today' : '') + '"' +
-          (mood ? ' style="background:' + mood.color + '" title="' + key + ' · ' + mood.label + (entry.note ? ' · ' + App.esc(entry.note) : '') + '"' : '') + '>' + day + '</i>';
+        const icons = (mood ? '<b title="我 · ' + mood.label + '">' + mood.emoji + '</b>' : '') +
+          (taMood ? '<b title="TA · ' + taMood.label + '">' + taMood.emoji + '</b>' : '');
+        html += '<i class="mood-day' + (isToday ? ' is-today' : '') + '"' +
+          (mood ? ' style="background:' + mood.color + '"' : '') +
+          ' title="' + key + (mood ? ' · 我 ' + mood.label : '') + (taMood ? ' · TA ' + taMood.label : '') + '">' +
+          '<span class="mood-day-num">' + day + '</span>' +
+          '<span class="mood-day-icons">' + icons + '</span></i>';
       }
       html += '</div>';
       box.innerHTML = html;
@@ -1071,8 +1088,10 @@
       st.location = {
         enabled: false,
         paused: false,
+        shareChip: false,
         me: { lat: 31.2304, lng: 121.4737 },
         ta: { lat: 31.2361, lng: 121.4872 },
+        placeId: { me: '', ta: '' },
         status: { me: '在家-休息中', ta: '在公司-忙碌中' },
         zones: [
           { id: 'home', name: '家', lat: 31.2304, lng: 121.4737, r: 320 },
@@ -1084,6 +1103,8 @@
     const loc = st.location;
     if (!loc.me) loc.me = { lat: 31.2304, lng: 121.4737 };
     if (!loc.ta) loc.ta = { lat: 31.2361, lng: 121.4872 };
+    if (typeof loc.shareChip !== 'boolean') loc.shareChip = false;
+    if (!loc.placeId || typeof loc.placeId !== 'object') loc.placeId = { me: '', ta: '' };
     if (!loc.status) loc.status = { me: '在家-休息中', ta: '在公司-忙碌中' };
     if (!Array.isArray(loc.zones) || !loc.zones.length) {
       loc.zones = [
@@ -1117,7 +1138,149 @@
     return loc.zones.find(function (z) { return distanceMeters(pos, z) <= z.r; }) || null;
   }
 
+  /* ---------- 地点字卡 ---------- */
+  function placeCards() {
+    return (App.state.cards || []).filter(function (c) {
+      return c && c.category === '地点' && c.text && c.enabled !== false;
+    });
+  }
+
+  function placeCardById(id) {
+    if (!id) return null;
+    return placeCards().find(function (c) { return c.id === id; }) || null;
+  }
+
+  function placeNameOf(loc, who) {
+    const card = placeCardById(loc.placeId && loc.placeId[who]);
+    return card ? card.text : '';
+  }
+
+  function ensurePlaceCoords(card, loc, index) {
+    if (card.place && Number.isFinite(card.place.lat) && Number.isFinite(card.place.lng)) return card.place;
+    const step = index % 5 - 2;
+    card.place = {
+      lat: loc.me.lat + step * 0.0022 + 0.0016,
+      lng: loc.me.lng + step * 0.0026,
+    };
+    return card.place;
+  }
+
+  function setPlaceFor(who, id) {
+    const loc = locationState();
+    if (!id) {
+      loc.placeId[who] = '';
+      App.save();
+      renderLocation();
+      return;
+    }
+    const card = placeCardById(id);
+    if (!card) return;
+    const coords = ensurePlaceCoords(card, loc, placeCards().indexOf(card));
+    loc.placeId[who] = id;
+    loc[who] = { lat: coords.lat, lng: coords.lng };
+    const state = (loc.status[who] || '').split('-')[1] || (who === 'me' ? '休息中' : '忙碌中');
+    loc.status[who] = '在' + card.text + '-' + state;
+    applyZone(loc, who, zoneOf(loc, loc[who]));
+    App.save();
+    renderLocation();
+    App.toast((who === 'me' ? '我的' : 'TA 的') + '位置已设为「' + card.text + '」');
+  }
+
+  function addPlaceCard() {
+    const input = el('#loc-new-place');
+    const name = input ? input.value.trim() : '';
+    if (!name) { if (input) input.focus(); return; }
+    const exists = placeCards().find(function (c) { return c.text === name; });
+    if (exists) {
+      setPlaceFor(locPickWho, exists.id);
+      if (input) input.value = '';
+      return;
+    }
+    const loc = locationState();
+    const card = {
+      id: App.uid('card'),
+      category: '地点',
+      text: name,
+      trigger: '',
+      enabled: true,
+      place: null,
+    };
+    App.state.cards.push(card);
+    ensurePlaceCoords(card, loc, placeCards().length - 1);
+    if (input) input.value = '';
+    renderLocation();
+    setPlaceFor(locPickWho, card.id);
+  }
+
+  function renderLocationPlaces(loc) {
+    const selects = { me: el('#loc-me-place'), ta: el('#loc-ta-place') };
+    const cards = placeCards();
+    Object.keys(selects).forEach(function (who) {
+      const select = selects[who];
+      if (!select) return;
+      select.innerHTML = '<option value="">未设置</option>' + cards.map(function (c) {
+        return '<option value="' + App.esc(c.id) + '">' + App.esc(c.text) + '</option>';
+      }).join('');
+      select.value = loc.placeId[who] || '';
+    });
+    document.querySelectorAll('[data-loc-pick]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.locPick === locPickWho);
+    });
+    const tip = el('#loc-map-tip');
+    if (tip) tip.textContent = locPickWho === 'ta'
+      ? '点地图可以设置 TA 的位置'
+      : '点地图可以移动我的位置';
+  }
+
+  function renderChatLocation() {
+    const chip = el('#chat-loc-chip');
+    if (!chip) return;
+    const loc = App.state && App.state.location;
+    const show = !!(loc && loc.enabled && !loc.paused && loc.shareChip);
+    chip.hidden = !show;
+    if (!show) return;
+    const dist = el('#chat-loc-distance');
+    const detail = el('#chat-loc-detail');
+    if (dist) dist.textContent = distanceText(distanceMeters(loc.me, loc.ta));
+    if (detail) {
+      const me = placeNameOf(loc, 'me') || loc.status.me;
+      const ta = placeNameOf(loc, 'ta') || loc.status.ta;
+      detail.textContent = '我 · ' + me + ' ／ TA · ' + ta;
+    }
+  }
+  App.renderChatLocation = renderChatLocation;
+
+  function sendLocationFromTa() {
+    const loc = locationState();
+    if (!loc.enabled || loc.paused) {
+      App.toast('先在「位置」里开启共享');
+      if (App.go) App.go('location');
+      return;
+    }
+    const cards = placeCards();
+    if (!cards.length) { App.toast('先去「位置」里添加一个地点'); return; }
+    const current = placeCardById(loc.placeId.ta);
+    let card = current;
+    if (!card || (cards.length > 1 && Math.random() < 0.6)) {
+      const options = cards.filter(function (c) { return c.id !== (current && current.id); });
+      card = options[Math.floor(Math.random() * options.length)] || cards[0];
+    }
+    const coords = ensurePlaceCoords(card, loc, cards.indexOf(card));
+    loc.ta = { lat: coords.lat, lng: coords.lng };
+    loc.placeId.ta = card.id;
+    const state = (loc.status.ta || '').split('-')[1] || '忙碌中';
+    loc.status.ta = '在' + card.text + '-' + state;
+    App.save();
+    pushChat('ta', distanceText(distanceMeters(loc.me, loc.ta)) + '，我在这里。', {
+      type: 'location',
+      placeName: card.text,
+    });
+    if (currentView('location')) renderLocation();
+    if (App.renderChatLocation) App.renderChatLocation();
+  }
+
   let locView = null;
+  let locPickWho = 'me';
 
   function mapProject(loc) {
     const pts = [loc.me, loc.ta].concat(loc.zones.map(function (z) { return { lat: z.lat, lng: z.lng }; }));
@@ -1218,20 +1381,26 @@
     if (!meBox || !taBox) return;
     const meZone = loc.zones.find(function (z) { return z.id === loc.inside.me; });
     const taZone = loc.zones.find(function (z) { return z.id === loc.inside.ta; });
+    const mePlace = placeNameOf(loc, 'me');
+    const taPlace = placeNameOf(loc, 'ta');
     const statusSelect = function (side) {
       return '<select class="loc-status-select" data-loc-status="' + side + '">' +
-        LOC_STATUS.map(function (s) {
-          return '<option value="' + s + '"' + (loc.status[side] === s ? ' selected' : '') + '>' + s + '</option>';
-        }).join('') + '</select>';
+        (function () {
+          const opts = LOC_STATUS.slice();
+          if (loc.status[side] && opts.indexOf(loc.status[side]) === -1) opts.unshift(loc.status[side]);
+          return opts.map(function (s) {
+            return '<option value="' + s + '"' + (loc.status[side] === s ? ' selected' : '') + '>' + s + '</option>';
+          }).join('');
+        })() + '</select>';
     };
     meBox.innerHTML =
       '<div class="loc-card-head"><span class="loc-who is-me">我</span>' +
-        '<span class="loc-zone-name">' + (loc.paused ? '已暂停共享' : (meZone ? meZone.name : '外面')) + '</span></div>' +
+        '<span class="loc-zone-name">' + (loc.paused ? '已暂停共享' : App.esc(mePlace || (meZone ? meZone.name : '外面'))) + '</span></div>' +
       '<div class="loc-bubble">' + App.esc(loc.status.me) + '</div>' +
       (loc.paused ? '<p class="field-hint">暂停期间，TA 看不到你的位置。</p>' : statusSelect('me'));
     taBox.innerHTML =
       '<div class="loc-card-head"><span class="loc-who is-ta">TA</span>' +
-        '<span class="loc-zone-name">' + (loc.paused ? '看不到你' : (taZone ? taZone.name : '外面')) + '</span></div>' +
+        '<span class="loc-zone-name">' + (loc.paused ? '看不到你' : App.esc(taPlace || (taZone ? taZone.name : '外面'))) + '</span></div>' +
       '<div class="loc-bubble is-ta">' + App.esc(loc.status.ta) + '</div>' +
       statusSelect('ta');
   }
@@ -1275,6 +1444,8 @@
     if (distance) {
       distance.textContent = !loc.enabled ? '相距 —' : loc.paused ? '已暂停' : distanceText(distanceMeters(loc.me, loc.ta));
     }
+    const shareChip = el('#loc-share-chip');
+    if (shareChip) shareChip.checked = !!loc.shareChip;
 
     if (loc.enabled && !loc.paused) drawLocationMap(loc);
     else {
@@ -1283,6 +1454,8 @@
     }
     renderLocationCards(loc);
     renderLocationZones(loc);
+    renderLocationPlaces(loc);
+    if (App.renderChatLocation) App.renderChatLocation();
   }
 
   function enableLocation() {
@@ -1366,9 +1539,14 @@
     const y = (evt.clientY - rect.top) / rect.height * 340;
     const lng = locView.lngMin + (x - 34) / 332 * (locView.lngMax - locView.lngMin);
     const lat = locView.latMin + (306 - y) / 250 * (locView.latMax - locView.latMin);
-    loc.me.lat = lat;
-    loc.me.lng = lng;
-    applyZone(loc, 'me', zoneOf(loc, loc.me));
+    const who = locPickWho;
+    loc[who].lat = lat;
+    loc[who].lng = lng;
+    /* 选过地点卡时，把这张卡的坐标一起更新，相当于在地图上改地点 */
+    const card = placeCardById(loc.placeId[who]);
+    if (card) card.place = { lat: lat, lng: lng };
+    applyZone(loc, who, zoneOf(loc, loc[who]));
+    App.save();
     renderLocation();
   }
 
@@ -1998,6 +2176,9 @@
         songState();
         setSongMode('solo');
         showPanel('#songquiz-dialog');
+      } else if (tool === 'sendloc') {
+        closeMore();
+        sendLocationFromTa();
       }
     });
 
@@ -2085,8 +2266,8 @@
 
     /* 回忆墙 */
     const mwAdd = el('#mw-add');
-    if (mwAdd) mwAdd.addEventListener('click', openMemoryDialog);
     const mwFile = el('#mw-file');
+    if (mwAdd && mwFile) mwAdd.addEventListener('click', function () { mwFile.click(); });
     if (mwFile) mwFile.addEventListener('change', function () {
       importMemoryFiles(mwFile.files);
       mwFile.value = '';
@@ -2185,7 +2366,33 @@
     });
     const locMap = el('#loc-map');
     if (locMap) locMap.addEventListener('click', moveMeByTap);
+    const locShareChip = el('#loc-share-chip');
+    if (locShareChip) locShareChip.addEventListener('change', function () {
+      const loc = locationState();
+      loc.shareChip = !!locShareChip.checked;
+      App.save();
+      renderLocation();
+      App.toast(loc.shareChip ? '聊天界面会显示距离小窗' : '已关闭聊天距离小窗');
+    });
+    const locAddPlace = el('#loc-add-place');
+    if (locAddPlace) locAddPlace.addEventListener('click', addPlaceCard);
+    const locNewPlace = el('#loc-new-place');
+    if (locNewPlace) locNewPlace.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); addPlaceCard(); }
+    });
+    document.querySelectorAll('[data-loc-pick]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        locPickWho = btn.dataset.locPick;
+        renderLocation();
+        App.toast(locPickWho === 'ta' ? '点地图可以设置 TA 的位置' : '点地图可以移动我的位置');
+      });
+    });
     document.addEventListener('change', function (e) {
+      const placeSelect = e.target.closest('[data-loc-place]');
+      if (placeSelect) {
+        setPlaceFor(placeSelect.dataset.locPlace, placeSelect.value);
+        return;
+      }
       const status = e.target.closest('[data-loc-status]');
       if (status) {
         const side = status.dataset.locStatus;

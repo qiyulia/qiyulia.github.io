@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261116-105">
+<link rel="stylesheet" href="css/style.css?v=20261116-106">
 </head>
 <body>
 <div class="stage">
@@ -45,20 +45,10 @@ if ('caches' in window) {
             </div>
 
             <div class="widget-board">
-              <button type="button" class="widget board-widget calendar-widget" data-go="calendar" aria-label="打开日历">
-                <div class="widget-title-row">
-                  <span class="widget-label">日历</span>
-                  <strong id="w-month"></strong>
-                </div>
-                <div class="calendar-week" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
-                <div class="calendar-grid" id="w-calendar"></div>
-              </button>
-
-              <button type="button" class="widget board-widget anniversary-widget" data-go="anniversary" aria-label="打开纪念日">
-                <span class="widget-label">纪念日</span>
-                <span class="anniversary-days"><strong id="w-days">1</strong><span>天</span></span>
-                <span class="anniversary-copy" id="w-anniv"></span>
-                <span class="widget-foot" id="w-since"></span>
+              <button type="button" class="widget board-widget photo-widget" data-go="memorywall" aria-label="打开回忆墙">
+                <span class="widget-label">回忆相框</span>
+                <span class="photo-widget-frame"><img id="d-photo" alt=""><em id="d-photo-empty">还没有照片</em></span>
+                <span class="widget-foot" id="d-photo-caption">把喜欢的瞬间放进来</span>
               </button>
 
               <section class="widget board-widget music-widget">
@@ -106,11 +96,6 @@ if ('caches' in window) {
                 <span class="widget-label">今日字笺</span>
                 <p id="d-today-card">……</p>
               </div>
-              <button type="button" class="widget photo-widget" data-go="memorywall" aria-label="打开回忆墙">
-                <span class="widget-label">回忆相框</span>
-                <span class="photo-widget-frame"><img id="d-photo" alt=""><em id="d-photo-empty">还没有照片</em></span>
-                <span class="widget-foot" id="d-photo-caption">把喜欢的瞬间放进来</span>
-              </button>
               <button type="button" class="widget radio-widget" id="home-radio" data-go="music" hidden>
                 <span class="widget-label" id="home-radio-label">次元电台</span>
                 <span class="radio-widget-line" id="home-radio-quote">这个时间，电台正在等你。</span>
@@ -563,18 +548,40 @@ if ('caches' in window) {
             <button type="button" class="btn primary" id="loc-enable">开启共享</button>
             <button type="button" class="btn ghost" id="loc-pause">暂停共享</button>
           </div>
+          <div class="loc-share-line">
+            <div class="loc-share-copy">
+              <strong>共享定位小窗</strong>
+              <span class="field-hint">开启后只在聊天界面显示距离小窗，其他页面不显示。</span>
+            </div>
+            <label class="switch"><input type="checkbox" id="loc-share-chip"><span class="slider"></span></label>
+          </div>
         </div>
 
         <div class="loc-map-panel">
           <svg id="loc-map" class="loc-map" viewBox="0 0 400 340" role="img" aria-label="位置地图"></svg>
           <div class="loc-distance" id="loc-distance">相距 —</div>
-          <div class="loc-map-tip">点地图可以移动我的位置</div>
+          <div class="loc-map-tip" id="loc-map-tip">点地图可以移动我的位置</div>
           <div class="loc-map-lock" id="loc-map-lock">开启共享后显示地图</div>
         </div>
 
         <div class="loc-cards">
           <div class="loc-card" id="loc-card-me"></div>
           <div class="loc-card" id="loc-card-ta"></div>
+        </div>
+
+        <div class="panel loc-place-panel">
+          <h3>地点</h3>
+          <p class="field-hint">地点字卡只在地图和「让 TA 发位置」时使用，不参与聊天抽卡。</p>
+          <label class="field"><span>我的地点</span><select id="loc-me-place" data-loc-place="me"></select></label>
+          <label class="field"><span>TA 的地点</span><select id="loc-ta-place" data-loc-place="ta"></select></label>
+          <div class="loc-place-add">
+            <input id="loc-new-place" maxlength="14" placeholder="新增地点，如：第一次约会的电影院">
+            <button type="button" class="btn ghost" id="loc-add-place">添加</button>
+          </div>
+          <div class="loc-pick-row">
+            <button type="button" class="btn ghost" data-loc-pick="me">点地图设我的位置</button>
+            <button type="button" class="btn ghost" data-loc-pick="ta">点地图设 TA 的位置</button>
+          </div>
         </div>
 
         <div class="panel loc-zone-panel">
@@ -737,6 +744,11 @@ if ('caches' in window) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
         </button>
       </header>
+      <button type="button" class="chat-loc-chip" id="chat-loc-chip" data-go="location" hidden>
+        <span class="chat-loc-pin" aria-hidden="true">◎</span>
+        <span class="chat-loc-main"><strong id="chat-loc-distance">相距 —</strong><span id="chat-loc-detail"></span></span>
+        <span class="chat-loc-arrow" aria-hidden="true">›</span>
+      </button>
       <section id="chat-music-float" class="music-float" aria-label="悬浮音乐播放器">
         <div class="music-float-top" data-music-float-drag>
           <span class="music-float-grip" aria-hidden="true"></span>
@@ -1778,6 +1790,7 @@ if ('caches' in window) {
     <button type="button" class="more-app" data-tool="divine" data-cat="tool" title="塔罗牌 / 雷诺曼占卜"><span class="more-app-icon is-divine">签</span><span>占卜</span></button>
     <button type="button" class="more-app" data-tool="avatar" data-cat="tool" title="互换头像"><span class="more-app-icon is-avatar">换</span><span>头像与名字</span></button>
     <button type="button" class="more-app" data-tool="sleep" data-cat="tool" title="白噪音与混音，睡前放松"><span class="more-app-icon is-sleep">眠</span><span>助眠</span></button>
+    <button type="button" class="more-app" data-tool="sendloc" data-cat="tool" title="让 TA 发一条地图里的位置"><span class="more-app-icon is-tool">地</span><span>TA 的位置</span></button>
     <button type="button" class="more-app" data-tool="mine" data-cat="game" title="你一下，TA 一下，双人轮流扫雷" hidden><span class="more-app-icon is-game">雷</span><span>扫雷</span></button>
     <button type="button" class="more-app" data-tool="jump" data-cat="game" title="滑到正中间时点确定" hidden><span class="more-app-icon is-jump">跳</span><span>跳一跳</span></button>
     <button type="button" class="more-app" data-tool="sheep" data-cat="game" title="凑三张同款消掉一组，消掉一组后换人" hidden><span class="more-app-icon is-sheep">羊</span><span>羊了个羊</span></button>
@@ -2442,19 +2455,19 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261116-105"></script>
-<script src="js/store.js?v=20261116-105"></script>
-<script src="js/desktop.js?v=20261116-105"></script>
-<script src="js/chat.js?v=20261116-105"></script>
-<script src="js/cards.js?v=20261116-105"></script>
-<script src="js/settings.js?v=20261116-105"></script>
-<script src="js/moments.js?v=20261116-105"></script>
-<script src="js/calendar.js?v=20261116-105"></script>
-<script src="js/music.js?v=20261116-105"></script>
-<script src="js/market.js?v=20261116-105"></script>
-<script src="js/mail.js?v=20261116-105"></script>
-<script src="js/extras.js?v=20261116-105"></script>
-<script src="js/companion.js?v=20261116-105"></script>
-<script src="js/app.js?v=20261116-105"></script>
+<script src="js/seed.js?v=20261116-106"></script>
+<script src="js/store.js?v=20261116-106"></script>
+<script src="js/desktop.js?v=20261116-106"></script>
+<script src="js/chat.js?v=20261116-106"></script>
+<script src="js/cards.js?v=20261116-106"></script>
+<script src="js/settings.js?v=20261116-106"></script>
+<script src="js/moments.js?v=20261116-106"></script>
+<script src="js/calendar.js?v=20261116-106"></script>
+<script src="js/music.js?v=20261116-106"></script>
+<script src="js/market.js?v=20261116-106"></script>
+<script src="js/mail.js?v=20261116-106"></script>
+<script src="js/extras.js?v=20261116-106"></script>
+<script src="js/companion.js?v=20261116-106"></script>
+<script src="js/app.js?v=20261116-106"></script>
 </body>
 </html>

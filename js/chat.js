@@ -117,6 +117,7 @@
     /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
     if (typingAllowed(id)) list.appendChild(typingRow());
     updateSideButtons();
+    if (App.renderChatLocation) App.renderChatLocation();
     renderStickerPanel();
     renderComposerQuote();
     if (stickBottom) {
@@ -640,6 +641,18 @@
           '</div>' +
         '</div>' +
         '</div>';
+    }
+    if (m.type === 'location') {
+      return messageCardShell(m, contact,
+        '<div class="bubble bubble-location">' +
+          '<div class="chat-loc-card">' +
+            '<span class="chat-loc-card-pin" aria-hidden="true">◎</span>' +
+            '<div class="chat-loc-card-copy">' +
+              '<strong>' + App.esc(m.placeName || 'TA 的位置') + '</strong>' +
+              '<span>' + App.esc(m.text || '') + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>');
     }
     if (m.type === 'avatarNotice') {
       return '<div class="msg-notice">★ ' + App.esc(m.text) + '</div>';

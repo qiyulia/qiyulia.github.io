@@ -81,14 +81,16 @@
 
   function renderWidgets(now) {
     const st = App.state;
-    renderCalendar(now);
+    if (el('#w-calendar')) renderCalendar(now);
 
-    el('#w-days').textContent = App.daysSince(st.profile.since);
-    const anniversary = (App.nearestAnniversary && App.nearestAnniversary()) || nextAnniversary(st.profile.since);
-    el('#w-anniv').textContent = anniversary
-      ? (anniversary.days === 0 ? '就是今天，' + anniversary.label + '快乐。' : '距 ' + anniversary.label + ' 还有 ' + anniversary.days + ' 天')
-      : '在设置里写下你们的纪念日。';
-    el('#w-since').textContent = st.profile.since ? '始于 ' + st.profile.since.replace(/-/g, '.') : '';
+    if (el('#w-days')) el('#w-days').textContent = App.daysSince(st.profile.since);
+    if (el('#w-anniv')) {
+      const anniversary = (App.nearestAnniversary && App.nearestAnniversary()) || nextAnniversary(st.profile.since);
+      el('#w-anniv').textContent = anniversary
+        ? (anniversary.days === 0 ? '就是今天，' + anniversary.label + '快乐。' : '距 ' + anniversary.label + ' 还有 ' + anniversary.days + ' 天')
+        : '在设置里写下你们的纪念日。';
+    }
+    if (el('#w-since')) el('#w-since').textContent = st.profile.since ? '始于 ' + st.profile.since.replace(/-/g, '.') : '';
 
     App.applyIconStyle();
     if (App.renderMusic) App.renderMusic();

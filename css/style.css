@@ -5652,3 +5652,136 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 .festival-line[hidden],
 .radio-mini[hidden],
 .radio-widget[hidden] { display: none; }
+
+/* ---------------- 位置：宽度、地点、聊天距离小窗 ---------------- */
+.loc-map-panel {
+  flex: 0 0 auto;
+  margin-left: -16px;
+  margin-right: -16px;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+.loc-share-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.loc-share-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.loc-share-copy strong { font-size: 12px; color: var(--ink); }
+.loc-share-copy .field-hint { margin: 0; font-size: 9.5px; }
+.loc-place-panel { display: flex; flex-direction: column; gap: 9px; }
+.loc-place-panel h3 { font-size: 12.5px; }
+.loc-place-add { display: flex; gap: 8px; }
+.loc-place-add input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--ink);
+}
+.loc-pick-row { display: flex; gap: 8px; }
+.loc-pick-row .btn { flex: 1; font-size: 10.5px; padding: 8px 6px; }
+.loc-pick-row .btn.is-active,
+.loc-quick .btn.is-active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+.chat-loc-chip {
+  position: absolute;
+  bottom: 78px;
+  left: 14px;
+  right: 14px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, .86);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 8px 22px var(--shadow);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.chat-loc-chip[hidden] { display: none; }
+.chat-loc-pin {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+}
+.chat-loc-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.chat-loc-main strong { font-size: 11.5px; font-weight: 600; }
+.chat-loc-main span {
+  font-size: 9.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-loc-arrow { flex: 0 0 auto; color: var(--muted); font-size: 16px; line-height: 1; }
+
+.bubble.bubble-location { padding: 0; background: transparent; border: none; box-shadow: none; }
+.chat-loc-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #eaf5ff, #dcecf9);
+  border: 1px solid rgba(91, 143, 201, .22);
+}
+.chat-loc-card-pin {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+}
+.chat-loc-card-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chat-loc-card-copy strong { font-size: 12px; color: var(--ink); }
+.chat-loc-card-copy span { font-size: 10px; color: #5f7d96; }
+
+/* ---------------- 心情日历：数字下的小天气 ---------------- */
+.mood-month-grid i.mood-day {
+  aspect-ratio: auto;
+  min-height: 39px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1px;
+  padding: 3px 1px 2px;
+  color: #43576a;
+}
+.mood-day-num { font-size: 10px; line-height: 1.15; font-weight: 600; }
+.mood-day-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 11px;
+  line-height: 1;
+}
+.mood-day-icons b { font-size: 9.5px; font-weight: 400; line-height: 1; }
+.mood-month-grid i.is-empty { min-height: 39px; }

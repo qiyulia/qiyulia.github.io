@@ -2,7 +2,7 @@
 (function () {
   const App = (window.App = window.App || {});
 
-  App.CATEGORIES = ['聊天', '拍一拍', '情绪', '语音', '默契问答'];
+  App.CATEGORIES = ['聊天', '拍一拍', '情绪', '语音', '默契问答', '地点'];
 
   /* 默认头像：灰底人物剪影 */
   App.DEFAULT_AVATAR = 'data:image/svg+xml,' + encodeURIComponent(
@@ -264,6 +264,30 @@
       '对方最想和我一起保守的秘密是什么？',
     ],
   };
+
+  /* 地点字卡：只用于位置地图与「TA 的位置」，不参与聊天抽卡 */
+  const PLACE_SEED = [
+    ['家', 31.2304, 121.4737],
+    ['公司', 31.2361, 121.4872],
+    ['学校', 31.2240, 121.4600],
+    ['常去的咖啡馆', 31.2332, 121.4810],
+    ['散步的公园', 31.2275, 121.4688],
+    ['电影院', 31.2398, 121.4705],
+    ['超市', 31.2255, 121.4825],
+    ['海边', 31.2600, 121.5300],
+  ];
+  App.BUILTIN_CARDS = App.BUILTIN_CARDS || [];
+  PLACE_SEED.forEach(function (item, i) {
+    App.BUILTIN_CARDS.push({
+      id: 'builtin-place-' + i,
+      category: '地点',
+      text: item[0],
+      trigger: '',
+      enabled: true,
+      builtin: true,
+      place: { lat: item[1], lng: item[2] },
+    });
+  });
 
   App.QUIZ_BANK = QUIZ_BANK;
   App.QUIZ_BY_CARD = {};
