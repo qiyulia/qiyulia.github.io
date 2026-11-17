@@ -251,6 +251,7 @@
     el('#set-rp-return-prob').value = st.settings.redpacketReturnProb == null ? 20 : st.settings.redpacketReturnProb;
     el('#set-emotion-prob').value = st.settings.emotionProb == null ? 30 : st.settings.emotionProb;
     el('#set-ta-mood-prob').value = st.settings.taMoodProb == null ? 70 : st.settings.taMoodProb;
+    el('#set-loc-prompt-prob').value = st.settings.locPromptProb == null ? 20 : st.settings.locPromptProb;
     el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
     el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
     el('#set-ta-moment-prob').value = st.settings.taMomentProb == null ? 25 : st.settings.taMomentProb;
@@ -808,6 +809,11 @@
       App.state.settings.taMoodProb = v;
       App.save();
       if (App.refreshTaMood) App.refreshTaMood(true);
+    });
+
+    App.bindStepper('#set-loc-prompt-prob', function (v) {
+      App.state.settings.locPromptProb = v;
+      markDirty();
     });
 
     App.bindStepper('#set-ta-like', function (v) {

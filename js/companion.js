@@ -994,8 +994,6 @@
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   }
 
-  let mwPosterUrl = '';
-
   function makeMemoryPoster() {
     const list = visiblePhotos().slice(0, 4);
     if (!list.length) { App.toast('先放几张照片吧'); return; }
@@ -1065,13 +1063,10 @@
         ctx.fillText('拾忆 · 把普通的一天，留成以后记得的片段', canvas.width / 2, 1235);
 
         const url = canvas.toDataURL('image/jpeg', 0.88);
-        mwPosterUrl = url;
         const img = el('#mw-poster-img');
         const save = el('#mw-poster-save');
         if (img) img.src = url;
         if (save) save.href = url;
-        const share = el('#mw-poster-share');
-        if (share) share.hidden = !(navigator.share && navigator.canShare);
         const d = el('#mw-poster-dialog');
         if (d) d.showModal();
       });
@@ -1178,6 +1173,7 @@
     const coords = ensurePlaceCoords(card, loc, placeCards().indexOf(card));
     loc.placeId[who] = id;
     loc[who] = { lat: coords.lat, lng: coords.lng };
+    locView = null;
     const state = (loc.status[who] || '').split('-')[1] || (who === 'me' ? '休息中' : '忙碌中');
     loc.status[who] = '在' + card.text + '-' + state;
     applyZone(loc, who, zoneOf(loc, loc[who]));
@@ -1213,29 +1209,53 @@
   }
 
   function renderLocationPlaces(loc) {
-    const selects = { me: el('#loc-me-place'), ta: el('#loc-ta-place') };
-    const cards = placeCards();
-    Object.keys(selects).forEach(function (who) {
-      const select = selects[who];
-      if (!select) return;
-      select.innerHTML = '<option value="">未设置</option>' + cards.map(function (c) {
-        return '<option value="' + App.esc(c.id) + '">' + App.esc(c.text) + '</option>';
-      }).join('');
-      select.value = loc.placeId[who] || '';
+    const triggers = { me: el('#loc-me-place'), ta: el('#loc-ta-place') };
+    Object.keys(triggers).forEach(function (who) {
+      const btn = triggers[who];
+      if (!btn) return;
+      const card = placeCardById(loc.placeId[who]);
+      const value = btn.querySelector('.loc-place-value');
+      if (value) value.textContent = card ? card.text : '未设置';
+      btn.classList.toggle('is-set', !!card);
     });
     document.querySelectorAll('[data-loc-pick]').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.dataset.locPick === locPickWho);
     });
     const tip = el('#loc-map-tip');
     if (tip) tip.textContent = locPickWho === 'ta'
-      ? '点地图可以设置 TA 的位置'
-      : '点地图可以移动我的位置';
+      ? '拖动 TA 的圆形图标，或点地图设置 TA 的位置'
+      : '拖动我的圆形图标，或点地图移动我的位置';
+  }
+
+  let locPlaceWho = 'me';
+
+  function openPlacePicker(who) {
+    locPlaceWho = who === 'ta' ? 'ta' : 'me';
+    const loc = locationState();
+    const title = el('#loc-place-title');
+    if (title) title.textContent = locPlaceWho === 'me' ? '我的地点' : 'TA 的地点';
+    const box = el('#loc-place-options');
+    if (box) {
+      const current = loc.placeId[locPlaceWho] || '';
+      const rows = [{ id: '', text: '未设置' }].concat(placeCards().map(function (c) {
+        return { id: c.id, text: c.text };
+      }));
+      box.innerHTML = rows.map(function (row) {
+        return '<button type="button" class="loc-place-option' + (row.id === current ? ' is-current' : '') + '" data-loc-place-option="' + App.esc(row.id) + '">' +
+          '<span>' + App.esc(row.text) + '</span>' +
+          '<span class="loc-place-check" aria-hidden="true">' + (row.id === current ? '✓' : '') + '</span>' +
+        '</button>';
+      }).join('');
+    }
+    showPanel('#loc-place-dialog');
   }
 
   function renderChatLocation() {
     const chip = el('#chat-loc-chip');
     if (!chip) return;
     const loc = App.state && App.state.location;
+    const prompt = el('#chat-loc-prompt');
+    if (prompt && loc && loc.enabled) prompt.hidden = true;
     const show = !!(loc && loc.enabled && !loc.paused && loc.shareChip);
     chip.hidden = !show;
     if (!show) return;
@@ -1249,6 +1269,20 @@
     }
   }
   App.renderChatLocation = renderChatLocation;
+
+  /* 打开聊天时按概率邀请开启定位 */
+  function maybePromptLocation() {
+    const loc = locationState();
+    if (loc.enabled) return;
+    if (!App.chatOpen || !App.chatContactId || !App.chatOpen(App.chatContactId)) return;
+    const raw = Number(App.state && App.state.settings && App.state.settings.locPromptProb);
+    const chance = Number.isFinite(raw) ? raw : 20;
+    if (chance <= 0 || Math.random() * 100 >= chance) return;
+    const box = el('#chat-loc-prompt');
+    if (!box) return;
+    box.hidden = false;
+  }
+  App.maybePromptLocation = maybePromptLocation;
 
   function sendLocationFromTa() {
     const loc = locationState();
@@ -1322,16 +1356,17 @@
     const status = loc.status[person] || '';
     const bubbleW = Math.max(46, status.length * 9 + 14);
     const bubbleX = p.x > 250 ? -bubbleW - 12 : 12;
-    return '<g class="loc-pin ' + (me ? 'is-me' : 'is-ta') + '" transform="translate(' + p.x + ',' + p.y + ')">' +
+    return '<g class="loc-pin ' + (me ? 'is-me' : 'is-ta') + '" id="loc-pin-' + person + '" data-loc-pin="' + person + '" transform="translate(' + p.x + ',' + p.y + ')">' +
       '<circle class="loc-pin-pulse" r="18"></circle>' +
       '<circle class="loc-pin-dot" r="9"></circle>' +
-      '<g class="loc-pin-bubble" transform="translate(' + bubbleX + ',-54)">' +
+      '<circle class="loc-pin-hit" cx="8" cy="-12" r="34"></circle>' +
+      '<g class="loc-pin-bubble" transform="translate(' + bubbleX + ',-60)">' +
         '<rect width="' + bubbleW + '" height="20" rx="10"></rect>' +
         '<text x="' + (bubbleW / 2) + '" y="13.5">' + App.esc(status) + '</text>' +
       '</g>' +
-      '<g class="loc-pin-flag" transform="translate(0,-10)">' +
-        '<path d="M0 0c0-9 8-14 16-14s16 5 16 14v10H0z"></path>' +
-        '<text x="8" y="6">' + (me ? '我' : 'TA') + '</text>' +
+      '<g class="loc-pin-flag">' +
+        '<circle class="loc-pin-avatar" cx="17" cy="-15" r="16"></circle>' +
+        '<text x="17" y="-11">' + (me ? '我' : 'TA') + '</text>' +
       '</g>' +
     '</g>';
   }
@@ -1339,7 +1374,9 @@
   function drawLocationMap(loc) {
     const svg = el('#loc-map');
     if (!svg) return;
-    const view = mapProject(loc);
+    const view = (locView && locView.latMax > locView.latMin && locView.lngMax > locView.lngMin)
+      ? locView
+      : mapProject(loc);
     const me = loc.me;
     const ta = loc.ta;
     const mp = projectPoint(view, me);
@@ -1368,8 +1405,8 @@
       '<rect x="40" y="176" width="66" height="50" rx="8" class="loc-block"></rect>' +
       '<rect x="236" y="166" width="80" height="56" rx="8" class="loc-block"></rect>' +
       roads +
-      '<line x1="' + mp.x + '" y1="' + mp.y + '" x2="' + tp.x + '" y2="' + tp.y + '" class="loc-link"></line>' +
-      '<text x="' + mid.x + '" y="' + (mid.y - 8) + '" class="loc-link-text">' + App.esc(distanceText(distanceMeters(me, ta))) + '</text>' +
+      '<line id="loc-link" x1="' + mp.x + '" y1="' + mp.y + '" x2="' + tp.x + '" y2="' + tp.y + '" class="loc-link"></line>' +
+      '<text id="loc-link-text" x="' + mid.x + '" y="' + (mid.y - 8) + '" class="loc-link-text">' + App.esc(distanceText(distanceMeters(me, ta))) + '</text>' +
       renderZoneCircles(loc, view) +
       pinSvg(loc, view, 'ta') +
       pinSvg(loc, view, 'me');
@@ -1474,6 +1511,7 @@
       }
       loc.enabled = true;
       loc.paused = false;
+      locView = null;
       App.save();
       renderLocation();
       App.toast('位置共享已开启');
@@ -1494,16 +1532,15 @@
   function zoneMessage(who, nextZone, prevZone) {
     const loc = locationState();
     if (!loc.enabled || loc.paused) return;
-    const nextName = nextZone ? nextZone.name : '外面';
     const prevName = prevZone ? prevZone.name : '外面';
     if (who === 'ta') {
-      if (nextZone && nextZone.id === 'home') pushChat('ta', 'TA 已到家，今天也平安。');
-      else if (nextZone && nextZone.id === 'work') pushChat('ta', 'TA 已到公司，开始忙啦。');
-      else pushChat('ta', 'TA 离开了' + prevName + '，现在在路上。');
+      if (nextZone && nextZone.id === 'home') pushChat('ta', '我到家了，今天也平安。', { type: 'text' });
+      else if (nextZone && nextZone.id === 'work') pushChat('ta', '我到公司了，开始忙啦。', { type: 'text' });
+      else pushChat('ta', '我从' + prevName + '出发了，现在在路上。', { type: 'text' });
     } else {
-      if (nextZone && nextZone.id === 'home') pushChat('me', '我已到家，别担心。');
-      else if (nextZone && nextZone.id === 'work') pushChat('me', '我到公司了，今天会有点忙。');
-      else pushChat('me', '我从' + prevName + '出发了，晚点再聊。');
+      if (nextZone && nextZone.id === 'home') pushChat('me', '我到家了，别担心。', { type: 'text' });
+      else if (nextZone && nextZone.id === 'work') pushChat('me', '我到公司了，今天会有点忙。', { type: 'text' });
+      else pushChat('me', '我从' + prevName + '出发了，晚点再聊。', { type: 'text' });
     }
     App.toast(who === 'ta' ? 'TA 的位置有变化，已发来一条私信' : '已自动给 TA 发了一条私信');
   }
@@ -1518,6 +1555,37 @@
     zoneMessage(who, nextZone, prevZone);
   }
 
+  /* 旧版本把位置提醒存成了拍一拍样式，这里一次性改成普通聊天消息 */
+  function migrateLocationMessages() {
+    let changed = false;
+    Object.keys(App.state.chats || {}).forEach(function (id) {
+      (App.state.chats[id] || []).forEach(function (m) {
+        if (!m || m.type !== 'pat' || typeof m.text !== 'string') return;
+        const text = m.text;
+        if (text === 'TA 已到家，今天也平安。') {
+          m.text = '我到家了，今天也平安。';
+          m.type = 'text';
+          changed = true;
+        } else if (text === 'TA 已到公司，开始忙啦。') {
+          m.text = '我到公司了，开始忙啦。';
+          m.type = 'text';
+          changed = true;
+        } else if (/^TA 离开了.+，现在在路上。$/.test(text)) {
+          m.text = text.replace(/^TA 离开了(.+)，现在在路上。$/, '我从$1出发了，现在在路上。');
+          m.type = 'text';
+          changed = true;
+        } else if (text === '我已到家，别担心。' || text === '我到公司了，今天会有点忙。' || /^我从.+出发了，晚点再聊。$/.test(text)) {
+          m.type = 'text';
+          changed = true;
+        }
+      });
+    });
+    if (changed) {
+      App.save();
+      if (App.chatContactId && App.renderChat) App.renderChat();
+    }
+  }
+
   function movePersonToZone(who, zoneId) {
     const loc = locationState();
     if (!loc.enabled) { App.toast('先开启共享'); return; }
@@ -1529,22 +1597,145 @@
     renderLocation();
   }
 
-  function moveMeByTap(evt) {
+  let locPinDrag = null;
+  let locMapIgnoreClick = false;
+
+  function mapPointFromEvent(evt) {
+    const svg = el('#loc-map');
+    if (!svg || !locView) return null;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const point = svg.createSVGPoint();
+    point.x = evt.clientX;
+    point.y = evt.clientY;
+    const local = point.matrixTransform(ctm.inverse());
+    return {
+      x: clamp(local.x, 24, 376),
+      y: clamp(local.y, 30, 300),
+    };
+  }
+
+  function latLngFromMapPoint(p) {
+    return {
+      lat: locView.latMin + (306 - p.y) / 250 * (locView.latMax - locView.latMin),
+      lng: locView.lngMin + (p.x - 34) / 332 * (locView.lngMax - locView.lngMin),
+    };
+  }
+
+  function updateMapLinkPreview(who, x, y) {
+    if (!locView) return;
+    const loc = locationState();
+    const other = who === 'me' ? 'ta' : 'me';
+    const otherPt = projectPoint(locView, loc[other]);
+    const line = el('#loc-link');
+    if (line) {
+      if (who === 'me') {
+        line.setAttribute('x1', x);
+        line.setAttribute('y1', y);
+      } else {
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+      }
+    }
+    const pos = latLngFromMapPoint({ x: x, y: y });
+    const from = who === 'me' ? pos : loc.me;
+    const to = who === 'me' ? loc.ta : pos;
+    const text = distanceText(distanceMeters(from, to));
+    const label = el('#loc-link-text');
+    if (label) {
+      label.setAttribute('x', (x + otherPt.x) / 2);
+      label.setAttribute('y', (y + otherPt.y) / 2 - 8);
+      label.textContent = text;
+    }
+    const pill = el('#loc-distance');
+    if (pill) pill.textContent = text;
+  }
+
+  function startPinDrag(evt) {
+    if (locPinDrag) return;
+    const pin = evt.target.closest ? evt.target.closest('#loc-map .loc-pin') : null;
+    if (!pin) return;
     const loc = locationState();
     if (!loc.enabled || loc.paused || !locView) return;
-    const svg = el('#loc-map');
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const x = (evt.clientX - rect.left) / rect.width * 400;
-    const y = (evt.clientY - rect.top) / rect.height * 340;
-    const lng = locView.lngMin + (x - 34) / 332 * (locView.lngMax - locView.lngMin);
-    const lat = locView.latMin + (306 - y) / 250 * (locView.latMax - locView.latMin);
+    const who = pin.dataset.locPin === 'ta' ? 'ta' : 'me';
+    const pt = mapPointFromEvent(evt);
+    if (!pt) return;
+    const origin = projectPoint(locView, loc[who]);
+    locPickWho = who;
+    renderLocationPlaces(loc);
+    locPinDrag = {
+      who: who,
+      pointerId: evt.pointerId,
+      node: pin,
+      offX: pt.x - origin.x,
+      offY: pt.y - origin.y,
+      originX: origin.x,
+      originY: origin.y,
+      lastX: origin.x,
+      lastY: origin.y,
+      moved: false,
+    };
+    pin.classList.add('is-dragging');
+    const map = el('#loc-map');
+    if (map) map.classList.add('is-pin-dragging');
+    evt.preventDefault();
+  }
+
+  function movePinDrag(evt) {
+    const drag = locPinDrag;
+    if (!drag || evt.pointerId !== drag.pointerId) return;
+    const pt = mapPointFromEvent(evt);
+    if (!pt) return;
+    evt.preventDefault();
+    const x = clamp(pt.x - drag.offX, 24, 376);
+    const y = clamp(pt.y - drag.offY, 30, 300);
+    if (Math.abs(x - drag.lastX) > 2 || Math.abs(y - drag.lastY) > 2) drag.moved = true;
+    drag.lastX = x;
+    drag.lastY = y;
+    drag.node.setAttribute('transform', 'translate(' + x + ',' + y + ')');
+    updateMapLinkPreview(drag.who, x, y);
+  }
+
+  function endPinDrag(evt) {
+    const drag = locPinDrag;
+    if (!drag || (evt && evt.pointerId !== drag.pointerId)) return;
+    locPinDrag = null;
+    drag.node.classList.remove('is-dragging');
+    const map = el('#loc-map');
+    if (map) map.classList.remove('is-pin-dragging');
+    locMapIgnoreClick = true;
+    setTimeout(function () { locMapIgnoreClick = false; }, 320);
+    if (!drag.moved) {
+      drag.node.setAttribute('transform', 'translate(' + drag.originX + ',' + drag.originY + ')');
+      updateMapLinkPreview(drag.who, drag.originX, drag.originY);
+      return;
+    }
+    const loc = locationState();
+    const pos = latLngFromMapPoint({ x: drag.lastX, y: drag.lastY });
+    loc[drag.who].lat = pos.lat;
+    loc[drag.who].lng = pos.lng;
+    /* 选过地点卡时，把这张卡的坐标一起更新，相当于在地图上改地点 */
+    const card = placeCardById(loc.placeId[drag.who]);
+    if (card) card.place = { lat: pos.lat, lng: pos.lng };
+    applyZone(loc, drag.who, zoneOf(loc, loc[drag.who]));
+    App.save();
+    renderLocation();
+  }
+
+  function moveMeByTap(evt) {
+    if (locMapIgnoreClick) return;
+    if (evt.target && evt.target.closest && evt.target.closest('.loc-pin')) return;
+    const loc = locationState();
+    if (!loc.enabled || loc.paused || !locView) return;
+    const pt = mapPointFromEvent(evt);
+    if (!pt) return;
+    const pos = latLngFromMapPoint(pt);
     const who = locPickWho;
-    loc[who].lat = lat;
-    loc[who].lng = lng;
+    loc[who].lat = pos.lat;
+    loc[who].lng = pos.lng;
     /* 选过地点卡时，把这张卡的坐标一起更新，相当于在地图上改地点 */
     const card = placeCardById(loc.placeId[who]);
-    if (card) card.place = { lat: lat, lng: lng };
+    if (card) card.place = { lat: pos.lat, lng: pos.lng };
     applyZone(loc, who, zoneOf(loc, loc[who]));
     App.save();
     renderLocation();
@@ -1861,40 +2052,16 @@
   /* =========================================================
      听音识曲
      ========================================================= */
-  const SONGS = [
-    { title: '晴天', artist: '周杰伦' },
-    { title: '稻香', artist: '周杰伦' },
-    { title: '七里香', artist: '周杰伦' },
-    { title: '告白气球', artist: '周杰伦' },
-    { title: '小幸运', artist: '田馥甄' },
-    { title: '后来', artist: '刘若英' },
-    { title: '匆匆那年', artist: '王菲' },
-    { title: '平凡之路', artist: '朴树' },
-    { title: '消愁', artist: '毛不易' },
-    { title: '夜空中最亮的星', artist: '逃跑计划' },
-    { title: '演员', artist: '薛之谦' },
-    { title: '成都', artist: '赵雷' },
-    { title: '起风了', artist: '买辣椒也用券' },
-    { title: '光年之外', artist: '邓紫棋' },
-    { title: '体面', artist: '于文文' },
-    { title: '年少有为', artist: '李荣浩' },
-    { title: '模特', artist: '李荣浩' },
-    { title: '理想三旬', artist: '陈鸿宇' },
-    { title: '南山南', artist: '马頔' },
-    { title: '斑马斑马', artist: '宋冬野' },
-    { title: '董小姐', artist: '宋冬野' },
-    { title: '遥远的她', artist: '张学友' },
-    { title: '慢慢喜欢你', artist: '莫文蔚' },
-    { title: '至少还有你', artist: '林忆莲' },
-    { title: '遇见', artist: '孙燕姿' },
-    { title: '开始懂了', artist: '孙燕姿' },
-    { title: '爱你', artist: '王心凌' },
-    { title: '宁夏', artist: '梁静茹' },
-    { title: '勇气', artist: '梁静茹' },
-    { title: '情歌', artist: '梁静茹' },
-  ];
+  /* 曲库只取「音乐」里已经导入的网易云音乐 */
+  function songPool() {
+    const music = App.state && App.state.music;
+    const list = music && Array.isArray(music.tracks) ? music.tracks : [];
+    return list.filter(function (t) { return t && t.source === 'netease' && t.title; });
+  }
 
-  let songCtx = null;
+  let songAudio = null;
+  let songAudioTimer = null;
+  let songPlayToken = 0;
   let songPlaying = false;
   let songMode = 'solo';
   let songRound = 0;
@@ -1914,33 +2081,18 @@
     return st.songQuiz;
   }
 
-  function ensureSongCtx() {
-    if (!songCtx) {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return null;
-      songCtx = new Ctx();
-    }
-    if (songCtx.state === 'suspended') songCtx.resume();
-    return songCtx;
-  }
-
-  function melodyFor(song) {
-    const scale = [0, 2, 4, 7, 9, 12, 14];
-    let h = seedHash(song.title + song.artist);
-    const notes = [];
-    for (let i = 0; i < 10; i++) {
-      h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
-      notes.push(60 + scale[h % scale.length] + (i % 3 === 0 ? 12 : 0));
-    }
-    return notes;
-  }
-
   function stopSongMelody() {
     songPlaying = false;
+    songPlayToken += 1;
     if (songStopTimer) {
       clearTimeout(songStopTimer);
       songStopTimer = null;
     }
+    if (songAudioTimer) {
+      clearTimeout(songAudioTimer);
+      songAudioTimer = null;
+    }
+    if (songAudio && !songAudio.paused) songAudio.pause();
     const wave = el('#song-wave');
     if (wave) wave.classList.remove('is-playing');
     const play = el('#song-play');
@@ -1948,55 +2100,81 @@
   }
 
   function playSongSnippet(song) {
-    const ctx = ensureSongCtx();
-    if (!ctx) { App.toast('浏览器不支持播放'); return; }
+    if (!song) return;
     stopSongMelody();
-    const notes = melodyFor(song);
-    const start = ctx.currentTime + 0.06;
-    const oscs = [];
-    notes.forEach(function (n, i) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = 440 * Math.pow(2, (n - 69) / 12);
-      const t = start + i * 0.26;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.26);
-      oscs.push(osc);
-    });
-    songPlaying = true;
-    const wave = el('#song-wave');
-    if (wave) wave.classList.add('is-playing');
-    const play = el('#song-play');
-    if (play) play.textContent = '❚❚';
+    if (!App.musicSourceUrl) { App.toast('音乐模块还没准备好'); return; }
+    if (!songAudio) {
+      songAudio = new Audio();
+      songAudio.preload = 'auto';
+    }
     const hint = el('#song-hint');
-    if (hint) hint.textContent = '正在播放一段旋律…听出来了吗？';
-    songStopTimer = setTimeout(function () {
-      songPlaying = false;
-      if (wave) wave.classList.remove('is-playing');
-      if (play) play.textContent = '▶';
-      if (hint) hint.textContent = '曲库：网易云随机（本地模拟）';
-    }, notes.length * 260 + 300);
+    const wave = el('#song-wave');
+    const play = el('#song-play');
+    const token = ++songPlayToken;
+    if (hint) hint.textContent = '正在加载这首歌的片段…';
+    function start(src) {
+      if (!src) throw new Error('no-src');
+      songAudio.src = src;
+      return songAudio.play();
+    }
+    const source = App.musicSourceUrl(song);
+    let started;
+    if (typeof source === 'string') {
+      try { started = start(source); } catch (err) { started = Promise.reject(err); }
+    } else {
+      started = Promise.resolve(source).then(start);
+    }
+    started.then(function () {
+      if (token !== songPlayToken) {
+        songAudio.pause();
+        return;
+      }
+      songPlaying = true;
+      if (wave) wave.classList.add('is-playing');
+      if (play) play.textContent = '❚❚';
+      if (hint) hint.textContent = '正在播放一段…听出来了吗？';
+      songAudioTimer = setTimeout(function () {
+        stopSongMelody();
+        const nowHint = el('#song-hint');
+        if (nowHint) nowHint.textContent = '曲库：音乐里导入的网易云音乐';
+      }, 12000);
+    }).catch(function () {
+      if (token !== songPlayToken) return;
+      stopSongMelody();
+      if (hint) hint.textContent = '播放不了，可能受版权限制，点下一题换一首。';
+      App.toast('这段音频播放失败，换一首试试');
+    });
   }
 
   function newSongRound() {
     stopSongMelody();
-    const pool = SONGS.filter(function (s) { return !songCurrent || s.title !== songCurrent.title; });
-    songCurrent = pool[Math.floor(Math.random() * pool.length)];
+    const input = el('#song-input');
+    const result = el('#song-result');
+    const submit = el('#song-submit');
+    const rounds = el('#song-round');
+    const hint = el('#song-hint');
+    const pool = songPool();
+    if (!pool.length) {
+      songCurrent = null;
+      songAnswered = true;
+      if (hint) hint.textContent = '曲库还是空的，先去「音乐」里导入网易云音乐。';
+      if (input) input.value = '';
+      if (result) {
+        result.hidden = false;
+        result.className = 'song-result is-wrong';
+        result.textContent = '听音识曲现在会用「音乐」里导入的网易云音乐出题，先去导入几首吧。';
+      }
+      if (submit) submit.textContent = '提交';
+      App.toast('先去音乐里导入网易云音乐');
+      return;
+    }
+    const options = pool.filter(function (s) { return !songCurrent || s.id !== songCurrent.id; });
+    songCurrent = options[Math.floor(Math.random() * options.length)] || pool[0];
     songAnswered = false;
     songRound += 1;
-    const rounds = el('#song-round');
     if (rounds) rounds.textContent = '第 ' + songRound + ' 题';
-    const input = el('#song-input');
     if (input) input.value = '';
-    const result = el('#song-result');
     if (result) result.hidden = true;
-    const submit = el('#song-submit');
     if (submit) submit.textContent = '提交';
     playSongSnippet(songCurrent);
   }
@@ -2150,7 +2328,12 @@
   }
 
   function taGuessHum() {
-    const song = SONGS[Math.floor(Math.random() * SONGS.length)];
+    const pool = songPool();
+    if (!pool.length) {
+      App.toast('先去音乐里导入网易云音乐');
+      return;
+    }
+    const song = pool[Math.floor(Math.random() * pool.length)];
     const hint = el('#song-hum-hint');
     if (hint) hint.textContent = 'TA 听完说：是《' + song.title + '》吗？我猜对了吗？';
     pushChat('ta', '听音识曲：你哼的旋律，我猜是《' + song.title + '》。');
@@ -2279,17 +2462,6 @@
     });
     const mwPoster = el('#mw-poster');
     if (mwPoster) mwPoster.addEventListener('click', makeMemoryPoster);
-    const mwPosterShare = el('#mw-poster-share');
-    if (mwPosterShare) mwPosterShare.addEventListener('click', function () {
-      if (!mwPosterUrl) return;
-      fetch(mwPosterUrl).then(function (res) { return res.blob(); }).then(function (blob) {
-        const file = new File([blob], 'memory-poster.jpg', { type: 'image/jpeg' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          return navigator.share({ files: [file], title: '我们的回忆', text: '拾忆 · 回忆海报' });
-        }
-        App.toast('当前浏览器不支持直接分享，长按图片保存');
-      }).catch(function () { App.toast('分享失败，可以直接保存海报'); });
-    });
     const mwHidden = el('#mw-hidden');
     if (mwHidden) mwHidden.addEventListener('click', openHiddenAlbum);
     const mwHiddenBody = el('#mw-hidden-body');
@@ -2365,7 +2537,13 @@
       App.toast(loc.paused ? '已暂停共享，TA 看不到你了' : '已继续共享');
     });
     const locMap = el('#loc-map');
-    if (locMap) locMap.addEventListener('click', moveMeByTap);
+    if (locMap) {
+      locMap.addEventListener('click', moveMeByTap);
+      locMap.addEventListener('pointerdown', startPinDrag, { passive: false });
+    }
+    document.addEventListener('pointermove', movePinDrag, { passive: false });
+    document.addEventListener('pointerup', endPinDrag);
+    document.addEventListener('pointercancel', endPinDrag);
     const locShareChip = el('#loc-share-chip');
     if (locShareChip) locShareChip.addEventListener('change', function () {
       const loc = locationState();
@@ -2373,6 +2551,19 @@
       App.save();
       renderLocation();
       App.toast(loc.shareChip ? '聊天界面会显示距离小窗' : '已关闭聊天距离小窗');
+    });
+    const locPromptGo = el('#chat-loc-prompt-go');
+    if (locPromptGo) locPromptGo.addEventListener('click', function () {
+      const box = el('#chat-loc-prompt');
+      if (box) box.hidden = true;
+      if (App.go) App.go('location');
+      enableLocation();
+    });
+    const locPromptLater = el('#chat-loc-prompt-later');
+    if (locPromptLater) locPromptLater.addEventListener('click', function () {
+      const box = el('#chat-loc-prompt');
+      if (box) box.hidden = true;
+      App.toast('好，等你想开的时候再说');
     });
     const locAddPlace = el('#loc-add-place');
     if (locAddPlace) locAddPlace.addEventListener('click', addPlaceCard);
@@ -2384,15 +2575,10 @@
       btn.addEventListener('click', function () {
         locPickWho = btn.dataset.locPick;
         renderLocation();
-        App.toast(locPickWho === 'ta' ? '点地图可以设置 TA 的位置' : '点地图可以移动我的位置');
+        App.toast(locPickWho === 'ta' ? '拖动 TA 的图标，或点地图设置位置' : '拖动我的图标，或点地图移动位置');
       });
     });
     document.addEventListener('change', function (e) {
-      const placeSelect = e.target.closest('[data-loc-place]');
-      if (placeSelect) {
-        setPlaceFor(placeSelect.dataset.locPlace, placeSelect.value);
-        return;
-      }
       const status = e.target.closest('[data-loc-status]');
       if (status) {
         const side = status.dataset.locStatus;
@@ -2400,10 +2586,21 @@
         loc.status[side] = status.value;
         App.save();
         renderLocation();
-        return;
       }
     });
     document.addEventListener('click', function (e) {
+      const placeTrigger = e.target.closest('#loc-me-place, #loc-ta-place');
+      if (placeTrigger) {
+        openPlacePicker(placeTrigger.dataset.locPlace);
+        return;
+      }
+      const placeOption = e.target.closest('[data-loc-place-option]');
+      if (placeOption) {
+        setPlaceFor(locPlaceWho, placeOption.dataset.locPlaceOption || '');
+        const dialog = el('#loc-place-dialog');
+        if (dialog) dialog.hidden = true;
+        return;
+      }
       const meBtn = e.target.closest('[data-loc-me]');
       if (meBtn) { movePersonToZone('me', meBtn.dataset.locMe); return; }
       const taBtn = e.target.closest('[data-loc-ta]');
@@ -2999,6 +3196,7 @@
   }
 
   function initExtraFeatures() {
+    migrateLocationMessages();
     const letterDialog = el('#anniv-letter-dialog');
     if (letterDialog) {
       document.querySelectorAll('#anniv-letter-dialog [data-close]').forEach(function (btn) {

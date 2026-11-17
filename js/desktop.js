@@ -499,6 +499,35 @@
     return items.length;
   }
 
+  /* ---------- 拖动时的布局动画 ----------
+     直接 insertBefore 会让图标瞬间换位，这里先量旧位置，
+     插入后用 transform 从旧位置滑到新位置，邻座图标就有了让位动画。 */
+  function measureEntries(grids, exclude) {
+    const rects = new Map();
+    grids.forEach(function (grid) {
+      Array.from(grid.querySelectorAll('.app-entry')).forEach(function (node) {
+        if (node === exclude) return;
+        rects.set(node, node.getBoundingClientRect());
+      });
+    });
+    return rects;
+  }
+
+  function playEntryReflow(rects, exclude) {
+    rects.forEach(function (prev, node) {
+      if (node === exclude || !node.isConnected) return;
+      const next = node.getBoundingClientRect();
+      const dx = prev.left - next.left;
+      const dy = prev.top - next.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      node.style.transition = 'none';
+      node.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0)';
+      void node.offsetWidth;
+      node.style.transition = '';
+      node.style.transform = '';
+    });
+  }
+
   function cancelAppEdgeSwitch() {
     if (appEdgeTimer) clearTimeout(appEdgeTimer);
     appEdgeTimer = null;
@@ -531,7 +560,8 @@
     appDrag.lastX = x;
     appDrag.lastY = y;
     const ghost = appDrag.ghost;
-    ghost.style.transform = 'translate3d(' + (x - appDrag.dx) + 'px,' + (y - appDrag.dy) + 'px,0)';
+    ghost.style.transform = 'translate3d(' + (x - appDrag.dx) + 'px,' + (y - appDrag.dy) + 'px,0) scale(1.06)';
+
     const grids = appGrids();
     let grid = null;
     grids.forEach(function (item) {
@@ -540,18 +570,53 @@
         grid = item;
       }
     });
-    if (!grid) return;
-    const index = appInsertIndex(grid, x, y, appDrag.entry);
-    const items = Array.from(grid.querySelectorAll('.app-entry')).filter(function (node) {
-      return node !== appDrag.entry;
-    });
-    grid.insertBefore(appDrag.entry, items[index] || null);
-    /* 拖到屏幕边缘停一下就翻页 */
+
+    if (grid) {
+      const index = appInsertIndex(grid, x, y, appDrag.entry);
+      const items = Array.from(grid.querySelectorAll('.app-entry')).filter(function (node) {
+        return node !== appDrag.entry;
+      });
+      const next = items[index] || null;
+      /* 只有真的换位时才插入，避免每一帧都触发重排 */
+      if (appDrag.entry.parentNode !== grid || appDrag.entry.nextElementSibling !== next) {
+        const before = measureEntries(grids, appDrag.entry);
+        grid.insertBefore(appDrag.entry, next);
+        playEntryReflow(before, appDrag.entry);
+      }
+    }
+
+    /* 拖到屏幕边缘：先轻轻带出相邻页，再平滑翻过去 */
     const pager = el('#desk-pager');
+    if (!pager) return;
     const rect = pager.getBoundingClientRect();
-    if (x < rect.left + 56) requestAppEdgeSwitch(-1);
-    else if (x > rect.right - 56) requestAppEdgeSwitch(1);
-    else cancelAppEdgeSwitch();
+    const inY = y >= rect.top && y <= rect.bottom;
+    const indexes = appPageIndexes();
+    const pos = indexes.indexOf(deskPage);
+    const canPrev = pos > 0;
+    const canNext = pos >= 0 && pos < indexes.length - 1;
+    if (inY && canPrev && x < rect.left + 56) {
+      requestAppEdgeSwitch(-1);
+      paintPager(-22);
+    } else if (inY && canNext && x > rect.right - 56) {
+      requestAppEdgeSwitch(1);
+      paintPager(22);
+    } else {
+      cancelAppEdgeSwitch();
+      paintPager(0);
+    }
+  }
+
+  /* 触摸/指针事件可能一帧触发多次，用 rAF 合并成一次 DOM 更新 */
+  function queueAppDrag(x, y) {
+    if (!appDrag) return;
+    appDrag.lastX = x;
+    appDrag.lastY = y;
+    if (appDrag.raf) return;
+    appDrag.raf = requestAnimationFrame(function () {
+      if (!appDrag) return;
+      appDrag.raf = 0;
+      moveAppDragAt(appDrag.lastX, appDrag.lastY);
+    });
   }
 
   function beginAppDrag(entry, x, y) {
@@ -570,6 +635,7 @@
       dy: y - rect.top,
       lastX: x,
       lastY: y,
+      raf: 0,
       touchMove: null,
     };
     const pager = el('#desk-pager');
@@ -599,8 +665,11 @@
     const ghost = appDrag.ghost;
     const dropX = appDrag.lastX;
     const dropY = appDrag.lastY;
+    if (appDrag.raf) cancelAnimationFrame(appDrag.raf);
     if (appDrag.touchMove) document.removeEventListener('touchmove', appDrag.touchMove);
     cancelAppEdgeSwitch();
+    const pager = el('#desk-pager');
+    if (pager) pager.classList.remove('is-app-dragging');
     /* 松手时按当前翻到的那一页再放一次，避免翻页动画中途松手落到旧页 */
     const pages = deskPages();
     const page = pages[Math.min(deskPage, pages.length - 1)];
@@ -610,21 +679,36 @@
       const items = Array.from(grid.querySelectorAll('.app-entry')).filter(function (node) {
         return node !== entry;
       });
-      grid.insertBefore(entry, items[index] || null);
+      const next = items[index] || null;
+      if (entry.parentNode !== grid || entry.nextElementSibling !== next) {
+        const grids = appGrids();
+        const before = measureEntries(grids, entry);
+        grid.insertBefore(entry, next);
+        playEntryReflow(before, entry);
+      }
     }
-    entry.classList.remove('is-drag-source');
-    const pager = el('#desk-pager');
-    if (pager) pager.classList.remove('is-app-dragging');
-    const rect = entry.getBoundingClientRect();
-    ghost.style.transition = 'transform .16s ease, opacity .16s ease';
-    ghost.style.transform = 'translate3d(' + rect.left + 'px,' + rect.top + 'px,0)';
-    ghost.style.opacity = '0';
-    appDrag = null;
-    setTimeout(function () {
-      if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
-    }, 180);
+    /* 先把最终布局存好，动画只是视觉收尾 */
     saveDeskAppsLayout();
     blockAppClick();
+
+    const rect = entry.getBoundingClientRect();
+    appDrag = null;
+    ghost.style.transition = 'transform .22s cubic-bezier(.22,.8,.28,1)';
+    ghost.style.transform = 'translate3d(' + rect.left + 'px,' + rect.top + 'px,0) scale(1)';
+    let done = false;
+    const finish = function () {
+      if (done) return;
+      done = true;
+      if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      /* 极快地在同一图标上再次长按时，不要干扰新的拖动 */
+      if (!appDrag || appDrag.entry !== entry) {
+        entry.classList.remove('is-drag-source');
+        entry.classList.add('is-drop-in');
+        setTimeout(function () { entry.classList.remove('is-drop-in'); }, 240);
+      }
+    };
+    ghost.addEventListener('transitionend', finish, { once: true });
+    setTimeout(finish, 280);
   }
 
   function initAppDrag() {
@@ -667,7 +751,7 @@
           if (!touch) return;
           if (appDrag && appDrag.entry === entry) {
             ev.preventDefault();
-            moveAppDragAt(touch.clientX, touch.clientY);
+            queueAppDrag(touch.clientX, touch.clientY);
             return;
           }
           /* 还没长按就开始滑动，交给翻页手势 */
@@ -712,7 +796,7 @@
           if (ev.pointerId !== pointerId) return;
           if (appDrag && appDrag.entry === entry) {
             ev.preventDefault();
-            moveAppDragAt(ev.clientX, ev.clientY);
+            queueAppDrag(ev.clientX, ev.clientY);
             return;
           }
           /* 还没长按就开始滑动，交给翻页手势 */

@@ -81,9 +81,6 @@
     el('#music-ta-favorite').classList.remove('is-active');
     el('#chat-music-favorite').textContent = '♡ 收藏';
     el('#chat-music-favorite').classList.remove('is-active');
-    const source = el('#music-open-source');
-    source.hidden = true;
-    source.removeAttribute('href');
     el('#music-count').textContent = '0 首 · 我 0 · TA 0';
     el('#music-list').innerHTML = '<p class="panel-note">还没有歌曲，导入直链或本地音频后会显示在这里。</p>';
     el('#music-current-time').textContent = '00:00';
@@ -160,12 +157,6 @@
     el('#chat-music-favorite').textContent = mine ? '♥ 已收藏' : '♡ 收藏';
     el('#chat-music-favorite').classList.toggle('is-active', mine);
     el('#chat-music-favorite').setAttribute('aria-label', mine ? '取消收藏当前歌曲' : '收藏当前歌曲');
-
-    const source = el('#music-open-source');
-    const pageUrl = safeUrl(track.pageUrl || (track.source === 'netease' || track.source === 'kugou' ? track.url : ''));
-    source.hidden = !pageUrl;
-    if (pageUrl) source.href = pageUrl;
-    else source.removeAttribute('href');
 
     const music = App.state.music;
     el('#music-count').textContent = tracks().length + ' 首 · 我 ' + music.favorites.mine.length + ' · TA ' + music.favorites.ta.length;
@@ -360,6 +351,22 @@
     if (!src) return Promise.reject(new Error('音频链接无效，请重新导入'));
     return Promise.resolve(setSource(src));
   }
+
+  /* 给听音识曲等页面复用同一套地址解析；本地音频返回 Promise，网络音频直接返回地址 */
+  App.musicSourceUrl = function (track) {
+    if (!track) return '';
+    if (track.source === 'local') {
+      return getAudio(track.id).then(function (blob) {
+        return blob ? URL.createObjectURL(blob) : '';
+      });
+    }
+    let candidate = track.audioUrl || track.url;
+    if (track.source === 'netease' && !isAudioFileUrl(candidate)) {
+      const id = neteaseId(track.pageUrl || track.url);
+      if (id) candidate = neteaseAudioUrl(id);
+    }
+    return safeUrl(candidate);
+  };
 
   function playCurrent() {
     const track = currentTrack();

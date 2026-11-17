@@ -63,6 +63,9 @@
     scrollBottom(true);
     requestAnimationFrame(function () { scrollBottom(true); });
     setTimeout(function () { scrollBottom(true); }, 160);
+    setTimeout(function () {
+      if (App.maybePromptLocation) App.maybePromptLocation();
+    }, 600);
   };
 
   App.renderChat = function () {

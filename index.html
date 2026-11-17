@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261116-106">
+<link rel="stylesheet" href="css/style.css?v=20261117-109">
 </head>
 <body>
 <div class="stage">
@@ -416,7 +416,6 @@ if ('caches' in window) {
           </div>
           <div class="music-now-foot">
             <span id="music-status">播放列表是空的，先导入一首歌</span>
-            <a id="music-open-source" href="#" target="_blank" rel="noopener noreferrer" hidden>打开原平台</a>
           </div>
         </section>
 
@@ -560,7 +559,7 @@ if ('caches' in window) {
         <div class="loc-map-panel">
           <svg id="loc-map" class="loc-map" viewBox="0 0 400 340" role="img" aria-label="位置地图"></svg>
           <div class="loc-distance" id="loc-distance">相距 —</div>
-          <div class="loc-map-tip" id="loc-map-tip">点地图可以移动我的位置</div>
+          <div class="loc-map-tip" id="loc-map-tip">拖动圆形图标，或点地图移动位置</div>
           <div class="loc-map-lock" id="loc-map-lock">开启共享后显示地图</div>
         </div>
 
@@ -572,8 +571,16 @@ if ('caches' in window) {
         <div class="panel loc-place-panel">
           <h3>地点</h3>
           <p class="field-hint">地点字卡只在地图和「让 TA 发位置」时使用，不参与聊天抽卡。</p>
-          <label class="field"><span>我的地点</span><select id="loc-me-place" data-loc-place="me"></select></label>
-          <label class="field"><span>TA 的地点</span><select id="loc-ta-place" data-loc-place="ta"></select></label>
+          <label class="field"><span>我的地点</span>
+            <button type="button" class="loc-place-picker" id="loc-me-place" data-loc-place="me" aria-haspopup="dialog">
+              <span class="loc-place-value">未设置</span><span class="loc-place-chevron" aria-hidden="true">›</span>
+            </button>
+          </label>
+          <label class="field"><span>TA 的地点</span>
+            <button type="button" class="loc-place-picker" id="loc-ta-place" data-loc-place="ta" aria-haspopup="dialog">
+              <span class="loc-place-value">未设置</span><span class="loc-place-chevron" aria-hidden="true">›</span>
+            </button>
+          </label>
           <div class="loc-place-add">
             <input id="loc-new-place" maxlength="14" placeholder="新增地点，如：第一次约会的电影院">
             <button type="button" class="btn ghost" id="loc-add-place">添加</button>
@@ -597,6 +604,19 @@ if ('caches' in window) {
         </div>
       </div>
     </section>
+
+    <div id="loc-place-dialog" class="tool-overlay" hidden>
+      <div class="tool-overlay-backdrop" data-tool-close></div>
+      <div class="tool-overlay-card loc-place-sheet">
+        <div class="sheet-head">
+          <h3 id="loc-place-title">选择地点</h3>
+          <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+        </div>
+        <div class="tool-sheet-body">
+          <div id="loc-place-options" class="loc-place-options"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- ============ 回忆墙 ============ -->
     <section id="view-memorywall" class="view">
@@ -667,7 +687,6 @@ if ('caches' in window) {
         </div>
         <div class="sheet-actions">
           <button type="button" class="btn ghost" data-close>关闭</button>
-          <button type="button" class="btn ghost" id="mw-poster-share" hidden>分享</button>
           <a class="btn primary" id="mw-poster-save" download="memory-poster.jpg">保存海报</a>
         </div>
       </dialog>
@@ -749,6 +768,17 @@ if ('caches' in window) {
         <span class="chat-loc-main"><strong id="chat-loc-distance">相距 —</strong><span id="chat-loc-detail"></span></span>
         <span class="chat-loc-arrow" aria-hidden="true">›</span>
       </button>
+      <div class="chat-loc-prompt" id="chat-loc-prompt" hidden>
+        <span class="chat-loc-prompt-pin" aria-hidden="true">◎</span>
+        <div class="chat-loc-prompt-copy">
+          <strong>TA 想知道你在哪</strong>
+          <span>开启位置共享后，聊天里就能看到彼此的距离</span>
+        </div>
+        <div class="chat-loc-prompt-actions">
+          <button type="button" class="btn primary" id="chat-loc-prompt-go">开启</button>
+          <button type="button" class="btn ghost" id="chat-loc-prompt-later">稍后</button>
+        </div>
+      </div>
       <section id="chat-music-float" class="music-float" aria-label="悬浮音乐播放器">
         <div class="music-float-top" data-music-float-drag>
           <span class="music-float-grip" aria-hidden="true"></span>
@@ -972,6 +1002,17 @@ if ('caches' in window) {
                 </span>
               </label>
               <p class="panel-note">每天零点重新抽一次：命中后 TA 当天会在心情日记里记录心情，没命中就会说“今天不想说”。</p>
+            </div>
+            <div class="panel">
+              <h3 class="settings-subtitle">位置</h3>
+              <label class="field"><span>TA 邀请开启定位（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-loc-prompt-prob" data-step="-1">−</button>
+                  <input id="set-loc-prompt-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-loc-prompt-prob" data-step="1">+</button>
+                </span>
+              </label>
+              <p class="panel-note">每次打开聊天时，如果还没开启位置共享，TA 会按这个概率弹出小窗邀请你开启定位；调到 0 就不会再邀请。</p>
             </div>
             <div class="panel">
               <h3 class="settings-subtitle">红包</h3>
@@ -1615,6 +1656,7 @@ if ('caches' in window) {
             <p class="about-line"><strong>如若遇到付费获取该网站的一律为骗子</strong></p>
             <p class="about-line">那个聊天那里、联系人布局和pyq都是参考某绿色软件的，至于表情包为什么不放在发送旁边是为了看着更顺眼，然后字卡库里有内置字卡和那个开关是我之前叫tare帮我做字卡库的时候为了测试能否使用然后他加上去的，集市的功能参考某夕买东西的，因为要有货币然后去找D老师选了几个后面才选的这个，里面内容的名字也是AI选的，信箱回信那是因为我原本搞的只有他的信和我的信，然后不好区分开来所以加的...还有啥来着，那个对方选我的话加字卡是因为他会觉得字卡太少了，然后我又不知道加什么字卡，所以才会让他看我的话选择字卡加入，日历那里加入的东西是参考了机上的日历能写备忘录的，然后那个今日字笺是让他开始仿照手机模样改的时候放的小卡片，很多功能都是我参照软件做的啊喂，还有那个通知是参考了手机通知弹窗搞的，之前都用夸克嗯对，因为后面知道edge有弹窗所以去这里了...然后就加了一个通知...更何况我还有一些新的灵感，例如:字卡加上触发词还能让那句话的概率变高，还有说挂电话他有概率会挂之类的啊😭还有设置里的概率和数字都是我根据每个功能来改的，有的时候我还会问我同学有没有什么想法，这些小游戏我都还是找D老师问出来的，一些命名都还是TRAE自己根据那个分类命名的，还有其他不知道有没有雷同的功能，老师们真的致歉😭😭😭</p>
             <p class="about-line about-warn"><strong>只有情绪字卡参考了言序老师的 mochi，其他均为原创，如有雷同致歉！</strong></p>
+            <p class="about-line">许可证：<strong>源码可见，禁止商用</strong>（拾忆 · 源码可见许可 1.0）。可以查看、学习和非商业分享；禁止售卖、付费获取、广告变现等任何盈利行为。</p>
           </div>
         </div>
 
@@ -1797,7 +1839,7 @@ if ('caches' in window) {
     <button type="button" class="more-app" data-tool="gomoku" data-cat="game" title="我执黑，TA 执白，连成五子即胜" hidden><span class="more-app-icon is-gomoku">棋</span><span>五子棋</span></button>
     <button type="button" class="more-app" data-tool="drawguess" data-cat="game" title="你画或描述，TA 从四个同类选项里猜" hidden><span class="more-app-icon is-drawguess">画</span><span>你画我猜</span></button>
     <button type="button" class="more-app" data-tool="quiz" data-cat="game" title="我先答，TA 再猜，看看你们有多默契" hidden><span class="more-app-icon is-quiz">默</span><span>默契问答</span></button>
-    <button type="button" class="more-app" data-tool="songquiz" data-cat="game" title="听一段旋律，手写歌名，和 TA 抢答" hidden><span class="more-app-icon is-song">曲</span><span>听音识曲</span></button>
+    <button type="button" class="more-app" data-tool="songquiz" data-cat="game" title="从音乐里随机放一段，手写歌名，和 TA 抢答" hidden><span class="more-app-icon is-song">曲</span><span>听音识曲</span></button>
   </div>
 </dialog>
 
@@ -2239,9 +2281,9 @@ if ('caches' in window) {
       </div>
 
       <div class="song-stage">
-        <button type="button" class="song-disc" id="song-play" aria-label="播放旋律">▶</button>
+        <button type="button" class="song-disc" id="song-play" aria-label="播放歌曲片段">▶</button>
         <div class="song-wave" id="song-wave" aria-hidden="true"></div>
-        <p id="song-hint">曲库：网易云随机（本地模拟）</p>
+        <p id="song-hint">曲库：音乐里导入的网易云音乐</p>
       </div>
 
       <div class="song-guess-row" id="song-guess-row">
@@ -2455,19 +2497,19 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261116-106"></script>
-<script src="js/store.js?v=20261116-106"></script>
-<script src="js/desktop.js?v=20261116-106"></script>
-<script src="js/chat.js?v=20261116-106"></script>
-<script src="js/cards.js?v=20261116-106"></script>
-<script src="js/settings.js?v=20261116-106"></script>
-<script src="js/moments.js?v=20261116-106"></script>
-<script src="js/calendar.js?v=20261116-106"></script>
-<script src="js/music.js?v=20261116-106"></script>
-<script src="js/market.js?v=20261116-106"></script>
-<script src="js/mail.js?v=20261116-106"></script>
-<script src="js/extras.js?v=20261116-106"></script>
-<script src="js/companion.js?v=20261116-106"></script>
-<script src="js/app.js?v=20261116-106"></script>
+<script src="js/seed.js?v=20261117-109"></script>
+<script src="js/store.js?v=20261117-109"></script>
+<script src="js/desktop.js?v=20261117-109"></script>
+<script src="js/chat.js?v=20261117-109"></script>
+<script src="js/cards.js?v=20261117-109"></script>
+<script src="js/settings.js?v=20261117-109"></script>
+<script src="js/moments.js?v=20261117-109"></script>
+<script src="js/calendar.js?v=20261117-109"></script>
+<script src="js/music.js?v=20261117-109"></script>
+<script src="js/market.js?v=20261117-109"></script>
+<script src="js/mail.js?v=20261117-109"></script>
+<script src="js/extras.js?v=20261117-109"></script>
+<script src="js/companion.js?v=20261117-109"></script>
+<script src="js/app.js?v=20261117-109"></script>
 </body>
 </html>
