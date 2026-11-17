@@ -304,6 +304,42 @@
     });
   }
 
+  /* 当前露出面积最大的页面（翻页动画中途也按实际可视比例判断） */
+  function dominantDeskPage() {
+    const pager = el('#desk-pager');
+    if (!pager) return deskPage;
+    const outside = pager.getBoundingClientRect();
+    let best = deskPage;
+    let bestVisible = -1;
+    deskPages().forEach(function (page, i) {
+      const rect = page.getBoundingClientRect();
+      const visible = Math.max(0, Math.min(rect.right, outside.right) - Math.max(rect.left, outside.left));
+      if (visible > bestVisible) {
+        bestVisible = visible;
+        best = i;
+      }
+    });
+    return best;
+  }
+
+  /* 松手时直接吸附到目标页，不再让页面停在两页之间 */
+  function snapDeskPage(index) {
+    const pages = deskPages();
+    const pager = el('#desk-pager');
+    const width = pager ? pager.clientWidth : 0;
+    deskPage = Math.max(0, Math.min(pages.length - 1, Number(index) || 0));
+    pages.forEach(function (page, i) {
+      page.style.transition = 'none';
+      page.style.transform = 'translateX(' + ((i - deskPage) * width) + 'px)';
+      page.style.pointerEvents = i === deskPage ? 'auto' : 'none';
+      page.inert = i !== deskPage;
+      page.setAttribute('aria-hidden', String(i !== deskPage));
+    });
+    updatePagerDots();
+    if (pager) void pager.offsetWidth;
+    pages.forEach(function (page) { page.style.transition = ''; });
+  }
+
   function initPager() {
     const pager = el('#desk-pager');
     let gesture = null;
@@ -598,10 +634,10 @@
     const canNext = pos >= 0 && pos < indexes.length - 1;
     if (inY && canPrev && x < rect.left + 56) {
       requestAppEdgeSwitch(-1);
-      paintPager(-22);
+      paintPager(appEdgeTimer ? -22 : 0);
     } else if (inY && canNext && x > rect.right - 56) {
       requestAppEdgeSwitch(1);
-      paintPager(22);
+      paintPager(appEdgeTimer ? 22 : 0);
     } else {
       cancelAppEdgeSwitch();
       paintPager(0);
@@ -673,9 +709,10 @@
     cancelAppEdgeSwitch();
     const pager = el('#desk-pager');
     if (pager) pager.classList.remove('is-app-dragging');
-    /* 松手时按当前翻到的那一页再放一次，避免翻页动画中途松手落到旧页 */
+    /* 松手时落到此刻露出面积最大的页面，并立即吸附，避免停在两页之间 */
+    snapDeskPage(dominantDeskPage());
     const pages = deskPages();
-    const page = pages[Math.min(deskPage, pages.length - 1)];
+    const page = pages[deskPage];
     const grid = page ? page.querySelector('.app-grid') : null;
     if (grid) {
       const index = appInsertIndex(grid, dropX, dropY, entry);
