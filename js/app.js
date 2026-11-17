@@ -3,6 +3,23 @@
   const App = window.App;
   const app = document.getElementById('app');
 
+  /* 全站禁止缩放：双指、双击和桌面 Ctrl+滚轮都不放大 */
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('gesturechange', function (e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('gestureend', function (e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', function (e) {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  let lastTapAt = 0;
+  document.addEventListener('touchend', function (e) {
+    const now = Date.now();
+    if (now - lastTapAt < 300) e.preventDefault();
+    lastTapAt = now;
+  }, { passive: false });
+  document.addEventListener('wheel', function (e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+
   App.go = function (view) {
     /* 切页面前关掉所有弹窗，避免弹窗留在主界面挡住操作 */
     document.querySelectorAll('dialog[open]').forEach(function (d) {

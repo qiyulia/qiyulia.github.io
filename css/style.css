@@ -14,6 +14,8 @@ html, body {
   margin: 0;
   height: 100%;
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: pan-x pan-y;
 }
 
 body {
@@ -159,6 +161,16 @@ html.is-keyboard-animating .stage { transition: height .18s ease-out; }
     border-radius: 36px;
     box-shadow: 0 40px 80px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .06);
   }
+}
+
+/* 强制撑满屏幕：去掉手机外壳宽度、圆角和阴影 */
+.app.is-force-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* ============ 视图切换 ============ */
@@ -2173,6 +2185,7 @@ dialog.sheet form {
   gap: 11px;
 }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; }
+#mw-poster-dialog > .sheet-head { padding: 16px 16px 8px; }
 .sheet-head h3 { font-size: 15px; }
 .sheet-head .icon-btn { font-size: 18px; color: var(--muted); }
 .sheet-actions { display: flex; gap: 8px; margin-top: 4px; }
@@ -4765,13 +4778,20 @@ input::-webkit-strong-password-auto-fill-button {
 .loc-bubble.is-ta { color: #a9714a; background: rgba(217, 155, 114, .16); }
 .loc-status-select {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--field);
   padding: 7px 8px;
   font-size: 11px;
   color: var(--ink);
+  text-align: left;
 }
+.loc-status-select .loc-place-chevron { flex: 0 0 auto; color: var(--muted); font-size: 15px; line-height: 1; }
+.loc-status-sheet { height: auto; max-height: min(62%, 520px); }
 .loc-zone-list { display: flex; flex-direction: column; gap: 7px; }
 .loc-zone-row {
   display: flex;

@@ -1250,6 +1250,28 @@
     showPanel('#loc-place-dialog');
   }
 
+  let locStatusWho = 'me';
+
+  function openStatusPicker(side) {
+    locStatusWho = side === 'ta' ? 'ta' : 'me';
+    const loc = locationState();
+    const title = el('#loc-status-title');
+    if (title) title.textContent = locStatusWho === 'me' ? '我的状态' : 'TA 的状态';
+    const box = el('#loc-status-options');
+    if (box) {
+      const opts = LOC_STATUS.slice();
+      if (loc.status[locStatusWho] && opts.indexOf(loc.status[locStatusWho]) === -1) opts.unshift(loc.status[locStatusWho]);
+      box.innerHTML = opts.map(function (s) {
+        const current = loc.status[locStatusWho] === s;
+        return '<button type="button" class="loc-place-option' + (current ? ' is-current' : '') + '" data-loc-status-pick="' + App.esc(s) + '">' +
+          '<span>' + App.esc(s) + '</span>' +
+          '<span class="loc-place-check" aria-hidden="true">' + (current ? '✓' : '') + '</span>' +
+        '</button>';
+      }).join('');
+    }
+    showPanel('#loc-status-dialog');
+  }
+
   function renderChatLocation() {
     const chip = el('#chat-loc-chip');
     if (!chip) return;
@@ -1420,26 +1442,22 @@
     const taZone = loc.zones.find(function (z) { return z.id === loc.inside.ta; });
     const mePlace = placeNameOf(loc, 'me');
     const taPlace = placeNameOf(loc, 'ta');
-    const statusSelect = function (side) {
-      return '<select class="loc-status-select" data-loc-status="' + side + '">' +
-        (function () {
-          const opts = LOC_STATUS.slice();
-          if (loc.status[side] && opts.indexOf(loc.status[side]) === -1) opts.unshift(loc.status[side]);
-          return opts.map(function (s) {
-            return '<option value="' + s + '"' + (loc.status[side] === s ? ' selected' : '') + '>' + s + '</option>';
-          }).join('');
-        })() + '</select>';
+    const statusButton = function (side) {
+      return '<button type="button" class="loc-status-select loc-status-open" data-loc-status-open="' + side + '" aria-haspopup="dialog">' +
+        '<span>' + App.esc(loc.status[side]) + '</span>' +
+        '<span class="loc-place-chevron" aria-hidden="true">›</span>' +
+      '</button>';
     };
     meBox.innerHTML =
       '<div class="loc-card-head"><span class="loc-who is-me">我</span>' +
         '<span class="loc-zone-name">' + (loc.paused ? '已暂停共享' : App.esc(mePlace || (meZone ? meZone.name : '外面'))) + '</span></div>' +
       '<div class="loc-bubble">' + App.esc(loc.status.me) + '</div>' +
-      (loc.paused ? '<p class="field-hint">暂停期间，TA 看不到你的位置。</p>' : statusSelect('me'));
+      (loc.paused ? '<p class="field-hint">暂停期间，TA 看不到你的位置。</p>' : statusButton('me'));
     taBox.innerHTML =
       '<div class="loc-card-head"><span class="loc-who is-ta">TA</span>' +
         '<span class="loc-zone-name">' + (loc.paused ? '看不到你' : App.esc(taPlace || (taZone ? taZone.name : '外面'))) + '</span></div>' +
       '<div class="loc-bubble is-ta">' + App.esc(loc.status.ta) + '</div>' +
-      statusSelect('ta');
+      statusButton('ta');
   }
 
   function renderLocationZones(loc) {
@@ -1560,7 +1578,15 @@
     let changed = false;
     Object.keys(App.state.chats || {}).forEach(function (id) {
       (App.state.chats[id] || []).forEach(function (m) {
-        if (!m || m.type !== 'pat' || typeof m.text !== 'string') return;
+        if (!m || typeof m.text !== 'string') return;
+        /* 旧版本可能给位置提醒带了一个无法显示的符号，先去掉开头符号 */
+        const stripped = m.text.replace(/^[^\u4e00-\u9fa5A-Za-z0-9]+/, '');
+        const isZoneLine = /^(我到家了|我到公司了|我从.+出发了)/.test(stripped);
+        if (isZoneLine) {
+          if (stripped !== m.text) { m.text = stripped; changed = true; }
+          if (m.type === 'pat') { m.type = 'text'; changed = true; }
+        }
+        if (m.type !== 'pat') return;
         const text = m.text;
         if (text === 'TA 已到家，今天也平安。') {
           m.text = '我到家了，今天也平安。';
@@ -2599,6 +2625,21 @@
         setPlaceFor(locPlaceWho, placeOption.dataset.locPlaceOption || '');
         const dialog = el('#loc-place-dialog');
         if (dialog) dialog.hidden = true;
+        return;
+      }
+      const statusTrigger = e.target.closest('[data-loc-status-open]');
+      if (statusTrigger) {
+        openStatusPicker(statusTrigger.dataset.locStatusOpen);
+        return;
+      }
+      const statusOption = e.target.closest('[data-loc-status-pick]');
+      if (statusOption) {
+        const loc = locationState();
+        loc.status[locStatusWho] = statusOption.dataset.locStatusPick;
+        App.save();
+        const dialog = el('#loc-status-dialog');
+        if (dialog) dialog.hidden = true;
+        renderLocation();
         return;
       }
       const meBtn = e.target.closest('[data-loc-me]');

@@ -324,6 +324,8 @@
     });
     const followThemeToggle = el('#set-icons-follow-theme');
     if (followThemeToggle) followThemeToggle.checked = st.settings.iconsFollowTheme !== false;
+    const fullscreenToggle = el('#set-force-fullscreen');
+    if (fullscreenToggle) fullscreenToggle.checked = !!st.settings.forceFullscreen;
     const calTheme = st.settings.calendarTheme || {};
     el('#set-calendar-theme').checked = calTheme.enabled !== false;
     document.querySelectorAll('#festival-options [data-festival-opt]').forEach(function (input) {
@@ -341,6 +343,12 @@
       : '删除后，本次聊天记录将无法恢复。';
     showChatSettingsPage(0);
   };
+
+  function applyForceFullscreen(on) {
+    const app = document.getElementById('app');
+    if (app) app.classList.toggle('is-force-fullscreen', !!on);
+    if (App.syncAppHeight) App.syncAppHeight();
+  }
 
   function markDirty() {
     App.save();
@@ -463,6 +471,7 @@
   App.initSettings = function () {
     initChatSettingsPager();
     initSettingsPager();
+    applyForceFullscreen(!!App.state.settings.forceFullscreen);
 
     /* 手机上在输入框打完字常常不会失焦，change 也就不触发，刷新后设置会丢。
        这里在停止输入后补发一次 change，并在刷新 / 切后台时把还没提交的输入框提交掉 */
@@ -988,6 +997,16 @@
         App.save();
         App.applyIconStyle();
         App.toast(iconsFollowTheme.checked ? '图标已跟随外观主题' : '图标已使用自定义颜色');
+      });
+    }
+
+    const forceFullscreen = el('#set-force-fullscreen');
+    if (forceFullscreen) {
+      forceFullscreen.addEventListener('change', function () {
+        App.state.settings.forceFullscreen = !!forceFullscreen.checked;
+        applyForceFullscreen(forceFullscreen.checked);
+        App.save();
+        App.toast(forceFullscreen.checked ? '已强制延伸至全屏幕' : '已恢复手机外壳比例');
       });
     }
 
