@@ -114,12 +114,16 @@
     const check = batchMode
       ? '<span class="card-check">' + (picked ? '✓' : '') + '</span>'
       : '';
-    const side = batchMode ? '' :
-      '<div class="card-side">' +
-        '<label class="switch" title="启用 / 停用">' +
+    /* 启用/停用开关只给内置字卡，自己导入的字卡不需要开关（导入即生效） */
+    const switchHtml = c.builtin
+      ? '<label class="switch" title="启用 / 停用">' +
           '<input type="checkbox" data-toggle="' + c.id + '"' + (c.enabled ? ' checked' : '') + '>' +
           '<span class="slider"></span>' +
-        '</label>' +
+        '</label>'
+      : '';
+    const side = batchMode ? '' :
+      '<div class="card-side">' +
+        switchHtml +
         '<button type="button" class="mini-btn" data-edit-card="' + c.id + '" aria-label="编辑字卡">✎</button>' +
         '<button type="button" class="mini-btn" data-del-card="' + c.id + '" aria-label="删除字卡">✕</button>' +
       '</div>';
