@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261116-102">
+<link rel="stylesheet" href="css/style.css?v=20261116-103">
 </head>
 <body>
 <div class="stage">
@@ -105,6 +105,11 @@ if ('caches' in window) {
                 <span class="widget-label">今日字笺</span>
                 <p id="d-today-card">……</p>
               </div>
+              <button type="button" class="widget photo-widget" data-go="memorywall" aria-label="打开回忆墙">
+                <span class="widget-label">回忆相框</span>
+                <span class="photo-widget-frame"><img id="d-photo" alt=""><em id="d-photo-empty">还没有照片</em></span>
+                <span class="widget-foot" id="d-photo-caption">把喜欢的瞬间放进来</span>
+              </button>
             </div>
 
             <div class="desk-section app-section">
@@ -163,6 +168,24 @@ if ('caches' in window) {
                     <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="22" rx="3"/><path d="M11 12h10M11 17h10M11 22h6"/></svg>
                   </span>
                   <span class="app-entry-label">笔记</span>
+                </button>
+                <button type="button" class="app-entry" data-go="location">
+                  <span class="software-icon location-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 28s-9-8.2-9-15a9 9 0 0 1 18 0c0 6.8-9 15-9 15z"/><circle cx="16" cy="13" r="3.4"/></svg>
+                  </span>
+                  <span class="app-entry-label">位置</span>
+                </button>
+                <button type="button" class="app-entry" data-go="memorywall">
+                  <span class="software-icon memorywall-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="8" width="24" height="18" rx="3"/><circle cx="12" cy="15" r="2.4"/><path d="M4 22l7-6 5 4 4-3 8 7"/></svg>
+                  </span>
+                  <span class="app-entry-label">回忆墙</span>
+                </button>
+                <button type="button" class="app-entry" data-go="mood">
+                  <span class="software-icon mood-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11"/><path d="M11 14h.01M21 14h.01" stroke-width="3.2"/><path d="M11 20c1.4 1.8 3.1 2.7 5 2.7s3.6-.9 5-2.7"/></svg>
+                  </span>
+                  <span class="app-entry-label">心情</span>
                 </button>
               </div>
             </div>
@@ -475,6 +498,181 @@ if ('caches' in window) {
           <button type="submit" class="btn primary">添加提醒</button>
         </form>
         <div id="reminder-list" class="reminder-list"></div>
+      </div>
+    </section>
+
+    <!-- ============ 位置 ============ -->
+    <section id="view-location" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>位置</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body loc-body">
+        <div class="panel loc-hero">
+          <div class="loc-hero-top">
+            <div>
+              <h3>实时位置</h3>
+              <p class="field-hint" id="loc-hint">开启后，你们才能在地图上看到彼此的位置。</p>
+            </div>
+            <span class="loc-state" id="loc-state">未开启</span>
+          </div>
+          <div class="loc-actions">
+            <button type="button" class="btn primary" id="loc-enable">开启共享</button>
+            <button type="button" class="btn ghost" id="loc-pause">暂停共享</button>
+          </div>
+        </div>
+
+        <div class="loc-map-panel">
+          <svg id="loc-map" class="loc-map" viewBox="0 0 400 340" role="img" aria-label="位置地图"></svg>
+          <div class="loc-distance" id="loc-distance">相距 —</div>
+          <div class="loc-map-tip">点地图可以移动我的位置</div>
+          <div class="loc-map-lock" id="loc-map-lock">开启共享后显示地图</div>
+        </div>
+
+        <div class="loc-cards">
+          <div class="loc-card" id="loc-card-me"></div>
+          <div class="loc-card" id="loc-card-ta"></div>
+        </div>
+
+        <div class="panel loc-zone-panel">
+          <h3>安全区域</h3>
+          <p class="field-hint">到达或离开「家 / 公司」时，会自动给对方发一条私信。</p>
+          <div id="loc-zone-list" class="loc-zone-list"></div>
+          <div class="loc-quick">
+            <button type="button" class="btn ghost" data-loc-me="home">我到家了</button>
+            <button type="button" class="btn ghost" data-loc-me="work">我到公司了</button>
+            <button type="button" class="btn ghost" data-loc-ta="home">TA 到家了</button>
+            <button type="button" class="btn ghost" data-loc-ta="work">TA 到公司了</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 回忆墙 ============ -->
+    <section id="view-memorywall" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>回忆墙</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body memory-body">
+        <div class="mw-today" id="mw-today" hidden></div>
+        <div class="mw-toolbar">
+          <button type="button" class="btn primary" id="mw-add">＋ 放入照片</button>
+          <button type="button" class="btn ghost" id="mw-poster">拼一张海报</button>
+          <button type="button" class="btn ghost" id="mw-hidden">隐藏相册 <span id="mw-hidden-count"></span></button>
+        </div>
+        <div id="mw-timeline" class="mw-timeline"></div>
+        <p class="empty-note" id="mw-empty">还没有照片，先把相册里喜欢的瞬间放进来。</p>
+      </div>
+      <input type="file" id="mw-file" accept="image/*" multiple hidden>
+
+      <dialog id="mw-dialog" class="sheet">
+        <form id="mw-form">
+          <div class="sheet-head">
+            <h3>放入回忆</h3>
+            <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+          </div>
+          <div class="mw-preview" id="mw-preview"></div>
+          <label class="field"><span>配一句话</span><input id="mw-caption" maxlength="60" placeholder="那天的风很好"></label>
+          <label class="field"><span>日期</span><input id="mw-date" type="date"></label>
+          <label class="field"><span>绑定纪念日</span><select id="mw-anniv"><option value="">不绑定</option></select></label>
+          <label class="mw-check"><input type="checkbox" id="mw-secret"> 放进隐藏相册（需要验证）</label>
+          <div class="sheet-actions">
+            <button type="button" class="btn ghost" data-close>取消</button>
+            <button type="submit" class="btn primary">放进去</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="mw-view" class="sheet mw-view">
+        <div class="sheet-head">
+          <h3 id="mw-view-title">回忆</h3>
+          <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+        </div>
+        <div id="mw-view-body"></div>
+        <div class="mw-comment-bar">
+          <input id="mw-comment-input" maxlength="60" placeholder="说点什么…">
+          <button type="button" class="btn primary" id="mw-comment-send">发送</button>
+        </div>
+      </dialog>
+
+      <dialog id="mw-hidden-dialog" class="sheet">
+        <div class="sheet-head">
+          <h3>隐藏相册</h3>
+          <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+        </div>
+        <div class="tool-sheet-body" id="mw-hidden-body"></div>
+      </dialog>
+
+      <dialog id="mw-poster-dialog" class="sheet">
+        <div class="sheet-head">
+          <h3>回忆海报</h3>
+          <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+        </div>
+        <div class="tool-sheet-body">
+          <img id="mw-poster-img" class="mw-poster-img" alt="回忆海报">
+        </div>
+        <div class="sheet-actions">
+          <button type="button" class="btn ghost" data-close>关闭</button>
+          <button type="button" class="btn ghost" id="mw-poster-share" hidden>分享</button>
+          <a class="btn primary" id="mw-poster-save" download="memory-poster.jpg">保存海报</a>
+        </div>
+      </dialog>
+    </section>
+
+    <!-- ============ 心情日记 ============ -->
+    <section id="view-mood" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>心情日记</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body mood-body">
+        <div class="panel mood-panel">
+          <div class="mood-panel-head">
+            <div>
+              <h3 id="mood-title">今天的心情</h3>
+              <p class="field-hint" id="mood-date"></p>
+            </div>
+            <span class="mood-weather" id="mood-weather">☀️</span>
+          </div>
+          <div class="mood-picker" id="mood-picker"></div>
+          <div class="mood-note-row">
+            <input id="mood-note" maxlength="80" placeholder="用一句话记下今天（可选）">
+            <label class="mood-photo-btn" for="mood-photo">照片
+              <input type="file" id="mood-photo" accept="image/*" hidden>
+            </label>
+          </div>
+          <div id="mood-photo-preview" class="mood-photo-preview" hidden></div>
+          <div class="mood-actions">
+            <button type="button" class="btn primary" id="mood-save">记下今天</button>
+            <button type="button" class="btn ghost" id="mood-clear">清除今天</button>
+          </div>
+        </div>
+
+        <div class="panel" id="mood-ta-panel"></div>
+
+        <div class="panel mood-calendar-panel">
+          <div class="mood-cal-head">
+            <h3>情绪日历</h3>
+            <div class="segmented" id="mood-cal-tabs">
+              <button type="button" class="is-active" data-mood-cal="month">这个月</button>
+              <button type="button" data-mood-cal="year">今年</button>
+            </div>
+          </div>
+          <div id="mood-calendar" class="mood-calendar"></div>
+          <div class="mood-legend" id="mood-legend"></div>
+        </div>
+
+        <div class="panel mood-report-panel" id="mood-report"></div>
       </div>
     </section>
 
@@ -1508,11 +1706,14 @@ if ('caches' in window) {
     <button type="button" class="more-app" data-tool="survey" data-cat="tool" title="写一份小问卷"><span class="more-app-icon is-tool">问</span><span>问卷</span></button>
     <button type="button" class="more-app" data-tool="divine" data-cat="tool" title="塔罗牌 / 雷诺曼占卜"><span class="more-app-icon is-divine">签</span><span>占卜</span></button>
     <button type="button" class="more-app" data-tool="avatar" data-cat="tool" title="互换头像"><span class="more-app-icon is-avatar">换</span><span>头像与名字</span></button>
+    <button type="button" class="more-app" data-tool="sleep" data-cat="tool" title="白噪音与混音，睡前放松"><span class="more-app-icon is-sleep">眠</span><span>助眠</span></button>
     <button type="button" class="more-app" data-tool="mine" data-cat="game" title="你一下，TA 一下，双人轮流扫雷" hidden><span class="more-app-icon is-game">雷</span><span>扫雷</span></button>
     <button type="button" class="more-app" data-tool="jump" data-cat="game" title="滑到正中间时点确定" hidden><span class="more-app-icon is-jump">跳</span><span>跳一跳</span></button>
     <button type="button" class="more-app" data-tool="sheep" data-cat="game" title="凑三张同款消掉一组，消掉一组后换人" hidden><span class="more-app-icon is-sheep">羊</span><span>羊了个羊</span></button>
     <button type="button" class="more-app" data-tool="gomoku" data-cat="game" title="我执黑，TA 执白，连成五子即胜" hidden><span class="more-app-icon is-gomoku">棋</span><span>五子棋</span></button>
     <button type="button" class="more-app" data-tool="drawguess" data-cat="game" title="你画或描述，TA 从四个同类选项里猜" hidden><span class="more-app-icon is-drawguess">画</span><span>你画我猜</span></button>
+    <button type="button" class="more-app" data-tool="quiz" data-cat="game" title="我先答，TA 再猜，看看你们有多默契" hidden><span class="more-app-icon is-quiz">默</span><span>默契问答</span></button>
+    <button type="button" class="more-app" data-tool="songquiz" data-cat="game" title="听一段旋律，手写歌名，和 TA 抢答" hidden><span class="more-app-icon is-song">曲</span><span>听音识曲</span></button>
   </div>
 </dialog>
 
@@ -1848,6 +2049,141 @@ if ('caches' in window) {
   </div>
 </div>
 
+<!-- ============ 游戏：默契问答 ============ -->
+<div id="quiz-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card quiz-sheet">
+    <div class="sheet-head">
+      <h3>默契问答</h3>
+      <span class="quiz-score-pill" id="quiz-score-pill">默契度 0</span>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body quiz-body">
+      <div class="segmented" id="quiz-tabs">
+        <button type="button" class="is-active" data-quiz-tab="play">系统出题</button>
+        <button type="button" data-quiz-tab="custom">我来出题</button>
+        <button type="button" data-quiz-tab="rank">排行榜</button>
+      </div>
+
+      <div data-quiz-panel="play">
+        <div class="quiz-card">
+          <div class="quiz-card-top">
+            <span class="tag" id="quiz-cat">日常习惯</span>
+            <button type="button" class="mini-btn" id="quiz-refresh">换一题</button>
+          </div>
+          <p class="quiz-question" id="quiz-question">…</p>
+          <label class="field"><span>正确答案（只有你先知道）</span>
+            <input id="quiz-answer" maxlength="40" placeholder="比如：草莓">
+          </label>
+          <button type="button" class="btn primary" id="quiz-submit">出这道题，等 TA 来猜</button>
+          <p class="field-hint">你先写下答案，系统会通知 TA 来猜，猜完双方一起看结果。</p>
+        </div>
+        <div class="quiz-pending" id="quiz-pending" hidden></div>
+        <div class="quiz-result" id="quiz-result" hidden></div>
+      </div>
+
+      <div data-quiz-panel="custom" hidden>
+        <label class="field"><span>题目</span>
+          <input id="quiz-custom-q" maxlength="60" placeholder="比如：我们第一次约会看的什么电影？">
+        </label>
+        <label class="field"><span>正确答案</span>
+          <input id="quiz-custom-a" maxlength="40" placeholder="只有你知道的答案">
+        </label>
+        <label class="field"><span>分类</span>
+          <select id="quiz-custom-cat"></select>
+        </label>
+        <button type="button" class="btn primary" id="quiz-custom-save">存进题库并出题</button>
+        <p class="field-hint">自定义题目会存进字卡库的「默契问答」分类，之后也能抽到。</p>
+      </div>
+
+      <div data-quiz-panel="rank" hidden id="quiz-rank"></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" data-tool-close>关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 工具：助眠 ============ -->
+<div id="sleep-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card sleep-sheet">
+    <div class="sheet-head">
+      <h3>助眠</h3>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body sleep-body">
+      <div class="sleep-scene">
+        <span class="sleep-disc" id="sleep-disc">🌧</span>
+        <div class="sleep-scene-copy">
+          <strong id="sleep-title">雨声</strong>
+          <span id="sleep-sub">点一个声音开始，可以叠加混音</span>
+        </div>
+        <button type="button" class="sleep-master" id="sleep-master" aria-label="播放 / 暂停">▶</button>
+      </div>
+      <div id="sleep-sounds" class="sleep-sounds"></div>
+      <div class="sleep-timer-row">
+        <span>定时关闭</span>
+        <div class="segmented" id="sleep-timer">
+          <button type="button" class="is-active" data-sleep-min="0">关</button>
+          <button type="button" data-sleep-min="15">15 分</button>
+          <button type="button" data-sleep-min="30">30 分</button>
+          <button type="button" data-sleep-min="60">60 分</button>
+        </div>
+        <span id="sleep-countdown" class="sleep-countdown"></span>
+      </div>
+      <button type="button" class="btn ghost sleep-together-btn" id="sleep-together">和 TA 一起听</button>
+      <p class="field-hint" id="sleep-together-hint">双人同听：你们会在同一时间听同一段声音，像住在同一个屋檐下。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 游戏：听音识曲 ============ -->
+<div id="songquiz-dialog" class="tool-overlay" hidden>
+  <div class="tool-overlay-backdrop" data-tool-close></div>
+  <div class="tool-overlay-card song-sheet">
+    <div class="sheet-head">
+      <h3>听音识曲</h3>
+      <span class="tag" id="song-mode-label">单人模式</span>
+      <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+    </div>
+    <div class="tool-sheet-body song-body">
+      <div class="segmented" id="song-mode">
+        <button type="button" class="is-active" data-song-mode="solo">单人</button>
+        <button type="button" data-song-mode="battle">双人对战</button>
+        <button type="button" data-song-mode="hum">哼唱</button>
+      </div>
+
+      <div class="song-stage">
+        <button type="button" class="song-disc" id="song-play" aria-label="播放旋律">▶</button>
+        <div class="song-wave" id="song-wave" aria-hidden="true"></div>
+        <p id="song-hint">曲库：网易云随机（本地模拟）</p>
+      </div>
+
+      <div class="song-guess-row" id="song-guess-row">
+        <input id="song-input" maxlength="30" placeholder="手写歌名">
+        <button type="button" class="btn primary" id="song-submit">提交</button>
+      </div>
+      <p class="song-result" id="song-result" hidden></p>
+
+      <div class="song-score">
+        <span>我 <strong id="song-me">0</strong></span>
+        <span>TA <strong id="song-ta">0</strong></span>
+        <span id="song-round">第 1 题</span>
+      </div>
+
+      <div id="song-hum-box" hidden>
+        <button type="button" class="btn ghost" id="song-record">开始哼唱</button>
+        <audio id="song-audio" controls hidden></audio>
+        <button type="button" class="btn ghost" id="song-ta-guess" hidden>让 TA 猜</button>
+        <p class="field-hint" id="song-hum-hint">哼一段旋律，让 TA 猜歌名。</p>
+      </div>
+
+      <div id="song-rank" class="song-rank"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ 联系人弹窗 ============ -->
 <dialog id="contact-dialog" class="sheet">
   <form id="contact-form">
@@ -2019,18 +2355,19 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261116-102"></script>
-<script src="js/store.js?v=20261116-102"></script>
-<script src="js/desktop.js?v=20261116-102"></script>
-<script src="js/chat.js?v=20261116-102"></script>
-<script src="js/cards.js?v=20261116-102"></script>
-<script src="js/settings.js?v=20261116-102"></script>
-<script src="js/moments.js?v=20261116-102"></script>
-<script src="js/calendar.js?v=20261116-102"></script>
-<script src="js/music.js?v=20261116-102"></script>
-<script src="js/market.js?v=20261116-102"></script>
-<script src="js/mail.js?v=20261116-102"></script>
-<script src="js/extras.js?v=20261116-102"></script>
-<script src="js/app.js?v=20261116-102"></script>
+<script src="js/seed.js?v=20261116-103"></script>
+<script src="js/store.js?v=20261116-103"></script>
+<script src="js/desktop.js?v=20261116-103"></script>
+<script src="js/chat.js?v=20261116-103"></script>
+<script src="js/cards.js?v=20261116-103"></script>
+<script src="js/settings.js?v=20261116-103"></script>
+<script src="js/moments.js?v=20261116-103"></script>
+<script src="js/calendar.js?v=20261116-103"></script>
+<script src="js/music.js?v=20261116-103"></script>
+<script src="js/market.js?v=20261116-103"></script>
+<script src="js/mail.js?v=20261116-103"></script>
+<script src="js/extras.js?v=20261116-103"></script>
+<script src="js/companion.js?v=20261116-103"></script>
+<script src="js/app.js?v=20261116-103"></script>
 </body>
 </html>

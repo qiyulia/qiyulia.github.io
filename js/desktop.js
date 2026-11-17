@@ -90,6 +90,7 @@
 
     App.applyIconStyle();
     if (App.renderMusic) App.renderMusic();
+    if (App.renderMemoryWidget) App.renderMemoryWidget();
   }
 
   /* ---------- 图标美化 ---------- */

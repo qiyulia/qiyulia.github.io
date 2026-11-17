@@ -47,6 +47,9 @@
     else if (view === 'mail') App.renderMail();
     else if (view === 'anniversary') App.renderAnniversaries();
     else if (view === 'notes') App.renderReminders();
+    else if (view === 'location' && App.renderLocation) App.renderLocation();
+    else if (view === 'memorywall' && App.renderMemoryWall) App.renderMemoryWall();
+    else if (view === 'mood' && App.renderMood) App.renderMood();
     if (App.applyLook && (view === 'chat-settings' || view === 'desktop' || view === 'chat')) App.applyLook();
   };
 
@@ -380,6 +383,7 @@
   App.initMarket();
   App.initMail();
   if (App.initExtras) App.initExtras();
+  if (App.initCompanion) App.initCompanion();
 
   /* 选图前写入的记忆，localStorage 比 sessionStorage 更容易在系统重载后保留 */
   let pickView = null;

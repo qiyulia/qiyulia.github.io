@@ -1,0 +1,2220 @@
+/* 默契问答 / 心情日记 / 回忆墙 / 位置共享 / 助眠 / 听音识曲 */
+(function () {
+  const App = window.App;
+  const el = function (sel) { return document.querySelector(sel); };
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function todayKey() { return dateKey(new Date()); }
+  function parseDate(key) {
+    const parts = String(key || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  function dateLabel(key) {
+    const d = parseDate(key);
+    return d ? (d.getMonth() + 1) + '月' + d.getDate() + '日' : key;
+  }
+  function weekdayLabel(d) { return '周' + '日一二三四五六'[d.getDay()]; }
+  function seedHash(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+  function contactId() {
+    const st = App.state;
+    if (st.currentContactId && (st.contacts || []).some(function (c) { return c.id === st.currentContactId; })) {
+      return st.currentContactId;
+    }
+    return st.contacts && st.contacts.length ? st.contacts[0].id : null;
+  }
+
+  function pushChat(role, text) {
+    const id = contactId();
+    if (!id || !text) return;
+    const chat = App.state.chats[id] || (App.state.chats[id] = []);
+    chat.push({ id: App.uid('m'), role: role, type: 'pat', text: text, ts: Date.now() });
+    if (App.chatOpen && App.chatOpen(id)) {
+      if (App.renderChat) App.renderChat();
+    } else {
+      App.unread[id] = (App.unread[id] || 0) + 1;
+    }
+    App.save();
+    if (App.renderContacts) App.renderContacts();
+    if (App.updateBadges) App.updateBadges();
+  }
+
+  function showPanel(sel) {
+    document.querySelectorAll('.tool-overlay').forEach(function (layer) { layer.hidden = true; });
+    const layer = document.querySelector(sel);
+    if (!layer) return;
+    layer.hidden = false;
+    const body = layer.querySelector('.tool-sheet-body');
+    if (body) body.scrollTop = 0;
+    if (App.syncAppHeight) App.syncAppHeight();
+  }
+
+  function closeMore() {
+    const more = el('#more-dialog');
+    if (more && more.open) more.close();
+  }
+
+  function currentView(id) {
+    const view = document.getElementById('view-' + id);
+    return !!(view && view.classList.contains('is-active'));
+  }
+
+  /* =========================================================
+     默契问答
+     ========================================================= */
+  function quizState() {
+    const st = App.state;
+    if (!st.quiz || typeof st.quiz !== 'object') st.quiz = { rounds: [], lastCardId: '', streak: 0, bestStreak: 0 };
+    if (!Array.isArray(st.quiz.rounds)) st.quiz.rounds = [];
+    if (typeof st.quiz.streak !== 'number') st.quiz.streak = 0;
+    if (typeof st.quiz.bestStreak !== 'number') st.quiz.bestStreak = 0;
+    return st.quiz;
+  }
+
+  function quizCards() {
+    return (App.state.cards || []).filter(function (c) {
+      return c.category === '默契问答' && c.enabled !== false && c.text;
+    });
+  }
+
+  let quizCurrent = null;
+
+  function pickQuizCard() {
+    const pool = quizCards();
+    if (!pool.length) return null;
+    const last = quizState().lastCardId;
+    const fresh = pool.filter(function (c) { return c.id !== last; });
+    const list = fresh.length ? fresh : pool;
+    return list[Math.floor(Math.random() * list.length)];
+  }
+
+  function quizCatOf(card) {
+    return (card && card.quizCat) || '自定义';
+  }
+
+  function setQuizCard(card) {
+    quizCurrent = card || null;
+    const catNode = el('#quiz-cat');
+    const qNode = el('#quiz-question');
+    const answer = el('#quiz-answer');
+    if (catNode) catNode.textContent = card ? quizCatOf(card) : '题库为空';
+    if (qNode) qNode.textContent = card ? card.text : '字卡库里还没有默契问答的题目。';
+    if (answer) answer.value = card ? (card.quizAnswer || '') : '';
+  }
+
+  function quizPoints() {
+    return quizState().rounds.reduce(function (sum, r) { return sum + (Number(r.score) || 0); }, 0);
+  }
+
+  function refreshQuizPill() {
+    const pill = el('#quiz-score-pill');
+    if (pill) pill.textContent = '默契度 ' + quizPoints();
+    const submit = el('#quiz-submit');
+    if (submit) submit.disabled = !quizCurrent;
+  }
+
+  function normAnswer(text) {
+    return String(text || '').toLowerCase().replace(/[\s，。,.!！?？、；;：:“”"'（）()【】\[\]]/g, '');
+  }
+
+  const WRONG_GUESSES = {
+    日常习惯: ['先看手机', '先喝一杯水', '再赖五分钟', '我也说不好'],
+    恋爱回忆: ['那家小面馆', '记不清了', '第一次见面的路口', '应该是我先开口'],
+    未来规划: ['一起去日本', '养一只猫', '有个带院子的家', '开一家小店'],
+    兴趣爱好: ['周杰伦', '《海上钢琴师》', '草莓', '猫'],
+    口味偏好: ['不要香菜', '三分糖', '都可以', '辣的'],
+    小秘密: ['怕黑', '小时候想当老师', '偷偷哭过', '这个真不能说'],
+    自定义: ['猜不到', '你直接告诉我吧', '下次一定', '让我再想想'],
+  };
+
+  function wrongGuess(answer, cat) {
+    const pool = (WRONG_GUESSES[cat] || WRONG_GUESSES['自定义']).filter(function (x) {
+      return normAnswer(x) !== normAnswer(answer);
+    });
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : '猜不到';
+  }
+
+  function renderQuizResult(round) {
+    const box = el('#quiz-result');
+    if (!box) return;
+    if (!round) { box.hidden = true; return; }
+    box.hidden = false;
+    box.className = 'quiz-result ' + (round.correct ? 'is-right' : 'is-wrong');
+    box.innerHTML =
+      '<p class="quiz-result-title">' + (round.correct ? '猜对了！+10 分' : '这次没猜中') + '</p>' +
+      '<div class="quiz-compare">' +
+        '<div><span>我的答案</span><strong>' + App.esc(round.answer) + '</strong></div>' +
+        '<div><span>TA 的猜测</span><strong>' + App.esc(round.guess) + '</strong></div>' +
+      '</div>' +
+      '<p class="field-hint">默契度 ' + quizPoints() + ' 分 · 当前连对 ' + quizState().streak + ' 次</p>';
+  }
+
+  function resolveQuiz() {
+    const q = quizState();
+    const pending = q.pending;
+    if (!pending) return;
+    q.pending = null;
+
+    const cat = pending.cat || '自定义';
+    let guess = Math.random() < 0.58 ? pending.answer : wrongGuess(pending.answer, cat);
+    const a = normAnswer(pending.answer);
+    const g = normAnswer(guess);
+    const correct = !!a && (a === g || (a.length >= 2 && g.length >= 2 && (a.indexOf(g) !== -1 || g.indexOf(a) !== -1)));
+    const score = correct ? 10 : 0;
+    const round = {
+      id: App.uid('qr'),
+      question: pending.question,
+      answer: pending.answer,
+      guess: guess,
+      cat: cat,
+      correct: correct,
+      score: score,
+      ts: Date.now(),
+    };
+    q.rounds.push(round);
+    q.streak = correct ? q.streak + 1 : 0;
+    q.bestStreak = Math.max(q.bestStreak, q.streak);
+    if (q.rounds.length > 300) q.rounds = q.rounds.slice(-300);
+    App.save();
+
+    pushChat('ta', '默契问答：' + pending.question + ' 我猜「' + guess + '」');
+    pushChat('ta', correct ? '猜对了！+10 分，我们果然有默契。' : '哎呀，猜错了，差一点点。');
+
+    const pendingBox = el('#quiz-pending');
+    if (pendingBox) pendingBox.hidden = true;
+    renderQuizResult(round);
+    refreshQuizPill();
+    renderQuizRank();
+    if (!quizCurrent) setQuizCard(pickQuizCard());
+  }
+
+  function submitQuiz() {
+    if (!quizCurrent) { App.toast('题库里还没有题目'); return; }
+    const input = el('#quiz-answer');
+    const answer = input ? input.value.trim() : '';
+    if (!answer) { App.toast('先写下正确答案'); return; }
+    const q = quizState();
+    q.lastCardId = quizCurrent.id;
+    q.pending = {
+      cardId: quizCurrent.id,
+      question: quizCurrent.text,
+      answer: answer,
+      cat: quizCatOf(quizCurrent),
+      ts: Date.now(),
+    };
+    App.save();
+
+    const pending = el('#quiz-pending');
+    if (pending) {
+      pending.hidden = false;
+      pending.innerHTML = '<span class="quiz-wait-dot"></span><div><strong>已经把题目发给 TA 了</strong>' +
+        '<p>等 TA 猜完，你们就能一起看对比结果。</p></div>';
+    }
+    const result = el('#quiz-result');
+    if (result) result.hidden = true;
+    if (input) input.value = '';
+    setTimeout(resolveQuiz, 2600);
+  }
+
+  function saveCustomQuiz() {
+    const qNode = el('#quiz-custom-q');
+    const aNode = el('#quiz-custom-a');
+    const catNode = el('#quiz-custom-cat');
+    const question = qNode ? qNode.value.trim() : '';
+    const answer = aNode ? aNode.value.trim() : '';
+    const cat = catNode ? catNode.value : '自定义';
+    if (!question || !answer) { App.toast('题目和答案都要写'); return; }
+
+    const card = {
+      id: App.uid('card'),
+      category: '默契问答',
+      quizCat: cat,
+      text: question.slice(0, 60),
+      quizAnswer: answer.slice(0, 40),
+      trigger: '',
+      enabled: true,
+    };
+    App.state.cards.push(card);
+    App.save();
+    if (App.renderCards) App.renderCards();
+
+    if (qNode) qNode.value = '';
+    if (aNode) aNode.value = '';
+    switchQuizTab('play');
+    setQuizCard(card);
+    const input = el('#quiz-answer');
+    if (input) input.value = card.quizAnswer;
+    refreshQuizPill();
+    App.toast('已存进「默契问答」题库');
+  }
+
+  function weekStartTs() {
+    const now = new Date();
+    const day = (now.getDay() + 6) % 7;
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+    return start.getTime();
+  }
+  function monthStartTs() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  }
+
+  function quizStat(list) {
+    const total = list.length;
+    const right = list.filter(function (r) { return r.correct; }).length;
+    const points = list.reduce(function (sum, r) { return sum + (Number(r.score) || 0); }, 0);
+    return {
+      total: total,
+      right: right,
+      points: points,
+      acc: total ? Math.round(right / total * 100) : 0,
+    };
+  }
+
+  function quizTitle(acc, total) {
+    if (!total) return '还没开始，先答一题吧';
+    if (acc >= 90) return '心有灵犀';
+    if (acc >= 70) return '默契搭档';
+    if (acc >= 50) return '正在靠近';
+    return '还在互相认识';
+  }
+
+  function renderQuizRank() {
+    const box = el('#quiz-rank');
+    if (!box) return;
+    const rounds = quizState().rounds;
+    const week = quizStat(rounds.filter(function (r) { return r.ts >= weekStartTs(); }));
+    const month = quizStat(rounds.filter(function (r) { return r.ts >= monthStartTs(); }));
+
+    const catMap = {};
+    rounds.forEach(function (r) {
+      const c = r.cat || '自定义';
+      if (!catMap[c]) catMap[c] = { total: 0, right: 0 };
+      catMap[c].total += 1;
+      if (r.correct) catMap[c].right += 1;
+    });
+    const cats = Object.keys(catMap).map(function (name) {
+      return { name: name, total: catMap[name].total, right: catMap[name].right, acc: Math.round(catMap[name].right / catMap[name].total * 100) };
+    }).sort(function (a, b) { return b.acc - a.acc || b.total - a.total; });
+
+    box.innerHTML =
+      '<div class="quiz-rank-hero">' +
+        '<p class="quiz-rank-title">' + quizTitle(month.acc, month.total) + '</p>' +
+        '<p class="field-hint">本月一起答了 ' + month.total + ' 题，默契指数 ' + month.points + ' 分</p>' +
+      '</div>' +
+      '<div class="quiz-rank-grid">' +
+        '<div class="quiz-rank-item"><span>本周</span><strong>' + week.points + '</strong><em>分 · 正确率 ' + week.acc + '%</em></div>' +
+        '<div class="quiz-rank-item"><span>本月</span><strong>' + month.points + '</strong><em>分 · 正确率 ' + month.acc + '%</em></div>' +
+      '</div>' +
+      '<div class="quiz-report">' +
+        '<h4>专属默契报告</h4>' +
+        (cats.length
+          ? cats.map(function (c) {
+              return '<div class="quiz-cat-row"><span>' + App.esc(c.name) + '</span><span class="quiz-cat-bar"><i style="width:' + c.acc + '%"></i></span><em>' + c.right + '/' + c.total + '</em></div>';
+            }).join('')
+          : '<p class="field-hint">答完第一题，这里会出现你们的默契分类。</p>') +
+      '</div>' +
+      '<p class="field-hint">默契指数每周和每月自动结算，只保存在本机。</p>';
+  }
+
+  function switchQuizTab(tab) {
+    document.querySelectorAll('#quiz-tabs [data-quiz-tab]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.quizTab === tab);
+    });
+    document.querySelectorAll('#quiz-dialog [data-quiz-panel]').forEach(function (panel) {
+      panel.hidden = panel.dataset.quizPanel !== tab;
+    });
+    if (tab === 'rank') renderQuizRank();
+  }
+
+  function openQuiz() {
+    const q = quizState();
+    closeMore();
+    if (q.pending) {
+      const pending = el('#quiz-pending');
+      if (pending) {
+        pending.hidden = false;
+        pending.innerHTML = '<span class="quiz-wait-dot"></span><div><strong>TA 正在猜你出的题</strong>' +
+          '<p>' + App.esc(q.pending.question) + '</p></div>';
+      }
+      setTimeout(resolveQuiz, 800);
+    } else {
+      const pending = el('#quiz-pending');
+      if (pending) pending.hidden = true;
+    }
+    setQuizCard(quizCurrent || pickQuizCard());
+    refreshQuizPill();
+    renderQuizResult(null);
+    renderQuizRank();
+    switchQuizTab('play');
+    const catSelect = el('#quiz-custom-cat');
+    if (catSelect && !catSelect.options.length) {
+      catSelect.innerHTML = (App.QUIZ_CATEGORIES || []).concat('自定义').map(function (c) {
+        return '<option value="' + c + '">' + c + '</option>';
+      }).join('');
+    }
+    showPanel('#quiz-dialog');
+  }
+
+  /* =========================================================
+     心情日记
+     ========================================================= */
+  const MOODS = [
+    { id: 'happy', label: '开心', emoji: '☀️', weather: '晴天', color: '#f2c368' },
+    { id: 'calm', label: '平静', emoji: '☁️', weather: '多云', color: '#a8cceb' },
+    { id: 'sad', label: '难过', emoji: '🌧', weather: '小雨', color: '#8fa9cc' },
+    { id: 'angry', label: '生气', emoji: '⚡️', weather: '雷阵雨', color: '#e9a29a' },
+    { id: 'tired', label: '疲惫', emoji: '🌫', weather: '有雾', color: '#b9b2cf' },
+  ];
+  const MOOD_MAP = {};
+  MOODS.forEach(function (m) { MOOD_MAP[m.id] = m; });
+
+  let moodDraft = { mood: '', note: '', photo: '' };
+  let moodCalMode = 'month';
+  let moodCursor = new Date();
+  const moodReplyText = {
+    happy: ['看到你开心，我也跟着开心。', '今天的好心情，分我一半。', '把这份开心存起来，下次不开心的时候用。'],
+    calm: ['平静的一天也很好，我在。', '就这样安安静静地陪着你。', '不慌不忙，日子会慢慢变好。'],
+    sad: ['抱抱你，难过的时候不用硬撑。', '我在，想说就说，不想说我就陪着。', '今天先好好休息，明天再想。'],
+    angry: ['谁惹你了？我站你这边。', '先深呼吸，别气坏了自己。', '气一会儿就好，别憋着。'],
+    tired: ['辛苦了，早点躺下吧。', '今天已经很努力了，剩下的明天再说。', '给你留了盏灯，慢慢回来。'],
+  };
+
+  function moodState() {
+    const st = App.state;
+    if (!st.mood || typeof st.mood !== 'object') st.mood = { entries: {} };
+    if (!st.mood.entries || typeof st.mood.entries !== 'object') st.mood.entries = {};
+    return st.mood;
+  }
+  function moodOf(id) { return MOOD_MAP[id] || null; }
+  function taMoodOf(key) {
+    const h = seedHash(key + '|ta|mood');
+    return MOODS[h % MOODS.length];
+  }
+
+  function renderMoodPicker() {
+    const box = el('#mood-picker');
+    if (!box) return;
+    box.innerHTML = MOODS.map(function (m) {
+      const on = moodDraft.mood === m.id;
+      return '<button type="button" class="mood-choice' + (on ? ' is-on' : '') + '" data-mood="' + m.id + '">' +
+        '<span class="mood-emoji" style="--mood-color:' + m.color + '">' + m.emoji + '</span>' +
+        '<span>' + m.label + '</span>' +
+      '</button>';
+    }).join('');
+  }
+
+  function renderMoodPhoto() {
+    const box = el('#mood-photo-preview');
+    if (!box) return;
+    if (!moodDraft.photo) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<img src="' + moodDraft.photo + '" alt="心情照片"><button type="button" class="mini-btn" id="mood-photo-del" aria-label="移除照片">×</button>';
+  }
+
+  function renderMoodTa() {
+    const box = el('#mood-ta-panel');
+    if (!box) return;
+    const today = todayKey();
+    const m = taMoodOf(today);
+    const entry = moodState().entries[today];
+    const reply = entry && entry.taReply;
+    box.innerHTML =
+      '<div class="mood-ta-head">' +
+        '<div><h3>TA 今天的心情</h3><p class="field-hint">同频可见 · 只在本机模拟</p></div>' +
+        '<span class="mood-ta-chip" style="--mood-color:' + m.color + '">' + m.emoji + ' ' + m.label + '</span>' +
+      '</div>' +
+      (reply
+        ? '<p class="mood-reply">TA 看到你的心情，说：' + App.esc(reply) + '</p>'
+        : '<div class="mood-react-row">' +
+            '<button type="button" class="btn ghost" data-mood-react="抱抱">给 TA 一个拥抱</button>' +
+            '<button type="button" class="btn ghost" data-mood-react="安慰">安慰 TA</button>' +
+            '<button type="button" class="btn ghost" data-mood-react="陪">陪 TA 待一会儿</button>' +
+          '</div>');
+  }
+
+  function moodCounts(year) {
+    const counts = {};
+    MOODS.forEach(function (m) { counts[m.id] = 0; });
+    let total = 0;
+    const entries = moodState().entries;
+    Object.keys(entries).forEach(function (key) {
+      if (!key.indexOf(String(year) + '-')) {
+        const id = entries[key].mood;
+        if (counts[id] != null) { counts[id] += 1; total += 1; }
+      }
+    });
+    return { counts: counts, total: total };
+  }
+
+  function renderMoodCalendar() {
+    const box = el('#mood-calendar');
+    const legend = el('#mood-legend');
+    if (!box) return;
+    const entries = moodState().entries;
+    const now = new Date();
+
+    if (moodCalMode === 'year') {
+      const year = now.getFullYear();
+      let html = '<div class="mood-year">';
+      for (let month = 0; month < 12; month++) {
+        const days = new Date(year, month + 1, 0).getDate();
+        const first = (new Date(year, month, 1).getDay() + 6) % 7;
+        html += '<div class="mood-year-month"><span>' + (month + 1) + '月</span><div class="mood-year-grid">';
+        for (let i = 0; i < first; i++) html += '<i class="is-empty"></i>';
+        for (let day = 1; day <= days; day++) {
+          const key = year + '-' + pad(month + 1) + '-' + pad(day);
+          const entry = entries[key];
+          const mood = entry ? moodOf(entry.mood) : null;
+          html += '<i' + (mood ? ' style="background:' + mood.color + '" title="' + key + ' · ' + mood.label + '"' : '') + '></i>';
+        }
+        html += '</div></div>';
+      }
+      html += '</div>';
+      box.innerHTML = html;
+    } else {
+      const year = moodCursor.getFullYear();
+      const month = moodCursor.getMonth();
+      const days = new Date(year, month + 1, 0).getDate();
+      const first = (new Date(year, month, 1).getDay() + 6) % 7;
+      let html = '<div class="mood-month-head">' +
+        '<button type="button" class="mini-btn" data-mood-nav="-1" aria-label="上个月">‹</button>' +
+        '<strong>' + year + '年' + (month + 1) + '月</strong>' +
+        '<button type="button" class="mini-btn" data-mood-nav="1" aria-label="下个月">›</button>' +
+      '</div><div class="mood-month-grid">';
+      ['一', '二', '三', '四', '五', '六', '日'].forEach(function (w) { html += '<span class="mood-week">' + w + '</span>'; });
+      for (let i = 0; i < first; i++) html += '<i class="is-empty"></i>';
+      for (let day = 1; day <= days; day++) {
+        const key = year + '-' + pad(month + 1) + '-' + pad(day);
+        const entry = entries[key];
+        const mood = entry ? moodOf(entry.mood) : null;
+        const isToday = key === todayKey();
+        html += '<i class="' + (isToday ? 'is-today' : '') + '"' +
+          (mood ? ' style="background:' + mood.color + '" title="' + key + ' · ' + mood.label + (entry.note ? ' · ' + App.esc(entry.note) : '') + '"' : '') + '>' + day + '</i>';
+      }
+      html += '</div>';
+      box.innerHTML = html;
+    }
+
+    if (legend) {
+      legend.innerHTML = MOODS.map(function (m) {
+        return '<span><i style="background:' + m.color + '"></i>' + m.label + '</span>';
+      }).join('');
+    }
+  }
+
+  function renderMoodReport() {
+    const box = el('#mood-report');
+    if (!box) return;
+    const year = new Date().getFullYear();
+    const data = moodCounts(year);
+    const list = MOODS.map(function (m) { return { mood: m, count: data.counts[m.id] || 0 }; })
+      .sort(function (a, b) { return b.count - a.count; });
+    const top = list[0];
+    const happy = (data.counts.happy || 0) + (data.counts.calm || 0);
+    const emo = (data.counts.sad || 0) + (data.counts.angry || 0) + (data.counts.tired || 0);
+    let text = '今年还没有记录心情，从今天开始也不晚。';
+    if (data.total) {
+      if (happy > emo * 2) text = '今年你是个把日子过成晴天的人，开心和平静占了大多数。';
+      else if (emo > happy) text = '今年 emo 的日子多了一点，但你都好好走过来了，很了不起。';
+      else text = '今年的心情起起伏伏，晴雨都有，这才是真实的日子。';
+    }
+    box.innerHTML =
+      '<div class="mood-report-head"><h3>' + year + ' 年度情绪报告</h3><span>' + data.total + ' 天</span></div>' +
+      '<p class="mood-report-main">' + (data.total ? '最常出现的心情是「' + top.mood.label + '」，一共 ' + top.count + ' 天。' : '') + '</p>' +
+      '<p class="field-hint">' + text + '</p>' +
+      '<div class="mood-report-bars">' +
+        MOODS.map(function (m) {
+          const count = data.counts[m.id] || 0;
+          const pct = data.total ? Math.round(count / data.total * 100) : 0;
+          return '<div class="mood-report-row"><span>' + m.emoji + ' ' + m.label + '</span>' +
+            '<span class="mood-report-track"><i style="width:' + pct + '%;background:' + m.color + '"></i></span>' +
+            '<em>' + count + ' 天</em></div>';
+        }).join('') +
+      '</div>';
+  }
+
+  function renderMood() {
+    const today = todayKey();
+    const entry = moodState().entries[today];
+    moodDraft = {
+      mood: entry ? entry.mood : '',
+      note: entry ? (entry.note || '') : '',
+      photo: entry ? (entry.photo || '') : '',
+    };
+    const title = el('#mood-title');
+    if (title) title.textContent = entry ? '今天已经记下啦' : '今天的心情';
+    const date = el('#mood-date');
+    if (date) date.textContent = new Date().getFullYear() + '年' + dateLabel(today) + ' · ' + weekdayLabel(new Date());
+    const weather = el('#mood-weather');
+    const picked = moodOf(moodDraft.mood);
+    if (weather) weather.textContent = picked ? picked.weather : '🌤';
+    const note = el('#mood-note');
+    if (note) note.value = moodDraft.note;
+    renderMoodPicker();
+    renderMoodPhoto();
+    renderMoodTa();
+    renderMoodCalendar();
+    renderMoodReport();
+  }
+
+  function saveMood() {
+    if (!moodDraft.mood) { App.toast('先选一个今天的心情'); return; }
+    const data = moodState();
+    const key = todayKey();
+    const old = data.entries[key] || {};
+    data.entries[key] = {
+      mood: moodDraft.mood,
+      note: moodDraft.note.trim(),
+      photo: moodDraft.photo,
+      ts: Date.now(),
+      taReply: old.taReply || '',
+    };
+    App.save();
+    if (!data.entries[key].taReply) {
+      setTimeout(function () {
+        const current = data.entries[key];
+        if (!current || current.taReply) return;
+        const list = moodReplyText[current.mood] || moodReplyText.calm;
+        current.taReply = list[Math.floor(Math.random() * list.length)];
+        App.save();
+        if (currentView('mood')) renderMood();
+        pushChat('ta', current.taReply);
+      }, 1200);
+    }
+    renderMood();
+    App.toast('今天的心情记下了');
+  }
+
+  /* =========================================================
+     回忆墙
+     ========================================================= */
+  function memoryState() {
+    const st = App.state;
+    if (!st.memory || typeof st.memory !== 'object') st.memory = { photos: [], code: '' };
+    if (!Array.isArray(st.memory.photos)) st.memory.photos = [];
+    if (typeof st.memory.code !== 'string') st.memory.code = '';
+    return st.memory;
+  }
+
+  function visiblePhotos() {
+    return memoryState().photos.filter(function (p) { return !p.secret; })
+      .sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')) || b.ts - a.ts; });
+  }
+
+  function photoLikes(p) { return (p.likes && p.likes.me ? 1 : 0) + (p.likes && p.likes.ta ? 1 : 0); }
+
+  function renderMemoryWidget() {
+    const img = el('#d-photo');
+    const empty = el('#d-photo-empty');
+    const caption = el('#d-photo-caption');
+    if (!img) return;
+    const list = visiblePhotos();
+    if (!list.length) {
+      img.removeAttribute('src');
+      img.style.display = 'none';
+      if (empty) empty.hidden = false;
+      if (caption) caption.textContent = '把喜欢的瞬间放进来';
+      return;
+    }
+    const key = todayKey();
+    const pick = list[seedHash(key) % list.length];
+    img.src = pick.src;
+    img.style.display = '';
+    if (empty) empty.hidden = true;
+    if (caption) caption.textContent = pick.caption || dateLabel(pick.date) + ' 的回忆';
+  }
+
+  function renderMemoryToday() {
+    const box = el('#mw-today');
+    if (!box) return;
+    const now = new Date();
+    const list = visiblePhotos();
+    let pick = null;
+    for (let i = 0; i < list.length; i++) {
+      const d = parseDate(list[i].date);
+      if (!d) continue;
+      if (d.getMonth() === now.getMonth() && d.getDate() === now.getDate() && d.getFullYear() < now.getFullYear()) {
+        pick = list[i];
+        break;
+      }
+    }
+    if (!pick && list.length) {
+      const same = list.filter(function (p) {
+        const d = parseDate(p.date);
+        return d && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+      });
+      pick = same[0] || null;
+    }
+    if (!pick) { box.hidden = true; return; }
+    const d = parseDate(pick.date);
+    box.hidden = false;
+    box.innerHTML = '<button type="button" class="mw-today-btn" data-mw-open="' + pick.id + '">' +
+      '<img src="' + pick.src + '" alt="那年今日">' +
+      '<span class="mw-today-copy"><em>那年今日</em><strong>' + (d ? (now.getFullYear() - d.getFullYear()) + ' 年前的今天' : '同一天') + '</strong>' +
+      '<span>' + App.esc(pick.caption || '把这一天留了下来') + '</span></span></button>';
+  }
+
+  function annivName(id) {
+    const a = (App.state.anniversaries || []).find(function (x) { return x.id === id; });
+    return a ? a.name : '';
+  }
+
+  function photoCard(p, index) {
+    const cap = p.caption ? '<span class="mw-photo-cap">' + App.esc(p.caption) + '</span>' : '';
+    const anniv = p.annivId ? '<span class="mw-anniv-tag">' + App.esc(annivName(p.annivId)) + '</span>' : '';
+    return '<button type="button" class="mw-photo" data-mw-open="' + p.id + '" style="--tilt:' + ((index % 5) - 2) * 0.7 + 'deg">' +
+      '<span class="mw-photo-frame"><img src="' + p.src + '" alt="' + App.esc(p.caption || '回忆照片') + '"></span>' +
+      '<span class="mw-photo-foot"><span>' + (p.date ? dateLabel(p.date) : '') + '</span>' +
+      '<span class="mw-photo-like">♥ ' + photoLikes(p) + '</span></span>' +
+      cap + anniv +
+    '</button>';
+  }
+
+  function renderMemoryWall() {
+    memoryState();
+    renderMemoryToday();
+    const list = visiblePhotos();
+    const hidden = memoryState().photos.filter(function (p) { return p.secret; });
+    const timeline = el('#mw-timeline');
+    const empty = el('#mw-empty');
+    const count = el('#mw-hidden-count');
+    if (count) count.textContent = hidden.length ? '(' + hidden.length + ')' : '';
+    if (empty) empty.hidden = list.length > 0;
+    if (!timeline) return;
+    if (!list.length) { timeline.innerHTML = ''; return; }
+
+    const groups = [];
+    const byYear = {};
+    list.forEach(function (p) {
+      const d = parseDate(p.date) || new Date(p.ts || Date.now());
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      if (!byYear[year]) { byYear[year] = {}; groups.push(year); }
+      if (!byYear[year][month]) byYear[year][month] = [];
+      byYear[year][month].push(p);
+    });
+    groups.sort(function (a, b) { return b - a; });
+
+    let index = 0;
+    timeline.innerHTML = groups.map(function (year) {
+      const months = Object.keys(byYear[year]).map(Number).sort(function (a, b) { return b - a; });
+      return '<div class="mw-year-block"><h3 class="mw-year">' + year + ' 年</h3>' +
+        months.map(function (month) {
+          return '<div class="mw-month-block"><h4>' + month + ' 月</h4><div class="mw-grid">' +
+            byYear[year][month].map(function (p) { return photoCard(p, index++); }).join('') +
+          '</div></div>';
+        }).join('') +
+      '</div>';
+    }).join('');
+  }
+
+  let mwDrafts = [];
+
+  function mwResetForm() {
+    mwDrafts = [];
+    const preview = el('#mw-preview');
+    if (preview) preview.innerHTML = '<p class="field-hint">还没有选择照片</p>';
+    const caption = el('#mw-caption');
+    if (caption) caption.value = '';
+    const date = el('#mw-date');
+    if (date) date.value = todayKey();
+    const secret = el('#mw-secret');
+    if (secret) secret.checked = false;
+    const anniv = el('#mw-anniv');
+    if (anniv) {
+      anniv.innerHTML = '<option value="">不绑定</option>' + (App.state.anniversaries || []).map(function (a) {
+        return '<option value="' + a.id + '">' + App.esc(a.name) + '</option>';
+      }).join('');
+    }
+  }
+
+  function mwRenderPreview() {
+    const box = el('#mw-preview');
+    if (!box) return;
+    box.innerHTML = mwDrafts.length
+      ? mwDrafts.slice(0, 6).map(function (src) { return '<img src="' + src + '" alt="预览">'; }).join('')
+      : '<p class="field-hint">还没有选择照片</p>';
+  }
+
+  function openMemoryDialog() {
+    mwResetForm();
+    const d = el('#mw-dialog');
+    if (d) d.showModal();
+  }
+
+  function importMemoryFiles(files) {
+    const picked = Array.prototype.slice.call(files || []);
+    if (!picked.length) return;
+    openMemoryDialog();
+    let chain = Promise.resolve();
+    let count = 0;
+    picked.slice(0, 9).forEach(function (file) {
+      chain = chain.then(function () {
+        return App.compressImage(file, 1080, { maxLength: 220000 }).then(function (src) {
+          mwDrafts.push(src);
+          count += 1;
+          mwRenderPreview();
+        }).catch(function () {});
+      });
+    });
+    chain.then(function () {
+      if (!count) App.toast('这些照片没有读进来');
+      else App.toast('已选 ' + count + ' 张，写下日期再放进去');
+    });
+  }
+
+  function saveMemory() {
+    if (!mwDrafts.length) { App.toast('先选照片'); return; }
+    const caption = (el('#mw-caption') || {}).value || '';
+    const date = (el('#mw-date') || {}).value || todayKey();
+    const annivId = (el('#mw-anniv') || {}).value || '';
+    const secret = !!(el('#mw-secret') || {}).checked;
+    const memory = memoryState();
+    mwDrafts.forEach(function (src) {
+      memory.photos.push({
+        id: App.uid('mw'),
+        src: src,
+        caption: caption.trim().slice(0, 60),
+        date: date,
+        annivId: annivId,
+        secret: secret,
+        likes: { me: false, ta: false },
+        comments: [],
+        ts: Date.now(),
+      });
+    });
+    const added = mwDrafts.slice();
+    App.save();
+    const dialog = el('#mw-dialog');
+    if (dialog && dialog.open) dialog.close();
+    renderMemoryWall();
+    renderMemoryWidget();
+    if (App.renderDesktop) App.renderDesktop();
+    App.toast(secret ? '已放进隐藏相册' : '回忆已经放上墙了');
+    if (!secret) {
+      setTimeout(function () {
+        const memory2 = memoryState();
+        const photo = memory2.photos.find(function (p) { return p.src === added[0]; });
+        if (!photo) return;
+        photo.likes.ta = true;
+        App.save();
+        if (currentView('memorywall')) renderMemoryWall();
+      }, 1500);
+    }
+  }
+
+  let mwOpenId = null;
+
+  function openMemoryPhoto(id) {
+    const photo = memoryState().photos.find(function (p) { return p.id === id; });
+    if (!photo) return;
+    mwOpenId = id;
+    const d = el('#mw-view');
+    if (!d) return;
+    const title = el('#mw-view-title');
+    if (title) title.textContent = photo.date ? dateLabel(photo.date) : '回忆';
+    const body = el('#mw-view-body');
+    if (body) {
+      body.innerHTML =
+        '<div class="mw-view-photo"><img src="' + photo.src + '" alt="' + App.esc(photo.caption || '回忆照片') + '"></div>' +
+        (photo.caption ? '<p class="mw-view-caption">' + App.esc(photo.caption) + '</p>' : '') +
+        '<div class="mw-view-meta">' +
+          '<span>' + (photo.date || '') + '</span>' +
+          (photo.annivId ? '<span class="mw-anniv-tag">' + App.esc(annivName(photo.annivId)) + '</span>' : '') +
+          '<button type="button" class="mw-like-btn' + (photo.likes.me ? ' is-on' : '') + '" data-mw-like="' + photo.id + '">♥ ' + photoLikes(photo) + '</button>' +
+        '</div>' +
+        '<div class="mw-comments">' +
+          (photo.comments.length
+            ? photo.comments.map(function (c) {
+                return '<div class="mw-comment' + (c.who === 'ta' ? ' is-ta' : '') + '"><strong>' + (c.who === 'ta' ? 'TA' : '我') + '</strong><span>' + App.esc(c.text) + '</span></div>';
+              }).join('')
+            : '<p class="field-hint">还没有评论，说点什么吧。</p>') +
+        '</div>';
+    }
+    d.showModal();
+  }
+
+  function sendMemoryComment() {
+    const input = el('#mw-comment-input');
+    const text = input ? input.value.trim() : '';
+    if (!text || !mwOpenId) return;
+    const photo = memoryState().photos.find(function (p) { return p.id === mwOpenId; });
+    if (!photo) return;
+    photo.comments.push({ who: 'me', text: text.slice(0, 60), ts: Date.now() });
+    if (input) input.value = '';
+    App.save();
+    openMemoryPhoto(mwOpenId);
+    renderMemoryWall();
+    setTimeout(function () {
+      const lines = ['这张我也记得。', '看到照片就想起那天了。', '以后再多拍一点。', '这一张我一直很喜欢。'];
+      photo.comments.push({ who: 'ta', text: lines[Math.floor(Math.random() * lines.length)], ts: Date.now() });
+      App.save();
+      if (mwOpenId === photo.id) openMemoryPhoto(photo.id);
+      renderMemoryWall();
+    }, 1100);
+  }
+
+  function toggleMemoryLike(id) {
+    const photo = memoryState().photos.find(function (p) { return p.id === id; });
+    if (!photo) return;
+    photo.likes.me = !photo.likes.me;
+    App.save();
+    openMemoryPhoto(id);
+    renderMemoryWall();
+  }
+
+  let mwUnlocked = false;
+
+  function renderHiddenAlbum() {
+    const box = el('#mw-hidden-body');
+    if (!box) return;
+    const memory = memoryState();
+    const hidden = memory.photos.filter(function (p) { return p.secret; });
+
+    if (!memory.code) {
+      box.innerHTML =
+        '<p class="field-hint">给隐藏相册设一个 4 位数字密码。进入时需要密码，并且双方都确认。</p>' +
+        '<label class="field"><span>设置密码</span><input id="mw-code-set" inputmode="numeric" maxlength="4" placeholder="4 位数字"></label>' +
+        '<button type="button" class="btn primary" id="mw-code-save">设好密码</button>';
+      return;
+    }
+
+    if (!mwUnlocked) {
+      box.innerHTML =
+        '<p class="field-hint">这里是只有你们两个人能看的地方。输入密码，并确认 TA 也在场。</p>' +
+        '<label class="field"><span>4 位密码</span><input id="mw-code-input" inputmode="numeric" maxlength="4" placeholder="••••"></label>' +
+        '<label class="mw-check"><input type="checkbox" id="mw-code-both"> TA 也确认了</label>' +
+        '<button type="button" class="btn primary" id="mw-code-enter">进入隐藏相册</button>' +
+        '<p class="field-hint">隐藏照片 ' + hidden.length + ' 张</p>';
+      return;
+    }
+
+    box.innerHTML =
+      '<div class="mw-hidden-head"><span>已解锁 · ' + hidden.length + ' 张</span><button type="button" class="mini-btn" id="mw-code-lock">锁定</button></div>' +
+      '<div class="mw-grid mw-hidden-grid">' +
+        (hidden.length
+          ? hidden.map(function (p, i) { return photoCard(p, i); }).join('')
+          : '<p class="field-hint">隐藏相册还是空的，放照片时勾选「放进隐藏相册」。</p>') +
+      '</div>' +
+      (hidden.length ? '<button type="button" class="btn ghost" id="mw-code-clear">清空隐藏相册</button>' : '');
+  }
+
+  function openHiddenAlbum() {
+    mwUnlocked = false;
+    renderHiddenAlbum();
+    const d = el('#mw-hidden-dialog');
+    if (d) d.showModal();
+  }
+
+  function loadImage(src) {
+    return new Promise(function (resolve, reject) {
+      const img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  function drawCover(ctx, img, x, y, w, h) {
+    const ratio = Math.max(w / img.width, h / img.height);
+    const sw = w / ratio;
+    const sh = h / ratio;
+    const sx = (img.width - sw) / 2;
+    const sy = (img.height - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  }
+
+  let mwPosterUrl = '';
+
+  function makeMemoryPoster() {
+    const list = visiblePhotos().slice(0, 4);
+    if (!list.length) { App.toast('先放几张照片吧'); return; }
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1350;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, '#eef7ff');
+    grad.addColorStop(1, '#d8eafa');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#5b8fc9';
+    ctx.font = '600 52px "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('我们的小回忆', canvas.width / 2, 96);
+    const dates = list.map(function (p) { return p.date; }).filter(Boolean).sort();
+    ctx.fillStyle = '#70869e';
+    ctx.font = '26px "PingFang SC", sans-serif';
+    ctx.fillText(dates.length
+      ? (dates[0] === dates[dates.length - 1] ? dates[0] : dates[0] + ' — ' + dates[dates.length - 1])
+      : '拾忆 · 回忆墙', canvas.width / 2, 142);
+
+    let frames;
+    if (list.length === 1) {
+      frames = [{ x: 100, y: 200, w: 880, h: 840 }];
+    } else if (list.length === 2) {
+      frames = [
+        { x: 70, y: 220, w: 440, h: 560 },
+        { x: 570, y: 220, w: 440, h: 560 },
+      ];
+    } else {
+      frames = [
+        { x: 70, y: 200, w: 440, h: 400 },
+        { x: 570, y: 200, w: 440, h: 400 },
+        { x: 70, y: 660, w: 440, h: 400 },
+        { x: 570, y: 660, w: 440, h: 400 },
+      ];
+    }
+    Promise.all(list.map(function (p) { return loadImage(p.src).catch(function () { return null; }); }))
+      .then(function (imgs) {
+        frames.slice(0, list.length).forEach(function (f, i) {
+          ctx.save();
+          ctx.shadowColor = 'rgba(45,83,123,.18)';
+          ctx.shadowBlur = 24;
+          ctx.shadowOffsetY = 12;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(f.x, f.y, f.w, f.h);
+          ctx.restore();
+          if (imgs[i]) drawCover(ctx, imgs[i], f.x + 18, f.y + 18, f.w - 36, f.h - 78);
+          ctx.fillStyle = '#70869e';
+          ctx.font = '24px "PingFang SC", sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(list[i].date ? dateLabel(list[i].date) : '', f.x + 22, f.y + f.h - 34);
+          if (list[i].caption) {
+            ctx.fillStyle = '#43576d';
+            ctx.font = '22px "PingFang SC", sans-serif';
+            ctx.textAlign = 'right';
+            const cap = list[i].caption.length > 12 ? list[i].caption.slice(0, 12) + '…' : list[i].caption;
+            ctx.fillText(cap, f.x + f.w - 22, f.y + f.h - 34);
+          }
+        });
+        ctx.fillStyle = '#5b8fc9';
+        ctx.font = '24px "PingFang SC", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('拾忆 · 把普通的一天，留成以后记得的片段', canvas.width / 2, 1235);
+
+        const url = canvas.toDataURL('image/jpeg', 0.88);
+        mwPosterUrl = url;
+        const img = el('#mw-poster-img');
+        const save = el('#mw-poster-save');
+        if (img) img.src = url;
+        if (save) save.href = url;
+        const share = el('#mw-poster-share');
+        if (share) share.hidden = !(navigator.share && navigator.canShare);
+        const d = el('#mw-poster-dialog');
+        if (d) d.showModal();
+      });
+  }
+
+  /* =========================================================
+     位置共享
+     ========================================================= */
+  const LOC_STATUS = ['在家-休息中', '在公司-忙碌中', '在路上', '在外面', '想你了'];
+
+  function locationState() {
+    const st = App.state;
+    if (!st.location || typeof st.location !== 'object') {
+      st.location = {
+        enabled: false,
+        paused: false,
+        me: { lat: 31.2304, lng: 121.4737 },
+        ta: { lat: 31.2361, lng: 121.4872 },
+        status: { me: '在家-休息中', ta: '在公司-忙碌中' },
+        zones: [
+          { id: 'home', name: '家', lat: 31.2304, lng: 121.4737, r: 320 },
+          { id: 'work', name: '公司', lat: 31.2361, lng: 121.4872, r: 320 },
+        ],
+        inside: { me: 'home', ta: 'work' },
+      };
+    }
+    const loc = st.location;
+    if (!loc.me) loc.me = { lat: 31.2304, lng: 121.4737 };
+    if (!loc.ta) loc.ta = { lat: 31.2361, lng: 121.4872 };
+    if (!loc.status) loc.status = { me: '在家-休息中', ta: '在公司-忙碌中' };
+    if (!Array.isArray(loc.zones) || !loc.zones.length) {
+      loc.zones = [
+        { id: 'home', name: '家', lat: loc.me.lat, lng: loc.me.lng, r: 320 },
+        { id: 'work', name: '公司', lat: loc.ta.lat, lng: loc.ta.lng, r: 320 },
+      ];
+    }
+    if (!loc.inside) loc.inside = { me: 'home', ta: 'work' };
+    return loc;
+  }
+
+  function distanceMeters(a, b) {
+    const R = 6371000;
+    const rad = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * rad;
+    const dLng = (b.lng - a.lng) * rad;
+    const lat1 = a.lat * rad;
+    const lat2 = b.lat * rad;
+    const h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+
+  function distanceText(m) {
+    if (m < 120) return '就在你附近';
+    if (m < 1000) return '相距 ' + Math.round(m / 10) * 10 + ' 米';
+    return '相距 ' + (m / 1000).toFixed(1) + ' 公里';
+  }
+
+  function zoneOf(loc, pos) {
+    return loc.zones.find(function (z) { return distanceMeters(pos, z) <= z.r; }) || null;
+  }
+
+  let locView = null;
+
+  function mapProject(loc) {
+    const pts = [loc.me, loc.ta].concat(loc.zones.map(function (z) { return { lat: z.lat, lng: z.lng }; }));
+    let latMin = Infinity, latMax = -Infinity, lngMin = Infinity, lngMax = -Infinity;
+    pts.forEach(function (p) {
+      latMin = Math.min(latMin, p.lat);
+      latMax = Math.max(latMax, p.lat);
+      lngMin = Math.min(lngMin, p.lng);
+      lngMax = Math.max(lngMax, p.lng);
+    });
+    const latPad = Math.max(0.0035, (latMax - latMin) * 0.35);
+    const lngPad = Math.max(0.0035, (lngMax - lngMin) * 0.35);
+    locView = {
+      latMin: latMin - latPad,
+      latMax: latMax + latPad,
+      lngMin: lngMin - lngPad,
+      lngMax: lngMax + lngPad,
+    };
+    return locView;
+  }
+
+  function projectPoint(view, p) {
+    const x = 34 + (p.lng - view.lngMin) / (view.lngMax - view.lngMin) * 332;
+    const y = 306 - (p.lat - view.latMin) / (view.latMax - view.latMin) * 250;
+    return { x: clamp(x, 24, 376), y: clamp(y, 30, 300) };
+  }
+
+  function renderZoneCircles(loc, view) {
+    return loc.zones.map(function (z) {
+      const p = projectPoint(view, z);
+      return '<g class="loc-zone"><circle cx="' + p.x + '" cy="' + p.y + '" r="30"></circle>' +
+        '<text x="' + p.x + '" y="' + (p.y + 46) + '">' + App.esc(z.name) + '</text></g>';
+    }).join('');
+  }
+
+  function pinSvg(loc, view, person) {
+    const p = projectPoint(view, loc[person]);
+    const me = person === 'me';
+    const status = loc.status[person] || '';
+    const bubbleW = Math.max(46, status.length * 9 + 14);
+    const bubbleX = p.x > 250 ? -bubbleW - 12 : 12;
+    return '<g class="loc-pin ' + (me ? 'is-me' : 'is-ta') + '" transform="translate(' + p.x + ',' + p.y + ')">' +
+      '<circle class="loc-pin-pulse" r="18"></circle>' +
+      '<circle class="loc-pin-dot" r="9"></circle>' +
+      '<g class="loc-pin-bubble" transform="translate(' + bubbleX + ',-54)">' +
+        '<rect width="' + bubbleW + '" height="20" rx="10"></rect>' +
+        '<text x="' + (bubbleW / 2) + '" y="13.5">' + App.esc(status) + '</text>' +
+      '</g>' +
+      '<g class="loc-pin-flag" transform="translate(0,-10)">' +
+        '<path d="M0 0c0-9 8-14 16-14s16 5 16 14v10H0z"></path>' +
+        '<text x="8" y="6">' + (me ? '我' : 'TA') + '</text>' +
+      '</g>' +
+    '</g>';
+  }
+
+  function drawLocationMap(loc) {
+    const svg = el('#loc-map');
+    if (!svg) return;
+    const view = mapProject(loc);
+    const me = loc.me;
+    const ta = loc.ta;
+    const mp = projectPoint(view, me);
+    const tp = projectPoint(view, ta);
+    const mid = { x: (mp.x + tp.x) / 2, y: (mp.y + tp.y) / 2 };
+
+    let roads = '';
+    [70, 140, 210, 280].forEach(function (y) {
+      roads += '<line x1="0" y1="' + y + '" x2="400" y2="' + (y + 18) + '" class="loc-road"></line>';
+    });
+    [60, 145, 230, 315].forEach(function (x) {
+      roads += '<line x1="' + x + '" y1="0" x2="' + (x - 20) + '" y2="340" class="loc-road"></line>';
+    });
+
+    svg.innerHTML =
+      '<defs>' +
+        '<linearGradient id="loc-bg" x1="0" y1="0" x2="1" y2="1">' +
+          '<stop offset="0" stop-color="#eef7ff"></stop><stop offset="1" stop-color="#dcecf9"></stop>' +
+        '</linearGradient>' +
+      '</defs>' +
+      '<rect width="400" height="340" fill="url(#loc-bg)"></rect>' +
+      '<path class="loc-river" d="M-20 250 C 80 220, 120 290, 210 260 S 340 210, 430 240 L 430 340 L -20 340 Z"></path>' +
+      '<rect x="26" y="26" width="76" height="52" rx="8" class="loc-block"></rect>' +
+      '<rect x="196" y="24" width="88" height="46" rx="8" class="loc-block"></rect>' +
+      '<rect x="300" y="92" width="74" height="58" rx="8" class="loc-block"></rect>' +
+      '<rect x="40" y="176" width="66" height="50" rx="8" class="loc-block"></rect>' +
+      '<rect x="236" y="166" width="80" height="56" rx="8" class="loc-block"></rect>' +
+      roads +
+      '<line x1="' + mp.x + '" y1="' + mp.y + '" x2="' + tp.x + '" y2="' + tp.y + '" class="loc-link"></line>' +
+      '<text x="' + mid.x + '" y="' + (mid.y - 8) + '" class="loc-link-text">' + App.esc(distanceText(distanceMeters(me, ta))) + '</text>' +
+      renderZoneCircles(loc, view) +
+      pinSvg(loc, view, 'ta') +
+      pinSvg(loc, view, 'me');
+  }
+
+  function renderLocationCards(loc) {
+    const meBox = el('#loc-card-me');
+    const taBox = el('#loc-card-ta');
+    if (!meBox || !taBox) return;
+    const meZone = loc.zones.find(function (z) { return z.id === loc.inside.me; });
+    const taZone = loc.zones.find(function (z) { return z.id === loc.inside.ta; });
+    const statusSelect = function (side) {
+      return '<select class="loc-status-select" data-loc-status="' + side + '">' +
+        LOC_STATUS.map(function (s) {
+          return '<option value="' + s + '"' + (loc.status[side] === s ? ' selected' : '') + '>' + s + '</option>';
+        }).join('') + '</select>';
+    };
+    meBox.innerHTML =
+      '<div class="loc-card-head"><span class="loc-who is-me">我</span>' +
+        '<span class="loc-zone-name">' + (loc.paused ? '已暂停共享' : (meZone ? meZone.name : '外面')) + '</span></div>' +
+      '<div class="loc-bubble">' + App.esc(loc.status.me) + '</div>' +
+      (loc.paused ? '<p class="field-hint">暂停期间，TA 看不到你的位置。</p>' : statusSelect('me'));
+    taBox.innerHTML =
+      '<div class="loc-card-head"><span class="loc-who is-ta">TA</span>' +
+        '<span class="loc-zone-name">' + (loc.paused ? '看不到你' : (taZone ? taZone.name : '外面')) + '</span></div>' +
+      '<div class="loc-bubble is-ta">' + App.esc(loc.status.ta) + '</div>' +
+      statusSelect('ta');
+  }
+
+  function renderLocationZones(loc) {
+    const box = el('#loc-zone-list');
+    if (!box) return;
+    box.innerHTML = loc.zones.map(function (z) {
+      return '<div class="loc-zone-row"><span class="loc-zone-dot"></span><strong>' + App.esc(z.name) + '</strong>' +
+        '<span>' + (z.id === loc.inside.me ? '我在这里' : z.id === loc.inside.ta ? 'TA 在这里' : '半径 ' + z.r + ' 米') + '</span></div>';
+    }).join('');
+  }
+
+  function renderLocation() {
+    const loc = locationState();
+    const state = el('#loc-state');
+    const hint = el('#loc-hint');
+    const enable = el('#loc-enable');
+    const pause = el('#loc-pause');
+    const lock = el('#loc-map-lock');
+    const distance = el('#loc-distance');
+
+    if (state) {
+      state.textContent = loc.enabled ? (loc.paused ? '已暂停' : '共享中') : '未开启';
+      state.className = 'loc-state' + (loc.enabled ? (loc.paused ? ' is-paused' : ' is-on') : '');
+    }
+    if (hint) {
+      hint.textContent = !loc.enabled
+        ? '需要你手动授权开启，开启后你们才能看到彼此的位置。'
+        : loc.paused
+          ? '共享已暂停，TA 现在看不到你的位置，随时可以继续。'
+          : '位置只在本机模拟，不会上传到任何地方。';
+    }
+    if (enable) enable.textContent = loc.enabled ? '重新定位' : '开启共享';
+    if (pause) pause.textContent = loc.paused ? '继续共享' : '暂停共享';
+    if (pause) pause.disabled = !loc.enabled;
+    if (lock) {
+      lock.hidden = loc.enabled && !loc.paused;
+      lock.textContent = loc.paused ? '共享已暂停，TA 看不到你的位置' : '开启共享后显示地图';
+    }
+    if (distance) {
+      distance.textContent = !loc.enabled ? '相距 —' : loc.paused ? '已暂停' : distanceText(distanceMeters(loc.me, loc.ta));
+    }
+
+    if (loc.enabled && !loc.paused) drawLocationMap(loc);
+    else {
+      const svg = el('#loc-map');
+      if (svg) svg.innerHTML = '<rect width="400" height="340" fill="#e9f2fa"></rect>';
+    }
+    renderLocationCards(loc);
+    renderLocationZones(loc);
+  }
+
+  function enableLocation() {
+    const loc = locationState();
+    const finish = function (lat, lng) {
+      if (typeof lat === 'number' && typeof lng === 'number') {
+        const home = { lat: lat, lng: lng };
+        const work = { lat: lat + 0.0048, lng: lng + 0.0042 };
+        loc.me = home;
+        loc.ta = { lat: work.lat + 0.0007, lng: work.lng + 0.0008 };
+        loc.zones = [
+          { id: 'home', name: '家', lat: home.lat, lng: home.lng, r: 320 },
+          { id: 'work', name: '公司', lat: work.lat, lng: work.lng, r: 320 },
+        ];
+        loc.inside = { me: 'home', ta: 'work' };
+      }
+      loc.enabled = true;
+      loc.paused = false;
+      App.save();
+      renderLocation();
+      App.toast('位置共享已开启');
+    };
+    if (navigator.geolocation) {
+      App.toast('正在获取定位…');
+      navigator.geolocation.getCurrentPosition(
+        function (pos) { finish(pos.coords.latitude, pos.coords.longitude); },
+        function () { finish(); App.toast('定位不可用，先用模拟位置'); },
+        { timeout: 6000, maximumAge: 60000 }
+      );
+    } else {
+      finish();
+      App.toast('浏览器不支持定位，先用模拟位置');
+    }
+  }
+
+  function zoneMessage(who, nextZone, prevZone) {
+    const loc = locationState();
+    if (!loc.enabled || loc.paused) return;
+    const nextName = nextZone ? nextZone.name : '外面';
+    const prevName = prevZone ? prevZone.name : '外面';
+    if (who === 'ta') {
+      if (nextZone && nextZone.id === 'home') pushChat('ta', 'TA 已到家，今天也平安。');
+      else if (nextZone && nextZone.id === 'work') pushChat('ta', 'TA 已到公司，开始忙啦。');
+      else pushChat('ta', 'TA 离开了' + prevName + '，现在在路上。');
+    } else {
+      if (nextZone && nextZone.id === 'home') pushChat('me', '我已到家，别担心。');
+      else if (nextZone && nextZone.id === 'work') pushChat('me', '我到公司了，今天会有点忙。');
+      else pushChat('me', '我从' + prevName + '出发了，晚点再聊。');
+    }
+    App.toast(who === 'ta' ? 'TA 的位置有变化，已发来一条私信' : '已自动给 TA 发了一条私信');
+  }
+
+  function applyZone(loc, who, nextZone) {
+    const prevId = loc.inside[who];
+    const prevZone = loc.zones.find(function (z) { return z.id === prevId; }) || null;
+    const nextId = nextZone ? nextZone.id : '';
+    if (prevId === nextId) return;
+    loc.inside[who] = nextId;
+    App.save();
+    zoneMessage(who, nextZone, prevZone);
+  }
+
+  function movePersonToZone(who, zoneId) {
+    const loc = locationState();
+    if (!loc.enabled) { App.toast('先开启共享'); return; }
+    const zone = loc.zones.find(function (z) { return z.id === zoneId; });
+    if (!zone) return;
+    loc[who].lat = zone.lat;
+    loc[who].lng = zone.lng;
+    applyZone(loc, who, zone);
+    renderLocation();
+  }
+
+  function moveMeByTap(evt) {
+    const loc = locationState();
+    if (!loc.enabled || loc.paused || !locView) return;
+    const svg = el('#loc-map');
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const x = (evt.clientX - rect.left) / rect.width * 400;
+    const y = (evt.clientY - rect.top) / rect.height * 340;
+    const lng = locView.lngMin + (x - 34) / 332 * (locView.lngMax - locView.lngMin);
+    const lat = locView.latMin + (306 - y) / 250 * (locView.latMax - locView.latMin);
+    loc.me.lat = lat;
+    loc.me.lng = lng;
+    applyZone(loc, 'me', zoneOf(loc, loc.me));
+    renderLocation();
+  }
+
+  /* =========================================================
+     助眠
+     ========================================================= */
+  const SLEEP_SOUNDS = [
+    { id: 'rain', name: '雨声', icon: '雨', desc: '细密雨点落在窗台' },
+    { id: 'waves', name: '海浪', icon: '浪', desc: '缓慢推来的潮汐' },
+    { id: 'fire', name: '篝火', icon: '火', desc: '木柴轻轻作响' },
+    { id: 'forest', name: '森林', icon: '林', desc: '风穿过树叶' },
+    { id: 'fan', name: '风扇', icon: '风', desc: '稳定的白色噪音' },
+  ];
+
+  let sleepCtx = null;
+  let sleepMaster = null;
+  let sleepNodes = {};
+  let sleepVolumes = { rain: 0.6, waves: 0.55, fire: 0.45, forest: 0.45, fan: 0.5 };
+  let sleepPlaying = false;
+  let sleepTimerMin = 0;
+  let sleepCountdown = 0;
+  let sleepTimer = null;
+  let sleepTogether = false;
+
+  function sleepState() {
+    const st = App.state;
+    if (!st.sleep || typeof st.sleep !== 'object') st.sleep = {};
+    if (st.sleep.volumes && typeof st.sleep.volumes === 'object') {
+      SLEEP_SOUNDS.forEach(function (s) {
+        if (typeof st.sleep.volumes[s.id] === 'number') sleepVolumes[s.id] = st.sleep.volumes[s.id];
+      });
+    }
+    if (typeof st.sleep.together === 'boolean') sleepTogether = st.sleep.together;
+    return st.sleep;
+  }
+
+  function ensureSleepCtx() {
+    if (!sleepCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      sleepCtx = new Ctx();
+      sleepMaster = sleepCtx.createGain();
+      sleepMaster.gain.value = 0.9;
+      sleepMaster.connect(sleepCtx.destination);
+    }
+    if (sleepCtx.state === 'suspended') sleepCtx.resume();
+    return sleepCtx;
+  }
+
+  function noiseBuffer(kind) {
+    const ctx = sleepCtx;
+    const len = Math.floor(ctx.sampleRate * 2);
+    const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    if (kind === 'brown') {
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const white = Math.random() * 2 - 1;
+        last = (last + 0.02 * white) / 1.02;
+        data[i] = last * 3.2;
+      }
+    } else {
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+
+  function buildSleepSound(id) {
+    const ctx = ensureSleepCtx();
+    if (!ctx) return null;
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer(id === 'waves' || id === 'fire' ? 'brown' : 'white');
+    src.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    const vol = sleepVolumes[id] == null ? 0.5 : sleepVolumes[id];
+    gain.gain.value = vol * 0.5;
+
+    if (id === 'rain') {
+      filter.type = 'highpass';
+      filter.frequency.value = 700;
+      const low = ctx.createBiquadFilter();
+      low.type = 'lowpass';
+      low.frequency.value = 5200;
+      src.connect(filter);
+      filter.connect(low);
+      low.connect(gain);
+    } else if (id === 'waves') {
+      filter.type = 'lowpass';
+      filter.frequency.value = 620;
+      src.connect(filter);
+      filter.connect(gain);
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.12;
+      lfoGain.gain.value = vol * 0.35;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start();
+      sleepNodes[id] = { src: src, filter: filter, gain: gain, lfo: lfo };
+      src.start();
+      return sleepNodes[id];
+    } else if (id === 'fire') {
+      filter.type = 'lowpass';
+      filter.frequency.value = 900;
+      src.connect(filter);
+      filter.connect(gain);
+      const crackle = setInterval(function () {
+        if (!sleepCtx || !sleepNodes.fire) return;
+        const click = sleepCtx.createBufferSource();
+        click.buffer = noiseBuffer('white');
+        const clickGain = sleepCtx.createGain();
+        const clickFilter = sleepCtx.createBiquadFilter();
+        clickFilter.type = 'bandpass';
+        clickFilter.frequency.value = 1800 + Math.random() * 1600;
+        clickGain.gain.value = 0.0001;
+        click.connect(clickFilter);
+        clickFilter.connect(clickGain);
+        clickGain.connect(sleepMaster);
+        click.start();
+        const t = sleepCtx.currentTime;
+        clickGain.gain.setValueAtTime(0.0001, t);
+        clickGain.gain.exponentialRampToValueAtTime(0.18, t + 0.01);
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+        click.stop(t + 0.14);
+      }, 900);
+      sleepNodes[id] = { src: src, filter: filter, gain: gain, crackle: crackle };
+      src.start();
+      return sleepNodes[id];
+    } else if (id === 'forest') {
+      filter.type = 'bandpass';
+      filter.frequency.value = 1100;
+      filter.Q.value = 0.7;
+      src.connect(filter);
+      filter.connect(gain);
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.08;
+      lfoGain.gain.value = vol * 0.2;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start();
+      sleepNodes[id] = { src: src, filter: filter, gain: gain, lfo: lfo };
+      src.start();
+      return sleepNodes[id];
+    } else {
+      filter.type = 'lowpass';
+      filter.frequency.value = 460;
+      src.connect(filter);
+      filter.connect(gain);
+      gain.gain.value = vol * 0.6;
+    }
+
+    gain.connect(sleepMaster);
+    src.start();
+    sleepNodes[id] = { src: src, filter: filter, gain: gain };
+    return sleepNodes[id];
+  }
+
+  function stopSleepSound(id) {
+    const node = sleepNodes[id];
+    if (!node) return;
+    try { node.src.stop(); } catch (e) {}
+    if (node.lfo) { try { node.lfo.stop(); } catch (e) {} }
+    if (node.crackle) clearInterval(node.crackle);
+    try { node.src.disconnect(); node.gain.disconnect(); } catch (e) {}
+    delete sleepNodes[id];
+  }
+
+  function activeSleepIds() { return Object.keys(sleepNodes); }
+
+  function sleepVolumeChange(id, value) {
+    sleepVolumes[id] = value;
+    const node = sleepNodes[id];
+    if (node && sleepCtx) {
+      const target = id === 'fan' ? value * 0.6 : value * 0.5;
+      node.gain.gain.setTargetAtTime(target, sleepCtx.currentTime, 0.15);
+    }
+    App.state.sleep = Object.assign({}, App.state.sleep, { volumes: Object.assign({}, sleepVolumes) });
+    App.save();
+    renderSleepHint();
+  }
+
+  function renderSleepHint() {
+    const ids = activeSleepIds();
+    const sub = el('#sleep-sub');
+    const title = el('#sleep-title');
+    const disc = el('#sleep-disc');
+    const master = el('#sleep-master');
+    if (ids.length) {
+      const names = ids.map(function (id) {
+        const s = SLEEP_SOUNDS.find(function (x) { return x.id === id; });
+        return s ? s.name : id;
+      });
+      if (title) title.textContent = sleepPlaying ? names.join(' + ') : '已暂停';
+      if (sub) sub.textContent = sleepPlaying ? '音量可以单独调 · 正在播放 ' + names.length + ' 层声音' : '点播放继续';
+      if (disc) disc.textContent = (SLEEP_SOUNDS.find(function (x) { return x.id === ids[0]; }) || {}).icon || '眠';
+    } else {
+      if (title) title.textContent = '雨声';
+      if (sub) sub.textContent = '点一个声音开始，可以叠加混音';
+      if (disc) disc.textContent = '雨';
+    }
+    if (master) master.textContent = sleepPlaying ? '❚❚' : '▶';
+    const hint = el('#sleep-together-hint');
+    if (hint) hint.textContent = sleepTogether
+      ? 'TA 也在听 · 已同步同一段声音'
+      : '双人同听：你们会在同一时间听同一段声音，像住在同一个屋檐下。';
+  }
+
+  function renderSleep() {
+    sleepState();
+    const box = el('#sleep-sounds');
+    if (box) {
+      box.innerHTML = SLEEP_SOUNDS.map(function (s) {
+        const on = !!sleepNodes[s.id];
+        const vol = Math.round((sleepVolumes[s.id] == null ? 0.5 : sleepVolumes[s.id]) * 100);
+        return '<div class="sleep-sound' + (on ? ' is-on' : '') + '" data-sleep-sound="' + s.id + '">' +
+          '<button type="button" class="sleep-sound-main" data-sleep-toggle="' + s.id + '">' +
+            '<span class="sleep-sound-icon">' + s.icon + '</span>' +
+            '<span class="sleep-sound-copy"><strong>' + s.name + '</strong><em>' + s.desc + '</em></span>' +
+            '<span class="sleep-sound-state">' + (on ? '停止' : '播放') + '</span>' +
+          '</button>' +
+          '<input type="range" min="0" max="100" value="' + vol + '" data-sleep-vol="' + s.id + '" aria-label="' + s.name + '音量">' +
+        '</div>';
+      }).join('');
+    }
+    document.querySelectorAll('#sleep-timer [data-sleep-min]').forEach(function (btn) {
+      btn.classList.toggle('is-active', Number(btn.dataset.sleepMin) === sleepTimerMin);
+    });
+    const countdown = el('#sleep-countdown');
+    if (countdown) countdown.textContent = sleepTimerMin ? fmtCountdown(sleepCountdown) : '';
+    renderSleepHint();
+  }
+
+  function fmtCountdown(sec) {
+    return pad(Math.floor(sec / 60)) + ':' + pad(sec % 60);
+  }
+
+  function toggleSleepSound(id) {
+    ensureSleepCtx();
+    if (sleepNodes[id]) {
+      stopSleepSound(id);
+    } else {
+      buildSleepSound(id);
+    }
+    if (activeSleepIds().length && !sleepPlaying) {
+      sleepPlaying = true;
+      if (sleepCtx && sleepCtx.state === 'suspended') sleepCtx.resume();
+    }
+    renderSleep();
+  }
+
+  function toggleSleepMaster() {
+    if (!activeSleepIds().length) {
+      toggleSleepSound('rain');
+      return;
+    }
+    sleepPlaying = !sleepPlaying;
+    if (!sleepCtx) return;
+    if (sleepPlaying) sleepCtx.resume();
+    else sleepCtx.suspend();
+    renderSleepHint();
+  }
+
+  function stopAllSleep() {
+    Object.keys(sleepNodes).forEach(stopSleepSound);
+    sleepPlaying = false;
+    clearInterval(sleepTimer);
+    sleepTimer = null;
+    sleepCountdown = 0;
+    sleepTimerMin = 0;
+    renderSleep();
+  }
+
+  function setSleepTimer(minutes) {
+    sleepTimerMin = minutes;
+    sleepCountdown = minutes * 60;
+    clearInterval(sleepTimer);
+    sleepTimer = null;
+    if (minutes > 0) {
+      sleepTimer = setInterval(function () {
+        sleepCountdown -= 1;
+        const node = el('#sleep-countdown');
+        if (node) node.textContent = fmtCountdown(Math.max(0, sleepCountdown));
+        if (sleepCountdown <= 0) {
+          clearInterval(sleepTimer);
+          sleepTimer = null;
+          stopAllSleep();
+          App.toast('定时到了，声音已经关掉');
+        }
+      }, 1000);
+    }
+    renderSleep();
+  }
+
+  function toggleSleepTogether() {
+    sleepTogether = !sleepTogether;
+    App.state.sleep = Object.assign({}, App.state.sleep, { together: sleepTogether });
+    App.save();
+    if (sleepTogether) {
+      const ids = activeSleepIds();
+      const name = ids.length
+        ? (SLEEP_SOUNDS.find(function (x) { return x.id === ids[0]; }) || {}).name
+        : '雨声';
+      pushChat('ta', '我戴上耳机了，和你一起听' + (name || '雨声') + '。');
+      App.toast('已和 TA 同步');
+    }
+    renderSleepHint();
+  }
+
+  /* =========================================================
+     听音识曲
+     ========================================================= */
+  const SONGS = [
+    { title: '晴天', artist: '周杰伦' },
+    { title: '稻香', artist: '周杰伦' },
+    { title: '七里香', artist: '周杰伦' },
+    { title: '告白气球', artist: '周杰伦' },
+    { title: '小幸运', artist: '田馥甄' },
+    { title: '后来', artist: '刘若英' },
+    { title: '匆匆那年', artist: '王菲' },
+    { title: '平凡之路', artist: '朴树' },
+    { title: '消愁', artist: '毛不易' },
+    { title: '夜空中最亮的星', artist: '逃跑计划' },
+    { title: '演员', artist: '薛之谦' },
+    { title: '成都', artist: '赵雷' },
+    { title: '起风了', artist: '买辣椒也用券' },
+    { title: '光年之外', artist: '邓紫棋' },
+    { title: '体面', artist: '于文文' },
+    { title: '年少有为', artist: '李荣浩' },
+    { title: '模特', artist: '李荣浩' },
+    { title: '理想三旬', artist: '陈鸿宇' },
+    { title: '南山南', artist: '马頔' },
+    { title: '斑马斑马', artist: '宋冬野' },
+    { title: '董小姐', artist: '宋冬野' },
+    { title: '遥远的她', artist: '张学友' },
+    { title: '慢慢喜欢你', artist: '莫文蔚' },
+    { title: '至少还有你', artist: '林忆莲' },
+    { title: '遇见', artist: '孙燕姿' },
+    { title: '开始懂了', artist: '孙燕姿' },
+    { title: '爱你', artist: '王心凌' },
+    { title: '宁夏', artist: '梁静茹' },
+    { title: '勇气', artist: '梁静茹' },
+    { title: '情歌', artist: '梁静茹' },
+  ];
+
+  let songCtx = null;
+  let songPlaying = false;
+  let songMode = 'solo';
+  let songRound = 0;
+  let songCurrent = null;
+  let songAnswered = true;
+  let songHumStream = null;
+  let songRecorder = null;
+  let songChunks = [];
+  let songStopTimer = null;
+
+  function songState() {
+    const st = App.state;
+    if (!st.songQuiz || typeof st.songQuiz !== 'object') st.songQuiz = { me: 0, ta: 0, rounds: 0 };
+    if (typeof st.songQuiz.me !== 'number') st.songQuiz.me = 0;
+    if (typeof st.songQuiz.ta !== 'number') st.songQuiz.ta = 0;
+    if (typeof st.songQuiz.rounds !== 'number') st.songQuiz.rounds = 0;
+    return st.songQuiz;
+  }
+
+  function ensureSongCtx() {
+    if (!songCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      songCtx = new Ctx();
+    }
+    if (songCtx.state === 'suspended') songCtx.resume();
+    return songCtx;
+  }
+
+  function melodyFor(song) {
+    const scale = [0, 2, 4, 7, 9, 12, 14];
+    let h = seedHash(song.title + song.artist);
+    const notes = [];
+    for (let i = 0; i < 10; i++) {
+      h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
+      notes.push(60 + scale[h % scale.length] + (i % 3 === 0 ? 12 : 0));
+    }
+    return notes;
+  }
+
+  function stopSongMelody() {
+    songPlaying = false;
+    if (songStopTimer) {
+      clearTimeout(songStopTimer);
+      songStopTimer = null;
+    }
+    const wave = el('#song-wave');
+    if (wave) wave.classList.remove('is-playing');
+    const play = el('#song-play');
+    if (play) play.textContent = '▶';
+  }
+
+  function playSongSnippet(song) {
+    const ctx = ensureSongCtx();
+    if (!ctx) { App.toast('浏览器不支持播放'); return; }
+    stopSongMelody();
+    const notes = melodyFor(song);
+    const start = ctx.currentTime + 0.06;
+    const oscs = [];
+    notes.forEach(function (n, i) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = 440 * Math.pow(2, (n - 69) / 12);
+      const t = start + i * 0.26;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.26);
+      oscs.push(osc);
+    });
+    songPlaying = true;
+    const wave = el('#song-wave');
+    if (wave) wave.classList.add('is-playing');
+    const play = el('#song-play');
+    if (play) play.textContent = '❚❚';
+    const hint = el('#song-hint');
+    if (hint) hint.textContent = '正在播放一段旋律…听出来了吗？';
+    songStopTimer = setTimeout(function () {
+      songPlaying = false;
+      if (wave) wave.classList.remove('is-playing');
+      if (play) play.textContent = '▶';
+      if (hint) hint.textContent = '曲库：网易云随机（本地模拟）';
+    }, notes.length * 260 + 300);
+  }
+
+  function newSongRound() {
+    stopSongMelody();
+    const pool = SONGS.filter(function (s) { return !songCurrent || s.title !== songCurrent.title; });
+    songCurrent = pool[Math.floor(Math.random() * pool.length)];
+    songAnswered = false;
+    songRound += 1;
+    const rounds = el('#song-round');
+    if (rounds) rounds.textContent = '第 ' + songRound + ' 题';
+    const input = el('#song-input');
+    if (input) input.value = '';
+    const result = el('#song-result');
+    if (result) result.hidden = true;
+    const submit = el('#song-submit');
+    if (submit) submit.textContent = '提交';
+    playSongSnippet(songCurrent);
+  }
+
+  function songMatch(guess, song) {
+    const g = normAnswer(guess);
+    const t = normAnswer(song.title);
+    if (!g) return false;
+    return g === t || g.indexOf(t) !== -1 || (t.indexOf(g) !== -1 && g.length >= 2) || g === normAnswer(song.artist);
+  }
+
+  function updateSongScore() {
+    const st = songState();
+    const me = el('#song-me');
+    const ta = el('#song-ta');
+    if (me) me.textContent = String(st.me);
+    if (ta) ta.textContent = String(st.ta);
+    renderSongRank();
+  }
+
+  function songSubmit() {
+    if (songAnswered) {
+      newSongRound();
+      return;
+    }
+    if (!songCurrent) { newSongRound(); return; }
+    const input = el('#song-input');
+    const guess = input ? input.value.trim() : '';
+    if (!guess) { App.toast('先写下你猜的歌名'); return; }
+    const correct = songMatch(guess, songCurrent);
+    songAnswered = true;
+    const result = el('#song-result');
+    const st = songState();
+    if (songMode === 'battle') {
+      if (correct) { st.me += 10; }
+      else { st.me -= 5; }
+      st.rounds += 1;
+      App.save();
+      if (result) {
+        result.hidden = false;
+        result.className = 'song-result ' + (correct ? 'is-right' : 'is-wrong');
+        result.textContent = (correct ? '你答对了！+10 分' : '没答对，扣 5 分') + '，正确答案是《' + songCurrent.title + '》 · ' + songCurrent.artist;
+      }
+      setTimeout(function () {
+        const taRight = Math.random() < 0.55;
+        if (taRight) st.ta += 10;
+        else st.ta -= 5;
+        st.rounds += 1;
+        App.save();
+        if (result) {
+          result.textContent += '；TA 猜「' + (taRight ? songCurrent.title : '另一首') + '」' + (taRight ? '，+10 分' : '，-5 分');
+        }
+        updateSongScore();
+      }, 1100);
+      pushChat('ta', '听音识曲：我猜是《' + (Math.random() < 0.5 ? songCurrent.title : '另一首歌') + '》。');
+    } else {
+      if (correct) st.me += 10;
+      st.rounds += 1;
+      App.save();
+      if (result) {
+        result.hidden = false;
+        result.className = 'song-result ' + (correct ? 'is-right' : 'is-wrong');
+        result.textContent = correct
+          ? '答对了！《' + songCurrent.title + '》 · ' + songCurrent.artist + '，+10 分'
+          : '没猜中，正确答案是《' + songCurrent.title + '》 · ' + songCurrent.artist;
+      }
+    }
+    if (correct) {
+      const wave = el('#song-wave');
+      if (wave) wave.classList.add('is-playing');
+      setTimeout(function () { if (wave) wave.classList.remove('is-playing'); }, 900);
+    }
+    const submit = el('#song-submit');
+    if (submit) submit.textContent = '下一题';
+    updateSongScore();
+  }
+
+  function renderSongRank() {
+    const box = el('#song-rank');
+    if (!box) return;
+    const st = songState();
+    const total = st.me + st.ta;
+    const title = total >= 200 ? '中华小曲库' : total >= 100 ? '麦霸预备役' : total >= 40 ? '曲库新星' : '还在找调';
+    box.innerHTML =
+      '<div class="song-rank-title">' + title + '</div>' +
+      '<p class="field-hint">累计：我 ' + st.me + ' 分 · TA ' + st.ta + ' 分 · 一起玩了 ' + st.rounds + ' 轮</p>';
+  }
+
+  function setSongMode(mode) {
+    songMode = mode;
+    songRound = 0;
+    songAnswered = true;
+    stopSongMelody();
+    document.querySelectorAll('#song-mode [data-song-mode]').forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.dataset.songMode === mode);
+    });
+    const label = el('#song-mode-label');
+    if (label) label.textContent = mode === 'battle' ? '双人对战' : mode === 'hum' ? '哼唱模式' : '单人模式';
+    const guessRow = el('#song-guess-row');
+    const humBox = el('#song-hum-box');
+    const stage = document.querySelector('.song-stage');
+    if (guessRow) guessRow.hidden = mode === 'hum';
+    if (humBox) humBox.hidden = mode !== 'hum';
+    if (stage) stage.hidden = mode === 'hum';
+    const result = el('#song-result');
+    if (result) result.hidden = true;
+    updateSongScore();
+    if (mode !== 'hum') {
+      songCurrent = null;
+      newSongRound();
+    }
+  }
+
+  function startHumRecording(btn) {
+    if (songRecorder && songRecorder.state === 'recording') {
+      songRecorder.stop();
+      btn.textContent = '开始哼唱';
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+      App.toast('这个浏览器不支持录音');
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      songHumStream = stream;
+      songChunks = [];
+      songRecorder = new MediaRecorder(stream);
+      songRecorder.ondataavailable = function (e) {
+        if (e.data && e.data.size) songChunks.push(e.data);
+      };
+      songRecorder.onstop = function () {
+        const blob = new Blob(songChunks, { type: songChunks[0] ? songChunks[0].type : 'audio/webm' });
+        const audio = el('#song-audio');
+        if (audio) {
+          audio.src = URL.createObjectURL(blob);
+          audio.hidden = false;
+        }
+        const taBtn = el('#song-ta-guess');
+        if (taBtn) taBtn.hidden = false;
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        const hint = el('#song-hum-hint');
+        if (hint) hint.textContent = '录好了，放给自己听听，也可以让 TA 猜。';
+      };
+      songRecorder.start();
+      btn.textContent = '停止录音';
+      const hint = el('#song-hum-hint');
+      if (hint) hint.textContent = '正在录…哼一段你熟悉的旋律。';
+    }).catch(function () {
+      App.toast('没有拿到麦克风权限');
+    });
+  }
+
+  function taGuessHum() {
+    const song = SONGS[Math.floor(Math.random() * SONGS.length)];
+    const hint = el('#song-hum-hint');
+    if (hint) hint.textContent = 'TA 听完说：是《' + song.title + '》吗？我猜对了吗？';
+    pushChat('ta', '听音识曲：你哼的旋律，我猜是《' + song.title + '》。');
+  }
+
+  /* =========================================================
+     事件绑定
+     ========================================================= */
+  App.initCompanion = function () {
+    /* 新的工具 / 游戏入口 */
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-tool]');
+      if (!btn) return;
+      const tool = btn.dataset.tool;
+      if (tool === 'quiz') { openQuiz(); }
+      else if (tool === 'sleep') {
+        closeMore();
+        sleepState();
+        renderSleep();
+        showPanel('#sleep-dialog');
+      } else if (tool === 'songquiz') {
+        closeMore();
+        songState();
+        setSongMode('solo');
+        showPanel('#songquiz-dialog');
+      }
+    });
+
+    /* 默契问答 */
+    document.querySelectorAll('#quiz-tabs [data-quiz-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () { switchQuizTab(btn.dataset.quizTab); });
+    });
+    const quizRefresh = el('#quiz-refresh');
+    if (quizRefresh) quizRefresh.addEventListener('click', function () {
+      setQuizCard(pickQuizCard());
+      refreshQuizPill();
+      renderQuizResult(null);
+    });
+    const quizSubmit = el('#quiz-submit');
+    if (quizSubmit) quizSubmit.addEventListener('click', submitQuiz);
+    const quizAnswer = el('#quiz-answer');
+    if (quizAnswer) quizAnswer.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); submitQuiz(); }
+    });
+    const quizCustom = el('#quiz-custom-save');
+    if (quizCustom) quizCustom.addEventListener('click', saveCustomQuiz);
+
+    /* 心情日记 */
+    const picker = el('#mood-picker');
+    if (picker) picker.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-mood]');
+      if (!btn) return;
+      moodDraft.mood = btn.dataset.mood;
+      const mood = moodOf(moodDraft.mood);
+      const weather = el('#mood-weather');
+      if (weather) weather.textContent = mood ? mood.weather : '🌤';
+      renderMoodPicker();
+    });
+    const moodNote = el('#mood-note');
+    if (moodNote) moodNote.addEventListener('input', function () { moodDraft.note = moodNote.value; });
+    const moodPhoto = el('#mood-photo');
+    if (moodPhoto) moodPhoto.addEventListener('change', function () {
+      const file = moodPhoto.files && moodPhoto.files[0];
+      if (!file) return;
+      App.compressImage(file, 900, { maxLength: 160000 }).then(function (src) {
+        moodDraft.photo = src;
+        renderMoodPhoto();
+      }).catch(function () {});
+      moodPhoto.value = '';
+    });
+    const moodSave = el('#mood-save');
+    if (moodSave) moodSave.addEventListener('click', saveMood);
+    const moodClear = el('#mood-clear');
+    if (moodClear) moodClear.addEventListener('click', function () {
+      delete moodState().entries[todayKey()];
+      App.save();
+      renderMood();
+      App.toast('今天的心情已清除');
+    });
+    document.addEventListener('click', function (e) {
+      const photoDel = e.target.closest('#mood-photo-del');
+      if (photoDel) {
+        moodDraft.photo = '';
+        renderMoodPhoto();
+        return;
+      }
+      const react = e.target.closest('[data-mood-react]');
+      if (react) {
+        const kind = react.dataset.moodReact;
+        const text = kind === '抱抱' ? '给你一个拥抱，抱紧一点。' : kind === '安慰' ? '别难过，我一直在。' : '什么都不用说，我陪你待一会儿。';
+        pushChat('me', text);
+        App.toast('已回应 TA 的心情');
+        return;
+      }
+      const nav = e.target.closest('[data-mood-nav]');
+      if (nav) {
+        moodCursor = new Date(moodCursor.getFullYear(), moodCursor.getMonth() + Number(nav.dataset.moodNav), 1);
+        renderMoodCalendar();
+      }
+    });
+    document.querySelectorAll('#mood-cal-tabs [data-mood-cal]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        moodCalMode = btn.dataset.moodCal;
+        document.querySelectorAll('#mood-cal-tabs [data-mood-cal]').forEach(function (b) {
+          b.classList.toggle('is-active', b === btn);
+        });
+        renderMoodCalendar();
+      });
+    });
+
+    /* 回忆墙 */
+    const mwAdd = el('#mw-add');
+    if (mwAdd) mwAdd.addEventListener('click', openMemoryDialog);
+    const mwFile = el('#mw-file');
+    if (mwFile) mwFile.addEventListener('change', function () {
+      importMemoryFiles(mwFile.files);
+      mwFile.value = '';
+    });
+    const mwForm = el('#mw-form');
+    if (mwForm) mwForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      saveMemory();
+    });
+    const mwPoster = el('#mw-poster');
+    if (mwPoster) mwPoster.addEventListener('click', makeMemoryPoster);
+    const mwPosterShare = el('#mw-poster-share');
+    if (mwPosterShare) mwPosterShare.addEventListener('click', function () {
+      if (!mwPosterUrl) return;
+      fetch(mwPosterUrl).then(function (res) { return res.blob(); }).then(function (blob) {
+        const file = new File([blob], 'memory-poster.jpg', { type: 'image/jpeg' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          return navigator.share({ files: [file], title: '我们的回忆', text: '拾忆 · 回忆海报' });
+        }
+        App.toast('当前浏览器不支持直接分享，长按图片保存');
+      }).catch(function () { App.toast('分享失败，可以直接保存海报'); });
+    });
+    const mwHidden = el('#mw-hidden');
+    if (mwHidden) mwHidden.addEventListener('click', openHiddenAlbum);
+    const mwHiddenBody = el('#mw-hidden-body');
+    if (mwHiddenBody) mwHiddenBody.addEventListener('click', function (e) {
+      if (e.target.closest('#mw-code-save')) {
+        const input = el('#mw-code-set');
+        const code = input ? input.value.trim() : '';
+        if (!/^\d{4}$/.test(code)) { App.toast('请输入 4 位数字密码'); return; }
+        memoryState().code = code;
+        App.save();
+        mwUnlocked = false;
+        renderHiddenAlbum();
+        App.toast('密码已设好');
+        return;
+      }
+      if (e.target.closest('#mw-code-enter')) {
+        const input = el('#mw-code-input');
+        const both = el('#mw-code-both');
+        if (!both || !both.checked) { App.toast('等 TA 也确认一下'); return; }
+        if (!input || input.value.trim() !== memoryState().code) { App.toast('密码不对'); return; }
+        mwUnlocked = true;
+        renderHiddenAlbum();
+        return;
+      }
+      if (e.target.closest('#mw-code-lock')) {
+        mwUnlocked = false;
+        renderHiddenAlbum();
+        return;
+      }
+      if (e.target.closest('#mw-code-clear')) {
+        const memory = memoryState();
+        memory.photos = memory.photos.filter(function (p) { return !p.secret; });
+        App.save();
+        renderHiddenAlbum();
+        renderMemoryWall();
+        return;
+      }
+      const open = e.target.closest('[data-mw-open]');
+      if (open) openMemoryPhoto(open.dataset.mwOpen);
+    });
+    const mwTimeline = el('#mw-timeline');
+    if (mwTimeline) mwTimeline.addEventListener('click', function (e) {
+      const open = e.target.closest('[data-mw-open]');
+      if (open) openMemoryPhoto(open.dataset.mwOpen);
+    });
+    const mwToday = el('#mw-today');
+    if (mwToday) mwToday.addEventListener('click', function (e) {
+      const open = e.target.closest('[data-mw-open]');
+      if (open) openMemoryPhoto(open.dataset.mwOpen);
+    });
+    const mwViewBody = el('#mw-view-body');
+    if (mwViewBody) mwViewBody.addEventListener('click', function (e) {
+      const like = e.target.closest('[data-mw-like]');
+      if (like) toggleMemoryLike(like.dataset.mwLike);
+    });
+    const mwCommentSend = el('#mw-comment-send');
+    if (mwCommentSend) mwCommentSend.addEventListener('click', sendMemoryComment);
+    const mwCommentInput = el('#mw-comment-input');
+    if (mwCommentInput) mwCommentInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); sendMemoryComment(); }
+    });
+
+    /* 位置 */
+    const locEnable = el('#loc-enable');
+    if (locEnable) locEnable.addEventListener('click', enableLocation);
+    const locPause = el('#loc-pause');
+    if (locPause) locPause.addEventListener('click', function () {
+      const loc = locationState();
+      if (!loc.enabled) { App.toast('先开启共享'); return; }
+      loc.paused = !loc.paused;
+      App.save();
+      renderLocation();
+      App.toast(loc.paused ? '已暂停共享，TA 看不到你了' : '已继续共享');
+    });
+    const locMap = el('#loc-map');
+    if (locMap) locMap.addEventListener('click', moveMeByTap);
+    document.addEventListener('change', function (e) {
+      const status = e.target.closest('[data-loc-status]');
+      if (status) {
+        const side = status.dataset.locStatus;
+        const loc = locationState();
+        loc.status[side] = status.value;
+        App.save();
+        renderLocation();
+        return;
+      }
+    });
+    document.addEventListener('click', function (e) {
+      const meBtn = e.target.closest('[data-loc-me]');
+      if (meBtn) { movePersonToZone('me', meBtn.dataset.locMe); return; }
+      const taBtn = e.target.closest('[data-loc-ta]');
+      if (taBtn) { movePersonToZone('ta', taBtn.dataset.locTa); }
+    });
+
+    /* 助眠 */
+    const sleepMaster = el('#sleep-master');
+    if (sleepMaster) sleepMaster.addEventListener('click', toggleSleepMaster);
+    const sleepSounds = el('#sleep-sounds');
+    if (sleepSounds) sleepSounds.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-sleep-toggle]');
+      if (btn) toggleSleepSound(btn.dataset.sleepToggle);
+    });
+    if (sleepSounds) sleepSounds.addEventListener('input', function (e) {
+      const slider = e.target.closest('[data-sleep-vol]');
+      if (slider) sleepVolumeChange(slider.dataset.sleepVol, Number(slider.value) / 100);
+    });
+    document.querySelectorAll('#sleep-timer [data-sleep-min]').forEach(function (btn) {
+      btn.addEventListener('click', function () { setSleepTimer(Number(btn.dataset.sleepMin)); });
+    });
+    const sleepTogetherBtn = el('#sleep-together');
+    if (sleepTogetherBtn) sleepTogetherBtn.addEventListener('click', toggleSleepTogether);
+
+    /* 听音识曲 */
+    document.querySelectorAll('#song-mode [data-song-mode]').forEach(function (btn) {
+      btn.addEventListener('click', function () { setSongMode(btn.dataset.songMode); });
+    });
+    const songPlay = el('#song-play');
+    if (songPlay) songPlay.addEventListener('click', function () {
+      if (songMode === 'hum') return;
+      if (songPlaying) stopSongMelody();
+      else if (songCurrent) playSongSnippet(songCurrent);
+      else newSongRound();
+    });
+    const songSubmitBtn = el('#song-submit');
+    if (songSubmitBtn) songSubmitBtn.addEventListener('click', songSubmit);
+    const songInput = el('#song-input');
+    if (songInput) songInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); songSubmit(); }
+    });
+    const songRecord = el('#song-record');
+    if (songRecord) songRecord.addEventListener('click', function () { startHumRecording(songRecord); });
+    const songTaGuess = el('#song-ta-guess');
+    if (songTaGuess) songTaGuess.addEventListener('click', taGuessHum);
+  };
+
+  App.renderMemoryWidget = renderMemoryWidget;
+  App.renderMemoryWall = renderMemoryWall;
+  App.renderLocation = renderLocation;
+  App.renderMood = renderMood;
+
+  /* 页面首次加载时把新视图的默认数据补上 */
+  setTimeout(function () {
+    if (!App.state) return;
+    quizState();
+    moodState();
+    memoryState();
+    locationState();
+    songState();
+    renderMemoryWidget();
+  }, 0);
+})();

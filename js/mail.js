@@ -26,7 +26,7 @@
 
   function mailCards() {
     return (App.state.cards || []).filter(function (c) {
-      return c.enabled !== false && c.text && c.category !== '拍一拍';
+      return c.enabled !== false && c.text && c.category !== '拍一拍' && c.category !== '默契问答';
     });
   }
 
