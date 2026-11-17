@@ -96,6 +96,7 @@
     document.documentElement.style.setProperty('--shell-bg', color);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
+    if (App.applyIconStyle) App.applyIconStyle();
   };
 
   /* 跟随可视视口高度，避免弹出输入法时底部露出空白。 */

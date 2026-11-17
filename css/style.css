@@ -41,6 +41,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   --line: rgba(44, 38, 32, .11);
   --accent: #b8562f;
   --accent-ink: #fff9f3;
+  --icon-theme-a: #d9885f;
+  --icon-theme-b: #a8481f;
   --accent-soft: rgba(184, 86, 47, .12);
   --wall-1: #f2dbc4;
   --wall-2: #d9b391;
@@ -62,6 +64,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   --line: rgba(48, 79, 112, .12);
   --accent: #5b8fc9;
   --accent-ink: #f5faff;
+  --icon-theme-a: #83bceb;
+  --icon-theme-b: #4e89c5;
   --accent-soft: rgba(91, 143, 201, .13);
   --wall-1: #e3f2ff;
   --wall-2: #c3def5;
@@ -83,6 +87,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   --line: rgba(51, 37, 41, .11);
   --accent: #a9505f;
   --accent-ink: #fff8fa;
+  --icon-theme-a: #c9828c;
+  --icon-theme-b: #94424f;
   --accent-soft: rgba(169, 80, 95, .12);
   --wall-1: #f4dde1;
   --wall-2: #e2b8c0;
@@ -104,6 +110,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
   --line: rgba(255, 255, 255, .1);
   --accent: #d8a05c;
   --accent-ink: #241a0e;
+  --icon-theme-a: #e8c184;
+  --icon-theme-b: #c88f47;
   --accent-soft: rgba(216, 160, 92, .16);
   --wall-1: #2b3242;
   --wall-2: #191d26;
@@ -482,6 +490,13 @@ button.widget:active { transform: scale(.99); }
 .color-swatches { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .color-swatches button { width: 22px; height: 22px; border-radius: 50%; background: var(--sw); border: 2px solid var(--surface); box-shadow: 0 0 0 1px transparent; }
 .color-swatches button.is-active { box-shadow: 0 0 0 1.5px var(--sw); }
+.icon-follow-row { margin-top: 12px; }
+/* 图标跟随外观主题：应用图标和底部导航图标一起换色 */
+.app.icons-follow-theme .software-icon,
+.app.icons-follow-theme .dock-icon {
+  background: linear-gradient(145deg, var(--icon-theme-a), var(--icon-theme-b));
+  color: var(--accent-ink);
+}
 
 @media (max-width: 360px) {
   .icon-customizer { align-items: flex-start; flex-direction: column; }

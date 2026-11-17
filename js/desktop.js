@@ -107,6 +107,8 @@
     app.style.setProperty('--icon-radius', radius);
     app.style.setProperty('--icon-bg', ICON_COLORS[style.color]);
     app.style.setProperty('--icon-fg', '#ffffff');
+    const followTheme = !(App.state.settings && App.state.settings.iconsFollowTheme === false);
+    app.classList.toggle('icons-follow-theme', followTheme);
     document.querySelectorAll('[data-icon-shape]').forEach(function (btn) {
       const active = btn.dataset.iconShape === style.shape;
       btn.classList.toggle('is-active', active);
@@ -626,7 +628,8 @@
     ghost.classList.add('app-drag-ghost');
     ghost.removeAttribute('data-open-current-chat');
     ghost.style.width = rect.width + 'px';
-    document.body.appendChild(ghost);
+    /* 放进应用内，拖动时才能继承当前主题的图标颜色和圆角 */
+    (document.getElementById('app') || document.body).appendChild(ghost);
     entry.classList.add('is-drag-source');
     appDrag = {
       entry: entry,

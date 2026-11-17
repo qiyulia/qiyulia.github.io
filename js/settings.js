@@ -322,6 +322,8 @@
     document.querySelectorAll('#theme-row [data-theme]').forEach(function (btn) {
       btn.classList.toggle('is-on', btn.dataset.theme === st.theme);
     });
+    const followThemeToggle = el('#set-icons-follow-theme');
+    if (followThemeToggle) followThemeToggle.checked = st.settings.iconsFollowTheme !== false;
     const calTheme = st.settings.calendarTheme || {};
     el('#set-calendar-theme').checked = calTheme.enabled !== false;
     document.querySelectorAll('#festival-options [data-festival-opt]').forEach(function (input) {
@@ -978,6 +980,16 @@
       markDirty();
       App.renderSettings();
     });
+
+    const iconsFollowTheme = el('#set-icons-follow-theme');
+    if (iconsFollowTheme) {
+      iconsFollowTheme.addEventListener('change', function () {
+        App.state.settings.iconsFollowTheme = !!iconsFollowTheme.checked;
+        App.save();
+        App.applyIconStyle();
+        App.toast(iconsFollowTheme.checked ? '图标已跟随外观主题' : '图标已使用自定义颜色');
+      });
+    }
 
     el('#btn-export-all').addEventListener('click', function () {
       const scopes = selectedBackupScopes();

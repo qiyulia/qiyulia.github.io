@@ -365,6 +365,7 @@
         musicPlayProb: 60,
         musicFavProb: 25,
         musicSwitchProb: 30,
+        iconsFollowTheme: true,
       },
       contacts: [
         { id: contactId, name: 'ta', avatar: App.DEFAULT_AVATAR, note: '住在隔壁的夜猫子', birthday: '' },
