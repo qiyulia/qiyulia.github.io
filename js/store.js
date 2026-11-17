@@ -661,6 +661,11 @@
     if (s.settings.taMomentCardMin == null) s.settings.taMomentCardMin = Number(s.settings.taMomentCards) || 1;
     if (s.settings.taMomentCardMax == null) s.settings.taMomentCardMax = Math.max(Number(s.settings.taMomentCardMin) || 1, Number(s.settings.taMomentCards) || 1);
     if (s.settings.emotionProb == null) s.settings.emotionProb = 30;
+    if (s.settings.taMoodProb == null) s.settings.taMoodProb = 70;
+    if (!s.settings.calendarTheme || typeof s.settings.calendarTheme !== 'object') s.settings.calendarTheme = {};
+    ['enabled', 'valentine', 'qixi', 'christmas', 'newyear', 'anniversary'].forEach(function (key) {
+      if (s.settings.calendarTheme[key] == null) s.settings.calendarTheme[key] = true;
+    });
     if (s.settings.taRecallProb == null) s.settings.taRecallProb = 5;
     if (s.settings.taQuoteProb == null) s.settings.taQuoteProb = 20;
     if (s.settings.taFavProb == null) s.settings.taFavProb = 15;

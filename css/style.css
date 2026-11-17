@@ -5225,3 +5225,430 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 }
 .sleep-scene .sleep-disc { color: #3b5f82; font-weight: 600; }
 .sheet-head .icon-btn:focus { outline: none; }
+
+/* ================= 日历联动与主题 ================= */
+.festival-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(124, 163, 205, .28);
+  color: #5b7fa6;
+  font-size: 12px;
+  letter-spacing: .05em;
+  animation: festivalIn .45s ease both;
+}
+@keyframes festivalIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+#view-desktop.festival-valentine .wallpaper {
+  background: linear-gradient(165deg, #fff1f5 0%, #ffe0ea 45%, #ffd3e2 100%);
+}
+#view-desktop.festival-valentine .wallpaper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath d='M24 36s-12-7.6-12-16a6.6 6.6 0 0 1 12-3.6 6.6 6.6 0 0 1 12 3.6c0 8.4-12 16-12 16z' fill='%23ff9dbb' fill-opacity='.28'/%3E%3C/svg%3E");
+  background-size: 48px 48px;
+  opacity: .8;
+  pointer-events: none;
+}
+#view-desktop.festival-valentine .hero-title { color: #c06286; }
+
+#view-desktop.festival-christmas .wallpaper {
+  background: linear-gradient(165deg, #f2f8f3 0%, #dcece2 50%, #cfe6db 100%);
+}
+#view-desktop.festival-christmas .wallpaper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 24%, rgba(255,255,255,.95) 0 2px, transparent 2.6px),
+    radial-gradient(circle at 68% 12%, rgba(255,255,255,.9) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at 82% 58%, rgba(255,255,255,.95) 0 2.2px, transparent 2.8px),
+    radial-gradient(circle at 36% 76%, rgba(255,255,255,.9) 0 1.8px, transparent 2.4px);
+  background-size: 120px 120px;
+  opacity: .9;
+  pointer-events: none;
+}
+#view-desktop.festival-christmas .hero-title { color: #4c7a63; }
+
+#view-desktop.festival-newyear .wallpaper {
+  background: linear-gradient(165deg, #fff8ea 0%, #ffeccd 55%, #ffe0b9 100%);
+}
+#view-desktop.festival-newyear .wallpaper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 50% 50%, rgba(226, 170, 96, .22) 0 3px, transparent 3.6px);
+  background-size: 90px 90px;
+  opacity: .8;
+  pointer-events: none;
+}
+#view-desktop.festival-newyear .hero-title { color: #b98338; }
+
+#view-desktop.festival-qixi .wallpaper {
+  background: linear-gradient(165deg, #f0ecfa 0%, #dfe3f7 50%, #d2dcf5 100%);
+}
+#view-desktop.festival-qixi .wallpaper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 18% 30%, rgba(255,255,255,.95) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at 62% 18%, rgba(255,255,255,.9) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 86% 64%, rgba(255,255,255,.95) 0 1.8px, transparent 2.4px),
+    radial-gradient(circle at 34% 82%, rgba(255,255,255,.9) 0 1.2px, transparent 1.8px);
+  background-size: 110px 110px;
+  opacity: .9;
+  pointer-events: none;
+}
+#view-desktop.festival-qixi .hero-title { color: #6d6aa8; }
+
+.app-entry { position: relative; }
+.app-entry.has-festival-badge::after {
+  content: attr(data-festival-badge);
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ffadc5;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .9), 0 2px 6px rgba(180, 90, 120, .25);
+  pointer-events: none;
+}
+
+.days-widget.is-milestone,
+.anniversary-widget.is-milestone {
+  border-color: rgba(126, 166, 208, .55);
+  animation: milestoneGlow 2.4s ease-in-out infinite;
+}
+@keyframes milestoneGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(126, 166, 208, 0); }
+  50% { box-shadow: 0 0 24px 5px rgba(126, 166, 208, .34); }
+}
+
+.festival-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.festival-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.festival-options label:has(input:disabled) { opacity: .45; }
+.festival-options input { accent-color: var(--accent); margin: 0; }
+
+/* 纪念日信封 */
+.anniv-letter-dialog {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: min(420px, 92vw);
+  width: 100%;
+}
+.anniv-letter-dialog::backdrop {
+  background: rgba(30, 45, 64, .42);
+  backdrop-filter: blur(4px);
+}
+.anniv-envelope {
+  position: relative;
+  border-radius: 22px;
+  padding: 26px 22px 18px;
+  background: linear-gradient(168deg, #fffdf8 0%, #f6f9fd 60%, #eef4fa 100%);
+  border: 1px solid rgba(140, 170, 205, .35);
+  box-shadow: 0 26px 60px rgba(38, 63, 90, .3);
+  animation: envelopeIn .32s cubic-bezier(.2, .8, .3, 1) both;
+}
+@keyframes envelopeIn {
+  from { opacity: 0; transform: translateY(16px) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+.anniv-letter-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.anniv-letter-stamp {
+  position: absolute;
+  top: 14px;
+  right: 48px;
+  width: 32px;
+  height: 38px;
+  border: 1px dashed rgba(185, 122, 133, .65);
+  border-radius: 4px;
+  background: #fffaf3;
+  color: #b97a85;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+}
+.anniv-letter-from {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: .08em;
+  color: var(--ink-soft);
+}
+.anniv-envelope h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-serif, "Kaiti SC", "STKaiti", serif);
+  font-size: 21px;
+  font-weight: 600;
+  color: #3f5a74;
+}
+.anniv-letter-body {
+  max-height: 40vh;
+  overflow: auto;
+  padding-right: 4px;
+  font-size: 14px;
+  line-height: 1.85;
+  color: #43566b;
+}
+.anniv-letter-body p { margin: 0 0 9px; }
+.anniv-letter-sign {
+  margin: 12px 0 16px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.anniv-letter-foot {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ================= 次元电台 ================= */
+.radio-widget {
+  background: linear-gradient(158deg, rgba(255, 243, 220, .92), rgba(228, 241, 252, .92));
+}
+.radio-widget-line {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.radio-mini {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+  width: min(396px, calc(100vw - 30px));
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .88);
+  border: 1px solid rgba(255, 255, 255, .78);
+  box-shadow: 0 14px 34px rgba(58, 88, 118, .2);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  z-index: 40;
+  animation: radioIn .28s ease both;
+}
+@keyframes radioIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.radio-mini-disc {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #ffe6b7, #ffcf8b);
+  color: #8a6832;
+  font-size: 16px;
+}
+.radio-mini-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.radio-mini-copy strong { font-size: 13px; font-weight: 600; }
+.radio-mini-copy span {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.radio-mini-time { font-size: 11px; color: var(--ink-soft); flex: 0 0 auto; }
+.radio-mini-btn {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.radio-panel .radio-cards {
+  display: grid;
+  gap: 10px;
+}
+.radio-card {
+  appearance: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(155deg, #fffdf7, #f1f7fc);
+  color: var(--ink);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.radio-card:active { transform: scale(.985); }
+.radio-card.is-night {
+  background: linear-gradient(155deg, #334055, #232c3d);
+  border-color: rgba(255, 255, 255, .12);
+  color: #e9eff8;
+}
+.radio-card.is-active { box-shadow: 0 0 0 2px rgba(124, 163, 205, .65); }
+.radio-card.is-night.is-active { box-shadow: 0 0 0 2px rgba(159, 194, 234, .7); }
+.radio-card-top { display: flex; align-items: center; gap: 8px; }
+.radio-card-icon { font-size: 17px; }
+.radio-card-name { font-size: 15px; font-weight: 600; }
+.radio-card-tag {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(124, 163, 205, .16);
+  color: #5b7fa6;
+}
+.radio-card.is-night .radio-card-tag { background: rgba(255, 255, 255, .14); color: #cfe0f5; }
+.radio-card-sub { font-size: 12px; color: var(--ink-soft); }
+.radio-card.is-night .radio-card-sub { color: rgba(233, 239, 248, .66); }
+.radio-card-quote { font-size: 12.5px; line-height: 1.6; color: #526b84; }
+.radio-card.is-night .radio-card-quote { color: rgba(233, 239, 248, .8); }
+.radio-card-foot { margin-top: 3px; font-size: 11.5px; color: #7a93ab; }
+.radio-card.is-night .radio-card-foot { color: rgba(233, 239, 248, .55); }
+
+.radio-now {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.radio-now-head { display: flex; align-items: center; gap: 10px; }
+.radio-now-disc {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #ffe8bd, #ffd08d);
+  color: #8a6832;
+  font-size: 17px;
+}
+.radio-now-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.radio-now-copy strong { font-size: 14px; }
+.radio-now-copy span { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
+.radio-play-btn { flex: 0 0 auto; }
+.radio-timer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.radio-timer-label { font-size: 12px; color: var(--ink-soft); }
+.radio-timer-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+.radio-timer-btn.is-on { background: var(--accent); border-color: transparent; color: #fff; }
+.radio-countdown { margin-left: auto; font-size: 11.5px; color: var(--ink-soft); }
+
+.radio-panel.is-night-playing {
+  background: linear-gradient(158deg, #2b3547, #1f2735);
+  border-color: rgba(255, 255, 255, .12);
+  color: #e9eff8;
+}
+.radio-panel.is-night-playing .section-title-row h3 { color: #e9eff8; }
+.radio-panel.is-night-playing .list-meta { color: rgba(233, 239, 248, .65); }
+.radio-panel.is-night-playing .radio-card { opacity: .68; }
+.radio-panel.is-night-playing .radio-card.is-active { opacity: 1; }
+.radio-panel.is-night-playing .radio-now {
+  background: rgba(255, 255, 255, .06);
+  border-color: rgba(255, 255, 255, .12);
+}
+.radio-panel.is-night-playing .radio-now-disc {
+  background: linear-gradient(145deg, #9cc3ef, #5f88c1);
+  color: #fff;
+  animation: radioBreathe 3.4s ease-in-out infinite;
+}
+.radio-panel.is-night-playing .radio-now-copy span { color: rgba(233, 239, 248, .72); }
+.radio-panel.is-night-playing .radio-timer { border-top-color: rgba(255, 255, 255, .14); }
+.radio-panel.is-night-playing .radio-timer-label { color: rgba(233, 239, 248, .72); }
+.radio-panel.is-night-playing .radio-timer-btn {
+  background: rgba(255, 255, 255, .08);
+  border-color: rgba(255, 255, 255, .16);
+  color: #dbe7f7;
+}
+.radio-panel.is-night-playing .radio-timer-btn.is-on { background: #8fb6e8; color: #1e2a3b; }
+.radio-panel.is-night-playing .radio-countdown { color: rgba(233, 239, 248, .68); }
+.radio-panel.is-night-playing .panel-note { color: rgba(233, 239, 248, .55); }
+@keyframes radioBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(140, 180, 230, .42); }
+  50% { box-shadow: 0 0 18px 6px rgba(140, 180, 230, .34); }
+}
+
+.mood-ta-chip.is-empty {
+  background: rgba(120, 140, 160, .12) !important;
+  color: var(--ink-soft) !important;
+}
+
+@media (max-width: 380px) {
+  .radio-mini { bottom: 84px; width: calc(100vw - 22px); }
+  .radio-mini-time { display: none; }
+  .anniv-envelope { padding: 22px 16px 16px; }
+  .anniv-letter-body { max-height: 36vh; }
+}
+
+.festival-line[hidden],
+.radio-mini[hidden],
+.radio-widget[hidden] { display: none; }

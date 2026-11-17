@@ -37,6 +37,8 @@
     el('#d-today-card').textContent = daily ? daily.text : '字卡库空空的，去添几张吧。';
 
     renderWidgets(now);
+    if (App.renderRadioHome) App.renderRadioHome();
+    if (App.applyFestivalTheme) App.applyFestivalTheme();
     App.renderContacts();
     App.updateBadges();
   };

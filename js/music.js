@@ -118,6 +118,7 @@
 
   App.renderMusic = function () {
     if (!App.state || !App.state.music) return;
+    if (App.renderRadio) App.renderRadio();
     applyMusicFloatState();
     const track = currentTrack();
     if (!track) {

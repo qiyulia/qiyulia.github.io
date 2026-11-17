@@ -250,6 +250,7 @@
     el('#set-rp-accept-prob').value = st.settings.redpacketAcceptProb == null ? 70 : st.settings.redpacketAcceptProb;
     el('#set-rp-return-prob').value = st.settings.redpacketReturnProb == null ? 20 : st.settings.redpacketReturnProb;
     el('#set-emotion-prob').value = st.settings.emotionProb == null ? 30 : st.settings.emotionProb;
+    el('#set-ta-mood-prob').value = st.settings.taMoodProb == null ? 70 : st.settings.taMoodProb;
     el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
     el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
     el('#set-ta-moment-prob').value = st.settings.taMomentProb == null ? 25 : st.settings.taMomentProb;
@@ -319,6 +320,12 @@
 
     document.querySelectorAll('#theme-row [data-theme]').forEach(function (btn) {
       btn.classList.toggle('is-on', btn.dataset.theme === st.theme);
+    });
+    const calTheme = st.settings.calendarTheme || {};
+    el('#set-calendar-theme').checked = calTheme.enabled !== false;
+    document.querySelectorAll('#festival-options [data-festival-opt]').forEach(function (input) {
+      input.checked = calTheme[input.dataset.festivalOpt] !== false;
+      input.disabled = calTheme.enabled === false;
     });
     storageSize();
   };
@@ -797,6 +804,12 @@
       markDirty();
     });
 
+    App.bindStepper('#set-ta-mood-prob', function (v) {
+      App.state.settings.taMoodProb = v;
+      App.save();
+      if (App.refreshTaMood) App.refreshTaMood(true);
+    });
+
     App.bindStepper('#set-ta-like', function (v) {
       App.state.settings.taLikeProb = v;
       markDirty();
@@ -925,6 +938,30 @@
     App.bindStepper('#set-call-hangup', function (v) {
       App.state.settings.callHangupProb = v;
       markDirty();
+    });
+
+    const calThemeToggle = el('#set-calendar-theme');
+    if (calThemeToggle) {
+      calThemeToggle.addEventListener('change', function () {
+        const settings = App.state.settings;
+        if (!settings.calendarTheme || typeof settings.calendarTheme !== 'object') settings.calendarTheme = {};
+        settings.calendarTheme.enabled = !!calThemeToggle.checked;
+        document.querySelectorAll('#festival-options [data-festival-opt]').forEach(function (input) {
+          input.disabled = !calThemeToggle.checked;
+        });
+        App.save();
+        if (App.renderDesktop) App.renderDesktop();
+        App.toast(calThemeToggle.checked ? '已开启日历联动' : '已关闭日历联动');
+      });
+    }
+    document.querySelectorAll('#festival-options [data-festival-opt]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        const settings = App.state.settings;
+        if (!settings.calendarTheme || typeof settings.calendarTheme !== 'object') settings.calendarTheme = {};
+        settings.calendarTheme[input.dataset.festivalOpt] = !!input.checked;
+        App.save();
+        if (App.renderDesktop) App.renderDesktop();
+      });
     });
 
     el('#theme-row').addEventListener('click', function (e) {

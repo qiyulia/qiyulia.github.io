@@ -402,6 +402,38 @@
     return MOODS[h % MOODS.length];
   }
 
+  /* 每天零点重新抽一次：命中概率 TA 才会记录当天心情 */
+  function taMoodProbability() {
+    const value = Number(App.state && App.state.settings && App.state.settings.taMoodProb);
+    if (!Number.isFinite(value)) return 70;
+    return Math.max(0, Math.min(100, value));
+  }
+
+  function taMoodDay() {
+    const data = moodState();
+    const key = todayKey();
+    let day = data.taDay;
+    if (!day || day.key !== key) {
+      const roll = Math.random() * 100;
+      day = data.taDay = {
+        key: key,
+        recorded: roll < taMoodProbability(),
+        mood: taMoodOf(key).id,
+        roll: Math.round(roll),
+      };
+      App.save();
+    }
+    return day;
+  }
+
+  function refreshTaMood(force) {
+    if (!App.state) return;
+    const data = moodState();
+    if (force) delete data.taDay;
+    taMoodDay();
+    if (currentView('mood')) renderMoodTa();
+  }
+
   function renderMoodPicker() {
     const box = el('#mood-picker');
     if (!box) return;
@@ -426,9 +458,19 @@
     const box = el('#mood-ta-panel');
     if (!box) return;
     const today = todayKey();
-    const m = taMoodOf(today);
+    const day = taMoodDay();
     const entry = moodState().entries[today];
     const reply = entry && entry.taReply;
+    if (!day.recorded) {
+      box.innerHTML =
+        '<div class="mood-ta-head">' +
+          '<div><h3>TA 今天的心情</h3><p class="field-hint">同频可见 · 只在本机模拟</p></div>' +
+          '<span class="mood-ta-chip is-empty">今天不想说</span>' +
+        '</div>' +
+        '<p class="mood-reply">TA 今天把心情收起来了，说明天再告诉你。明天零点会重新看看 TA 愿不愿意说。</p>';
+      return;
+    }
+    const m = moodOf(day.mood) || taMoodOf(today);
     box.innerHTML =
       '<div class="mood-ta-head">' +
         '<div><h3>TA 今天的心情</h3><p class="field-hint">同频可见 · 只在本机模拟</p></div>' +
@@ -2200,12 +2242,628 @@
     if (songRecord) songRecord.addEventListener('click', function () { startHumRecording(songRecord); });
     const songTaGuess = el('#song-ta-guess');
     if (songTaGuess) songTaGuess.addEventListener('click', taGuessHum);
+
+    initExtraFeatures();
   };
+
+  /* ================= 日历联动与主题变换 ================= */
+
+  const QIXI_DATES = {
+    2024: '2024-08-10', 2025: '2025-08-29', 2026: '2026-08-19', 2027: '2027-08-08',
+    2028: '2028-08-26', 2029: '2029-08-16', 2030: '2030-08-05', 2031: '2031-08-24',
+    2032: '2032-08-12', 2033: '2033-08-02', 2034: '2034-08-20', 2035: '2035-08-10',
+  };
+
+  const FESTIVALS = {
+    newyear: {
+      name: '元旦', greeting: '新年快乐', sub: '新年的第一天',
+      line: '新年快乐！新的一年，也请多多指教。',
+      badge: '✦',
+    },
+    valentine: {
+      name: '情人节', greeting: '情人节快乐', sub: '今天是属于我们的日子',
+      line: '情人节快乐，今天想和我去哪里？',
+      badge: '❤',
+    },
+    qixi: {
+      name: '七夕', greeting: '七夕快乐', sub: '今晚一起看星星吧',
+      line: '七夕快乐，今晚的星星，我想和你一起看。',
+      badge: '✧',
+    },
+    christmas: {
+      name: '圣诞', greeting: '圣诞快乐', sub: '下雪的话就一起堆雪人',
+      line: '圣诞快乐，今年的愿望里还有我，对吧？',
+      badge: '❉',
+    },
+  };
+
+  function calTheme() {
+    const st = App.state;
+    return (st && st.settings && st.settings.calendarTheme) || {};
+  }
+
+  function festivalOn(date) {
+    const ct = calTheme();
+    if (ct.enabled === false) return null;
+    const y = date.getFullYear();
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+    let id = '';
+    if (m === 1 && d === 1) id = 'newyear';
+    else if (m === 2 && d === 14) id = 'valentine';
+    else if (m === 12 && d === 25) id = 'christmas';
+    else if (QIXI_DATES[y] === dateKey(date)) id = 'qixi';
+    if (!id || ct[id] === false) return null;
+    return Object.assign({ id: id }, FESTIVALS[id]);
+  }
+
+  function daysFromTo(dateStr, date) {
+    const parts = String(dateStr || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return 0;
+    const start = new Date(parts[0], parts[1] - 1, parts[2]);
+    const today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = Math.floor((today - start) / 86400000);
+    return diff >= 0 ? diff + 1 : 0;
+  }
+
+  function milestoneInfo(date) {
+    const st = App.state;
+    const ct = calTheme();
+    if (!st || ct.enabled === false || ct.anniversary === false) return null;
+    const since = st.profile && st.profile.since;
+    const days = since ? daysFromTo(since, date) : 0;
+    const parts = String(since || '').split('-').map(Number);
+    let annual = false;
+    let years = 0;
+    if (parts.length === 3 && !parts.some(isNaN)) {
+      const sameDay = parts[1] === date.getMonth() + 1 && parts[2] === date.getDate();
+      years = date.getFullYear() - parts[0];
+      annual = sameDay && years >= 1;
+    }
+    const names = (st.anniversaries || []).filter(function (a) {
+      const p = String(a.date || '').split('-').map(Number);
+      return p.length === 3 && !p.some(isNaN)
+        && p[1] === date.getMonth() + 1 && p[2] === date.getDate();
+    }).map(function (a) { return a.name; });
+    const hundred = days >= 100 && days % 100 === 0;
+    if (!hundred && !annual && !names.length) return null;
+    return { key: dateKey(date), days: days, hundred: hundred, annual: annual, years: years, names: names };
+  }
+
+  function milestoneTitle(info) {
+    if (info.hundred) return '写在第 ' + info.days + ' 天';
+    if (info.annual) return '在一起的第 ' + info.years + ' 周年';
+    if (info.names.length) return info.names[0] + ' · 今天';
+    return '今天';
+  }
+
+  function milestoneLetter(info) {
+    const st = App.state;
+    const name = (st.profile && st.profile.userName) || '你';
+    const since = (st.profile && st.profile.since ? st.profile.since.replace(/-/g, '.') : '');
+    const lines = [];
+    lines.push('给' + name + '：');
+    if (info.hundred) {
+      lines.push('今天是我们认识以来的第 ' + info.days + ' 天。数字看起来只是数字，可每往后翻一页，我都能想起一点什么。');
+    } else if (info.annual) {
+      lines.push('又到了 ' + since + ' 这一天。原来我们已经一起走过 ' + info.years + ' 年了。');
+    } else {
+      lines.push('今天是「' + info.names.join('、') + '」。这种日子，我总想认真和你说点什么。');
+    }
+    lines.push('我记得你随口提过的小事，记得你笑起来的停顿，也记得那些谁都没在意的瞬间。它们在我这里，都被好好地收着。');
+    lines.push('有时候我不太会说漂亮的话，但我想让你知道：不管今天顺不顺利，回来的时候，这里一直有一盏灯是亮着的。');
+    lines.push('接下来的日子，还想和你一起过。想一起去没去过的地方，一起把普通的一天过成值得记住的一天。');
+    lines.push('纪念日快乐。' + (info.hundred ? '第 ' + info.days + ' 天只是开始。' : '') + '');
+    return lines;
+  }
+
+  function openAnnivLetter() {
+    const info = milestoneInfo(new Date());
+    const dialog = el('#anniv-letter-dialog');
+    if (!info || !dialog) return;
+    el('#anniv-letter-title').textContent = milestoneTitle(info);
+    el('#anniv-letter-body').innerHTML = milestoneLetter(info).map(function (line) {
+      return '<p>' + App.esc(line) + '</p>';
+    }).join('');
+    el('#anniv-letter-from').textContent = 'TA 写给你 · ' + dateLabel(todayKey());
+    App._annivLetterText = milestoneLetter(info).join('\n');
+    dialog.showModal();
+  }
+
+  function applyFestivalBadges(fest) {
+    document.querySelectorAll('.app-entry').forEach(function (entry) {
+      const go = entry.dataset.go;
+      if (go !== 'mail' && go !== 'music') return;
+      entry.classList.toggle('has-festival-badge', !!fest);
+      if (fest) entry.setAttribute('data-festival-badge', fest.badge);
+      else entry.removeAttribute('data-festival-badge');
+    });
+  }
+
+  function maybeSendFestival(fest) {
+    const st = App.state;
+    const key = todayKey();
+    if (!st.festivalMsg || typeof st.festivalMsg !== 'object') st.festivalMsg = {};
+    if (st.festivalMsg[key]) return;
+    st.festivalMsg[key] = true;
+    App.save();
+    pushChat('ta', fest.line);
+  }
+
+  function baseGreeting(hour) {
+    if (hour < 5) return '夜深了';
+    if (hour < 11) return '早上好';
+    if (hour < 14) return '中午好';
+    if (hour < 18) return '下午好';
+    if (hour < 23) return '晚上好';
+    return '夜深了';
+  }
+
+  function applyFestivalTheme(date) {
+    const st = App.state;
+    if (!st) return;
+    const day = date || new Date();
+    const view = el('#view-desktop');
+    if (!view) return;
+    const fest = festivalOn(day);
+    const milestone = milestoneInfo(day);
+    ['newyear', 'valentine', 'qixi', 'christmas'].forEach(function (id) {
+      view.classList.remove('festival-' + id);
+    });
+    const line = el('#d-festival-line');
+    const greeting = el('#d-greeting');
+    if (fest) {
+      view.classList.add('festival-' + fest.id);
+      if (line) {
+        line.hidden = false;
+        line.textContent = fest.name + ' · ' + fest.sub;
+      }
+      if (greeting) greeting.textContent = fest.greeting;
+      const card = el('#d-today-card');
+      if (card) card.textContent = fest.line;
+      maybeSendFestival(fest);
+    } else {
+      if (line) line.hidden = true;
+      if (greeting) greeting.textContent = baseGreeting(day.getHours());
+    }
+    applyFestivalBadges(fest);
+    document.querySelectorAll('.days-widget, .anniversary-widget').forEach(function (widget) {
+      widget.classList.toggle('is-milestone', !!milestone);
+    });
+    App._milestoneInfo = milestone;
+  }
+
+  /* ================= 次元电台 ================= */
+
+  const RADIO_META = {
+    morning: {
+      name: '早安电台', icon: '☀',
+      quote: '早安，昨晚睡得好吗？今天也要加油哦。',
+      sub: '鸟鸣 · 煮咖啡 · 轻快纯音乐',
+    },
+    night: {
+      name: '晚安电台', icon: '☾',
+      quote: '晚安，今天辛苦了，我陪你一会儿。',
+      sub: '雨声 · 篝火 · 缓慢八音盒',
+    },
+  };
+
+  let radioStation = '';
+  let radioPaused = false;
+  let radioNodes = null;
+  let radioMaster = null;
+  let radioTimerMin = 0;
+  let radioCountdown = 0;
+  let radioTick = 0;
+
+  function radioWindow(date) {
+    const hour = (date || new Date()).getHours();
+    if (hour >= 5 && hour < 10) return 'morning';
+    if (hour >= 21 || hour < 2) return 'night';
+    return '';
+  }
+
+  function radioNote(freq, when, dur, level, type) {
+    if (!sleepCtx || !radioNodes) return;
+    const osc = sleepCtx.createOscillator();
+    const gain = sleepCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(level, when + 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc.connect(gain);
+    gain.connect(radioNodes.master);
+    osc.start(when);
+    osc.stop(when + dur + 0.08);
+  }
+
+  function buildRadioSound(station) {
+    const ctx = ensureSleepCtx();
+    if (!ctx) return false;
+    stopRadioSound();
+    const master = ctx.createGain();
+    master.gain.value = 0.0001;
+    master.connect(ctx.destination);
+    master.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + 1.6);
+    radioMaster = master;
+    radioNodes = { master: master, sources: [], timers: [] };
+
+    const bed = ctx.createBufferSource();
+    bed.buffer = noiseBuffer(station === 'night' ? 'brown' : 'white');
+    bed.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    const bedGain = ctx.createGain();
+    if (station === 'night') {
+      filter.frequency.value = 820;
+      bedGain.gain.value = 0.16;
+    } else {
+      filter.frequency.value = 1600;
+      bedGain.gain.value = 0.045;
+    }
+    bed.connect(filter);
+    filter.connect(bedGain);
+    bedGain.connect(master);
+    bed.start();
+    radioNodes.sources.push(bed);
+
+    const padFreqs = station === 'night' ? [130.81, 196] : [174.61, 261.63];
+    padFreqs.forEach(function (freq, i) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const padGain = ctx.createGain();
+      padGain.gain.value = station === 'night' ? 0.05 : 0.03;
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 0.06 + i * 0.03;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = station === 'night' ? 0.022 : 0.012;
+      lfo.connect(lfoGain);
+      lfoGain.connect(padGain.gain);
+      lfo.start();
+      osc.connect(padGain);
+      padGain.connect(master);
+      osc.start();
+      radioNodes.sources.push(osc, lfo);
+    });
+
+    const scale = station === 'night'
+      ? [523.25, 587.33, 659.25, 783.99, 880]
+      : [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+    let step = 0;
+    const melody = function () {
+      if (!radioNodes || !sleepCtx || radioPaused) return;
+      const freq = scale[step % scale.length];
+      step += 1;
+      radioNote(freq, sleepCtx.currentTime + 0.02, station === 'night' ? 2.6 : 1.4,
+        station === 'night' ? 0.07 : 0.055, station === 'night' ? 'sine' : 'triangle');
+      if (station === 'night' && step % 2 === 0) {
+        radioNote(freq / 2, sleepCtx.currentTime + 0.05, 3.4, 0.045, 'sine');
+      }
+    };
+    melody();
+    radioNodes.timers.push(setInterval(melody, station === 'night' ? 2600 : 1700));
+
+    if (station === 'morning') {
+      const birds = function () {
+        if (!radioNodes || !sleepCtx || radioPaused) return;
+        const base = 1800 + Math.random() * 1200;
+        for (let i = 0; i < 3; i++) {
+          const t = sleepCtx.currentTime + i * 0.09;
+          const osc = sleepCtx.createOscillator();
+          const gain = sleepCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(base + i * 120, t);
+          osc.frequency.exponentialRampToValueAtTime(base + i * 120 + 420, t + 0.08);
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.exponentialRampToValueAtTime(0.03, t + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+          osc.connect(gain);
+          gain.connect(radioNodes.master);
+          osc.start(t);
+          osc.stop(t + 0.15);
+        }
+      };
+      radioNodes.timers.push(setInterval(birds, 9000));
+    }
+    return true;
+  }
+
+  function stopRadioSound() {
+    const nodes = radioNodes;
+    radioNodes = null;
+    radioMaster = null;
+    if (!nodes) return;
+    nodes.timers.forEach(function (timer) { clearInterval(timer); });
+    nodes.sources.forEach(function (node) {
+      try { node.stop(); } catch (e) {}
+    });
+    if (sleepCtx) {
+      try {
+        nodes.master.gain.cancelScheduledValues(sleepCtx.currentTime);
+        nodes.master.gain.setTargetAtTime(0.0001, sleepCtx.currentTime, 0.2);
+      } catch (e) {}
+    }
+    setTimeout(function () {
+      try { nodes.master.disconnect(); } catch (e) {}
+    }, 800);
+  }
+
+  function fadeRadioOut(seconds) {
+    if (!radioNodes || !sleepCtx) {
+      stopRadioSound();
+      return;
+    }
+    const nodes = radioNodes;
+    const now = sleepCtx.currentTime;
+    try {
+      nodes.master.gain.cancelScheduledValues(now);
+      nodes.master.gain.setValueAtTime(Math.max(0.0001, nodes.master.gain.value), now);
+      nodes.master.gain.exponentialRampToValueAtTime(0.0001, now + seconds);
+    } catch (e) {}
+    nodes.timers.forEach(function (timer) { clearInterval(timer); });
+    setTimeout(function () {
+      if (radioNodes !== nodes) return;
+      stopRadioSound();
+      radioStation = '';
+      radioPaused = false;
+      radioTimerMin = 0;
+      radioCountdown = 0;
+      renderRadio();
+    }, seconds * 1000 + 150);
+  }
+
+  function startRadio(station) {
+    if (!RADIO_META[station]) return;
+    radioStation = station;
+    radioPaused = false;
+    radioTimerMin = 0;
+    radioCountdown = 0;
+    clearInterval(radioTick);
+    if (!buildRadioSound(station)) {
+      radioStation = '';
+      App.toast('这个浏览器不支持音频合成');
+      return;
+    }
+    updateRadioClock();
+    renderRadio();
+    App.toast(RADIO_META[station].quote);
+  }
+
+  function pauseRadio(paused) {
+    radioPaused = !!paused;
+    if (radioNodes && sleepCtx) {
+      try {
+        radioNodes.master.gain.setTargetAtTime(paused ? 0.0001 : 0.5, sleepCtx.currentTime, 0.15);
+      } catch (e) {}
+    }
+    renderRadio();
+  }
+
+  function stopRadio() {
+    clearInterval(radioTick);
+    radioTick = 0;
+    radioStation = '';
+    radioPaused = false;
+    radioTimerMin = 0;
+    radioCountdown = 0;
+    stopRadioSound();
+    renderRadio();
+  }
+
+  function setRadioTimer(min) {
+    clearInterval(radioTick);
+    radioTimerMin = Math.max(0, Number(min) || 0);
+    radioCountdown = radioTimerMin * 60;
+    if (radioTimerMin) {
+      radioTick = setInterval(function () {
+        if (!radioStation) { clearInterval(radioTick); return; }
+        radioCountdown -= 1;
+        updateRadioClock();
+        if (radioCountdown <= 0) {
+          clearInterval(radioTick);
+          radioTick = 0;
+          const quote = '晚安，做个好梦。';
+          App.toast(quote);
+          pushChat('ta', quote);
+          const nowQuote = el('#radio-now-quote');
+          if (nowQuote) nowQuote.textContent = quote;
+          const miniQuote = el('#radio-mini-quote');
+          if (miniQuote) miniQuote.textContent = quote;
+          fadeRadioOut(4);
+        }
+      }, 1000);
+    }
+    updateRadioClock();
+    renderRadio();
+  }
+
+  function updateRadioClock() {
+    const cd = el('#radio-countdown');
+    const miniTime = el('#radio-mini-time');
+    let text = '';
+    if (radioTimerMin && radioStation) {
+      const mm = Math.floor(Math.max(0, radioCountdown) / 60);
+      const ss = Math.max(0, radioCountdown) % 60;
+      text = '还剩 ' + mm + ':' + String(ss).padStart(2, '0');
+    }
+    if (cd) cd.textContent = text;
+    if (miniTime) miniTime.textContent = text;
+  }
+
+  function renderRadio() {
+    const cards = el('#radio-cards');
+    if (!cards) return;
+    const win = radioWindow(new Date());
+    const windowLabel = el('#radio-window');
+    if (windowLabel) {
+      windowLabel.textContent = win === 'morning'
+        ? '现在是清晨时段'
+        : win === 'night'
+          ? '现在是深夜时段'
+          : '电台在清晨 05–10 和深夜 21–02 露出';
+    }
+    cards.innerHTML = ['morning', 'night'].map(function (id) {
+      const meta = RADIO_META[id];
+      const active = radioStation === id;
+      const avail = win === id;
+      return '<button type="button" class="radio-card' + (id === 'night' ? ' is-night' : '') +
+        (active ? ' is-active' : '') + (avail ? ' is-now' : '') + '" data-radio-station="' + id + '">' +
+        '<span class="radio-card-top"><span class="radio-card-icon">' + meta.icon + '</span>' +
+        '<span class="radio-card-name">' + meta.name + '</span>' +
+        (avail ? '<em class="radio-card-tag">当前时段</em>' : '') + '</span>' +
+        '<span class="radio-card-sub">' + meta.sub + '</span>' +
+        '<span class="radio-card-quote">「' + meta.quote + '」</span>' +
+        '<span class="radio-card-foot">' +
+          (active ? (radioPaused ? '已暂停 · 点一下继续' : '正在播放 · 点一下暂停') : '点一下开始听') +
+        '</span>' +
+      '</button>';
+    }).join('');
+
+    const now = el('#radio-now');
+    const panel = el('#radio-panel');
+    if (now) now.hidden = !radioStation;
+    if (panel) panel.classList.toggle('is-night-playing', radioStation === 'night');
+    if (radioStation) {
+      const meta = RADIO_META[radioStation];
+      const title = el('#radio-now-title');
+      const quote = el('#radio-now-quote');
+      const disc = el('#radio-now-disc');
+      const toggle = el('#radio-toggle');
+      if (title) title.textContent = meta.name;
+      if (quote) quote.textContent = meta.quote;
+      if (disc) disc.textContent = meta.icon;
+      if (toggle) toggle.textContent = radioPaused ? '▶' : '❚❚';
+      document.querySelectorAll('#radio-timer [data-radio-min]').forEach(function (btn) {
+        btn.classList.toggle('is-on', Number(btn.dataset.radioMin) === radioTimerMin);
+      });
+      updateRadioClock();
+    }
+    renderRadioHome();
+  }
+
+  function renderRadioHome() {
+    const card = el('#home-radio');
+    const mini = el('#radio-mini');
+    const win = radioWindow(new Date());
+    if (card) {
+      const station = win || radioStation;
+      if (!station) {
+        card.hidden = true;
+      } else {
+        const meta = RADIO_META[station];
+        card.hidden = false;
+        const label = el('#home-radio-label');
+        const quote = el('#home-radio-quote');
+        const foot = el('#home-radio-foot');
+        if (label) label.textContent = meta.name;
+        if (quote) quote.textContent = radioStation === station ? meta.quote : meta.quote;
+        if (foot) {
+          foot.textContent = radioStation === station
+            ? (radioPaused ? '已暂停 · 点开继续' : '正在播放 · 点开看看')
+            : (win === 'morning' ? '清晨时段，听一会儿再出门' : '夜深了，让它陪你入睡');
+        }
+      }
+    }
+    if (mini) {
+      mini.hidden = !radioStation;
+      if (radioStation) {
+        const meta = RADIO_META[radioStation];
+        const title = el('#radio-mini-title');
+        const quote = el('#radio-mini-quote');
+        const disc = el('#radio-mini-disc');
+        const play = el('#radio-mini-play');
+        if (title) title.textContent = meta.name + (radioPaused ? ' · 已暂停' : '');
+        if (quote) quote.textContent = meta.quote;
+        if (disc) disc.textContent = meta.icon;
+        if (play) play.textContent = radioPaused ? '▶' : '❚❚';
+        updateRadioClock();
+      }
+    }
+  }
+
+  function toggleRadioStation(station) {
+    if (radioStation === station) {
+      pauseRadio(!radioPaused);
+      return;
+    }
+    startRadio(station);
+  }
+
+  function initExtraFeatures() {
+    const letterDialog = el('#anniv-letter-dialog');
+    if (letterDialog) {
+      document.querySelectorAll('#anniv-letter-dialog [data-close]').forEach(function (btn) {
+        btn.addEventListener('click', function () { letterDialog.close(); });
+      });
+      const save = el('#anniv-letter-save');
+      if (save) save.addEventListener('click', function () {
+        App.state.mail = App.state.mail || [];
+        App.state.mail.unshift({
+          id: App.uid('mail'),
+          from: 'ta',
+          contactId: App.state.currentContactId || null,
+          text: App._annivLetterText || '',
+          ts: Date.now(),
+          read: false,
+          fav: false,
+        });
+        App.save();
+        if (App.updateMailBadge) App.updateMailBadge();
+        letterDialog.close();
+        App.toast('纪念日信已收进信箱');
+      });
+    }
+
+    document.addEventListener('click', function (e) {
+      const widget = e.target.closest('.days-widget, .anniversary-widget');
+      if (!widget) return;
+      if (!milestoneInfo(new Date())) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openAnnivLetter();
+    }, true);
+
+    const radioCards = el('#radio-cards');
+    if (radioCards) radioCards.addEventListener('click', function (e) {
+      const card = e.target.closest('[data-radio-station]');
+      if (card) toggleRadioStation(card.dataset.radioStation);
+    });
+    const radioToggle = el('#radio-toggle');
+    if (radioToggle) radioToggle.addEventListener('click', function () {
+      if (radioStation) pauseRadio(!radioPaused);
+    });
+    const radioTimer = el('#radio-timer');
+    if (radioTimer) radioTimer.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-radio-min]');
+      if (btn) setRadioTimer(Number(btn.dataset.radioMin));
+    });
+    const miniPlay = el('#radio-mini-play');
+    if (miniPlay) miniPlay.addEventListener('click', function () {
+      if (radioStation) pauseRadio(!radioPaused);
+    });
+    const miniClose = el('#radio-mini-close');
+    if (miniClose) miniClose.addEventListener('click', function () { stopRadio(); });
+
+    setInterval(function () {
+      const key = todayKey();
+      if (App._extraDayKey === key) return;
+      App._extraDayKey = key;
+      refreshTaMood(true);
+      if (currentView('desktop') && App.renderDesktop) App.renderDesktop();
+      else applyFestivalTheme();
+    }, 60000);
+  }
 
   App.renderMemoryWidget = renderMemoryWidget;
   App.renderMemoryWall = renderMemoryWall;
   App.renderLocation = renderLocation;
   App.renderMood = renderMood;
+  App.applyFestivalTheme = applyFestivalTheme;
+  App.renderRadio = renderRadio;
+  App.renderRadioHome = renderRadioHome;
+  App.refreshTaMood = refreshTaMood;
 
   /* 页面首次加载时把新视图的默认数据补上 */
   setTimeout(function () {

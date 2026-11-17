@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261116-104">
+<link rel="stylesheet" href="css/style.css?v=20261116-105">
 </head>
 <body>
 <div class="stage">
@@ -93,6 +93,7 @@ if ('caches' in window) {
               <p class="hero-eyebrow">拾 忆</p>
               <h1 class="hero-title" id="d-greeting">你好</h1>
               <p class="hero-sub">向左滑，看看收藏和小组件。</p>
+              <p class="festival-line" id="d-festival-line" hidden></p>
             </div>
 
             <div class="widget-grid">
@@ -109,6 +110,11 @@ if ('caches' in window) {
                 <span class="widget-label">回忆相框</span>
                 <span class="photo-widget-frame"><img id="d-photo" alt=""><em id="d-photo-empty">还没有照片</em></span>
                 <span class="widget-foot" id="d-photo-caption">把喜欢的瞬间放进来</span>
+              </button>
+              <button type="button" class="widget radio-widget" id="home-radio" data-go="music" hidden>
+                <span class="widget-label" id="home-radio-label">次元电台</span>
+                <span class="radio-widget-line" id="home-radio-quote">这个时间，电台正在等你。</span>
+                <span class="widget-foot" id="home-radio-foot">点开听一会儿</span>
               </button>
             </div>
 
@@ -248,6 +254,16 @@ if ('caches' in window) {
             <span class="dock-label">设置</span>
           </button>
         </nav>
+        <div class="radio-mini" id="radio-mini" hidden>
+          <span class="radio-mini-disc" id="radio-mini-disc" aria-hidden="true">♪</span>
+          <div class="radio-mini-copy">
+            <strong id="radio-mini-title">次元电台</strong>
+            <span id="radio-mini-quote">正在播放</span>
+          </div>
+          <span class="radio-mini-time" id="radio-mini-time"></span>
+          <button type="button" class="radio-mini-btn" id="radio-mini-play" aria-label="暂停电台">❚❚</button>
+          <button type="button" class="radio-mini-btn" id="radio-mini-close" aria-label="关闭电台">×</button>
+        </div>
       </div>
     </section>
 
@@ -417,6 +433,30 @@ if ('caches' in window) {
             <span id="music-status">播放列表是空的，先导入一首歌</span>
             <a id="music-open-source" href="#" target="_blank" rel="noopener noreferrer" hidden>打开原平台</a>
           </div>
+        </section>
+
+        <section class="panel radio-panel" id="radio-panel">
+          <div class="section-title-row"><h3>次元电台</h3><span class="list-meta" id="radio-window"></span></div>
+          <div class="radio-cards" id="radio-cards"></div>
+          <div class="radio-now" id="radio-now" hidden>
+            <div class="radio-now-head">
+              <span class="radio-now-disc" id="radio-now-disc" aria-hidden="true">♪</span>
+              <div class="radio-now-copy">
+                <strong id="radio-now-title">早安电台</strong>
+                <span id="radio-now-quote">早安，昨晚睡得好吗？</span>
+              </div>
+              <button type="button" class="music-main-play radio-play-btn" id="radio-toggle" aria-label="播放电台">▶</button>
+            </div>
+            <div class="radio-timer" id="radio-timer">
+              <span class="radio-timer-label">☾ 定时关闭</span>
+              <button type="button" class="radio-timer-btn" data-radio-min="0">关</button>
+              <button type="button" class="radio-timer-btn" data-radio-min="15">15</button>
+              <button type="button" class="radio-timer-btn" data-radio-min="30">30</button>
+              <button type="button" class="radio-timer-btn" data-radio-min="60">60</button>
+              <span class="radio-countdown" id="radio-countdown"></span>
+            </div>
+          </div>
+          <p class="panel-note">电台声音由本机实时合成：清晨有鸟鸣和咖啡香，深夜是雨声与八音盒。不用下载音频。</p>
         </section>
 
         <div class="music-float-switch">
@@ -911,6 +951,17 @@ if ('caches' in window) {
               <p class="panel-note">消息里出现字卡的触发词时，那张卡会被优先说出。</p>
             </div>
             <div class="panel">
+              <h3 class="settings-subtitle">心情</h3>
+              <label class="field"><span>TA 记录心情（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-ta-mood-prob" data-step="-1">−</button>
+                  <input id="set-ta-mood-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-ta-mood-prob" data-step="1">+</button>
+                </span>
+              </label>
+              <p class="panel-note">每天零点重新抽一次：命中后 TA 当天会在心情日记里记录心情，没命中就会说“今天不想说”。</p>
+            </div>
+            <div class="panel">
               <h3 class="settings-subtitle">红包</h3>
               <label class="field"><span>TA 主动发红包（%）</span>
                 <span class="prob-input">
@@ -1376,6 +1427,26 @@ if ('caches' in window) {
         </div>
 
           <section id="look-settings-panel" class="look-settings" aria-label="美化设置">
+            <div class="panel">
+              <div class="setting-switch-row">
+                <div class="setting-switch-copy">
+                  <strong>日历联动与主题变换</strong>
+                  <span class="field-hint">节日和纪念日当天，自动更换主页皮肤、问候语、今日字笺和图标角标。</span>
+                </div>
+                <label class="switch" title="日历联动与主题变换">
+                  <input type="checkbox" id="set-calendar-theme">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="festival-options" id="festival-options">
+                <label><input type="checkbox" data-festival-opt="valentine"><span>情人节</span></label>
+                <label><input type="checkbox" data-festival-opt="qixi"><span>七夕</span></label>
+                <label><input type="checkbox" data-festival-opt="christmas"><span>圣诞</span></label>
+                <label><input type="checkbox" data-festival-opt="newyear"><span>元旦</span></label>
+                <label><input type="checkbox" data-festival-opt="anniversary"><span>纪念日</span></label>
+              </div>
+              <p class="field-hint">关掉开关后不会替换主页；上面的勾选只控制开启时哪些节日生效。</p>
+            </div>
             <div class="panel">
               <h3 class="settings-subtitle">图标</h3>
               <div class="segmented" id="icon-shapes" aria-label="图标形状">
@@ -2355,19 +2426,35 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/seed.js?v=20261116-104"></script>
-<script src="js/store.js?v=20261116-104"></script>
-<script src="js/desktop.js?v=20261116-104"></script>
-<script src="js/chat.js?v=20261116-104"></script>
-<script src="js/cards.js?v=20261116-104"></script>
-<script src="js/settings.js?v=20261116-104"></script>
-<script src="js/moments.js?v=20261116-104"></script>
-<script src="js/calendar.js?v=20261116-104"></script>
-<script src="js/music.js?v=20261116-104"></script>
-<script src="js/market.js?v=20261116-104"></script>
-<script src="js/mail.js?v=20261116-104"></script>
-<script src="js/extras.js?v=20261116-104"></script>
-<script src="js/companion.js?v=20261116-104"></script>
-<script src="js/app.js?v=20261116-104"></script>
+<!-- ============ 纪念日信封 ============ -->
+<dialog id="anniv-letter-dialog" class="anniv-letter-dialog">
+  <div class="anniv-envelope">
+    <button type="button" class="icon-btn anniv-letter-close" data-close aria-label="关闭">×</button>
+    <div class="anniv-letter-stamp">✦</div>
+    <p class="anniv-letter-from" id="anniv-letter-from">TA 写给你</p>
+    <h3 id="anniv-letter-title">写在第 100 天</h3>
+    <div class="anniv-letter-body" id="anniv-letter-body"></div>
+    <p class="anniv-letter-sign" id="anniv-letter-sign">—— 你的 TA</p>
+    <div class="anniv-letter-foot">
+      <button type="button" class="btn ghost" data-close>先收好</button>
+      <button type="button" class="btn primary" id="anniv-letter-save">收进信箱</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="js/seed.js?v=20261116-105"></script>
+<script src="js/store.js?v=20261116-105"></script>
+<script src="js/desktop.js?v=20261116-105"></script>
+<script src="js/chat.js?v=20261116-105"></script>
+<script src="js/cards.js?v=20261116-105"></script>
+<script src="js/settings.js?v=20261116-105"></script>
+<script src="js/moments.js?v=20261116-105"></script>
+<script src="js/calendar.js?v=20261116-105"></script>
+<script src="js/music.js?v=20261116-105"></script>
+<script src="js/market.js?v=20261116-105"></script>
+<script src="js/mail.js?v=20261116-105"></script>
+<script src="js/extras.js?v=20261116-105"></script>
+<script src="js/companion.js?v=20261116-105"></script>
+<script src="js/app.js?v=20261116-105"></script>
 </body>
 </html>
