@@ -356,6 +356,18 @@
   App.musicPlaying = function () { return playing; };
   App.playTrackById = function (id) { return selectTrack(id, true); };
   App.musicTracks = function () { return tracks().slice(); };
+  /* 真正能播的歌：本地导入的音频最稳，其次是直链音频；
+     只有网易云/酷狗网页地址的容易被版权或防盗链挡住，不放进邀请里 */
+  App.musicPlayableTracks = function () {
+    return tracks().filter(function (track) {
+      if (!track || !track.title) return false;
+      if (track.source === 'local' || track.source === 'synth') return true;
+      const direct = track.audioUrl || track.url || '';
+      /* 网易云 / 酷狗的网页链接不算（外链音频大多需要会员或会 404） */
+      if (track.source === 'netease' || track.source === 'kugou') return false;
+      return isAudioFileUrl(direct);
+    });
+  };
 
   /* 给听音识曲等页面复用同一套地址解析；本地音频返回 Promise，网络音频直接返回地址 */
   App.musicSourceUrl = function (track) {

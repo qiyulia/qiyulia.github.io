@@ -1735,14 +1735,21 @@
   }
 
   /* ---------- TA 邀请一起听音乐 ---------- */
+  function musicInvitePool() {
+    const all = (App.musicTracks ? App.musicTracks() : []).filter(function (t) { return t && t.title; });
+    /* 优先用本地导入、确定能播的歌；没有的话再试直链音频 */
+    const playable = (App.musicPlayableTracks ? App.musicPlayableTracks() : []).filter(function (t) { return t && t.title; });
+    if (playable.length) return playable;
+    return all;
+  }
+
   function maybeTaMusicInvite(contactId, contact, cs) {
     if (!contact) return;
     cs = cs || App.contactSettings(contact);
     if (Math.random() * 100 >= clampProb(cs.musicInviteProb)) return;
     /* 正在听歌的时候不会邀请 */
     if (App.musicPlaying && App.musicPlaying()) return;
-    const tracks = App.musicTracks ? App.musicTracks() : [];
-    const pool = tracks.filter(function (t) { return t && t.title; });
+    const pool = musicInvitePool();
     if (!pool.length) return;
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
@@ -1783,12 +1790,30 @@
     msg.status = accept ? 'accepted' : 'rejected';
     App.save();
     if (App.chatOpen(contactId)) App.renderChat();
-    if (accept) {
-      App.addChatSystemMessage(contactId, '你接受了' + name + '的邀请，一起听《' + (msg.trackTitle || '') + '》');
-      if (App.playTrackById) App.playTrackById(msg.trackId);
-    } else {
+    if (!accept) {
+      /* 拒绝就完全不播，连正在放的音乐也不动 */
       App.addChatSystemMessage(contactId, '你拒绝了' + name + '的一起听邀请');
+      return;
     }
+    App.addChatSystemMessage(contactId, '你接受了' + name + '的邀请，一起听《' + (msg.trackTitle || '') + '》');
+    if (!App.playTrackById) return;
+    Promise.resolve(App.playTrackById(msg.trackId)).then(function (ok) {
+      if (ok) return;
+      /* 这首歌播不了（多半是网页版权的歌），自动换一首能播的导入音乐 */
+      const alt = musicInvitePool().filter(function (t) { return t.id !== msg.trackId; });
+      if (!alt.length) {
+        App.toast('这首歌在网页里播不了，可以先从本地导入音频');
+        return;
+      }
+      const next = alt[Math.floor(Math.random() * alt.length)];
+      msg.trackId = next.id;
+      msg.trackTitle = next.title;
+      msg.trackArtist = next.artist || '未知歌手';
+      App.save();
+      if (App.chatOpen(contactId)) App.renderChat();
+      App.addChatSystemMessage(contactId, '《' + (msg.trackTitle || '这首歌') + '》播不了，换成《' + next.title + '》');
+      App.playTrackById(next.id);
+    });
   }
 
   /* TA 偶尔会问：这句话能不能收进字卡库 */
