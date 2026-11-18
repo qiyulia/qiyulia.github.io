@@ -6652,20 +6652,3 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
   user-select: none;
 }
 
-/* 正在输入：固定在聊天区左下角的浮层，不属于消息列表，往上翻记录也不动 */
-#view-chat > .chat-typing-float {
-  position: absolute;
-  left: 14px;
-  bottom: 70px;
-  z-index: 9;
-  pointer-events: none;
-  animation: typing-float-in .18s ease both;
-}
-.chat-typing-float[hidden] { display: none; }
-.chat-typing-float .typing {
-  box-shadow: 0 6px 18px var(--shadow);
-}
-@keyframes typing-float-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}

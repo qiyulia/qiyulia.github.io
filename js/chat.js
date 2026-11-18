@@ -135,8 +135,8 @@
       if (seen[node.getAttribute('data-msg-id')]) node.classList.add('is-static');
     });
     bindVoiceBubbles(list);
-    /* 正在输入是左下角浮层，不占消息列表的位置，也不会推动滚动 */
-    syncTypingRow(id);
+    /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
+    if (typingAllowed(id)) list.appendChild(typingRow());
     updateSideButtons();
     if (App.renderChatLocation) App.renderChatLocation();
     renderStickerPanel();
@@ -1056,34 +1056,32 @@
   const typingContacts = {};
   App.typingContacts = typingContacts;
 
+  function typingRow() {
+    const row = document.createElement('div');
+    row.className = 'typing-row';
+    row.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+    return row;
+  }
+
   /* 没有待发消息时不显示正在输入 */
   function typingAllowed(contactId) {
     return typingContacts[contactId] > 0;
   }
 
-  /* 正在输入做成一枚固定在左下角的浮层：不属于消息列表，
-     往上翻聊天记录它也一直挂在左下角，直到 TA 真的发出消息才消失 */
-  function positionTypingFloat() {
-    const float = el('#chat-typing-float');
-    const view = document.getElementById('view-chat');
-    const composer = el('#composer');
-    if (!float || !view || !composer) return;
-    /* 以输入框顶边为准，这样上面弹出引用条时浮层会跟着抬高 */
-    const viewRect = view.getBoundingClientRect();
-    const composerRect = composer.getBoundingClientRect();
-    let above = viewRect.bottom - composerRect.top;
-    /* 底部那条「TA 想知道你在哪」提示条出现时，再往上让一让 */
-    const prompt = el('#chat-loc-prompt');
-    if (prompt && !prompt.hidden) above += prompt.offsetHeight + 8;
-    float.style.bottom = Math.max(12, above + 10) + 'px';
-  }
-
   function syncTypingRow(contactId) {
-    const float = el('#chat-typing-float');
-    if (!float) return;
-    const show = typingAllowed(contactId) && App.chatOpen(contactId);
-    float.hidden = !show;
-    if (show) positionTypingFloat();
+    if (!App.chatOpen(contactId)) return;
+    const list = el('#chat-list');
+    if (!list) return;
+    const row = list.querySelector('.typing-row');
+    if (typingAllowed(contactId)) {
+      if (!row) {
+        const stick = atScrollBottom();
+        list.appendChild(typingRow());
+        if (stick) scrollBottom(true);
+      }
+    } else if (row) {
+      row.remove();
+    }
   }
 
   function setTyping(contactId, on) {
@@ -2730,13 +2728,7 @@
       input.style.height = 'auto';
       /* 多留 1px，避免 scrollHeight 取整多出一点导致右侧冒出滚动条 */
       input.style.height = Math.min(118, input.scrollHeight + 1) + 'px';
-      /* 输入框变高时，左下角的正在输入浮层跟着抬高，别压住输入框 */
-      positionTypingFloat();
     });
-
-    /* 视口尺寸变化 / 键盘弹出收起时，重新把浮层贴到输入框上方 */
-    window.addEventListener('resize', positionTypingFloat);
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', positionTypingFloat);
 
     /* 输入法弹出、视口变矮时，消息重新贴到最后一条 */
     let keepBottomRaf = 0;
