@@ -1561,9 +1561,21 @@
   function renderLocationZones(loc) {
     const box = el('#loc-zone-list');
     if (!box) return;
+    /* 名称和半径都直接打字修改；谁在里面用小徽标提示，不再挤占文字 */
     box.innerHTML = loc.zones.map(function (z) {
-      return '<div class="loc-zone-row"><span class="loc-zone-dot"></span><strong>' + App.esc(z.name) + '</strong>' +
-        '<span>' + (z.id === loc.inside.me ? '我在这里' : z.id === loc.inside.ta ? 'TA 在这里' : '半径 ' + z.r + ' 米') + '</span></div>';
+      const badge =
+        z.id === loc.inside.me && z.id === loc.inside.ta ? '<span class="loc-zone-badge">我和TA都在</span>'
+        : z.id === loc.inside.me ? '<span class="loc-zone-badge">我在这里</span>'
+        : z.id === loc.inside.ta ? '<span class="loc-zone-badge">TA 在这里</span>'
+        : '';
+      return '<div class="loc-zone-row">' +
+        '<span class="loc-zone-dot"></span>' +
+        '<input type="text" class="loc-zone-name-input" data-zone-name="' + App.esc(z.id) + '" value="' + App.esc(z.name) + '" maxlength="12" aria-label="安全区域名称">' +
+        '<span class="loc-zone-r-wrap">' +
+          '<input type="number" class="loc-zone-r-input" data-zone-r="' + App.esc(z.id) + '" value="' + App.esc(String(z.r)) + '" min="10" max="5000" step="10" inputmode="numeric" aria-label="安全区域半径（米）">米' +
+        '</span>' +
+        badge +
+      '</div>';
     }).join('');
   }
 
@@ -2689,6 +2701,48 @@
       App.toast(loc.shareChip ? '聊天界面会显示距离小窗，可以随便拖' : '已关闭聊天距离小窗');
     });
     initLocChipDrag();
+    /* 安全区域：直接打字改名称 / 半径 */
+    const zoneListBox = el('#loc-zone-list');
+    if (zoneListBox) zoneListBox.addEventListener('change', function (e) {
+      const nameInput = e.target.closest ? e.target.closest('[data-zone-name]') : null;
+      const rInput = e.target.closest ? e.target.closest('[data-zone-r]') : null;
+      if (!nameInput && !rInput) return;
+      const loc = locationState();
+      let changed = false;
+      if (nameInput) {
+        const z = loc.zones.find(function (item) { return item.id === nameInput.dataset.zoneName; });
+        if (z) {
+          const value = String(nameInput.value || '').trim().slice(0, 12);
+          if (value && value !== z.name) {
+            z.name = value;
+            changed = true;
+          } else {
+            nameInput.value = z.name;
+          }
+        }
+      }
+      if (rInput) {
+        const z = loc.zones.find(function (item) { return item.id === rInput.dataset.zoneR; });
+        if (z) {
+          const raw = Math.round(Number(rInput.value));
+          if (Number.isFinite(raw)) {
+            const r = Math.min(5000, Math.max(10, raw));
+            rInput.value = String(r);
+            if (r !== z.r) {
+              z.r = r;
+              changed = true;
+            }
+          } else {
+            rInput.value = String(z.r);
+          }
+        }
+      }
+      if (changed) {
+        App.save();
+        App.toast('安全区域已更新');
+        renderLocation();
+      }
+    });
     const locPromptGo = el('#chat-loc-prompt-go');
     if (locPromptGo) locPromptGo.addEventListener('click', function () {
       const box = el('#chat-loc-prompt');
