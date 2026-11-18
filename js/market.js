@@ -129,19 +129,21 @@
 
   const TA_MARKET_TICK = 60000;
 
-  /* 集市不是每分钟都翻一次牌：按设置的间隔判定，并且每天有总条数上限，
-     避免挂机一整天被连续的礼物/订单卡片刷屏 */
-  function marketGapMs() {
-    const raw = Math.round(Number(App.state.settings.taMarketGapMin));
-    const mins = Number.isFinite(raw) && raw > 0 ? raw : 5;
-    return Math.max(1, Math.min(1440, mins)) * 60000;
-  }
+  /* 一天 24 小时 = 1440 分钟。用户只填「每天最多几条」，间隔就自动按
+     1440 ÷ 条数 平均分配；填 0 就是完全不发，不用再单独填间隔分钟数 */
+  const MINUTES_PER_DAY = 1440;
 
   function marketDailyCap() {
     const raw = Math.round(Number(App.state.settings.taMarketDailyLimit));
     const cap = Number.isFinite(raw) ? raw : 8;
     /* 填 0 就是今天一条都不发 */
     return Math.max(0, Math.min(999, cap));
+  }
+
+  function marketIntervalMs() {
+    const cap = marketDailyCap();
+    if (cap <= 0) return 0;
+    return Math.max(1, Math.round(MINUTES_PER_DAY / cap)) * 60000;
   }
 
   function dayStamp() {
@@ -167,18 +169,23 @@
     const contact = currentContact();
     if (!contact) return;
 
-    /* 每日条数上限 + 判定间隔：先把节奏卡住，再谈概率 */
+    /* 每日条数上限 + 自动平均间隔：先把节奏卡住，再谈概率。
+       间隔由 1440 ÷ 条数 算出来，条数填 0 就是彻底不发 */
     const market = App.state.market;
     const stamp = dayStamp();
     if (market.taDay !== stamp) {
       market.taDay = stamp;
       market.taCount = 0;
     }
-    if ((Number(market.taCount) || 0) >= marketDailyCap()) return;
+    const cap = marketDailyCap();
+    if (cap <= 0) return;
+    if ((Number(market.taCount) || 0) >= cap) return;
+    const interval = marketIntervalMs();
+    if (interval <= 0) return;
     const now = Date.now();
-    if (now - (Number(market.taLastAt) || 0) < marketGapMs()) return;
-    /* 这次判定机会用掉了，没命中也要等到下一个间隔 */
-    market.taLastAt = now;
+    if (now < (Number(market.taNextAt) || 0)) return;
+    /* 这次机会用掉了：不管命没命中，都等下一个平均间隔再来 */
+    market.taNextAt = now + interval;
     App.save();
 
     /* 每件事各掷一次骰子：命中几件事就把几件放进候选，

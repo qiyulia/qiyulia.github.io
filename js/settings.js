@@ -229,6 +229,38 @@
     show('profile');
   }
 
+  /* 集市：只让用户填「每天几条」，间隔按 24 小时自动平均后显示出来 */
+  function renderMarketIntervalHint() {
+    const hint = el('#market-interval-hint');
+    if (!hint) return;
+    const raw = Math.round(Number(App.state.settings && App.state.settings.taMarketDailyLimit));
+    const cap = Number.isFinite(raw) ? Math.max(0, Math.min(999, raw)) : 8;
+    if (cap <= 0) {
+      hint.textContent = '当前：已关闭，TA 不会主动发集市消息。';
+      return;
+    }
+    const mins = Math.max(1, Math.round(1440 / cap));
+    const pretty = mins >= 60
+      ? (mins % 60 === 0 ? (mins / 60) + ' 小时' : (mins / 60).toFixed(1) + ' 小时')
+      : mins + ' 分钟';
+    hint.textContent = '当前：一天最多 ' + cap + ' 条，平均每 ' + mins + ' 分钟（' + pretty + '）有一次机会。';
+  }
+
+  function bindMarketDaily() {
+    const input = el('#set-ta-market-daily');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      const raw = String(input.value || '').trim();
+      if (!raw) return;
+      const value = Math.max(0, Math.min(999, parseInt(raw, 10) || 0));
+      App.state.settings.taMarketDailyLimit = value;
+      /* 条数改了就按新间隔重新计时，不用等旧间隔走完 */
+      if (App.state.market) App.state.market.taNextAt = 0;
+      renderMarketIntervalHint();
+      App.save();
+    });
+  }
+
   App.renderSettings = function () {
     const st = App.state;
     el('#set-name').value = st.profile.userName || '';
@@ -296,8 +328,8 @@
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
     el('#set-ta-survey-prob').value = st.settings.taSurveyProb == null ? 10 : st.settings.taSurveyProb;
     el('#set-ta-survey-cooldown').value = st.settings.taSurveyCooldownMin == null ? 30 : st.settings.taSurveyCooldownMin;
-    el('#set-ta-market-gap').value = st.settings.taMarketGapMin == null ? 5 : st.settings.taMarketGapMin;
     el('#set-ta-market-daily').value = st.settings.taMarketDailyLimit == null ? 8 : st.settings.taMarketDailyLimit;
+    renderMarketIntervalHint();
     el('#set-ta-market-gift-prob').value = st.settings.taMarketGiftProb == null ? 6 : st.settings.taMarketGiftProb;
     el('#set-ta-market-buy-prob').value = st.settings.taMarketBuyProb == null ? 6 : st.settings.taMarketBuyProb;
     el('#set-ta-market-wish-prob').value = st.settings.taMarketWishProb == null ? 8 : st.settings.taMarketWishProb;
@@ -587,7 +619,7 @@
     bindAvatarProb('#set-ta-wish-accept-prob', 'taWishAcceptProb');
     bindAvatarProb('#set-ta-wish-reject-prob', 'taWishRejectProb');
 
-    function bindMinutes(id, key, max) {
+  function bindMinutes(id, key, max) {
       const input = el(id);
       if (!input) return;
       input.addEventListener('input', function () {
@@ -601,8 +633,7 @@
     bindMinutes('#set-avatar-cooldown', 'avatarCooldownMin', 1440);
     bindMinutes('#set-name-cooldown', 'nameCooldownMin', 2880);
     bindMinutes('#set-ta-mail-cooldown', 'taMailCooldownMin', 1440);
-    bindMinutes('#set-ta-market-gap', 'taMarketGapMin', 1440);
-    bindMinutes('#set-ta-market-daily', 'taMarketDailyLimit', 999);
+    bindMarketDaily();
     bindMinutes('#set-ta-survey-cooldown', 'taSurveyCooldownMin', 1440);
 
     const notifyToggle = el('#set-notify-enabled');
