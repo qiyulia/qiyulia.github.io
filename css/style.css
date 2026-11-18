@@ -5883,7 +5883,9 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
   position: absolute;
   bottom: 78px;
   left: 14px;
-  right: 14px;
+  right: auto;
+  width: fit-content;
+  max-width: 46%;
   z-index: 7;
   display: flex;
   align-items: center;
