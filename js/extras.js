@@ -671,12 +671,29 @@
       answered: false,
       ts: Date.now(),
     };
+    /* 群聊「工具 → 问卷」：这一份发到群里，不进私聊，也不排 TA 的自动回答 */
+    if (App.pendingGroupSurvey && App.pushGroupToolMessage) {
+      const gid = App.pendingGroupSurvey;
+      App.pendingGroupSurvey = null;
+      App.pushGroupToolMessage(gid, message);
+      hideToolPanel('#survey-dialog');
+      resetSurveyForm();
+      App.toast('问卷已发到群里');
+      return;
+    }
     deliverMessage(contactId, message);
     hideToolPanel('#survey-dialog');
     resetSurveyForm();
     App.toast('问卷已发出');
     scheduleSurveyAnswers(contactId, message.id, message.answerDelay);
   }
+
+  /* 群聊「工具」入口：打开同一份问卷表单，提交时发到群里 */
+  App.openGroupSurveyDialog = function (gid) {
+    renderSurveyForm();
+    showToolPanel('#survey-dialog');
+    App.pendingGroupSurvey = gid;
+  };
 
   /* ---------------- 工具：占卜 ---------------- */
   const TAROT_MAJOR = [
@@ -1952,6 +1969,8 @@
     document.querySelectorAll('.tool-overlay').forEach(function (layer) {
       if (layer.hidden) return;
       layer.hidden = true;
+      /* 问卷弹窗被关掉时，别把「发到群里」的标记留到下一次 */
+      if (layer.id === 'survey-dialog' && App.pendingGroupSurvey) App.pendingGroupSurvey = null;
       /* 关闭听音识曲弹窗的同时自动暂停音乐 */
       if (layer.id === 'songquiz-dialog' && App.stopSongQuiz) App.stopSongQuiz();
     });
@@ -2356,6 +2375,8 @@
       const layer = closer.closest('.tool-overlay');
       if (layer) {
         layer.hidden = true;
+        /* 问卷弹窗被关掉时，别把「发到群里」的标记留到下一次 */
+        if (layer.id === 'survey-dialog' && App.pendingGroupSurvey) App.pendingGroupSurvey = null;
         /* 关闭听音识曲弹窗的同时自动暂停音乐 */
         if (layer.id === 'songquiz-dialog' && App.stopSongQuiz) App.stopSongQuiz();
       }
@@ -2553,7 +2574,10 @@
       btn.addEventListener('click', function () {
         const more = el('#more-dialog');
         if (more) more.close();
-        if (btn.dataset.tool === 'survey') {
+        if (btn.dataset.tool === 'redpacket') {
+          App.pendingGroupRedpacket = null;
+          if (App.openRedPacketDialog) App.openRedPacketDialog();
+        } else if (btn.dataset.tool === 'survey') {
           renderSurveyForm();
           showToolPanel('#survey-dialog');
         } else if (btn.dataset.tool === 'divine') {

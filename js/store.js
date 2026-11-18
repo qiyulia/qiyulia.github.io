@@ -661,6 +661,13 @@
     if (s.settings.taMarketWishProb == null) s.settings.taMarketWishProb = 8;
     if (s.settings.taMarketFavProb == null) s.settings.taMarketFavProb = 4;
     if (s.settings.taMarketBuyForMeProb == null) s.settings.taMarketBuyForMeProb = 4;
+    /* 旧版 5 个概率只是相对权重、绝对值不起作用；升级为单一「发出概率」，
+       旧值之和作为初始值，保证用户之前调过的手感不会突然归零 */
+    if (s.settings.taMarketProb == null) {
+      const legacy = ['taMarketGiftProb', 'taMarketBuyProb', 'taMarketWishProb', 'taMarketFavProb', 'taMarketBuyForMeProb']
+        .reduce(function (sum, k) { return sum + (Number(s.settings[k]) || 0); }, 0);
+      s.settings.taMarketProb = legacy > 0 ? Math.max(1, Math.min(100, Math.round(legacy))) : 20;
+    }
     if (s.settings.taMarketLastAt == null) s.settings.taMarketLastAt = 0;
     if (s.settings.mailCardMin == null) s.settings.mailCardMin = 1;
     if (s.settings.mailCardMax == null) s.settings.mailCardMax = 3;
@@ -887,6 +894,7 @@
       taMomentCardMin: pick('taMomentCardMin', 1),
       taMomentCardMax: pick('taMomentCardMax', 3),
       taPatProb: pick('taPatProb', 10),
+      taMarketProb: pick('taMarketProb', 20),
       taMarketGiftProb: pick('taMarketGiftProb', 6),
       taMarketBuyProb: pick('taMarketBuyProb', 6),
       taMarketWishProb: pick('taMarketWishProb', 8),

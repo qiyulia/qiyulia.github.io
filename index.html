@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-129">
+<link rel="stylesheet" href="css/style.css?v=20261118-130">
 </head>
 <body>
 <div class="stage">
@@ -865,8 +865,8 @@ if ('caches' in window) {
         <button type="button" class="composer-quote-close" id="composer-quote-close" aria-label="取消引用">×</button>
       </div>
       <form id="composer" class="composer">
-        <button type="button" class="composer-icon-btn" id="btn-more" aria-label="其他功能" title="其他功能">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg>
+        <button type="button" class="composer-icon-btn" id="btn-more" aria-label="工具" title="工具">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17v3h3l5.5-5.5a4 4 0 0 0 5.2-5.2l-2.5 2.5-2.1-2.1 2.5-2.5z"/></svg>
         </button>
         <button type="button" class="composer-icon-btn" id="btn-sticker" aria-label="表情包" title="表情包">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14.5c1.4 1.8 2.6 2.5 4 2.5s2.6-.7 4-2.5"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
@@ -879,7 +879,6 @@ if ('caches' in window) {
       <div id="sticker-panel" class="sticker-panel" hidden>
         <div class="sticker-tabs sticker-kinds" role="group" aria-label="表情类型">
           <button type="button" class="sticker-tab is-on" data-panel-kind="sticker">表情</button>
-          <button type="button" class="sticker-tab" data-panel-kind="redpacket">红包</button>
           <button type="button" class="sticker-tab" data-panel-kind="image">图片</button>
         </div>
         <div class="sticker-head" id="sticker-side-head">
@@ -947,23 +946,61 @@ if ('caches' in window) {
         <div id="grp-list" class="chat-list"></div>
       </div>
       <form id="grp-composer" class="composer">
-        <button type="button" class="composer-icon-btn" id="grp-at-btn" aria-label="点名成员" title="点名成员">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.6 7.2"/></svg>
+        <button type="button" class="composer-icon-btn" id="grp-sticker-btn" aria-label="表情" title="表情">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14.5c1.4 1.8 2.6 2.5 4 2.5s2.6-.7 4-2.5"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
         </button>
-        <textarea id="grp-input" rows="1" maxlength="500" placeholder="说点什么，@可以点名…" aria-label="群聊输入"></textarea>
+        <button type="button" class="composer-icon-btn" id="grp-tool-btn" aria-label="工具" title="工具">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17v3h3l5.5-5.5a4 4 0 0 0 5.2-5.2l-2.5 2.5-2.1-2.1 2.5-2.5z"/></svg>
+        </button>
+        <textarea id="grp-input" rows="1" maxlength="500" placeholder="说点什么…" aria-label="群聊输入"></textarea>
         <button type="submit" class="send-btn" aria-label="发送">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-7-7 16-2.2-6.8L4 12z"/></svg>
         </button>
       </form>
-      <div id="grp-mention-sheet" class="tool-overlay" hidden>
-        <div class="tool-overlay-backdrop" data-tool-close></div>
-        <div class="tool-overlay-card grp-mention-sheet">
+
+      <!-- 群聊表情：和聊天界面同款的表情包，点一下直接发到群里 -->
+      <div id="grp-sticker-panel" class="sticker-panel" hidden>
+        <div class="sticker-tabs sticker-kinds" role="group" aria-label="表情分类">
+          <button type="button" class="sticker-tab" data-grp-sticker-side="public">公共</button>
+          <button type="button" class="sticker-tab is-on" data-grp-sticker-side="me">我</button>
+          <button type="button" class="sticker-tab" data-grp-sticker-side="ta">TA</button>
+        </div>
+        <div id="grp-sticker-grid" class="sticker-grid"></div>
+        <div id="grp-emoji-grid" class="grp-emoji-grid"></div>
+        <p class="field-hint">点表情包直接发到群里；下面的小表情会插进输入框。</p>
+      </div>
+
+      <!-- 工具：红包 + 问卷合并成一类 -->
+      <div id="grp-tool-panel" class="tool-overlay" hidden>
+        <div class="tool-overlay-backdrop" data-grp-close="tool"></div>
+        <div class="tool-overlay-card grp-tool-sheet">
           <div class="sheet-head">
-            <h3>点名谁</h3>
-            <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+            <h3>工具</h3>
+            <button type="button" class="icon-btn" data-grp-close="tool" aria-label="关闭">×</button>
           </div>
           <div class="tool-sheet-body">
-            <div id="grp-mention-list" class="grp-mention-list"></div>
+            <div class="grp-tool-grid">
+              <button type="button" class="grp-tool-item" data-grp-tool="redpacket"><span class="grp-tool-icon">包</span><span>红包</span></button>
+              <button type="button" class="grp-tool-item" data-grp-tool="survey"><span class="grp-tool-icon">问</span><span>问卷</span></button>
+            </div>
+            <p class="field-hint">红包和问卷合并为「工具」一类，点开就能发到群里。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 长按对方头像：互动菜单（原来的 @ 按钮搬到这里） -->
+      <div id="grp-avatar-panel" class="tool-overlay" hidden>
+        <div class="tool-overlay-backdrop" data-grp-close="avatar"></div>
+        <div class="tool-overlay-card grp-avatar-sheet">
+          <div class="sheet-head">
+            <h3 id="grp-avatar-title">和 TA 互动</h3>
+            <button type="button" class="icon-btn" data-grp-close="avatar" aria-label="关闭">×</button>
+          </div>
+          <div class="tool-sheet-body">
+            <button type="button" class="grp-avatar-action" data-grp-interact="mention"><strong>@ 点名</strong><small>在输入框里 @TA，TA 会优先回你</small></button>
+            <button type="button" class="grp-avatar-action" data-grp-interact="pat"><strong>拍一拍</strong><small>轻轻拍一下 TA 的头像</small></button>
+            <button type="button" class="grp-avatar-action" data-grp-interact="profile"><strong>看资料</strong><small>看看 TA 是谁</small></button>
+            <p class="field-hint">在群里长按对方消息的头像，就能打开这个互动菜单。</p>
           </div>
         </div>
       </div>
@@ -1628,14 +1665,11 @@ if ('caches' in window) {
 
         <div class="panel">
           <h3>集市互动</h3>
-          <label class="field"><span>TA 送你集市礼物的概率（%）</span><input id="set-ta-market-gift-prob" inputmode="numeric" maxlength="3" placeholder="6"></label>
-          <label class="field"><span>TA 买下集市东西的概率（%）</span><input id="set-ta-market-buy-prob" inputmode="numeric" maxlength="3" placeholder="6"></label>
-          <label class="field"><span>TA 说出想要什么的概率（%）</span><input id="set-ta-market-wish-prob" inputmode="numeric" maxlength="3" placeholder="8"></label>
-          <label class="field"><span>TA 收藏集市东西的概率（%）</span><input id="set-ta-market-fav-prob" inputmode="numeric" maxlength="3" placeholder="4"></label>
-          <label class="field"><span>TA 给你买下的概率（%）</span><input id="set-ta-market-buy-for-me-prob" inputmode="numeric" maxlength="3" placeholder="4"></label>
+          <label class="field"><span>TA 发集市互动的概率（%）</span><input id="set-ta-market-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
+          <p class="field-hint">这个概率决定集市相关内容「发出来的多少」，填 1~100：数值越小，TA 发的集市消息越少，1% 时几乎看不到；100% 时每次机会都会发一条。每次最多只发一条，不会一次刷出一堆。</p>
+          <p class="field-hint">每隔一小会儿判定一次，没命中就什么都不发、也不进入冷却；命中后 TA 才会从送你礼物、买下东西、说出想要的、收藏、替你买单里随机挑一件事做，发完进入约 6 分钟冷却。</p>
           <label class="field"><span>TA 答应你心愿的概率（%）</span><input id="set-ta-wish-accept-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
           <label class="field"><span>TA 拒绝你心愿的概率（%）</span><input id="set-ta-wish-reject-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
-          <p class="field-hint">每隔几分钟 TA 会在集市里做一件事：送你礼物、买下东西、说出想要的、收藏，或者把你在聊天里许的愿买下来。冷却约 6 分钟。</p>
           <p class="field-hint">你在集市许愿后，TA 看到时有概率直接答应并送你（已接受），也可能拒绝（已被拒绝）；剩下的概率不作处理，保持等待。</p>
         </div>
 
@@ -2068,6 +2102,7 @@ if ('caches' in window) {
     <button type="button" class="more-tab" data-more-cat="game" role="tab" aria-selected="false">游戏</button>
   </div>
   <div id="more-apps" class="more-apps">
+    <button type="button" class="more-app" data-tool="redpacket" data-cat="tool" title="发一个同心币红包"><span class="more-app-icon is-tool">包</span><span>红包</span></button>
     <button type="button" class="more-app" data-tool="survey" data-cat="tool" title="写一份小问卷"><span class="more-app-icon is-tool">问</span><span>问卷</span></button>
     <button type="button" class="more-app" data-tool="divine" data-cat="tool" title="塔罗牌 / 雷诺曼占卜"><span class="more-app-icon is-divine">签</span><span>占卜</span></button>
     <button type="button" class="more-app" data-tool="avatar" data-cat="tool" title="互换头像"><span class="more-app-icon is-avatar">换</span><span>头像与名字</span></button>
@@ -2754,22 +2789,22 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261118-129"></script>
-<script src="js/seed.js?v=20261118-129"></script>
-<script src="js/store.js?v=20261118-129"></script>
-<script src="js/desktop.js?v=20261118-129"></script>
-<script src="js/chat.js?v=20261118-129"></script>
-<script src="js/cards.js?v=20261118-129"></script>
-<script src="js/settings.js?v=20261118-129"></script>
-<script src="js/moments.js?v=20261118-129"></script>
-<script src="js/calendar.js?v=20261118-129"></script>
-<script src="js/music.js?v=20261118-129"></script>
-<script src="js/market.js?v=20261118-129"></script>
-<script src="js/mail.js?v=20261118-129"></script>
-<script src="js/extras.js?v=20261118-129"></script>
-<script src="js/companion.js?v=20261118-129"></script>
-<script src="js/memoir.js?v=20261118-129"></script>
-<script src="js/group.js?v=20261118-129"></script>
-<script src="js/app.js?v=20261118-129"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-130"></script>
+<script src="js/seed.js?v=20261118-130"></script>
+<script src="js/store.js?v=20261118-130"></script>
+<script src="js/desktop.js?v=20261118-130"></script>
+<script src="js/chat.js?v=20261118-130"></script>
+<script src="js/cards.js?v=20261118-130"></script>
+<script src="js/settings.js?v=20261118-130"></script>
+<script src="js/moments.js?v=20261118-130"></script>
+<script src="js/calendar.js?v=20261118-130"></script>
+<script src="js/music.js?v=20261118-130"></script>
+<script src="js/market.js?v=20261118-130"></script>
+<script src="js/mail.js?v=20261118-130"></script>
+<script src="js/extras.js?v=20261118-130"></script>
+<script src="js/companion.js?v=20261118-130"></script>
+<script src="js/memoir.js?v=20261118-130"></script>
+<script src="js/group.js?v=20261118-130"></script>
+<script src="js/app.js?v=20261118-130"></script>
 </body>
 </html>

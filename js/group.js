@@ -112,6 +112,7 @@
     App.groupChatId = gid;
     delete App.unread[gid];
     App.updateBadges();
+    closeGrpPanels();
     App.go('group-chat');
   };
 
@@ -137,15 +138,33 @@
     const c = mine ? null : contactById(m.senderId);
     const avatarSrc = mine ? (App.state.profile && App.state.profile.userAvatar) : (c && c.avatar);
     const author = mine ? '' : '<span class="grp-author">' + App.esc(authorName(m)) + '</span>';
+    let body;
+    if (m.type === 'sticker' && m.src) {
+      body = '<img class="grp-sticker-img" loading="lazy" decoding="async" src="' + App.esc(m.src) + '" alt="表情包">';
+    } else if (m.type === 'redpacket') {
+      body = '<div class="grp-card grp-card-redpacket" data-grp-redpacket="' + App.esc(m.id) + '">' +
+        '<span class="grp-card-emoji">包</span>' +
+        '<span class="grp-card-copy"><strong>' + App.esc(m.note || '恭喜发财，大吉大利') + '</strong>' +
+          '<em>' + App.esc(String(m.amount || 0)) + ' 同心币 · ' + (m.status === 'done' ? '已领取' : '点一下让群友来领') + '</em>' +
+        '</span></div>';
+    } else if (m.type === 'survey') {
+      const qs = Array.isArray(m.questions) ? m.questions : [];
+      body = '<div class="grp-card grp-card-survey">' +
+        '<span class="grp-card-emoji">问</span>' +
+        '<span class="grp-card-copy"><strong>' + App.esc(m.text || '一份小问卷') + '</strong>' +
+          qs.slice(0, 3).map(function (q) { return '<em>· ' + App.esc(q.text || '') + '</em>'; }).join('') +
+          (qs.length > 3 ? '<em>· 共 ' + qs.length + ' 题</em>' : '') +
+        '</span></div>';
+    } else {
+      body = '<div class="bubble bubble-with-read"><span class="bubble-text">' + App.esc(m.text || '') + '</span></div>';
+    }
     return '<div class="msg ' + (mine ? 'me' : 'ta') + '" data-msg-id="' + App.esc(m.id) + '">' +
       '<div class="msg-main">' +
         '<div class="msg-content">' +
-          '<div class="msg-side"><span class="msg-avatar">' + App.avatarHtml(avatarSrc) + '</span>' +
+          '<div class="msg-side"><span class="msg-avatar" data-grp-avatar="' + App.esc(mine ? 'me' : (m.senderId || '')) + '">' + App.avatarHtml(avatarSrc) + '</span>' +
             '<span class="msg-time">' + App.fmtTime(m.ts) + '</span>' +
           '</div>' +
-          '<div class="msg-bubble-hit">' + author +
-            '<div class="bubble bubble-with-read"><span class="bubble-text">' + App.esc(m.text) + '</span></div>' +
-          '</div>' +
+          '<div class="msg-bubble-hit">' + author + body + '</div>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -545,36 +564,200 @@
     scheduleGroupReplies(currentGroupId, text);
   }
 
-  function openMentionSheet() {
-    const g = groupById(currentGroupId);
-    const box = el('#grp-mention-list');
-    if (!g || !box) return;
-    box.innerHTML = g.members.map(function (cid) {
-      const c = contactById(cid);
-      if (!c) return '';
-      return '<button type="button" class="grp-pick-row" data-grp-mention="' + App.esc(cid) + '">' +
-        '<span class="avatar sm">' + App.avatarHtml(c.avatar) + '</span>' +
-        '<span class="grp-member-copy"><strong>' + App.esc(c.name) + '</strong>' +
-        '<span>' + (isMuted(g, cid) ? '禁言中' : (g.admins.indexOf(cid) !== -1 ? '管理员' : '')) + '</span></span>' +
-      '</button>';
-    }).join('');
-    const sheet = el('#grp-mention-sheet');
-    if (sheet) sheet.hidden = false;
+  /* ---------------- 群聊：表情 / 工具 / 长按头像互动 ---------------- */
+  const GRP_EMOJIS = ['😀', '🥰', '😂', '😭', '😴', '🤔', '👍', '👏', '🌹', '❤️', '✨', '🎉', '🍰', '☕', '🌙', '🐱', '🐶', '💤', '🥺', '😘'];
+  let grpStickerSide = 'me';
+  let grpInteractCid = null;
+  let grpLongTimer = null;
+  let grpLongStart = null;
+  let grpPanelOpenedAt = 0;
+
+  function closeGrpPanels() {
+    ['#grp-sticker-panel', '#grp-tool-panel', '#grp-avatar-panel'].forEach(function (sel) {
+      const node = el(sel);
+      if (node) node.hidden = true;
+    });
   }
 
-  function insertMention(cid) {
-    const c = contactById(cid);
-    const input = el('#grp-input');
-    const sheet = el('#grp-mention-sheet');
-    if (sheet) sheet.hidden = true;
-    if (!c || !input) return;
-    const at = '@' + c.name + ' ';
-    const pos = input.selectionStart != null ? input.selectionStart : input.value.length;
-    input.value = input.value.slice(0, pos) + at + input.value.slice(pos);
-    input.focus();
-    const newPos = pos + at.length;
-    try { input.setSelectionRange(newPos, newPos); } catch (err) {}
+  function grpStickerList() {
+    const key = grpStickerSide === 'ta' ? 'ta' : (grpStickerSide === 'me' ? 'mine' : 'public');
+    const all = (App.state && App.state.stickers) || {};
+    return Array.isArray(all[key]) ? all[key] : [];
   }
+
+  function renderGrpStickerPanel() {
+    const grid = el('#grp-sticker-grid');
+    if (!grid) return;
+    const list = grpStickerList();
+    grid.innerHTML = list.length
+      ? list.map(function (src, i) {
+          return '<div class="sticker-cell">' +
+            '<button type="button" class="sticker-item" data-grp-send-sticker="' + i + '" aria-label="发送表情包">' +
+              '<img loading="lazy" decoding="async" src="' + App.esc(src) + '" alt="表情包">' +
+            '</button></div>';
+        }).join('')
+      : '<p class="sticker-empty">这一类还没有表情包，去聊天界面的表情里添加。</p>';
+    document.querySelectorAll('[data-grp-sticker-side]').forEach(function (b) {
+      b.classList.toggle('is-on', b.dataset.grpStickerSide === grpStickerSide);
+    });
+    const emoji = el('#grp-emoji-grid');
+    if (emoji && !emoji.dataset.ready) {
+      emoji.innerHTML = GRP_EMOJIS.map(function (s) {
+        return '<button type="button" class="grp-emoji" data-grp-emoji="' + App.esc(s) + '">' + s + '</button>';
+      }).join('');
+      emoji.dataset.ready = '1';
+    }
+  }
+
+  function toggleGrpStickerPanel() {
+    const panel = el('#grp-sticker-panel');
+    if (!panel) return;
+    const show = panel.hidden;
+    closeGrpPanels();
+    if (show) {
+      renderGrpStickerPanel();
+      panel.hidden = false;
+      grpPanelOpenedAt = Date.now();
+    }
+  }
+
+  function sendGrpSticker(index) {
+    const src = grpStickerList()[index];
+    if (!src || !currentGroupId) return;
+    pushGroupMessage(currentGroupId, {
+      id: App.uid('gm'), role: 'me', type: 'sticker', src: src, text: '[表情]', ts: Date.now(),
+    });
+    const panel = el('#grp-sticker-panel');
+    if (panel) panel.hidden = true;
+  }
+
+  function insertGrpEmoji(s) {
+    const input = el('#grp-input');
+    if (!input) return;
+    const pos = input.selectionStart != null ? input.selectionStart : input.value.length;
+    input.value = input.value.slice(0, pos) + s + input.value.slice(pos);
+    input.focus();
+    try { input.setSelectionRange(pos + s.length, pos + s.length); } catch (err) {}
+  }
+
+  function openGrpToolPanel() {
+    closeGrpPanels();
+    const panel = el('#grp-tool-panel');
+    if (panel) { panel.hidden = false; grpPanelOpenedAt = Date.now(); }
+  }
+
+  /* 「工具」是红包 + 问卷合并成的一个分类 */
+  function runGrpTool(kind) {
+    if (!currentGroupId) return;
+    closeGrpPanels();
+    if (kind === 'redpacket') {
+      App.pendingGroupRedpacket = currentGroupId;
+      if (App.openRedPacketDialog) App.openRedPacketDialog();
+      else { const d = el('#redpacket-dialog'); if (d) d.showModal(); }
+    } else if (kind === 'survey') {
+      if (App.openGroupSurveyDialog) App.openGroupSurveyDialog(currentGroupId);
+      else App.toast('问卷功能还没准备好');
+    }
+  }
+
+  function openGrpAvatarPanel(cid) {
+    const c = contactById(cid);
+    if (!c) return;
+    grpInteractCid = cid;
+    const title = el('#grp-avatar-title');
+    if (title) title.textContent = '和 ' + c.name + ' 互动';
+    closeGrpPanels();
+    const panel = el('#grp-avatar-panel');
+    if (panel) { panel.hidden = false; grpPanelOpenedAt = Date.now(); }
+  }
+
+  /* 原来的 @ 按钮搬到这里：长按对方头像后选「@ 点名」 */
+  function runGrpInteract(action) {
+    const c = contactById(grpInteractCid);
+    closeGrpPanels();
+    if (!c || !currentGroupId) return;
+    if (action === 'mention') {
+      const input = el('#grp-input');
+      if (!input) return;
+      const at = '@' + c.name + ' ';
+      const pos = input.selectionStart != null ? input.selectionStart : input.value.length;
+      input.value = input.value.slice(0, pos) + at + input.value.slice(pos);
+      input.focus();
+      try { input.setSelectionRange(pos + at.length, pos + at.length); } catch (err) {}
+    } else if (action === 'pat') {
+      const me = (App.state.profile && App.state.profile.userName) || '我';
+      pushGroupSystem(currentGroupId, me + ' 拍了拍「' + c.name + '」的头像');
+    } else if (action === 'profile') {
+      App.toast(c.name + (c.signature ? ' · ' + c.signature : ' · 群成员'));
+    }
+  }
+
+  function claimGrpRedpacket(id) {
+    const g = groupById(currentGroupId);
+    if (!g) return;
+    const chat = chatOf(currentGroupId);
+    const m = chat.find(function (x) { return x.id === id; });
+    if (!m || m.status === 'done' || m.role !== 'me') return;
+    const members = g.members.filter(function (cid) { return contactById(cid); });
+    if (!members.length) return;
+    const cid = members[Math.floor(Math.random() * members.length)];
+    const c = contactById(cid);
+    const amount = Number(m.amount) || 0;
+    if (App.state.wallet) App.state.wallet.ta = (Number(App.state.wallet.ta) || 0) + amount;
+    m.status = 'done';
+    App.save();
+    pushGroupSystem(currentGroupId, (c ? c.name : '群成员') + ' 领取了红包（' + amount + ' 同心币）');
+  }
+
+  function bindGrpLongPress() {
+    const list = el('#grp-list');
+    if (!list) return;
+    list.addEventListener('pointerdown', function (e) {
+      const av = e.target.closest('[data-grp-avatar]');
+      if (!av || !av.dataset.grpAvatar || av.dataset.grpAvatar === 'me') return;
+      grpLongStart = { x: e.clientX, y: e.clientY, cid: av.dataset.grpAvatar };
+      clearTimeout(grpLongTimer);
+      grpLongTimer = setTimeout(function () {
+        grpLongTimer = null;
+        const cid = grpLongStart && grpLongStart.cid;
+        grpLongStart = null;
+        if (cid) openGrpAvatarPanel(cid);
+      }, 450);
+    });
+    list.addEventListener('pointermove', function (e) {
+      if (!grpLongStart) return;
+      if (Math.abs(e.clientX - grpLongStart.x) > 10 || Math.abs(e.clientY - grpLongStart.y) > 10) {
+        clearTimeout(grpLongTimer);
+        grpLongTimer = null;
+        grpLongStart = null;
+      }
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (evt) {
+      list.addEventListener(evt, function () {
+        clearTimeout(grpLongTimer);
+        grpLongTimer = null;
+        grpLongStart = null;
+      });
+    });
+    /* 手机长按常会补发 contextmenu，顺便也当成互动入口 */
+    list.addEventListener('contextmenu', function (e) {
+      const av = e.target.closest('[data-grp-avatar]');
+      if (!av || !av.dataset.grpAvatar || av.dataset.grpAvatar === 'me') return;
+      e.preventDefault();
+      clearTimeout(grpLongTimer);
+      grpLongStart = null;
+      openGrpAvatarPanel(av.dataset.grpAvatar);
+    });
+  }
+
+  /* 给红包 / 问卷弹窗用：把卡片发到当前群，而不是发到私聊 */
+  App.pushGroupToolMessage = function (gid, message) {
+    if (!gid || !message || !groupById(gid)) return false;
+    message.id = message.id || App.uid('gm');
+    message.ts = message.ts || Date.now();
+    pushGroupMessage(gid, message);
+    return true;
+  };
 
   /* ---------------- 初始化 ---------------- */
   App.initGroups = function () {
@@ -601,12 +784,33 @@
         input.style.height = Math.min(96, input.scrollHeight) + 'px';
       });
     }
-    const atBtn = el('#grp-at-btn');
-    if (atBtn) atBtn.addEventListener('click', openMentionSheet);
-    const mentionList = el('#grp-mention-list');
-    if (mentionList) mentionList.addEventListener('click', function (e) {
-      const btn = e.target.closest('[data-grp-mention]');
-      if (btn) insertMention(btn.dataset.grpMention);
+    const stickerBtn = el('#grp-sticker-btn');
+    if (stickerBtn) stickerBtn.addEventListener('click', toggleGrpStickerPanel);
+    const toolBtn = el('#grp-tool-btn');
+    if (toolBtn) toolBtn.addEventListener('click', openGrpToolPanel);
+    bindGrpLongPress();
+    document.addEventListener('click', function (e) {
+      const closer = e.target.closest('[data-grp-close]');
+      if (closer) { closeGrpPanels(); return; }
+      const tool = e.target.closest('[data-grp-tool]');
+      if (tool) { runGrpTool(tool.dataset.grpTool); return; }
+      const interact = e.target.closest('[data-grp-interact]');
+      if (interact) { runGrpInteract(interact.dataset.grpInteract); return; }
+      const side = e.target.closest('[data-grp-sticker-side]');
+      if (side) { grpStickerSide = side.dataset.grpStickerSide; renderGrpStickerPanel(); return; }
+      const sticker = e.target.closest('[data-grp-send-sticker]');
+      if (sticker) { sendGrpSticker(Number(sticker.dataset.grpSendSticker)); return; }
+      const emoji = e.target.closest('[data-grp-emoji]');
+      if (emoji) { insertGrpEmoji(emoji.dataset.grpEmoji); return; }
+      const rp = e.target.closest('[data-grp-redpacket]');
+      if (rp) { claimGrpRedpacket(rp.dataset.grpRedpacket); return; }
+    });
+    /* 点面板以外的地方收起；长按刚弹开时给一点保护，别被抬手的 click 关掉 */
+    const grpView = el('#view-group-chat');
+    if (grpView) grpView.addEventListener('click', function (e) {
+      if (Date.now() - grpPanelOpenedAt < 700) return;
+      if (e.target.closest('#grp-composer, #grp-sticker-panel, #grp-tool-panel, #grp-avatar-panel, [data-grp-redpacket]')) return;
+      closeGrpPanels();
     });
 
     /* 设置页 */

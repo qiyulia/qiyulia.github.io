@@ -1043,8 +1043,9 @@
 
   function sendRedPacket(amount, note) {
     const contact = currentContact();
-    if (!contact) return false;
-    const role = sendRole();
+    if (!contact && !App.pendingGroupRedpacket) return false;
+    /* 群聊里的红包统一以「我」的身份发，免得群里没法领 */
+    const role = App.pendingGroupRedpacket ? 'me' : sendRole();
     const wallet = App.state.wallet;
     if (!(amount >= 1)) {
       App.toast('红包金额至少 1 同心币');
@@ -1055,7 +1056,7 @@
       return false;
     }
     wallet[role] -= amount;
-    pushMessage({
+    const packet = {
       id: App.uid('m'),
       role: role,
       type: 'redpacket',
@@ -1063,7 +1064,17 @@
       note: note,
       status: 'pending',
       ts: Date.now(),
-    });
+    };
+    /* 群聊「工具 → 红包」：这一份发到群里，而不是发到私聊 */
+    if (App.pendingGroupRedpacket && App.pushGroupToolMessage) {
+      const gid = App.pendingGroupRedpacket;
+      App.pendingGroupRedpacket = null;
+      App.pushGroupToolMessage(gid, packet);
+      closeStickerPanel();
+      App.toast('红包已发到群里');
+      return true;
+    }
+    pushMessage(packet);
     closeStickerPanel();
     App.toast('红包已发出');
     return true;
@@ -1190,15 +1201,17 @@
     closeStickerPanel();
     const hint = el('#redpacket-side-hint');
     if (hint) {
-      const role = sendRole();
+      const inGroup = !!App.pendingGroupRedpacket;
+      const role = inGroup ? 'me' : sendRole();
       hint.textContent = (role === 'me' ? '以「我」的身份发出' : '以「TA」的身份发出') +
-        ' · 余额 ' + App.state.wallet[role] + ' 同心币';
+        (inGroup ? ' · 发到群里' : '') + ' · 余额 ' + App.state.wallet[role] + ' 同心币';
     }
     el('#redpacket-amount').value = '';
     el('#redpacket-note').value = '';
     el('#redpacket-dialog').showModal();
     el('#redpacket-amount').focus();
   }
+  App.openRedPacketDialog = openRedPacketDialog;
 
   App.sendPat = function (card) {
     const contact = currentContact();
@@ -1905,7 +1918,8 @@
   }
 
   function renderStickerPanel() {
-    const kind = App.panelKind || 'sticker';
+    /* 红包已经并到「工具」里，表情面板只剩表情 / 图片两种 */
+    const kind = App.panelKind === 'image' ? 'image' : 'sticker';
     document.querySelectorAll('[data-panel-kind]').forEach(function (btn) {
       btn.classList.toggle('is-on', btn.dataset.panelKind === kind);
     });
@@ -2830,6 +2844,7 @@
         el('#redpacket-dialog').close();
       }
     });
+    el('#redpacket-dialog').addEventListener('close', function () { App.pendingGroupRedpacket = null; });
     el('#composer-quote-close').addEventListener('click', function () {
       quoteDraft = null;
       renderComposerQuote();

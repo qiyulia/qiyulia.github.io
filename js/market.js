@@ -130,7 +130,17 @@
   const TA_MARKET_TICK = 60000;
   const TA_MARKET_COOLDOWN = 6 * 60000;
 
-  /* TA 在集市里的自发行为：送礼物、买下、许愿、收藏、替我买单 */
+  /* 各动作的相对偏好：只决定「发什么」，不决定「发不发」。
+     发不发由设置里的单一概率控制，所以这里的数值不再是那种没用的概率 */
+  const TA_MARKET_MIX = [
+    { key: 'gift', weight: 6 },
+    { key: 'buy', weight: 6 },
+    { key: 'wish', weight: 8 },
+    { key: 'fav', weight: 4 },
+    { key: 'buyForMe', weight: 4 },
+  ];
+
+  /* TA 在集市里的自发行为：一次最多只发一条集市相关内容 */
   function taMarketTick() {
     if (!Array.isArray(App.state.market.products) || !products().length) return;
     const contact = currentContact();
@@ -138,26 +148,25 @@
     const now = Date.now();
     if (now - (Number(App.state.settings.taMarketLastAt) || 0) < TA_MARKET_COOLDOWN) return;
 
+    /* 1~100 的概率 = 集市内容冒出来的频繁程度。
+       每次机会只判定一次，没命中就什么都不发、也不进入冷却；
+       概率越小，能发出来的集市相关内容就越少，不会一次刷出一堆 */
+    const prob = marketProb('taMarketProb', 20);
+    if (prob <= 0) return;
+    if (Math.random() * 100 >= prob) return;
+
     const wallet = App.state.wallet;
     const affordable = products().filter(function (p) { return Number(p.price) <= wallet.ta; });
     const favPool = products().filter(function (p) {
       return !(p.fav && p.fav.ta) && !favLocked(p);
     });
 
-    const actions = [
-      { key: 'gift', prob: marketProb('taMarketGiftProb', 6) },
-      { key: 'buy', prob: marketProb('taMarketBuyProb', 6) },
-      { key: 'wish', prob: marketProb('taMarketWishProb', 8) },
-      { key: 'fav', prob: marketProb('taMarketFavProb', 4) },
-      { key: 'buyForMe', prob: marketProb('taMarketBuyForMeProb', 4) },
-    ];
-    const total = actions.reduce(function (sum, a) { return sum + a.prob; }, 0);
-    if (total <= 0) return;
+    const total = TA_MARKET_MIX.reduce(function (sum, a) { return sum + a.weight; }, 0);
     let roll = Math.random() * total;
-    let picked = actions[actions.length - 1];
-    for (let i = 0; i < actions.length; i++) {
-      roll -= actions[i].prob;
-      if (roll <= 0) { picked = actions[i]; break; }
+    let picked = TA_MARKET_MIX[TA_MARKET_MIX.length - 1];
+    for (let i = 0; i < TA_MARKET_MIX.length; i++) {
+      roll -= TA_MARKET_MIX[i].weight;
+      if (roll <= 0) { picked = TA_MARKET_MIX[i]; break; }
     }
 
     function randomOf(list) { return list[Math.floor(Math.random() * list.length)]; }
