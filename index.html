@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-125">
+<link rel="stylesheet" href="css/style.css?v=20261118-128">
 </head>
 <body>
 <div class="stage">
@@ -609,12 +609,8 @@ if ('caches' in window) {
           <h3>安全区域</h3>
           <p class="field-hint">到达或离开「家 / 公司」时，会自动给对方发一条私信。</p>
           <div id="loc-zone-list" class="loc-zone-list"></div>
-          <div class="loc-quick">
-            <button type="button" class="btn ghost" data-loc-me="home">我到家了</button>
-            <button type="button" class="btn ghost" data-loc-me="work">我到公司了</button>
-            <button type="button" class="btn ghost" data-loc-ta="home">TA 到家了</button>
-            <button type="button" class="btn ghost" data-loc-ta="work">TA 到公司了</button>
-          </div>
+          <div class="loc-quick" id="loc-quick"></div>
+          <button type="button" class="loc-quick-edit" id="loc-quick-edit">编辑快捷消息</button>
         </div>
       </div>
     </section>
@@ -628,6 +624,24 @@ if ('caches' in window) {
         </div>
         <div class="tool-sheet-body">
           <div id="loc-place-options" class="loc-place-options"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loc-quick-dialog" class="tool-overlay" hidden>
+      <div class="tool-overlay-backdrop" data-tool-close></div>
+      <div class="tool-overlay-card loc-place-sheet">
+        <div class="sheet-head">
+          <h3>编辑快捷消息</h3>
+          <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+        </div>
+        <div class="tool-sheet-body">
+          <p class="field-hint">上面的字显示在按钮上，下面的字是点一下自动发给对方的内容。</p>
+          <div id="loc-quick-form" class="loc-quick-form"></div>
+          <div class="loc-quick-actions">
+            <button type="button" class="btn ghost" id="loc-quick-reset">恢复默认</button>
+            <button type="button" class="btn" id="loc-quick-save">保存</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2740,22 +2754,22 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261118-125"></script>
-<script src="js/seed.js?v=20261118-125"></script>
-<script src="js/store.js?v=20261118-125"></script>
-<script src="js/desktop.js?v=20261118-125"></script>
-<script src="js/chat.js?v=20261118-125"></script>
-<script src="js/cards.js?v=20261118-125"></script>
-<script src="js/settings.js?v=20261118-125"></script>
-<script src="js/moments.js?v=20261118-125"></script>
-<script src="js/calendar.js?v=20261118-125"></script>
-<script src="js/music.js?v=20261118-125"></script>
-<script src="js/market.js?v=20261118-125"></script>
-<script src="js/mail.js?v=20261118-125"></script>
-<script src="js/extras.js?v=20261118-125"></script>
-<script src="js/companion.js?v=20261118-125"></script>
-<script src="js/memoir.js?v=20261118-125"></script>
-<script src="js/group.js?v=20261118-125"></script>
-<script src="js/app.js?v=20261118-125"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-128"></script>
+<script src="js/seed.js?v=20261118-128"></script>
+<script src="js/store.js?v=20261118-128"></script>
+<script src="js/desktop.js?v=20261118-128"></script>
+<script src="js/chat.js?v=20261118-128"></script>
+<script src="js/cards.js?v=20261118-128"></script>
+<script src="js/settings.js?v=20261118-128"></script>
+<script src="js/moments.js?v=20261118-128"></script>
+<script src="js/calendar.js?v=20261118-128"></script>
+<script src="js/music.js?v=20261118-128"></script>
+<script src="js/market.js?v=20261118-128"></script>
+<script src="js/mail.js?v=20261118-128"></script>
+<script src="js/extras.js?v=20261118-128"></script>
+<script src="js/companion.js?v=20261118-128"></script>
+<script src="js/memoir.js?v=20261118-128"></script>
+<script src="js/group.js?v=20261118-128"></script>
+<script src="js/app.js?v=20261118-128"></script>
 </body>
 </html>

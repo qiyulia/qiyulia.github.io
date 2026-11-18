@@ -1077,6 +1077,33 @@
      ========================================================= */
   const LOC_STATUS = ['在家-休息中', '在公司-忙碌中', '在路上', '在外面', '想你了'];
 
+  /* 快捷消息：四个按钮的文字和发送内容都能自己改，键名是「谁-区域」 */
+  const LOC_QUICK_DEFAULTS = {
+    'me-home': { label: '我到家了', text: '我到家了，别担心。' },
+    'me-work': { label: '我到公司了', text: '我到公司了，今天会有点忙。' },
+    'ta-home': { label: 'TA 到家了', text: '我到家了，今天也平安。' },
+    'ta-work': { label: 'TA 到公司了', text: '我到公司了，开始忙啦。' },
+  };
+  const LOC_QUICK_KEYS = ['me-home', 'me-work', 'ta-home', 'ta-work'];
+
+  function quickConfig() {
+    const loc = locationState();
+    if (!loc.quick || typeof loc.quick !== 'object') loc.quick = {};
+    LOC_QUICK_KEYS.forEach(function (key) {
+      const def = LOC_QUICK_DEFAULTS[key];
+      const cur = loc.quick[key];
+      if (!cur || typeof cur !== 'object') { loc.quick[key] = { label: def.label, text: def.text }; return; }
+      if (!cur.label) cur.label = def.label;
+      if (!cur.text) cur.text = def.text;
+    });
+    return loc.quick;
+  }
+
+  function quickLine(key) {
+    const cfg = quickConfig()[key];
+    return cfg || LOC_QUICK_DEFAULTS[key];
+  }
+
   function locationState() {
     const st = App.state;
     if (!st.location || typeof st.location !== 'object') {
@@ -1560,22 +1587,35 @@
 
   function renderLocationZones(loc) {
     const box = el('#loc-zone-list');
+    if (box) {
+      /* 名称和半径都直接打字修改；谁在里面用小徽标提示，不再挤占文字 */
+      box.innerHTML = loc.zones.map(function (z) {
+        const badge =
+          z.id === loc.inside.me && z.id === loc.inside.ta ? '<span class="loc-zone-badge">我和TA都在</span>'
+          : z.id === loc.inside.me ? '<span class="loc-zone-badge">我在这里</span>'
+          : z.id === loc.inside.ta ? '<span class="loc-zone-badge">TA 在这里</span>'
+          : '';
+        return '<div class="loc-zone-row">' +
+          '<span class="loc-zone-dot"></span>' +
+          '<input type="text" class="loc-zone-name-input" data-zone-name="' + App.esc(z.id) + '" value="' + App.esc(z.name) + '" maxlength="12" aria-label="安全区域名称">' +
+          '<span class="loc-zone-r-wrap">' +
+            '<input type="number" class="loc-zone-r-input" data-zone-r="' + App.esc(z.id) + '" value="' + App.esc(String(z.r)) + '" min="10" max="5000" step="10" inputmode="numeric" aria-label="安全区域半径（米）">米' +
+          '</span>' +
+          badge +
+        '</div>';
+      }).join('');
+    }
+    renderQuickButtons();
+  }
+
+  function renderQuickButtons() {
+    const box = el('#loc-quick');
     if (!box) return;
-    /* 名称和半径都直接打字修改；谁在里面用小徽标提示，不再挤占文字 */
-    box.innerHTML = loc.zones.map(function (z) {
-      const badge =
-        z.id === loc.inside.me && z.id === loc.inside.ta ? '<span class="loc-zone-badge">我和TA都在</span>'
-        : z.id === loc.inside.me ? '<span class="loc-zone-badge">我在这里</span>'
-        : z.id === loc.inside.ta ? '<span class="loc-zone-badge">TA 在这里</span>'
-        : '';
-      return '<div class="loc-zone-row">' +
-        '<span class="loc-zone-dot"></span>' +
-        '<input type="text" class="loc-zone-name-input" data-zone-name="' + App.esc(z.id) + '" value="' + App.esc(z.name) + '" maxlength="12" aria-label="安全区域名称">' +
-        '<span class="loc-zone-r-wrap">' +
-          '<input type="number" class="loc-zone-r-input" data-zone-r="' + App.esc(z.id) + '" value="' + App.esc(String(z.r)) + '" min="10" max="5000" step="10" inputmode="numeric" aria-label="安全区域半径（米）">米' +
-        '</span>' +
-        badge +
-      '</div>';
+    const cfg = quickConfig();
+    box.innerHTML = LOC_QUICK_KEYS.map(function (key) {
+      const line = cfg[key] || LOC_QUICK_DEFAULTS[key];
+      return '<button type="button" class="btn ghost loc-quick-btn" data-loc-quick="' + key + '">' +
+        App.esc(line.label) + '</button>';
     }).join('');
   }
 
@@ -1657,11 +1697,13 @@
     }
   }
 
-  function zoneMessage(who, nextZone, prevZone) {
+  function zoneMessage(who, nextZone, prevZone, customText) {
     const loc = locationState();
     if (!loc.enabled || loc.paused) return;
     const prevName = prevZone ? prevZone.name : '外面';
-    if (who === 'ta') {
+    if (customText) {
+      pushChat(who, customText, { type: 'text' });
+    } else if (who === 'ta') {
       if (nextZone && nextZone.id === 'home') pushChat('ta', '我到家了，今天也平安。', { type: 'text' });
       else if (nextZone && nextZone.id === 'work') pushChat('ta', '我到公司了，开始忙啦。', { type: 'text' });
       else pushChat('ta', '我从' + prevName + '出发了，现在在路上。', { type: 'text' });
@@ -1673,14 +1715,18 @@
     App.toast(who === 'ta' ? 'TA 的位置有变化，已发来一条私信' : '已自动给 TA 发了一条私信');
   }
 
-  function applyZone(loc, who, nextZone) {
+  function applyZone(loc, who, nextZone, customText) {
     const prevId = loc.inside[who];
     const prevZone = loc.zones.find(function (z) { return z.id === prevId; }) || null;
     const nextId = nextZone ? nextZone.id : '';
-    if (prevId === nextId) return;
+    if (prevId === nextId) {
+      /* 已经在同一个区域里，再点一次快捷消息也照样发出去 */
+      if (customText) zoneMessage(who, nextZone, prevZone, customText);
+      return;
+    }
     loc.inside[who] = nextId;
     App.save();
-    zoneMessage(who, nextZone, prevZone);
+    zoneMessage(who, nextZone, prevZone, customText);
   }
 
   /* 旧版本把位置提醒存成了拍一拍样式，这里一次性改成普通聊天消息 */
@@ -1722,15 +1768,97 @@
     }
   }
 
-  function movePersonToZone(who, zoneId) {
+  function movePersonToZone(who, zoneId, customText) {
     const loc = locationState();
     if (!loc.enabled) { App.toast('先开启共享'); return; }
     const zone = loc.zones.find(function (z) { return z.id === zoneId; });
     if (!zone) return;
     loc[who].lat = zone.lat;
     loc[who].lng = zone.lng;
-    applyZone(loc, who, zone);
+    applyZone(loc, who, zone, customText);
     renderLocation();
+  }
+
+  function runQuick(key) {
+    if (!key) return;
+    const dash = key.indexOf('-');
+    if (dash < 0) return;
+    const who = key.slice(0, dash);
+    const zoneId = key.slice(dash + 1);
+    const line = quickLine(key);
+    movePersonToZone(who, zoneId, line ? line.text : '');
+  }
+
+  let locQuickDraft = null;
+
+  function openQuickEditor() {
+    const cfg = quickConfig();
+    locQuickDraft = {};
+    LOC_QUICK_KEYS.forEach(function (key) {
+      locQuickDraft[key] = { label: cfg[key].label, text: cfg[key].text };
+    });
+    renderQuickEditor();
+    showPanel('#loc-quick-dialog');
+  }
+
+  function renderQuickEditor() {
+    const box = el('#loc-quick-form');
+    if (!box || !locQuickDraft) return;
+    const loc = locationState();
+    const zoneName = function (id) {
+      const z = loc.zones.find(function (item) { return item.id === id; });
+      return z ? z.name : (id === 'home' ? '家' : '公司');
+    };
+    box.innerHTML = LOC_QUICK_KEYS.map(function (key) {
+      const dash = key.indexOf('-');
+      const who = key.slice(0, dash) === 'ta' ? 'TA' : '我';
+      const zoneId = key.slice(dash + 1);
+      const item = locQuickDraft[key];
+      return '<div class="loc-quick-row">' +
+        '<div class="loc-quick-row-head">' + who + ' · ' + App.esc(zoneName(zoneId)) + '</div>' +
+        '<label class="loc-quick-field"><span>按钮文字</span>' +
+          '<input type="text" data-quick-label="' + key + '" maxlength="12" value="' + App.esc(item.label) + '">' +
+        '</label>' +
+        '<label class="loc-quick-field"><span>发送内容</span>' +
+          '<input type="text" data-quick-text="' + key + '" maxlength="60" value="' + App.esc(item.text) + '">' +
+        '</label>' +
+      '</div>';
+    }).join('');
+  }
+
+  function saveQuickEditor() {
+    if (!locQuickDraft) locQuickDraft = {};
+    const cfg = quickConfig();
+    LOC_QUICK_KEYS.forEach(function (key) {
+      const labelInput = document.querySelector('[data-quick-label="' + key + '"]');
+      const textInput = document.querySelector('[data-quick-text="' + key + '"]');
+      const def = LOC_QUICK_DEFAULTS[key];
+      const label = labelInput ? labelInput.value.trim() : '';
+      const text = textInput ? textInput.value.trim() : '';
+      cfg[key] = {
+        label: label || def.label,
+        text: text || def.text,
+      };
+      locQuickDraft[key] = { label: cfg[key].label, text: cfg[key].text };
+    });
+    App.save();
+    const dialog = el('#loc-quick-dialog');
+    if (dialog) dialog.hidden = true;
+    renderLocation();
+    App.toast('快捷消息已更新');
+  }
+
+  function resetQuickEditor() {
+    const cfg = quickConfig();
+    locQuickDraft = {};
+    LOC_QUICK_KEYS.forEach(function (key) {
+      cfg[key] = { label: LOC_QUICK_DEFAULTS[key].label, text: LOC_QUICK_DEFAULTS[key].text };
+      locQuickDraft[key] = { label: cfg[key].label, text: cfg[key].text };
+    });
+    App.save();
+    renderQuickEditor();
+    renderLocation();
+    App.toast('已恢复默认快捷消息');
   }
 
   let locPinDrag = null;
@@ -2807,10 +2935,11 @@
         renderLocation();
         return;
       }
-      const meBtn = e.target.closest('[data-loc-me]');
-      if (meBtn) { movePersonToZone('me', meBtn.dataset.locMe); return; }
-      const taBtn = e.target.closest('[data-loc-ta]');
-      if (taBtn) { movePersonToZone('ta', taBtn.dataset.locTa); }
+      const quickBtn = e.target.closest('[data-loc-quick]');
+      if (quickBtn) { runQuick(quickBtn.dataset.locQuick); return; }
+      if (e.target.closest('#loc-quick-edit')) { openQuickEditor(); return; }
+      if (e.target.closest('#loc-quick-save')) { saveQuickEditor(); return; }
+      if (e.target.closest('#loc-quick-reset')) { resetQuickEditor(); return; }
     });
 
     /* 助眠 */

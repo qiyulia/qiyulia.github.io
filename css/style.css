@@ -6311,3 +6311,56 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 .grp-pick-row input[type="checkbox"] { flex: 0 0 auto; width: 17px; height: 17px; accent-color: var(--accent); }
 .grp-mention-sheet { max-width: 340px; }
 .grp-mention-list { display: flex; flex-direction: column; gap: 2px; }
+
+/* ---------------- 快捷消息（可编辑） ---------------- */
+.loc-quick-btn {
+  padding-left: 8px;
+  padding-right: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.loc-quick-edit {
+  display: block;
+  margin: 10px auto 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11.5px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.loc-quick-edit:active { opacity: .6; }
+.loc-quick-form { display: flex; flex-direction: column; margin-top: 6px; }
+.loc-quick-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.loc-quick-row:last-child { border-bottom: 0; }
+.loc-quick-row-head { font-size: 12px; font-weight: 600; color: var(--ink); }
+.loc-quick-field { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+.loc-quick-field > span { flex: 0 0 48px; }
+.loc-quick-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  padding: 9px 11px;
+  font-size: 12.5px;
+  color: var(--ink);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.loc-quick-field input:focus { outline: none; border-color: var(--accent); }
+.loc-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-bottom: 4px;
+}
+.loc-quick-actions .btn { flex: 1 1 0; }
