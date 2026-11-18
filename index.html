@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-135">
+<link rel="stylesheet" href="css/style.css?v=20261118-214">
 </head>
 <body>
 <div class="stage">
@@ -491,7 +491,7 @@ if ('caches' in window) {
           <p class="panel-note">♡ 我的收藏 · TA 标记为对方收藏；点歌曲即可播放。</p>
           <div id="music-list" class="music-list"></div>
         </section>
-        <p class="about-note">播放时 TA 会偶尔收藏、切歌或暂停，再重新播放。<br>这是本机模拟互动，不会同步到其他设备。</p>
+        <p class="about-note">播放时 TA 每首歌只判一次：先 50/50 选「切歌」或「暂停」，再按对应概率决定动不动；收藏每首歌都判，已被 TA 收藏的歌要等下次播放才有概率取消。判定暂停后 1~10 秒内 TA 会重新播放。<br>这是本机模拟互动，不会同步到其他设备。</p>
       </div>
     </section>
 
@@ -1318,7 +1318,7 @@ if ('caches' in window) {
                   <button type="button" class="step-btn" data-step-for="set-music-pause" data-step="1">+</button>
                 </span>
               </label>
-              <label class="field"><span>TA 重新播放音乐（%）</span>
+              <label class="field"><span>TA 暂停后重新播放（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-music-play" data-step="-1">−</button>
                   <input autocomplete="off" id="set-music-play" type="number" min="0" max="100" step="1" inputmode="numeric">
@@ -1330,6 +1330,13 @@ if ('caches' in window) {
                   <button type="button" class="step-btn" data-step-for="set-music-fav" data-step="-1">−</button>
                   <input autocomplete="off" id="set-music-fav" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-music-fav" data-step="1">+</button>
+                </span>
+              </label>
+              <label class="field"><span>TA 取消收藏音乐（%）</span>
+                <span class="prob-input">
+                  <button type="button" class="step-btn" data-step-for="set-music-unfav" data-step="-1">−</button>
+                  <input autocomplete="off" id="set-music-unfav" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <button type="button" class="step-btn" data-step-for="set-music-unfav" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 切歌（%）</span>
@@ -1346,7 +1353,7 @@ if ('caches' in window) {
                   <button type="button" class="step-btn" data-step-for="set-music-invite" data-step="1">+</button>
                 </span>
               </label>
-              <p class="panel-note">TA 的音乐互动在本机随机模拟，只在音乐播放且页面可见时发生。邀请一起听只在你没有听歌的时候出现；接受后会直接开始播放，拒绝就不听。</p>
+              <p class="panel-note">每个概率都是独立的，填 1 就是 1%，填 100 就是 100%，没命中的百分数 TA 就什么也不做。<br>每首歌只判一次：先 50/50 死选「切歌」或「暂停」，再用上面选中的那个概率投一次；不管命没命中，这首歌都不再判切歌/暂停，换到下一首才重新判。收藏每首歌都判，已被 TA 收藏的歌要等它下一次播放才有概率取消收藏。判定暂停后，TA 会在 1~10 秒内重新播放。<br>以上只在本机随机模拟，且只在音乐播放、页面可见时发生；邀请一起听只在你没有听歌的时候出现。</p>
             </div>
           </section>
 
@@ -2789,23 +2796,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/no-autofill.js?v=20261118-135"></script>
-<script src="js/vendor/html2canvas.min.js?v=20261118-135"></script>
-<script src="js/seed.js?v=20261118-135"></script>
-<script src="js/store.js?v=20261118-135"></script>
-<script src="js/desktop.js?v=20261118-135"></script>
-<script src="js/chat.js?v=20261118-135"></script>
-<script src="js/cards.js?v=20261118-135"></script>
-<script src="js/settings.js?v=20261118-135"></script>
-<script src="js/moments.js?v=20261118-135"></script>
-<script src="js/calendar.js?v=20261118-135"></script>
-<script src="js/music.js?v=20261118-135"></script>
-<script src="js/market.js?v=20261118-135"></script>
-<script src="js/mail.js?v=20261118-135"></script>
-<script src="js/extras.js?v=20261118-135"></script>
-<script src="js/companion.js?v=20261118-135"></script>
-<script src="js/memoir.js?v=20261118-135"></script>
-<script src="js/group.js?v=20261118-135"></script>
-<script src="js/app.js?v=20261118-135"></script>
+<script src="js/no-autofill.js?v=20261118-214"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-214"></script>
+<script src="js/seed.js?v=20261118-214"></script>
+<script src="js/store.js?v=20261118-214"></script>
+<script src="js/desktop.js?v=20261118-214"></script>
+<script src="js/chat.js?v=20261118-214"></script>
+<script src="js/cards.js?v=20261118-214"></script>
+<script src="js/settings.js?v=20261118-214"></script>
+<script src="js/moments.js?v=20261118-214"></script>
+<script src="js/calendar.js?v=20261118-214"></script>
+<script src="js/music.js?v=20261118-214"></script>
+<script src="js/market.js?v=20261118-214"></script>
+<script src="js/mail.js?v=20261118-214"></script>
+<script src="js/extras.js?v=20261118-214"></script>
+<script src="js/companion.js?v=20261118-214"></script>
+<script src="js/memoir.js?v=20261118-214"></script>
+<script src="js/group.js?v=20261118-214"></script>
+<script src="js/app.js?v=20261118-214"></script>
 </body>
 </html>

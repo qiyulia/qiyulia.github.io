@@ -19,6 +19,8 @@
   let mediaToken = 0;
   let taTimer = null;
   let taResumeTimer = null;
+  let taJudgeToken = 0;
+  let taJudged = false;
   const synth = { context: null, timer: null, endTimer: null, nextTime: 0, step: 0, trackId: '' };
 
   function tracks() { return App.state.music.tracks; }
@@ -186,58 +188,88 @@
     clearTimeout(taResumeTimer);
     taTimer = null;
     taResumeTimer = null;
+    taJudgeToken++;
   }
 
+  /* 概率一律 0~100 直通：填 6 就是 6%，填 100 就是 100%，没有隐藏换算 */
   function taProb(key, fallback) {
     const contact = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
     const value = Number(App.contactSettings(contact)[key]);
-    if (isNaN(value)) return fallback / 100;
-    return Math.max(0, Math.min(100, value)) / 100;
+    if (isNaN(value)) return fallback;
+    return Math.max(0, Math.min(100, value));
+  }
+
+  /* 每首歌只判一次：判定时刻落在「这首歌还在播」的随机时间点 */
+  function judgeDelayFor(track) {
+    let duration = 0;
+    if (track.source === 'synth') duration = synthDuration(track);
+    else if (audioTrackId === track.id && Number.isFinite(audio.duration) && audio.duration > 0) duration = audio.duration;
+    if (duration > 0) {
+      return Math.max(1200, Math.min(duration * 1000 * (0.1 + Math.random() * 0.7), 120000));
+    }
+    return 5000 + Math.random() * 15000;
   }
 
   function scheduleTa() {
     clearTimeout(taTimer);
     taTimer = null;
-    if (!playing || document.hidden || !App.state.currentContactId) return;
+    if (taJudged || !playing || document.hidden || !App.state.currentContactId) return;
+    const track = currentTrack();
+    if (!track) return;
+    const token = ++taJudgeToken;
     taTimer = setTimeout(function () {
       taTimer = null;
+      if (token !== taJudgeToken) return;
       if (!playing || document.hidden) return;
-      const pFav = taProb('musicFavProb', 25);
-      const pSwitch = taProb('musicSwitchProb', 30);
-      const pPause = taProb('musicPauseProb', 15);
-      const roll = Math.random();
-      if (roll < pFav) {
-        toggleFavorite(currentTrack().id, 'ta');
-        scheduleTa();
-      } else if (roll < pFav + pSwitch) {
-        changeTrack(Math.random() < 0.5 ? -1 : 1, true, Math.random() < 0.5);
-      } else if (roll < pFav + pSwitch + pPause) {
-        pauseByTa();
-      } else {
-        scheduleTa();
-      }
-    }, 20000 + Math.random() * 15000);
+      const now = currentTrack();
+      if (!now || now.id !== track.id) return;
+      taJudged = true; /* 不管命没命中，这一首就判这一次，不再有下一次 */
+      judgeForTrack(track.id);
+    }, judgeDelayFor(track));
+  }
+
+  /* 一轮判定：收藏线每首歌都判；切歌/暂停线两段投掷，只判一次 */
+  function judgeForTrack(trackId) {
+    const contact = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
+    if (!contact) return;
+
+    /* 收藏 / 取消收藏：已被 TA 收藏的歌，要等它下一次播放时才有概率取消 */
+    if (isFavorite(trackId, 'ta')) {
+      if (Math.random() * 100 < taProb('musicUnfavProb', 15)) toggleFavorite(trackId, 'ta');
+    } else if (Math.random() * 100 < taProb('musicFavProb', 25)) {
+      toggleFavorite(trackId, 'ta');
+    }
+
+    /* 第一段：50/50 死选「切歌」或「暂停」，这一段没有「什么都不干」
+       第二段：用被选中那一项在设置里的概率再投一次，没命中就啥也不干 */
+    const pickPause = Math.random() < 0.5;
+    const actionProb = pickPause ? taProb('musicPauseProb', 15) : taProb('musicSwitchProb', 30);
+    if (Math.random() * 100 >= actionProb) return;
+    if (pickPause) pauseByTa();
+    else changeTrack(Math.random() < 0.5 ? -1 : 1, true, Math.random() < 0.5);
   }
 
   function pauseByTa() {
     const contact = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
     clearTimeout(taTimer);
+    taTimer = null;
     stopPlayback();
     statusText = 'TA 暂停了音乐';
     App.renderMusic();
     if (contact && App.addChatSystemMessage) App.addChatSystemMessage(contact.id, contact.name + '暂停了音乐');
     clearTimeout(taResumeTimer);
+    /* 判定了暂停，就在 1~10 秒内由 TA 重新播放 */
     taResumeTimer = setTimeout(function () {
       taResumeTimer = null;
       if (document.hidden || playing) return;
-      if (Math.random() >= taProb('musicPlayProb', 60)) {
+      if (Math.random() * 100 >= taProb('musicPlayProb', 100)) {
         App.renderMusic();
         return;
       }
       playCurrent().then(function (ok) {
         if (ok && contact && App.addChatSystemMessage) App.addChatSystemMessage(contact.id, contact.name + '播放了音乐');
       });
-    }, 4000 + Math.random() * 3000);
+    }, 1000 + Math.random() * 9000);
   }
 
   function stopSynth() {
@@ -439,6 +471,7 @@
   function selectTrack(id, autoplay) {
     if (!tracks().some(function (track) { return track.id === id; })) return Promise.resolve(false);
     clearTaTimers();
+    taJudged = false; /* 换一首歌就刷新，重新给这一首一次判定机会 */
     stopPlayback();
     releaseAudioSource();
     App.state.music.currentId = id;

@@ -269,8 +269,9 @@
     el('#set-ta-quote').value = st.settings.taQuoteProb == null ? 20 : st.settings.taQuoteProb;
     el('#set-ta-fav').value = st.settings.taFavProb == null ? 15 : st.settings.taFavProb;
     el('#set-music-pause').value = st.settings.musicPauseProb == null ? 15 : st.settings.musicPauseProb;
-    el('#set-music-play').value = st.settings.musicPlayProb == null ? 60 : st.settings.musicPlayProb;
+    el('#set-music-play').value = st.settings.musicPlayProb == null ? 100 : st.settings.musicPlayProb;
     el('#set-music-fav').value = st.settings.musicFavProb == null ? 25 : st.settings.musicFavProb;
+    el('#set-music-unfav').value = st.settings.musicUnfavProb == null ? 15 : st.settings.musicUnfavProb;
     el('#set-music-switch').value = st.settings.musicSwitchProb == null ? 30 : st.settings.musicSwitchProb;
     el('#set-music-invite').value = st.settings.musicInviteProb == null ? 5 : st.settings.musicInviteProb;
     el('#set-jealousy-prob').value = st.settings.jealousyProb == null ? 30 : st.settings.jealousyProb;
@@ -927,6 +928,11 @@
 
     App.bindStepper('#set-music-fav', function (v) {
       App.state.settings.musicFavProb = v;
+      markDirty();
+    });
+
+    App.bindStepper('#set-music-unfav', function (v) {
+      App.state.settings.musicUnfavProb = v;
       markDirty();
     });
 

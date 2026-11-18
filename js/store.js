@@ -686,8 +686,13 @@
     if (s.settings.taQuoteProb == null) s.settings.taQuoteProb = 20;
     if (s.settings.taFavProb == null) s.settings.taFavProb = 15;
     if (s.settings.musicPauseProb == null) s.settings.musicPauseProb = 15;
-    if (s.settings.musicPlayProb == null) s.settings.musicPlayProb = 60;
     if (s.settings.musicFavProb == null) s.settings.musicFavProb = 25;
+    if (s.settings.musicUnfavProb == null) {
+      /* 旧存档首次升级到新音乐互动规则：旧的「重新播放 60%」改为默认必定重播 */
+      if (Number(s.settings.musicPlayProb) === 60) s.settings.musicPlayProb = 100;
+      s.settings.musicUnfavProb = 15;
+    }
+    if (s.settings.musicPlayProb == null) s.settings.musicPlayProb = 100;
     if (s.settings.musicSwitchProb == null) s.settings.musicSwitchProb = 30;
     if (s.settings.musicInviteProb == null) s.settings.musicInviteProb = 5;
     if (s.settings.jealousyProb == null) s.settings.jealousyProb = 30;
@@ -916,8 +921,9 @@
       taQuoteProb: pick('taQuoteProb', 20),
       taFavProb: pick('taFavProb', 15),
       musicPauseProb: pick('musicPauseProb', 15),
-      musicPlayProb: pick('musicPlayProb', 60),
+      musicPlayProb: pick('musicPlayProb', 100),
       musicFavProb: pick('musicFavProb', 25),
+      musicUnfavProb: pick('musicUnfavProb', 15),
       musicSwitchProb: pick('musicSwitchProb', 30),
       musicInviteProb: pick('musicInviteProb', 5),
       jealousyProb: pick('jealousyProb', 30),
