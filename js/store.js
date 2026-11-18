@@ -663,7 +663,6 @@
     if (s.settings.taMarketBuyForMeProb == null) s.settings.taMarketBuyForMeProb = 4;
     /* 集市互动恢复为 5 个各自独立的概率，清掉中间版本合并出来的单一概率字段 */
     delete s.settings.taMarketProb;
-    if (s.settings.taMarketLastAt == null) s.settings.taMarketLastAt = 0;
     if (s.settings.mailCardMin == null) s.settings.mailCardMin = 1;
     if (s.settings.mailCardMax == null) s.settings.mailCardMax = 3;
     if (s.settings.taLikeProb == null) s.settings.taLikeProb = 60;

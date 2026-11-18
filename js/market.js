@@ -128,7 +128,6 @@
   }
 
   const TA_MARKET_TICK = 60000;
-  const TA_MARKET_COOLDOWN = 6 * 60000;
 
   /* 5 个动作各自独立一个概率：每个概率只控制自己那件事出现的频率，
      概率越小那件事越少出现，填 0 就基本不会出现 */
@@ -145,11 +144,9 @@
     if (!Array.isArray(App.state.market.products) || !products().length) return;
     const contact = currentContact();
     if (!contact) return;
-    const now = Date.now();
-    if (now - (Number(App.state.settings.taMarketLastAt) || 0) < TA_MARKET_COOLDOWN) return;
 
     /* 每件事各掷一次骰子：命中几件事就把几件放进候选，
-       一件都没命中就什么都不发、也不进入冷却，下次继续按概率判定 */
+       一件都没命中就什么都不发，下一次再按概率判定 */
     const hits = TA_MARKET_ACTIONS.filter(function (a) {
       const prob = marketProb(a.probKey, a.fallback);
       return prob > 0 && Math.random() * 100 < prob;
@@ -218,7 +215,6 @@
     }
 
     if (!done) return;
-    App.state.settings.taMarketLastAt = now;
     App.save();
     if (el('#view-market').classList.contains('is-active')) App.renderMarket();
   }

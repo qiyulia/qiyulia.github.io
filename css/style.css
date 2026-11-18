@@ -6263,6 +6263,38 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 .grp-tag { font-style: normal; font-size: 9.5px; padding: 1px 7px; border-radius: 999px; }
 .grp-tag-admin { background: var(--accent-soft); color: var(--accent); }
 .grp-tag-mute { background: rgba(255, 91, 91, .14); color: #d95454; }
+
+/* 群主 / 管理员头衔：群主黄色、管理员蓝色，像 QQ 群名片那样贴在昵称前面 */
+.grp-role {
+  display: inline-block;
+  font-style: normal;
+  font-size: 9px;
+  line-height: 15px;
+  height: 15px;
+  padding: 0 5px;
+  margin-right: 4px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+.grp-role-owner {
+  background: linear-gradient(135deg, #ffd75e, #f0a52a);
+  color: #6b3b00;
+  box-shadow: 0 1px 3px rgba(240, 165, 42, .35);
+}
+.grp-role-admin {
+  background: linear-gradient(135deg, #6ecbff, #3a9bf0);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(58, 155, 240, .3);
+}
+.grp-member-owner .grp-member-copy strong { color: #b9791c; }
+.grp-member-actions:empty { display: none; }
+
+/* 群聊头像可点击，点开互动菜单 */
+.msg-avatar[data-grp-avatar] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.msg-avatar[data-grp-avatar]:active { transform: scale(.94); }
 .grp-member-actions { flex: 0 0 auto; display: flex; gap: 6px; white-space: nowrap; }
 .grp-member-actions .mini-btn {
   flex: 0 0 auto;

@@ -28,6 +28,8 @@
       if (!g || !g.id) return;
       if (!Array.isArray(g.members)) g.members = [];
       if (!Array.isArray(g.admins)) g.admins = [];
+      /* 群主固定是我（用户本人） */
+      if (!g.owner) g.owner = 'me';
       if (!g.muted || typeof g.muted !== 'object') g.muted = {};
       if (!g.muteCd || typeof g.muteCd !== 'object') g.muteCd = {};
       if (!g.adminMute || typeof g.adminMute !== 'object') g.adminMute = {};
@@ -132,12 +134,29 @@
     return '<div class="grp-sysline">' + App.esc(text) + '</div>';
   }
 
+  /* 群里的身份：我为群主，被设为管理员的成员是管理员 */
+  function groupRoleOf(g, m) {
+    if (!g) return '';
+    if (m.role === 'me') return (!g.owner || g.owner === 'me') ? 'owner' : '';
+    return g.admins.indexOf(m.senderId) !== -1 ? 'admin' : '';
+  }
+
+  function roleBadgeHtml(role) {
+    if (role === 'owner') return '<em class="grp-role grp-role-owner">群主</em>';
+    if (role === 'admin') return '<em class="grp-role grp-role-admin">管理员</em>';
+    return '';
+  }
+
   function groupMessageHtml(m) {
     if (m.type === 'sys') return systemLine(m.text);
     const mine = m.role === 'me';
     const c = mine ? null : contactById(m.senderId);
     const avatarSrc = mine ? (App.state.profile && App.state.profile.userAvatar) : (c && c.avatar);
-    const author = mine ? '' : '<span class="grp-author">' + App.esc(authorName(m)) + '</span>';
+    const role = groupRoleOf(groupById(currentGroupId), m);
+    const authorNameText = mine ? ((App.state.profile && App.state.profile.userName) || '我') : authorName(m);
+    const author = (role || !mine)
+      ? '<span class="grp-author">' + roleBadgeHtml(role) + App.esc(authorNameText) + '</span>'
+      : '';
     let body;
     if (m.type === 'sticker' && m.src) {
       body = '<img class="grp-sticker-img" loading="lazy" decoding="async" src="' + App.esc(m.src) + '" alt="表情包">';
@@ -238,7 +257,17 @@
     /* 成员列表 */
     const listBox = el('#grp-members-list');
     if (listBox) {
-      listBox.innerHTML = g.members.map(function (cid) {
+      const myName = (App.state.profile && App.state.profile.userName) || '我';
+      const myAvatar = (App.state.profile && App.state.profile.userAvatar) || '';
+      const ownerRow = '<div class="grp-member-row grp-member-owner">' +
+        '<span class="avatar sm">' + App.avatarHtml(myAvatar) + '</span>' +
+        '<span class="grp-member-copy">' +
+          '<strong>' + App.esc(myName) + '</strong>' +
+          '<span><em class="grp-role grp-role-owner">群主</em></span>' +
+        '</span>' +
+        '<span class="grp-member-actions"></span>' +
+      '</div>';
+      listBox.innerHTML = ownerRow + g.members.map(function (cid) {
         const c = contactById(cid);
         if (!c) return '';
         const isAdmin = g.admins.indexOf(cid) !== -1;
@@ -247,7 +276,7 @@
           '<span class="avatar sm">' + App.avatarHtml(c.avatar) + '</span>' +
           '<span class="grp-member-copy">' +
             '<strong>' + App.esc(c.name) + '</strong>' +
-            '<span>' + (isAdmin ? '<em class="grp-tag grp-tag-admin">管理员</em>' : '') +
+            '<span>' + (isAdmin ? '<em class="grp-role grp-role-admin">管理员</em>' : '') +
               (muteText ? '<em class="grp-tag grp-tag-mute">' + App.esc(muteText) + '</em>' : '') +
             '</span>' +
           '</span>' +
@@ -568,8 +597,6 @@
   const GRP_EMOJIS = ['😀', '🥰', '😂', '😭', '😴', '🤔', '👍', '👏', '🌹', '❤️', '✨', '🎉', '🍰', '☕', '🌙', '🐱', '🐶', '💤', '🥺', '😘'];
   let grpStickerSide = 'me';
   let grpInteractCid = null;
-  let grpLongTimer = null;
-  let grpLongStart = null;
   let grpPanelOpenedAt = 0;
 
   function closeGrpPanels() {
@@ -671,7 +698,7 @@
     if (panel) { panel.hidden = false; grpPanelOpenedAt = Date.now(); }
   }
 
-  /* 原来的 @ 按钮搬到这里：长按对方头像后选「@ 点名」 */
+  /* 点一下对方头像就能打开互动菜单 */
   function runGrpInteract(action) {
     const c = contactById(grpInteractCid);
     closeGrpPanels();
@@ -687,8 +714,6 @@
     } else if (action === 'pat') {
       const me = (App.state.profile && App.state.profile.userName) || '我';
       pushGroupSystem(currentGroupId, me + ' 拍了拍「' + c.name + '」的头像');
-    } else if (action === 'profile') {
-      App.toast(c.name + (c.signature ? ' · ' + c.signature : ' · 群成员'));
     }
   }
 
@@ -709,44 +734,18 @@
     pushGroupSystem(currentGroupId, (c ? c.name : '群成员') + ' 领取了红包（' + amount + ' 同心币）');
   }
 
-  function bindGrpLongPress() {
+  /* 点一下头像打开互动菜单（不用长按） */
+  function bindGrpAvatarTap() {
     const list = el('#grp-list');
     if (!list) return;
-    list.addEventListener('pointerdown', function (e) {
+    list.addEventListener('click', function (e) {
       const av = e.target.closest('[data-grp-avatar]');
       if (!av || !av.dataset.grpAvatar || av.dataset.grpAvatar === 'me') return;
-      grpLongStart = { x: e.clientX, y: e.clientY, cid: av.dataset.grpAvatar };
-      clearTimeout(grpLongTimer);
-      grpLongTimer = setTimeout(function () {
-        grpLongTimer = null;
-        const cid = grpLongStart && grpLongStart.cid;
-        grpLongStart = null;
-        if (cid) openGrpAvatarPanel(cid);
-      }, 450);
-    });
-    list.addEventListener('pointermove', function (e) {
-      if (!grpLongStart) return;
-      if (Math.abs(e.clientX - grpLongStart.x) > 10 || Math.abs(e.clientY - grpLongStart.y) > 10) {
-        clearTimeout(grpLongTimer);
-        grpLongTimer = null;
-        grpLongStart = null;
-      }
-    });
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (evt) {
-      list.addEventListener(evt, function () {
-        clearTimeout(grpLongTimer);
-        grpLongTimer = null;
-        grpLongStart = null;
-      });
-    });
-    /* 手机长按常会补发 contextmenu，顺便也当成互动入口 */
-    list.addEventListener('contextmenu', function (e) {
-      const av = e.target.closest('[data-grp-avatar]');
-      if (!av || !av.dataset.grpAvatar || av.dataset.grpAvatar === 'me') return;
-      e.preventDefault();
-      clearTimeout(grpLongTimer);
-      grpLongStart = null;
       openGrpAvatarPanel(av.dataset.grpAvatar);
+    });
+    /* 长按头像时浏览器会弹原生菜单，屏蔽掉，免得挡住互动面板 */
+    list.addEventListener('contextmenu', function (e) {
+      if (e.target.closest('[data-grp-avatar]')) e.preventDefault();
     });
   }
 
@@ -788,7 +787,7 @@
     if (stickerBtn) stickerBtn.addEventListener('click', toggleGrpStickerPanel);
     const toolBtn = el('#grp-tool-btn');
     if (toolBtn) toolBtn.addEventListener('click', openGrpToolPanel);
-    bindGrpLongPress();
+    bindGrpAvatarTap();
     document.addEventListener('click', function (e) {
       const closer = e.target.closest('[data-grp-close]');
       if (closer) { closeGrpPanels(); return; }
