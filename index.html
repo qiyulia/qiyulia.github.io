@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-216">
+<link rel="stylesheet" href="css/style.css?v=20261118-217">
 </head>
 <body>
 <div class="stage">
@@ -1666,7 +1666,16 @@ if ('caches' in window) {
         </div>
 
         <div class="panel">
+          <h3>主动打扰总闸</h3>
+          <label class="field"><span>TA 每天最多主动冒出来几次</span><input autocomplete="off" id="set-ta-daily-disturb" inputmode="numeric" maxlength="4" placeholder="12"></label>
+          <p class="field-hint">主动发消息、拍一拍、邀请一起听歌、发问卷、写信共用这个次数。填 12 就是一天最多 12 次，发满当天 TA 就不再自己冒出来，第二天零点恢复；填 <b>0</b> 就是彻底安静，只在你主动找 TA 时才回应。朋友圈和集市各有自己的上限，不占这里的次数。</p>
+          <p class="field-hint" id="disturb-today-hint">今天已用 0 次。</p>
+        </div>
+
+        <div class="panel">
           <h3>集市互动</h3>
+          <label class="field"><span>TA 每天零花钱（同心币）</span><input autocomplete="off" id="set-ta-daily-allowance" inputmode="numeric" maxlength="6" placeholder="30"></label>
+          <p class="field-hint">每天自动给 TA 添这么多同心币，钱花光了集市也不会突然安静下来；填 0 就不发。TA 买过 / 送过的东西会避开最近几件，不会连着抽到同一个。</p>
           <label class="field"><span>TA 每天最多发几条集市消息</span><input autocomplete="off" id="set-ta-market-daily" inputmode="numeric" maxlength="4" placeholder="8"></label>
           <p class="field-hint" id="market-interval-hint">当前：平均每 180 分钟（3 小时）有一次机会。</p>
           <p class="field-hint">填几就是一天最多几条，间隔不用自己填，自动按 24 小时平均：填 8 是平均 3 小时一次，填 1 是一天一次，填 <b>0</b> 就是彻底不发。每天发满就安静，第二天零点自动恢复。</p>
@@ -1681,6 +1690,8 @@ if ('caches' in window) {
           <label class="field"><span>TA 答应你心愿的概率（%）</span><input autocomplete="off" id="set-ta-wish-accept-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
           <label class="field"><span>TA 拒绝你心愿的概率（%）</span><input autocomplete="off" id="set-ta-wish-reject-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
           <p class="field-hint">你在集市许愿后，TA 看到时有概率直接答应并送你（已接受），也可能拒绝（已被拒绝）；剩下的概率不作处理，保持等待。</p>
+          <button type="button" class="btn ghost" id="btn-clear-market-cards">清理已结束的集市卡片</button>
+          <p class="field-hint">把已经收下/退回/买下、以及放了超过 24 小时过期的集市卡片（含集市订单）从聊天里清掉；还没处理的礼物和心愿会保留。聊天记录里的其它消息不受影响。</p>
         </div>
 
         <div class="panel">
@@ -2800,23 +2811,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/no-autofill.js?v=20261118-216"></script>
-<script src="js/vendor/html2canvas.min.js?v=20261118-216"></script>
-<script src="js/seed.js?v=20261118-216"></script>
-<script src="js/store.js?v=20261118-216"></script>
-<script src="js/desktop.js?v=20261118-216"></script>
-<script src="js/chat.js?v=20261118-216"></script>
-<script src="js/cards.js?v=20261118-216"></script>
-<script src="js/settings.js?v=20261118-216"></script>
-<script src="js/moments.js?v=20261118-216"></script>
-<script src="js/calendar.js?v=20261118-216"></script>
-<script src="js/music.js?v=20261118-216"></script>
-<script src="js/market.js?v=20261118-216"></script>
-<script src="js/mail.js?v=20261118-216"></script>
-<script src="js/extras.js?v=20261118-216"></script>
-<script src="js/companion.js?v=20261118-216"></script>
-<script src="js/memoir.js?v=20261118-216"></script>
-<script src="js/group.js?v=20261118-216"></script>
-<script src="js/app.js?v=20261118-216"></script>
+<script src="js/no-autofill.js?v=20261118-217"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-217"></script>
+<script src="js/seed.js?v=20261118-217"></script>
+<script src="js/store.js?v=20261118-217"></script>
+<script src="js/desktop.js?v=20261118-217"></script>
+<script src="js/chat.js?v=20261118-217"></script>
+<script src="js/cards.js?v=20261118-217"></script>
+<script src="js/settings.js?v=20261118-217"></script>
+<script src="js/moments.js?v=20261118-217"></script>
+<script src="js/calendar.js?v=20261118-217"></script>
+<script src="js/music.js?v=20261118-217"></script>
+<script src="js/market.js?v=20261118-217"></script>
+<script src="js/mail.js?v=20261118-217"></script>
+<script src="js/extras.js?v=20261118-217"></script>
+<script src="js/companion.js?v=20261118-217"></script>
+<script src="js/memoir.js?v=20261118-217"></script>
+<script src="js/group.js?v=20261118-217"></script>
+<script src="js/app.js?v=20261118-217"></script>
 </body>
 </html>

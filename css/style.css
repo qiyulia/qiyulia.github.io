@@ -1185,6 +1185,20 @@ dialog.moment-sheet {
   color: var(--muted);
 }
 
+/* 聊天记录很长时只画最近一页，顶部这个按钮往回翻 */
+.chat-load-earlier {
+  display: block;
+  margin: 10px auto 14px;
+  padding: 7px 16px;
+  border: 1px solid var(--line, rgba(120, 130, 150, .25));
+  border-radius: 999px;
+  background: var(--panel, rgba(255, 255, 255, .6));
+  color: var(--muted, #7b8494);
+  font-size: 12px;
+  cursor: pointer;
+}
+.chat-load-earlier:hover { opacity: .78; }
+
 #view-chat.music-is-minimized .chat-scroll { padding-top: 76px; }
 
 /* 聊天页悬浮音乐卡片 */
@@ -2901,6 +2915,35 @@ dialog.more-sheet::backdrop {
 .msg .bubble.bubble-wish { background: linear-gradient(150deg, #8fb8e0, #6d94c4); box-shadow: 0 8px 20px rgba(70, 110, 160, .24); }
 .bubble-wish .packet-actions button { color: #3c6591; }
 .msg .bubble.bubble-market { background: linear-gradient(150deg, #9dc3a8, #74a184); box-shadow: 0 8px 20px rgba(80, 130, 100, .22); }
+/* 集市订单只是回执：一行小字，不再占掉半屏 */
+.msg .bubble.bubble-market.is-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(120, 160, 135, .16);
+  color: var(--text, #4a5a50);
+  box-shadow: none;
+  font-size: 12px;
+}
+.msg .bubble.bubble-market.is-compact .market-compact-tag {
+  flex: none;
+  font-size: 10px;
+  letter-spacing: .06em;
+  opacity: .7;
+}
+.msg .bubble.bubble-market.is-compact .market-compact-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msg .bubble.bubble-market.is-compact .market-compact-price { flex: none; opacity: .75; }
 
 /* ============ 集市 ============ */
 .market-body { gap: 12px; }

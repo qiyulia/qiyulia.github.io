@@ -173,6 +173,17 @@
        间隔由 1440 ÷ 条数 算出来，条数填 0 就是彻底不发 */
     const market = App.state.market;
     const stamp = dayStamp();
+    /* 每天给 TA 发一笔零花钱，钱花光后集市不会突然变哑 */
+    if (market.taAllowanceDay !== stamp) {
+      market.taAllowanceDay = stamp;
+      const raw = Math.round(Number(App.state.settings.taDailyAllowance));
+      const amount = Number.isFinite(raw) ? Math.max(0, Math.min(100000, raw)) : 30;
+      if (amount > 0 && App.state.wallet) {
+        App.state.wallet.ta = (Number(App.state.wallet.ta) || 0) + amount;
+        App.save();
+        if (el('#view-market').classList.contains('is-active')) App.renderMarket();
+      }
+    }
     if (market.taDay !== stamp) {
       market.taDay = stamp;
       market.taCount = 0;
@@ -204,17 +215,32 @@
 
     function randomOf(list) { return list[Math.floor(Math.random() * list.length)]; }
 
+    /* 最近买过 / 送过的几件先避开，别连着两次抽到同一个 */
+    function pickProduct(pool) {
+      if (!pool || !pool.length) return null;
+      const recent = Array.isArray(market.taRecent) ? market.taRecent : [];
+      const fresh = pool.filter(function (p) { return recent.indexOf(p.id) === -1; });
+      const chosen = randomOf(fresh.length ? fresh : pool);
+      if (chosen) {
+        recent.push(chosen.id);
+        market.taRecent = recent.slice(-8);
+      }
+      return chosen;
+    }
+
     function tryAction(key) {
       if (key === 'gift') {
         if (!affordable.length) return false;
-        const product = randomOf(affordable);
+        const product = pickProduct(affordable);
+        if (!product) return false;
         wallet.ta -= product.price;
         postGift(product, 'ta');
         return true;
       }
       if (key === 'buy') {
         if (!affordable.length) return false;
-        const product = randomOf(affordable);
+        const product = pickProduct(affordable);
+        if (!product) return false;
         wallet.ta -= product.price;
         postPurchase(product, 'ta');
         return true;

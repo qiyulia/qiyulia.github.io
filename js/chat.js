@@ -20,6 +20,9 @@
   let pinBottom = false;
   /* 上一次重绘时最后一条消息的标识，用来判断是不是来了新消息 */
   let lastChatSig = '';
+  /* 聊天只渲染最近这些条，往上看时再分批加载，避免几千条时整屏重建卡住 */
+  const CHAT_PAGE_SIZE = 200;
+  let chatVisibleCount = CHAT_PAGE_SIZE;
 
   function sendRole() {
     return App.stickerTab === 'ta' ? 'ta' : 'me';
@@ -42,6 +45,9 @@
       quoteDraft = null;
       closeMsgActions();
       stopVoice();
+      /* 换人就回到只看最近一页 */
+      chatVisibleCount = CHAT_PAGE_SIZE;
+      lastChatSig = '';
     }
     App.chatContactId = contactId;
     App.state.currentContactId = contactId;
@@ -78,6 +84,9 @@
     el('#c-note').textContent = contact.note || '字卡传讯';
 
     const chat = App.state.chats[id] || [];
+    /* 只画最近一页：消息再多也不会一次重建几千个节点 */
+    const shown = chat.length > chatVisibleCount ? chat.slice(-chatVisibleCount) : chat;
+    const hiddenCount = chat.length - shown.length;
     /* 重绘前记住滚动位置：TA 发来新消息时不要把我拉回最底部 */
     const box = el('#chat-scroll');
     const prevTop = box ? box.scrollTop : 0;
@@ -90,7 +99,7 @@
     pinBottom = false;
     const now = Date.now();
     const open = App.chatOpen(id);
-    chat.forEach(function (m) {
+    shown.forEach(function (m) {
       if (m.read === undefined) {
         /* 我发出的消息由 TA 稍后已读；TA 的消息只有聊天开着时才算已读 */
         m.read = m.role === 'me' ? now - m.ts > 2400 : open;
@@ -110,8 +119,11 @@
     Array.prototype.forEach.call(list.querySelectorAll('[data-msg-id]'), function (node) {
       seen[node.getAttribute('data-msg-id')] = true;
     });
+    const earlierBtn = hiddenCount > 0
+      ? '<button type="button" class="chat-load-earlier" data-chat-load-earlier>加载更早的消息（还有 ' + hiddenCount + ' 条）</button>'
+      : '';
     list.innerHTML = chat.length
-      ? chat.map(messageHtml).join('')
+      ? earlierBtn + shown.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
     Array.prototype.forEach.call(list.querySelectorAll('.msg[data-msg-id]'), function (node) {
       if (seen[node.getAttribute('data-msg-id')]) node.classList.add('is-static');
@@ -133,6 +145,21 @@
       if (arrivedFromTa) toggleNewMsg(true);
     }
   };
+
+  /* 点「加载更早」往上多显示一页，并补偿滚动高度，别让画面跳走 */
+  function loadEarlierChat() {
+    const box = el('#chat-scroll');
+    const oldHeight = box ? box.scrollHeight : 0;
+    chatVisibleCount += CHAT_PAGE_SIZE;
+    pinBottom = false;
+    App.renderChat();
+    if (!box) return;
+    const delta = box.scrollHeight - oldHeight;
+    if (delta > 0) {
+      setScrollTop(box, box.scrollTop + delta);
+      requestAnimationFrame(function () { setScrollTop(box, box.scrollTop + delta); });
+    }
+  }
 
   /* 微信式语音气泡：只用一个播放器，列表重绘、来新消息都不会打断 */
   function voiceBubbleWidth(seconds) {
@@ -339,15 +366,24 @@
       '</div>';
   }
 
+  /* 待处理的集市卡片放满 24 小时就过期，不再一直挂着「收下 / 买给他」 */
+  const MARKET_CARD_TTL = 24 * 60 * 60 * 1000;
+  function marketCardExpired(m) {
+    return m.status === 'pending' && Date.now() - (Number(m.ts) || 0) > MARKET_CARD_TTL;
+  }
+
   function giftHtml(m) {
     const pending = m.status === 'pending';
+    const expired = marketCardExpired(m);
     const waiting = pending && m.role === 'me';
-    const statusText = m.status === 'accepted' ? '已收下' : (m.status === 'returned' ? '已退回' : (waiting ? '等待对方领取' : '待领取'));
-    return '<div class="bubble bubble-gift' + (pending ? '' : ' is-done') + '">' +
+    const statusText = m.status === 'accepted' ? '已收下'
+      : (m.status === 'returned' ? '已退回'
+      : (expired ? '已过期' : (waiting ? '等待对方领取' : '待领取')));
+    return '<div class="bubble bubble-gift' + (pending && !expired ? '' : ' is-done') + '">' +
       '<div class="packet-head"><span class="packet-tag">礼物</span><em>' + statusText + '</em></div>' +
       '<p class="gift-title">🎁 ' + App.esc(m.productName || '礼物') + '</p>' +
       '<p class="packet-note">' + Number(m.price || 0) + ' 同心币</p>' +
-      (pending && m.role === 'ta'
+      (pending && !expired && m.role === 'ta'
         ? '<div class="packet-actions"><button type="button" data-gift-accept="' + App.esc(m.id) + '">收下</button><button type="button" data-gift-return="' + App.esc(m.id) + '">退回</button></div>'
         : '') +
       '</div>';
@@ -355,15 +391,16 @@
 
   function wishHtml(m) {
     const pending = m.status === 'pending';
+    const expired = marketCardExpired(m);
     const mine = m.role === 'me';
     const statusText = pending
-      ? (mine ? '等 TA 看见' : '等 TA 回应')
+      ? (expired ? '已过期' : (mine ? '等 TA 看见' : '等 TA 回应'))
       : (m.status === 'rejected' ? '已被拒绝' : (m.status === 'declined' ? '已拒绝' : (m.status === 'accepted' ? '已接受' : '已买下')));
-    return '<div class="bubble bubble-gift bubble-wish' + (pending ? '' : ' is-done') + (m.status === 'rejected' || m.status === 'declined' ? ' is-returned' : '') + '">' +
+    return '<div class="bubble bubble-gift bubble-wish' + (pending && !expired ? '' : ' is-done') + (m.status === 'rejected' || m.status === 'declined' ? ' is-returned' : '') + '">' +
       '<div class="packet-head"><span class="packet-tag">心愿</span><em>' + statusText + '</em></div>' +
       '<p class="gift-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</p>' +
-      '<p class="packet-note">' + Number(m.price || 0) + ' 同心币' + (pending && !mine ? ' · 想要这个' : '') + '</p>' +
-      (pending && !mine
+      '<p class="packet-note">' + Number(m.price || 0) + ' 同心币' + (pending && !expired && !mine ? ' · 想要这个' : '') + '</p>' +
+      (pending && !expired && !mine
         ? '<div class="packet-actions">' +
             '<button type="button" data-wish-buy="' + App.esc(m.id) + '">买给他</button>' +
             '<button type="button" data-wish-decline="' + App.esc(m.id) + '">拒绝</button>' +
@@ -372,11 +409,12 @@
       '</div>';
   }
 
+  /* 集市订单只是「买了什么」的回执，压成一行，别占掉半屏 */
   function marketBuyHtml(m) {
-    return '<div class="bubble bubble-gift bubble-market">' +
-      '<div class="packet-head"><span class="packet-tag">集市订单</span><em>已买下</em></div>' +
-      '<p class="gift-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</p>' +
-      '<p class="packet-note">' + Number(m.price || 0) + ' 同心币</p>' +
+    return '<div class="bubble bubble-gift bubble-market is-compact">' +
+      '<span class="market-compact-tag">集市订单</span>' +
+      '<span class="market-compact-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</span>' +
+      '<span class="market-compact-price">' + Number(m.price || 0) + ' 同心币</span>' +
       '</div>';
   }
 
@@ -1259,6 +1297,7 @@
     if (!contact) return;
     const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).taPatProb) || 0));
     if (Math.random() * 100 >= prob) return;
+    if (!App.taDisturbHit()) return;
 
     const card = App.pickPatCard();
     const raw = card ? card.text : '拍了拍{name}';
@@ -1378,6 +1417,7 @@
     if (now - Math.max(lastTs, lastTaStartAt) < idle) return;
     const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
     if (Math.random() * 100 >= prob) return;
+    if (!App.taDisturbHit()) return;
 
     /* 这一次主动发几条：在最少～最多之间随机 */
     const min = Math.max(1, Math.min(10, Math.round(Number(cs.taMsgMin) || 1)));
@@ -1767,6 +1807,7 @@
     if (App.musicPlaying && App.musicPlaying()) return;
     const pool = musicInvitePool();
     if (!pool.length) return;
+    if (!App.taDisturbHit()) return;
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       if (App.musicPlaying && App.musicPlaying()) return;
@@ -2587,6 +2628,13 @@
   App.initChat = function () {
     const input = el('#msg-input');
     const form = el('#composer');
+
+    const chatList = el('#chat-list');
+    if (chatList) {
+      chatList.addEventListener('click', function (e) {
+        if (e.target.closest('[data-chat-load-earlier]')) loadEarlierChat();
+      });
+    }
 
     /* 切页面时同步通话弹窗：接通后的通话只留在聊天里 */
     if (typeof App.go === 'function') {

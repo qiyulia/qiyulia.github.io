@@ -230,6 +230,21 @@
   }
 
   /* 集市：只让用户填「每天几条」，间隔按 24 小时自动平均后显示出来 */
+  function renderDisturbHint() {
+    const hint = el('#disturb-today-hint');
+    if (!hint) return;
+    const st = App.state;
+    const raw = Math.round(Number(st.settings && st.settings.taDailyDisturbLimit));
+    const limit = Number.isFinite(raw) ? Math.max(0, Math.min(999, raw)) : 12;
+    const q = st.taDisturb;
+    const d = new Date();
+    const day = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    const used = q && q.day === day ? (Number(q.count) || 0) : 0;
+    hint.textContent = limit <= 0
+      ? '当前：已关闭，TA 不会自己冒出来，只会在你找 TA 时回应。'
+      : '今天已用 ' + used + ' / ' + limit + ' 次，第二天零点重置。';
+  }
+
   function renderMarketIntervalHint() {
     const hint = el('#market-interval-hint');
     if (!hint) return;
@@ -328,8 +343,11 @@
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
     el('#set-ta-survey-prob').value = st.settings.taSurveyProb == null ? 10 : st.settings.taSurveyProb;
     el('#set-ta-survey-cooldown').value = st.settings.taSurveyCooldownMin == null ? 30 : st.settings.taSurveyCooldownMin;
+    el('#set-ta-daily-disturb').value = st.settings.taDailyDisturbLimit == null ? 12 : st.settings.taDailyDisturbLimit;
+    el('#set-ta-daily-allowance').value = st.settings.taDailyAllowance == null ? 30 : st.settings.taDailyAllowance;
     el('#set-ta-market-daily').value = st.settings.taMarketDailyLimit == null ? 8 : st.settings.taMarketDailyLimit;
     renderMarketIntervalHint();
+    renderDisturbHint();
     el('#set-ta-market-gift-prob').value = st.settings.taMarketGiftProb == null ? 6 : st.settings.taMarketGiftProb;
     el('#set-ta-market-buy-prob').value = st.settings.taMarketBuyProb == null ? 6 : st.settings.taMarketBuyProb;
     el('#set-ta-market-wish-prob').value = st.settings.taMarketWishProb == null ? 8 : st.settings.taMarketWishProb;
@@ -633,7 +651,45 @@
     bindMinutes('#set-avatar-cooldown', 'avatarCooldownMin', 1440);
     bindMinutes('#set-name-cooldown', 'nameCooldownMin', 2880);
     bindMinutes('#set-ta-mail-cooldown', 'taMailCooldownMin', 1440);
+    bindMinutes('#set-ta-daily-allowance', 'taDailyAllowance', 100000);
     bindMarketDaily();
+    const clearMarketBtn = el('#btn-clear-market-cards');
+    if (clearMarketBtn) {
+      clearMarketBtn.addEventListener('click', function () {
+        App.confirmDialog('把已结束 / 过期的集市卡片（含集市订单）从聊天里清掉？还没处理的礼物和心愿会保留。',
+          { title: '清理集市卡片', okText: '清理' }).then(function (ok) {
+          if (!ok) return;
+          let removed = 0;
+          const chats = App.state.chats || {};
+          Object.keys(chats).forEach(function (id) {
+            const arr = chats[id];
+            if (!Array.isArray(arr)) return;
+            /* 倒着删，原地改动，别换数组引用 */
+            for (let i = arr.length - 1; i >= 0; i--) {
+              const m = arr[i];
+              if (!m || ['gift', 'wish', 'marketBuy'].indexOf(m.type) === -1) continue;
+              const gone = m.type === 'marketBuy'
+                || m.status !== 'pending'
+                || Date.now() - (Number(m.ts) || 0) > 24 * 60 * 60 * 1000;
+              if (gone) { arr.splice(i, 1); removed++; }
+            }
+          });
+          App.save();
+          App.toast(removed ? '已清理 ' + removed + ' 张集市卡片' : '没有需要清理的集市卡片');
+          if (App.chatContactId && App.chatOpen && App.chatOpen(App.chatContactId) && App.renderChat) App.renderChat();
+        });
+      });
+    }
+    const disturbInput = el('#set-ta-daily-disturb');
+    if (disturbInput) {
+      disturbInput.addEventListener('input', function () {
+        const raw = String(disturbInput.value || '').trim();
+        if (!raw) return;
+        App.state.settings.taDailyDisturbLimit = Math.max(0, Math.min(999, parseInt(raw, 10) || 0));
+        renderDisturbHint();
+        App.save();
+      });
+    }
     bindMinutes('#set-ta-survey-cooldown', 'taSurveyCooldownMin', 1440);
 
     const notifyToggle = el('#set-notify-enabled');

@@ -111,7 +111,22 @@
     return job;
   }
 
+  /* 每个联系人只留最近这么多条，聊天记录用一年也不会把存档撑爆 */
+  const MAX_CHAT_MESSAGES = 3000;
+  function trimChats() {
+    const chats = App.state && App.state.chats;
+    if (!chats) return;
+    Object.keys(chats).forEach(function (id) {
+      const arr = chats[id];
+      if (Array.isArray(arr) && arr.length > MAX_CHAT_MESSAGES) {
+        /* 原地删掉最旧的，别换数组引用，避免别处手里的引用失效 */
+        arr.splice(0, arr.length - MAX_CHAT_MESSAGES);
+      }
+    });
+  }
+
   function writeState() {
+    trimChats();
     /* 先同步写设置镜像，即使下面的异步写入被刷新打断，设置也不会丢 */
     saveSettingsSnapshot();
     if (storageMode === 'local') {
@@ -131,6 +146,24 @@
       saveTimer = 0;
       writeState();
     }, 200);
+  };
+
+  /* TA 每天主动冒出来的总次数：主动开口、拍一拍、邀请听歌、发问卷、写信共用。
+     命中一次就扣一次，发满当天不再主动打扰；填 0 就是完全安静 */
+  App.taDisturbHit = function () {
+    const st = App.state;
+    if (!st) return false;
+    const raw = Math.round(Number(st.settings && st.settings.taDailyDisturbLimit));
+    const limit = Number.isFinite(raw) ? Math.max(0, Math.min(999, raw)) : 12;
+    if (limit <= 0) return false;
+    const d = new Date();
+    const day = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    const q = st.taDisturb || (st.taDisturb = { day: day, count: 0 });
+    if (q.day !== day) { q.day = day; q.count = 0; }
+    if ((Number(q.count) || 0) >= limit) return false;
+    q.count = (Number(q.count) || 0) + 1;
+    App.save();
+    return true;
   };
 
   App.flushSave = function () {
@@ -662,6 +695,8 @@
     if (s.settings.taMarketFavProb == null) s.settings.taMarketFavProb = 4;
     if (s.settings.taMarketBuyForMeProb == null) s.settings.taMarketBuyForMeProb = 4;
     if (s.settings.taMarketDailyLimit == null) s.settings.taMarketDailyLimit = 8;
+    if (s.settings.taDailyDisturbLimit == null) s.settings.taDailyDisturbLimit = 12;
+    if (s.settings.taDailyAllowance == null) s.settings.taDailyAllowance = 30;
     /* 集市互动恢复为 5 个各自独立的概率，清掉中间版本合并出来的单一概率字段；
        间隔改为按「每天几条」自动平均，旧的手动间隔字段不再使用 */
     delete s.settings.taMarketProb;
@@ -918,6 +953,8 @@
       taMarketFavProb: pick('taMarketFavProb', 4),
       taMarketBuyForMeProb: pick('taMarketBuyForMeProb', 4),
       taMarketDailyLimit: pick('taMarketDailyLimit', 8),
+      taDailyDisturbLimit: pick('taDailyDisturbLimit', 12),
+      taDailyAllowance: pick('taDailyAllowance', 30),
       taStickerProb: pick('taStickerProb', 30),
       taStickerComboProb: pick('taStickerComboProb', 25),
       taVoiceProb: pick('taVoiceProb', 20),
