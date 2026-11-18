@@ -296,6 +296,8 @@
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
     el('#set-ta-survey-prob').value = st.settings.taSurveyProb == null ? 10 : st.settings.taSurveyProb;
     el('#set-ta-survey-cooldown').value = st.settings.taSurveyCooldownMin == null ? 30 : st.settings.taSurveyCooldownMin;
+    el('#set-ta-market-gap').value = st.settings.taMarketGapMin == null ? 5 : st.settings.taMarketGapMin;
+    el('#set-ta-market-daily').value = st.settings.taMarketDailyLimit == null ? 8 : st.settings.taMarketDailyLimit;
     el('#set-ta-market-gift-prob').value = st.settings.taMarketGiftProb == null ? 6 : st.settings.taMarketGiftProb;
     el('#set-ta-market-buy-prob').value = st.settings.taMarketBuyProb == null ? 6 : st.settings.taMarketBuyProb;
     el('#set-ta-market-wish-prob').value = st.settings.taMarketWishProb == null ? 8 : st.settings.taMarketWishProb;
@@ -599,6 +601,8 @@
     bindMinutes('#set-avatar-cooldown', 'avatarCooldownMin', 1440);
     bindMinutes('#set-name-cooldown', 'nameCooldownMin', 2880);
     bindMinutes('#set-ta-mail-cooldown', 'taMailCooldownMin', 1440);
+    bindMinutes('#set-ta-market-gap', 'taMarketGapMin', 1440);
+    bindMinutes('#set-ta-market-daily', 'taMarketDailyLimit', 999);
     bindMinutes('#set-ta-survey-cooldown', 'taSurveyCooldownMin', 1440);
 
     const notifyToggle = el('#set-notify-enabled');

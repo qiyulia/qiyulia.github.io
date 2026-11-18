@@ -661,6 +661,8 @@
     if (s.settings.taMarketWishProb == null) s.settings.taMarketWishProb = 8;
     if (s.settings.taMarketFavProb == null) s.settings.taMarketFavProb = 4;
     if (s.settings.taMarketBuyForMeProb == null) s.settings.taMarketBuyForMeProb = 4;
+    if (s.settings.taMarketGapMin == null) s.settings.taMarketGapMin = 5;
+    if (s.settings.taMarketDailyLimit == null) s.settings.taMarketDailyLimit = 8;
     /* 集市互动恢复为 5 个各自独立的概率，清掉中间版本合并出来的单一概率字段 */
     delete s.settings.taMarketProb;
     if (s.settings.mailCardMin == null) s.settings.mailCardMin = 1;
@@ -914,6 +916,8 @@
       taMarketWishProb: pick('taMarketWishProb', 8),
       taMarketFavProb: pick('taMarketFavProb', 4),
       taMarketBuyForMeProb: pick('taMarketBuyForMeProb', 4),
+      taMarketGapMin: pick('taMarketGapMin', 5),
+      taMarketDailyLimit: pick('taMarketDailyLimit', 8),
       taStickerProb: pick('taStickerProb', 30),
       taStickerComboProb: pick('taStickerComboProb', 25),
       taVoiceProb: pick('taVoiceProb', 20),

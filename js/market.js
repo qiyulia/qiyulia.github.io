@@ -129,6 +129,26 @@
 
   const TA_MARKET_TICK = 60000;
 
+  /* 集市不是每分钟都翻一次牌：按设置的间隔判定，并且每天有总条数上限，
+     避免挂机一整天被连续的礼物/订单卡片刷屏 */
+  function marketGapMs() {
+    const raw = Math.round(Number(App.state.settings.taMarketGapMin));
+    const mins = Number.isFinite(raw) && raw > 0 ? raw : 5;
+    return Math.max(1, Math.min(1440, mins)) * 60000;
+  }
+
+  function marketDailyCap() {
+    const raw = Math.round(Number(App.state.settings.taMarketDailyLimit));
+    const cap = Number.isFinite(raw) ? raw : 8;
+    /* 填 0 就是今天一条都不发 */
+    return Math.max(0, Math.min(999, cap));
+  }
+
+  function dayStamp() {
+    const d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
   /* 5 个动作各自独立一个概率：每个概率只控制自己那件事出现的频率，
      概率越小那件事越少出现，填 0 就基本不会出现 */
   const TA_MARKET_ACTIONS = [
@@ -142,8 +162,24 @@
   /* TA 在集市里的自发行为：每个动作按自己的概率单独判定，一次最多只发一条 */
   function taMarketTick() {
     if (!Array.isArray(App.state.market.products) || !products().length) return;
+    /* 页面在后台时不判定，免得切回来的那一刻被塞一条 */
+    if (document.hidden) return;
     const contact = currentContact();
     if (!contact) return;
+
+    /* 每日条数上限 + 判定间隔：先把节奏卡住，再谈概率 */
+    const market = App.state.market;
+    const stamp = dayStamp();
+    if (market.taDay !== stamp) {
+      market.taDay = stamp;
+      market.taCount = 0;
+    }
+    if ((Number(market.taCount) || 0) >= marketDailyCap()) return;
+    const now = Date.now();
+    if (now - (Number(market.taLastAt) || 0) < marketGapMs()) return;
+    /* 这次判定机会用掉了，没命中也要等到下一个间隔 */
+    market.taLastAt = now;
+    App.save();
 
     /* 每件事各掷一次骰子：命中几件事就把几件放进候选，
        一件都没命中就什么都不发，下一次再按概率判定 */
@@ -215,6 +251,7 @@
     }
 
     if (!done) return;
+    market.taCount = (Number(market.taCount) || 0) + 1;
     App.save();
     if (el('#view-market').classList.contains('is-active')) App.renderMarket();
   }
