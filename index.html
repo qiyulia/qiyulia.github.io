@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-121">
+<link rel="stylesheet" href="css/style.css?v=20261118-125">
 </head>
 <body>
 <div class="stage">
@@ -110,6 +110,13 @@ if ('caches' in window) {
                   </span>
                   <span class="app-entry-label">聊天</span>
                   <span class="badge badge-dot" id="d-badge-chat" hidden></span>
+                </button>
+                <button type="button" class="app-entry" data-go="groups">
+                  <span class="software-icon groups-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="11" r="4.2"/><circle cx="21.5" cy="12.5" r="4.2"/><path d="M4 24.5c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"/><path d="M18 24.5c0-3.6 2.7-5.5 6.2-5.5 1.2 0 2.4.2 3.5.6"/></svg>
+                  </span>
+                  <span class="app-entry-label">群聊</span>
+                  <span class="badge badge-dot" id="d-badge-groups" hidden></span>
                 </button>
                 <button type="button" class="app-entry" data-go="moments">
                   <span class="software-icon moments-app-icon">
@@ -885,6 +892,123 @@ if ('caches' in window) {
           </div>
         </div>
         <p id="sticker-status" class="sticker-status" hidden></p>
+      </div>
+    </section>
+
+    <!-- ============ 群聊：列表 ============ -->
+    <section id="view-groups" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回主页">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>群聊</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body groups-body">
+        <button type="button" class="btn primary groups-create" id="btn-group-create">＋ 发起群聊</button>
+        <div id="groups-list" class="groups-list"></div>
+        <p class="groups-empty" id="groups-empty" hidden>还没有群。点上面的「发起群聊」，把喜欢的角色拉到一起吧。</p>
+      </div>
+    </section>
+
+    <!-- ============ 群聊：聊天 ============ -->
+    <section id="view-group-chat" class="view">
+      <header class="topbar chat-topbar">
+        <button type="button" class="icon-btn" data-back="groups" aria-label="返回群列表">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <div class="chat-peer">
+          <button type="button" class="avatar sm grp-head-avatar" id="grp-head-avatar" data-go="group-settings" aria-label="群聊设置"></button>
+          <button type="button" class="chat-peer-text" data-go="group-settings" aria-label="群聊设置">
+            <strong id="grp-name">群聊</strong>
+            <span id="grp-members-note"></span>
+          </button>
+        </div>
+        <button type="button" class="icon-btn" data-go="group-settings" aria-label="群聊设置" title="群聊设置">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+        </button>
+      </header>
+      <div id="grp-scroll" class="chat-scroll">
+        <div class="chat-hint">群聊只保存在这台设备上</div>
+        <div id="grp-list" class="chat-list"></div>
+      </div>
+      <form id="grp-composer" class="composer">
+        <button type="button" class="composer-icon-btn" id="grp-at-btn" aria-label="点名成员" title="点名成员">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.6 7.2"/></svg>
+        </button>
+        <textarea id="grp-input" rows="1" maxlength="500" placeholder="说点什么，@可以点名…" aria-label="群聊输入"></textarea>
+        <button type="submit" class="send-btn" aria-label="发送">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-7-7 16-2.2-6.8L4 12z"/></svg>
+        </button>
+      </form>
+      <div id="grp-mention-sheet" class="tool-overlay" hidden>
+        <div class="tool-overlay-backdrop" data-tool-close></div>
+        <div class="tool-overlay-card grp-mention-sheet">
+          <div class="sheet-head">
+            <h3>点名谁</h3>
+            <button type="button" class="icon-btn" data-tool-close aria-label="关闭">×</button>
+          </div>
+          <div class="tool-sheet-body">
+            <div id="grp-mention-list" class="grp-mention-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 群聊：设置 ============ -->
+    <section id="view-group-settings" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="group-chat" aria-label="返回群聊">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>群聊设置</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body">
+        <div class="panel">
+          <h3>群信息</h3>
+          <label class="field"><span>群名称</span><input id="grp-set-name" maxlength="20" placeholder="给群起个名字"></label>
+          <div class="grp-avatar-row">
+            <div id="grp-set-avatar" class="grp-avatar-wrap" aria-hidden="true"></div>
+            <div class="grp-avatar-actions">
+              <label class="btn ghost" for="grp-avatar-file" role="button" tabindex="0">上传群头像
+                <input type="file" id="grp-avatar-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
+              </label>
+              <button type="button" class="btn ghost" id="grp-avatar-reset">恢复默认九宫格</button>
+            </div>
+          </div>
+          <p class="panel-note">不传头像时，用成员头像拼成九宫格。</p>
+        </div>
+        <div class="panel">
+          <h3>成员</h3>
+          <div id="grp-members-list" class="grp-members-list"></div>
+        </div>
+        <div class="panel">
+          <h3>互动设置</h3>
+          <label class="field"><span>角色接别人的话茬（%）</span>
+            <span class="prob-input">
+              <button type="button" class="step-btn" data-step-for="grp-set-link" data-step="-1">−</button>
+              <input id="grp-set-link" type="number" min="0" max="100" step="1" inputmode="numeric">
+              <button type="button" class="step-btn" data-step-for="grp-set-link" data-step="1">+</button>
+            </span>
+          </label>
+          <label class="field"><span>禁言冷却时间（分钟）</span>
+            <span class="prob-input">
+              <button type="button" class="step-btn" data-step-for="grp-set-cd" data-step="-1">−</button>
+              <input id="grp-set-cd" type="number" min="0" max="1440" step="1" inputmode="numeric">
+              <button type="button" class="step-btn" data-step-for="grp-set-cd" data-step="1">+</button>
+            </span>
+          </label>
+          <p class="panel-note">管理员刚禁言过群员后，要等冷却结束才能再次出手。</p>
+        </div>
+        <div class="panel">
+          <h3>管理员禁言时长</h3>
+          <div id="grp-admin-mute-list"></div>
+          <p class="panel-note">每位管理员禁言别人时，在各自的时长区间里随机（单位：分钟）。</p>
+        </div>
+        <div class="panel">
+          <button type="button" class="btn danger" id="grp-set-delete">解散本群</button>
+        </div>
       </div>
     </section>
 
@@ -2503,6 +2627,23 @@ if ('caches' in window) {
   </form>
 </dialog>
 
+<!-- ============ 群聊：发起群聊 ============ -->
+<dialog id="group-create-dialog" class="sheet">
+  <form id="group-create-form">
+    <div class="sheet-head">
+      <h3>发起群聊</h3>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    </div>
+    <p class="field-hint">勾选要拉进群的角色（至少 2 个）。</p>
+    <div id="group-create-members" class="grp-mention-list"></div>
+    <label class="field"><span>群名称</span><input id="group-create-name" maxlength="20" placeholder="如：相亲相爱一家人"></label>
+    <div class="confirm-actions">
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="submit" class="btn primary" id="group-create-ok">创建</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- ============ 站内确认弹窗 ============ -->
 <dialog id="confirm-dialog">
   <div class="confirm-head">
@@ -2599,21 +2740,22 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261118-121"></script>
-<script src="js/seed.js?v=20261118-121"></script>
-<script src="js/store.js?v=20261118-121"></script>
-<script src="js/desktop.js?v=20261118-121"></script>
-<script src="js/chat.js?v=20261118-121"></script>
-<script src="js/cards.js?v=20261118-121"></script>
-<script src="js/settings.js?v=20261118-121"></script>
-<script src="js/moments.js?v=20261118-121"></script>
-<script src="js/calendar.js?v=20261118-121"></script>
-<script src="js/music.js?v=20261118-121"></script>
-<script src="js/market.js?v=20261118-121"></script>
-<script src="js/mail.js?v=20261118-121"></script>
-<script src="js/extras.js?v=20261118-121"></script>
-<script src="js/companion.js?v=20261118-121"></script>
-<script src="js/memoir.js?v=20261118-121"></script>
-<script src="js/app.js?v=20261118-121"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-125"></script>
+<script src="js/seed.js?v=20261118-125"></script>
+<script src="js/store.js?v=20261118-125"></script>
+<script src="js/desktop.js?v=20261118-125"></script>
+<script src="js/chat.js?v=20261118-125"></script>
+<script src="js/cards.js?v=20261118-125"></script>
+<script src="js/settings.js?v=20261118-125"></script>
+<script src="js/moments.js?v=20261118-125"></script>
+<script src="js/calendar.js?v=20261118-125"></script>
+<script src="js/music.js?v=20261118-125"></script>
+<script src="js/market.js?v=20261118-125"></script>
+<script src="js/mail.js?v=20261118-125"></script>
+<script src="js/extras.js?v=20261118-125"></script>
+<script src="js/companion.js?v=20261118-125"></script>
+<script src="js/memoir.js?v=20261118-125"></script>
+<script src="js/group.js?v=20261118-125"></script>
+<script src="js/app.js?v=20261118-125"></script>
 </body>
 </html>

@@ -6153,3 +6153,161 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 .memoir-stats span { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11.5px; color: #a08d87; }
 .memoir-stats strong { font-size: 22px; color: #a95d4b; }
 .memoir-foot { text-align: center; font-size: 11px; color: #b9a49d; margin: 18px 0 0; }
+
+/* ---------------- 群聊 ---------------- */
+.groups-body { display: flex; flex-direction: column; gap: 12px; }
+.groups-body > .btn { flex: 0 0 auto; }
+.groups-create { align-self: stretch; }
+.groups-list { display: flex; flex-direction: column; gap: 4px; }
+.groups-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  text-align: left;
+  cursor: pointer;
+}
+.groups-row:active { opacity: .85; }
+.groups-avatar { flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center; }
+.groups-copy { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.groups-copy strong { font-size: 13.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.groups-copy span { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.groups-side { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.groups-side em { font-style: normal; font-size: 10px; color: var(--muted); }
+.groups-side i { font-style: normal; font-size: 10px; color: var(--muted); }
+.groups-side b { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #ff5b5b; color: #fff; font-size: 10px; font-weight: 600; display: grid; place-items: center; }
+.groups-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 26px 10px; }
+
+/* 九宫格群头像 */
+.grp-avatar9 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--glass-line);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.grp-avatar9.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grp-avatar9 i {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--accent-soft);
+  font-size: 9px;
+  font-style: normal;
+}
+.grp-avatar9 i .avatar-emoji { font-size: 12px; line-height: 1; }
+.grp-avatar9 i .avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.grp-avatar-img { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid var(--glass-line); }
+.grp-avatar-img .avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.grp-avatar-img .avatar-emoji { font-size: 20px; }
+.grp-avatar9.lg, .grp-avatar-img.lg { width: 64px; height: 64px; border-radius: 14px; }
+.grp-avatar9.lg i .avatar-emoji { font-size: 17px; }
+.grp-avatar-img.lg .avatar-emoji { font-size: 28px; }
+.grp-avatar-head { display: inline-grid; place-items: center; }
+.grp-avatar-head .grp-avatar9, .grp-avatar-head .grp-avatar-img { width: 36px; height: 36px; border-radius: 8px; padding: 1.5px; }
+.grp-avatar-head .grp-avatar9 i .avatar-emoji { font-size: 8px; }
+.grp-avatar-wrap { flex: 0 0 auto; width: 64px; height: 64px; display: grid; place-items: center; }
+.grp-avatar-setting { width: 64px; height: 64px; }
+.grp-avatar-setting .grp-avatar9, .grp-avatar-setting .grp-avatar-img { width: 64px; height: 64px; }
+.grp-avatar-row { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+.grp-avatar-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* 群聊消息：发送者昵称在气泡上方（微信群样式） */
+.grp-author {
+  display: block;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin: 0 0 3px 4px;
+}
+.msg.me .msg-bubble-hit { align-items: flex-end; }
+.msg .msg-bubble-hit .grp-author { text-align: left; }
+.grp-sysline {
+  align-self: center;
+  max-width: 86%;
+  margin: 8px 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--field);
+  color: var(--muted);
+  font-size: 10.5px;
+  text-align: center;
+}
+.grp-typing { display: flex; align-items: center; gap: 8px; margin: 6px 0 6px 4px; }
+.grp-typing-name { font-size: 10.5px; color: var(--muted); }
+.grp-typing .typing { transform: scale(.8); transform-origin: left center; }
+
+/* 群设置 */
+.grp-members-list { display: flex; flex-direction: column; gap: 4px; }
+.grp-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 12px;
+}
+.grp-member-row:active { background: var(--field); }
+.grp-member-copy { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.grp-member-copy strong { font-size: 12.5px; color: var(--ink); }
+.grp-member-copy span { display: flex; gap: 4px; flex-wrap: wrap; }
+.grp-tag { font-style: normal; font-size: 9.5px; padding: 1px 7px; border-radius: 999px; }
+.grp-tag-admin { background: var(--accent-soft); color: var(--accent); }
+.grp-tag-mute { background: rgba(255, 91, 91, .14); color: #d95454; }
+.grp-member-actions { flex: 0 0 auto; display: flex; gap: 6px; white-space: nowrap; }
+.grp-member-actions .mini-btn {
+  flex: 0 0 auto;
+  width: auto;
+  height: 26px;
+  padding: 0 9px;
+  font-size: 10.5px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  white-space: nowrap;
+}
+.grp-admin-range { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.grp-admin-range-name { flex: 1 1 auto; font-size: 12px; color: var(--ink); }
+.grp-admin-range .loc-zone-r-wrap { flex: 0 0 auto; }
+.grp-admin-range input {
+  width: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--ink);
+  font-size: 11px;
+  padding: 4px;
+  text-align: center;
+  -webkit-appearance: none;
+  appearance: none;
+  -moz-appearance: textfield;
+}
+.grp-admin-range input::-webkit-outer-spin-button,
+.grp-admin-range input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* 建群 / 点名弹窗里的成员行 */
+.grp-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  box-sizing: border-box;
+}
+.grp-pick-row:active { background: var(--field); }
+.grp-pick-row input[type="checkbox"] { flex: 0 0 auto; width: 17px; height: 17px; accent-color: var(--accent); }
+.grp-mention-sheet { max-width: 340px; }
+.grp-mention-list { display: flex; flex-direction: column; gap: 2px; }

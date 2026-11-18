@@ -67,7 +67,10 @@
     else if (view === 'location' && App.renderLocation) App.renderLocation();
     else if (view === 'memorywall' && App.renderMemoryWall) App.renderMemoryWall();
     else if (view === 'mood' && App.renderMood) App.renderMood();
-    if (App.applyLook && (view === 'chat-settings' || view === 'desktop' || view === 'chat')) App.applyLook();
+    else if (view === 'groups' && App.renderGroups) App.renderGroups();
+    else if (view === 'group-chat' && App.renderGroupChat) App.renderGroupChat();
+    else if (view === 'group-settings' && App.renderGroupSettings) App.renderGroupSettings();
+    if (App.applyLook && (view === 'chat-settings' || view === 'desktop' || view === 'chat' || view === 'group-chat')) App.applyLook();
   };
 
   /* 站内确认弹窗：返回 Promise<boolean>，替代系统 confirm */
@@ -175,13 +178,25 @@
   }
 
   App.updateBadges = function () {
+    const groupIds = (App.state && Array.isArray(App.state.groups)) ? App.state.groups.map(function (g) { return g.id; }) : [];
+    const isGroup = {};
+    groupIds.forEach(function (id) { isGroup[id] = true; });
+    /* 单聊角标不含群聊未读，群聊单独一个角标 */
     const total = Object.keys(App.unread).reduce(function (sum, key) {
+      if (isGroup[key]) return sum;
       return sum + (App.unread[key] || 0);
     }, 0);
     const badge = document.getElementById('d-badge-msg');
     if (badge) {
       badge.hidden = total === 0;
       badge.textContent = total > 99 ? '99+' : String(total);
+    }
+    /* 群聊有自己的角标 */
+    const groupTotal = groupIds.reduce(function (sum, id) { return sum + (App.unread[id] || 0); }, 0);
+    const groupBadge = document.getElementById('d-badge-groups');
+    if (groupBadge) {
+      groupBadge.hidden = groupTotal === 0;
+      groupBadge.textContent = groupTotal > 99 ? '99+' : String(groupTotal);
     }
     const chatDot = document.getElementById('d-badge-chat');
     if (chatDot) {
@@ -403,6 +418,7 @@
   if (App.initExtras) App.initExtras();
   if (App.initCompanion) App.initCompanion();
   if (App.initMemoir) App.initMemoir();
+  if (App.initGroups) App.initGroups();
 
   /* 选图前写入的记忆，localStorage 比 sessionStorage 更容易在系统重载后保留 */
   let pickView = null;

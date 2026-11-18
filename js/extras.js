@@ -150,6 +150,17 @@
         chat.classList.remove('has-look-chat-bg');
       }
     }
+    /* 群聊沿用同一张聊天背景 */
+    const groupChat = el('#view-group-chat');
+    if (groupChat) {
+      if (look.chatBg) {
+        groupChat.style.backgroundImage = 'url("' + look.chatBg + '")';
+        groupChat.classList.add('has-look-chat-bg');
+      } else {
+        groupChat.style.backgroundImage = '';
+        groupChat.classList.remove('has-look-chat-bg');
+      }
+    }
     const call = el('#call-overlay');
     if (call) {
       if (look.callBg) {
