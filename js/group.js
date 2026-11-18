@@ -597,6 +597,7 @@
   const GRP_EMOJIS = ['😀', '🥰', '😂', '😭', '😴', '🤔', '👍', '👏', '🌹', '❤️', '✨', '🎉', '🍰', '☕', '🌙', '🐱', '🐶', '💤', '🥺', '😘'];
   let grpStickerSide = 'me';
   let grpInteractCid = null;
+  let grpMuteCid = null;
   let grpPanelOpenedAt = 0;
 
   function closeGrpPanels() {
@@ -973,14 +974,19 @@
         const cid = muteBtn.dataset.grpMute;
         const c = contactById(cid);
         if (!c) return;
-        const minutes = randInt(
-          Math.max(1, Number(g.settings.adminMuteMin) || 1),
-          Math.max(1, Number(g.settings.adminMuteMax) || 10)
-        );
-        g.muted[cid] = Date.now() + minutes * 60000;
-        App.save();
-        pushGroupSystem(g.id, '群主将「' + c.name + '」禁言 ' + minutes + ' 分钟');
-        renderGroupSettings();
+        grpMuteCid = cid;
+        const text = el('#grp-mute-text');
+        if (text) text.textContent = '禁言「' + c.name + '」多久？';
+        const minutesInput = el('#grp-mute-minutes');
+        if (minutesInput) minutesInput.value = '3';
+        const dialog = el('#grp-mute-dialog');
+        if (dialog) {
+          dialog.showModal();
+          if (minutesInput) {
+            minutesInput.focus();
+            try { minutesInput.select(); } catch (err) {}
+          }
+        }
         return;
       }
       const unmuteBtn = e.target.closest('[data-grp-unmute]');
@@ -994,6 +1000,35 @@
         renderGroupSettings();
         return;
       }
+    });
+
+    /* 禁言弹窗：默认 3 分钟，可自己改，点确定立即开始禁言 */
+    const muteOkBtn = el('#grp-mute-ok');
+    const muteMinutesInput = el('#grp-mute-minutes');
+    if (muteMinutesInput) muteMinutesInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (muteOkBtn) muteOkBtn.click();
+      }
+    });
+    if (muteOkBtn) muteOkBtn.addEventListener('click', function () {
+      const g = groupById(currentGroupId);
+      const c = contactById(grpMuteCid);
+      const dialog = el('#grp-mute-dialog');
+      if (!g || !c) {
+        if (dialog) dialog.close();
+        return;
+      }
+      const input = el('#grp-mute-minutes');
+      let minutes = Math.round(Number(input && input.value));
+      if (!isFinite(minutes) || minutes < 1) minutes = 3;
+      minutes = Math.max(1, Math.min(1440, minutes));
+      g.muted[c.id] = Date.now() + minutes * 60000;
+      App.save();
+      pushGroupSystem(g.id, '群主将「' + c.name + '」禁言 ' + minutes + ' 分钟');
+      grpMuteCid = null;
+      if (dialog) dialog.close();
+      renderGroupSettings();
     });
 
     const deleteBtn = el('#grp-set-delete');

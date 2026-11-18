@@ -2246,6 +2246,60 @@ dialog.sheet form {
 #confirm-dialog .confirm-text { padding: 8px 16px 0; font-size: 13px; line-height: 1.7; color: var(--muted); white-space: pre-line; word-break: break-word; max-height: 46vh; overflow-y: auto; }
 #confirm-dialog .confirm-actions { display: flex; gap: 10px; padding: 16px; }
 #confirm-dialog .confirm-actions .btn { flex: 1; }
+/* 群聊禁言时长弹窗：复用确认弹窗的外观 */
+#grp-mute-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(80vw, 300px);
+  height: fit-content;
+  max-width: calc(100vw - 48px);
+  max-height: none;
+  border: none;
+  padding: 0;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(20, 20, 20, .34);
+}
+#grp-mute-dialog::backdrop { background: rgba(18, 16, 14, .42); }
+#grp-mute-dialog .confirm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 16px 0;
+}
+#grp-mute-dialog .confirm-head h3 { font-size: 15px; font-weight: 600; }
+#grp-mute-dialog .confirm-close { width: 24px; height: 24px; flex: 0 0 auto; font-size: 18px; line-height: 1; color: var(--muted); }
+#grp-mute-dialog .confirm-text { padding: 8px 16px 0; font-size: 13px; line-height: 1.7; color: var(--muted); }
+#grp-mute-dialog .grp-mute-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 16px 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+#grp-mute-dialog .grp-mute-field input {
+  width: 110px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  text-align: center;
+  outline: none;
+}
+#grp-mute-dialog .grp-mute-field input:focus { border-color: var(--accent); }
+#grp-mute-dialog .grp-mute-field input::-webkit-inner-spin-button,
+#grp-mute-dialog .grp-mute-field input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+#grp-mute-dialog .grp-mute-field input[type="number"] { -moz-appearance: textfield; }
+#grp-mute-dialog .confirm-actions { display: flex; gap: 10px; padding: 16px; }
+#grp-mute-dialog .confirm-actions .btn { flex: 1; }
 dialog.sheet { max-height: 86vh; }
 dialog.sheet form { max-height: 86vh; overflow-y: auto; }
 /* 拍一拍选择面板（普通浮层，不是 dialog） */

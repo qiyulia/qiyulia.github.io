@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-133">
+<link rel="stylesheet" href="css/style.css?v=20261118-134">
 </head>
 <body>
 <div class="stage">
@@ -2705,6 +2705,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
+<!-- ============ 群聊：禁言时长选择 ============ -->
+<dialog id="grp-mute-dialog">
+  <div class="confirm-head">
+    <h3>禁言成员</h3>
+    <button type="button" class="icon-btn confirm-close" data-close aria-label="关闭">×</button>
+  </div>
+  <p class="confirm-text" id="grp-mute-text">禁言这位成员多久？</p>
+  <div class="grp-mute-field">
+    <input id="grp-mute-minutes" type="number" min="1" max="1440" step="1" inputmode="numeric" value="3">
+    <span>分钟</span>
+  </div>
+  <div class="confirm-actions">
+    <button type="button" class="btn ghost" data-close>取消</button>
+    <button type="button" class="btn primary" id="grp-mute-ok">确定</button>
+  </div>
+</dialog>
+
 <!-- ============ 信箱：写信 / 回信 ============ -->
 <dialog id="mail-dialog" class="sheet">
   <form id="mail-form">
@@ -2788,22 +2805,22 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261118-133"></script>
-<script src="js/seed.js?v=20261118-133"></script>
-<script src="js/store.js?v=20261118-133"></script>
-<script src="js/desktop.js?v=20261118-133"></script>
-<script src="js/chat.js?v=20261118-133"></script>
-<script src="js/cards.js?v=20261118-133"></script>
-<script src="js/settings.js?v=20261118-133"></script>
-<script src="js/moments.js?v=20261118-133"></script>
-<script src="js/calendar.js?v=20261118-133"></script>
-<script src="js/music.js?v=20261118-133"></script>
-<script src="js/market.js?v=20261118-133"></script>
-<script src="js/mail.js?v=20261118-133"></script>
-<script src="js/extras.js?v=20261118-133"></script>
-<script src="js/companion.js?v=20261118-133"></script>
-<script src="js/memoir.js?v=20261118-133"></script>
-<script src="js/group.js?v=20261118-133"></script>
-<script src="js/app.js?v=20261118-133"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-134"></script>
+<script src="js/seed.js?v=20261118-134"></script>
+<script src="js/store.js?v=20261118-134"></script>
+<script src="js/desktop.js?v=20261118-134"></script>
+<script src="js/chat.js?v=20261118-134"></script>
+<script src="js/cards.js?v=20261118-134"></script>
+<script src="js/settings.js?v=20261118-134"></script>
+<script src="js/moments.js?v=20261118-134"></script>
+<script src="js/calendar.js?v=20261118-134"></script>
+<script src="js/music.js?v=20261118-134"></script>
+<script src="js/market.js?v=20261118-134"></script>
+<script src="js/mail.js?v=20261118-134"></script>
+<script src="js/extras.js?v=20261118-134"></script>
+<script src="js/companion.js?v=20261118-134"></script>
+<script src="js/memoir.js?v=20261118-134"></script>
+<script src="js/group.js?v=20261118-134"></script>
+<script src="js/app.js?v=20261118-134"></script>
 </body>
 </html>
