@@ -338,7 +338,7 @@
       : Math.max(0, Math.min(100, Number(settings.taMailProb) || 0));
     if (lastTa && Date.now() - lastTa.ts < cooldownMin * 60000) return;
     if (Math.random() * 100 >= prob) return;
-    if (!App.taDisturbHit()) return;
+    if (!App.taDisturbHit('mail')) return;
 
     const contact = fallbackContact();
     if (!contact) return;

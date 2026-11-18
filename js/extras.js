@@ -536,7 +536,7 @@
     /* 上一份问卷还没答，就先不再发新的 */
     if (chat.some(function (m) { return m.type === 'survey' && m.role === 'ta' && !m.answered; })) return;
     if (Math.random() * 100 >= taSurveyProbability()) return;
-    if (!App.taDisturbHit()) return;
+    if (!App.taDisturbHit('survey')) return;
     settings.taSurveyLastAt = Date.now();
     App.save();
     sendTaSurvey(contactId, 1500 + Math.random() * 3000);

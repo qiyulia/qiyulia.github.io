@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-217">
+<link rel="stylesheet" href="css/style.css?v=20261118-218">
 </head>
 <body>
 <div class="stage">
@@ -857,6 +857,10 @@ if ('caches' in window) {
           有新消息
         </button>
       </div>
+      <!-- 正在输入：固定在右下角的浮层，往上翻聊天记录也一直看得见，直到 TA 发出消息 -->
+      <div id="chat-typing-float" class="chat-typing-float" hidden aria-hidden="true">
+        <div class="typing"><span></span><span></span><span></span></div>
+      </div>
       <div id="composer-quote" class="composer-quote" hidden>
         <div class="composer-quote-copy">
           <strong id="composer-quote-name"></strong>
@@ -1080,7 +1084,8 @@ if ('caches' in window) {
           <button type="button" class="chat-settings-tab is-on" role="tab" id="chat-tab-reply" aria-selected="true" aria-controls="reply-settings-panel" data-chat-settings-page="0">回复</button>
           <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-music" aria-selected="false" aria-controls="music-settings-panel" data-chat-settings-page="1" tabindex="-1">音乐互动</button>
           <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-moments" aria-selected="false" aria-controls="moments-settings-panel" data-chat-settings-page="2" tabindex="-1">朋友圈互动</button>
-          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-data" aria-selected="false" aria-controls="data-settings-panel" data-chat-settings-page="3" tabindex="-1">数据</button>
+          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-disturb" aria-selected="false" aria-controls="disturb-settings-panel" data-chat-settings-page="3" tabindex="-1">主动打扰</button>
+          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-data" aria-selected="false" aria-controls="data-settings-panel" data-chat-settings-page="4" tabindex="-1">数据</button>
         </div>
         <div class="chat-settings-pager" id="chat-settings-pager">
           <section class="chat-settings-page reply-settings-page" id="reply-settings-panel" role="tabpanel" aria-labelledby="chat-tab-reply" aria-label="回复设置">
@@ -1410,6 +1415,23 @@ if ('caches' in window) {
             </div>
           </section>
 
+          <section class="chat-settings-page" id="disturb-settings-panel" role="tabpanel" aria-labelledby="chat-tab-disturb" aria-label="主动打扰设置" hidden>
+            <div class="panel">
+              <h3 class="settings-subtitle">主动打扰</h3>
+              <p class="panel-note">下面 5 件事<b>各算各的次数</b>，谁也不占谁的：填几就是这一类一天最多几次，发满当天只有这一类安静，第二天零点各自恢复；填 <b>0</b> 就是这一类彻底不让 TA 自己冒出来。这里只管「每天几次」，各类的触发概率和冷却还在原来的设置里。朋友圈和集市各有自己的上限，不占这里的次数。</p>
+              <label class="field"><span>主动发消息 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-msg" type="number" min="0" max="999" step="1" inputmode="numeric"></label>
+              <p class="field-hint" id="disturb-used-msg">今天已用 0 次。</p>
+              <label class="field"><span>拍一拍 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-pat" type="number" min="0" max="999" step="1" inputmode="numeric"></label>
+              <p class="field-hint" id="disturb-used-pat">今天已用 0 次。</p>
+              <label class="field"><span>邀请一起听歌 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-music" type="number" min="0" max="999" step="1" inputmode="numeric"></label>
+              <p class="field-hint" id="disturb-used-music">今天已用 0 次。</p>
+              <label class="field"><span>发问卷 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-survey" type="number" min="0" max="999" step="1" inputmode="numeric"></label>
+              <p class="field-hint" id="disturb-used-survey">今天已用 0 次。</p>
+              <label class="field"><span>写信 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-mail" type="number" min="0" max="999" step="1" inputmode="numeric"></label>
+              <p class="field-hint" id="disturb-used-mail">今天已用 0 次。</p>
+            </div>
+          </section>
+
           <section class="chat-settings-page" id="data-settings-panel" role="tabpanel" aria-labelledby="chat-tab-data" aria-label="聊天数据设置" hidden>
             <div class="panel">
               <h3>本次聊天</h3>
@@ -1663,13 +1685,6 @@ if ('caches' in window) {
           <p class="field-hint">即使你不发问卷，TA 也会按这个概率主动给你发一份，点开卡片就能直接作答。</p>
           <label class="field"><span>发问卷冷却时间（分钟）</span><input autocomplete="off" id="set-ta-survey-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
           <p class="field-hint">冷却时间内 TA 不会再发新的问卷；上一份还没答完时也会先等着。</p>
-        </div>
-
-        <div class="panel">
-          <h3>主动打扰总闸</h3>
-          <label class="field"><span>TA 每天最多主动冒出来几次</span><input autocomplete="off" id="set-ta-daily-disturb" inputmode="numeric" maxlength="4" placeholder="12"></label>
-          <p class="field-hint">主动发消息、拍一拍、邀请一起听歌、发问卷、写信共用这个次数。填 12 就是一天最多 12 次，发满当天 TA 就不再自己冒出来，第二天零点恢复；填 <b>0</b> 就是彻底安静，只在你主动找 TA 时才回应。朋友圈和集市各有自己的上限，不占这里的次数。</p>
-          <p class="field-hint" id="disturb-today-hint">今天已用 0 次。</p>
         </div>
 
         <div class="panel">
@@ -2811,23 +2826,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/no-autofill.js?v=20261118-217"></script>
-<script src="js/vendor/html2canvas.min.js?v=20261118-217"></script>
-<script src="js/seed.js?v=20261118-217"></script>
-<script src="js/store.js?v=20261118-217"></script>
-<script src="js/desktop.js?v=20261118-217"></script>
-<script src="js/chat.js?v=20261118-217"></script>
-<script src="js/cards.js?v=20261118-217"></script>
-<script src="js/settings.js?v=20261118-217"></script>
-<script src="js/moments.js?v=20261118-217"></script>
-<script src="js/calendar.js?v=20261118-217"></script>
-<script src="js/music.js?v=20261118-217"></script>
-<script src="js/market.js?v=20261118-217"></script>
-<script src="js/mail.js?v=20261118-217"></script>
-<script src="js/extras.js?v=20261118-217"></script>
-<script src="js/companion.js?v=20261118-217"></script>
-<script src="js/memoir.js?v=20261118-217"></script>
-<script src="js/group.js?v=20261118-217"></script>
-<script src="js/app.js?v=20261118-217"></script>
+<script src="js/no-autofill.js?v=20261118-218"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-218"></script>
+<script src="js/seed.js?v=20261118-218"></script>
+<script src="js/store.js?v=20261118-218"></script>
+<script src="js/desktop.js?v=20261118-218"></script>
+<script src="js/chat.js?v=20261118-218"></script>
+<script src="js/cards.js?v=20261118-218"></script>
+<script src="js/settings.js?v=20261118-218"></script>
+<script src="js/moments.js?v=20261118-218"></script>
+<script src="js/calendar.js?v=20261118-218"></script>
+<script src="js/music.js?v=20261118-218"></script>
+<script src="js/market.js?v=20261118-218"></script>
+<script src="js/mail.js?v=20261118-218"></script>
+<script src="js/extras.js?v=20261118-218"></script>
+<script src="js/companion.js?v=20261118-218"></script>
+<script src="js/memoir.js?v=20261118-218"></script>
+<script src="js/group.js?v=20261118-218"></script>
+<script src="js/app.js?v=20261118-218"></script>
 </body>
 </html>

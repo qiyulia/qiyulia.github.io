@@ -229,20 +229,18 @@
     show('profile');
   }
 
-  /* 集市：只让用户填「每天几条」，间隔按 24 小时自动平均后显示出来 */
+  /* 主动打扰：5 类各自独立的每日次数，分别显示今天已用多少 */
   function renderDisturbHint() {
-    const hint = el('#disturb-today-hint');
-    if (!hint) return;
-    const st = App.state;
-    const raw = Math.round(Number(st.settings && st.settings.taDailyDisturbLimit));
-    const limit = Number.isFinite(raw) ? Math.max(0, Math.min(999, raw)) : 12;
-    const q = st.taDisturb;
-    const d = new Date();
-    const day = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-    const used = q && q.day === day ? (Number(q.count) || 0) : 0;
-    hint.textContent = limit <= 0
-      ? '当前：已关闭，TA 不会自己冒出来，只会在你找 TA 时回应。'
-      : '今天已用 ' + used + ' / ' + limit + ' 次，第二天零点重置。';
+    if (!App.TA_DISTURB_FIELDS) return;
+    Object.keys(App.TA_DISTURB_FIELDS).forEach(function (k) {
+      const hint = el('#disturb-used-' + k);
+      if (!hint) return;
+      const limit = App.taDisturbLimit(k);
+      const used = App.taDisturbUsed(k);
+      hint.textContent = limit <= 0
+        ? '这一类已关闭，TA 不会自己冒出来。'
+        : '今天已用 ' + used + ' / ' + limit + ' 次，第二天零点重置。';
+    });
   }
 
   function renderMarketIntervalHint() {
@@ -343,7 +341,10 @@
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
     el('#set-ta-survey-prob').value = st.settings.taSurveyProb == null ? 10 : st.settings.taSurveyProb;
     el('#set-ta-survey-cooldown').value = st.settings.taSurveyCooldownMin == null ? 30 : st.settings.taSurveyCooldownMin;
-    el('#set-ta-daily-disturb').value = st.settings.taDailyDisturbLimit == null ? 12 : st.settings.taDailyDisturbLimit;
+    Object.keys(App.TA_DISTURB_FIELDS).forEach(function (k) {
+      const input = el('#set-disturb-' + k);
+      if (input) input.value = App.taDisturbLimit(k);
+    });
     el('#set-ta-daily-allowance').value = st.settings.taDailyAllowance == null ? 30 : st.settings.taDailyAllowance;
     el('#set-ta-market-daily').value = st.settings.taMarketDailyLimit == null ? 8 : st.settings.taMarketDailyLimit;
     renderMarketIntervalHint();
@@ -680,16 +681,18 @@
         });
       });
     }
-    const disturbInput = el('#set-ta-daily-disturb');
-    if (disturbInput) {
-      disturbInput.addEventListener('input', function () {
-        const raw = String(disturbInput.value || '').trim();
+    /* 主动打扰：5 类各自独立的每日次数，改哪一个只影响那一类 */
+    Object.keys(App.TA_DISTURB_FIELDS).forEach(function (k) {
+      const input = el('#set-disturb-' + k);
+      if (!input) return;
+      input.addEventListener('input', function () {
+        const raw = String(input.value || '').trim();
         if (!raw) return;
-        App.state.settings.taDailyDisturbLimit = Math.max(0, Math.min(999, parseInt(raw, 10) || 0));
+        App.state.settings[App.TA_DISTURB_FIELDS[k].setting] = Math.max(0, Math.min(999, parseInt(raw, 10) || 0));
         renderDisturbHint();
         App.save();
       });
-    }
+    });
     bindMinutes('#set-ta-survey-cooldown', 'taSurveyCooldownMin', 1440);
 
     const notifyToggle = el('#set-notify-enabled');

@@ -23,6 +23,8 @@
   /* 聊天只渲染最近这些条，往上看时再分批加载，避免几千条时整屏重建卡住 */
   const CHAT_PAGE_SIZE = 200;
   let chatVisibleCount = CHAT_PAGE_SIZE;
+  /* 「加载更早」自己会补高度差，这一次重绘就不要再走锚点补偿，免得补两次跳过头 */
+  let suppressAnchor = false;
 
   function sendRole() {
     return App.stickerTab === 'ta' ? 'ta' : 'me';
@@ -114,11 +116,15 @@
       }
     });
     const list = el('#chat-list');
+    /* 这一次是否由调用方自己负责恢复滚动位置（「加载更早」就是这么干的） */
+    const skipRestore = suppressAnchor;
     /* 重绘前记住已经在屏上的消息，重绘后让它们不再播放入场动画，避免整屏闪一下 */
     const seen = {};
     Array.prototype.forEach.call(list.querySelectorAll('[data-msg-id]'), function (node) {
       seen[node.getAttribute('data-msg-id')] = true;
     });
+    /* 不在底部时先钉住视口顶部的消息，重绘后原样放回去 */
+    const anchor = (stickBottom || skipRestore) ? null : captureScrollAnchor(box, list);
     const earlierBtn = hiddenCount > 0
       ? '<button type="button" class="chat-load-earlier" data-chat-load-earlier>加载更早的消息（还有 ' + hiddenCount + ' 条）</button>'
       : '';
@@ -129,8 +135,8 @@
       if (seen[node.getAttribute('data-msg-id')]) node.classList.add('is-static');
     });
     bindVoiceBubbles(list);
-    /* 回到聊天时，如果 TA 还在打字，把三个点补回来 */
-    if (typingAllowed(id)) list.appendChild(typingRow());
+    /* 正在输入是右下角浮层，不占消息列表的位置，也不会推动滚动 */
+    syncTypingRow(id);
     updateSideButtons();
     if (App.renderChatLocation) App.renderChatLocation();
     renderStickerPanel();
@@ -140,25 +146,39 @@
       requestAnimationFrame(function () { scrollBottom(true); });
       toggleNewMsg(false);
     } else {
-      setScrollTop(box, prevTop);
-      requestAnimationFrame(function () { setScrollTop(box, prevTop); });
+      /* 「加载更早」会自己把锚点消息钉回原位，这次重绘谁都别碰滚动，
+         否则两处补偿会互相打架，画面反而跳过头 */
+      if (!skipRestore) {
+        const pinned = restoreScrollAnchor(box, list, anchor);
+        if (!pinned) setScrollTop(box, prevTop);
+        requestAnimationFrame(function () {
+          if (!restoreScrollAnchor(box, list, anchor)) setScrollTop(box, prevTop);
+        });
+      }
       if (arrivedFromTa) toggleNewMsg(true);
     }
   };
 
-  /* 点「加载更早」往上多显示一页，并补偿滚动高度，别让画面跳走 */
+  /* 点「加载更早」往上多显示一页：钉住此刻视口顶部那条消息，
+     重绘后让它回到同一个屏幕位置，画面就完全不跳。
+     用锚点而不是「高度差」是因为浏览器可能自己做过滚动锚定，
+     固定加一个高度差容易补多或补少 */
   function loadEarlierChat() {
     const box = el('#chat-scroll');
-    const oldHeight = box ? box.scrollHeight : 0;
+    const list = el('#chat-list');
+    if (!box || !list) return;
+    const anchor = captureScrollAnchor(box, list);
     chatVisibleCount += CHAT_PAGE_SIZE;
     pinBottom = false;
+    /* 这次重绘不碰滚动，下面的锚点补偿是唯一负责人 */
+    suppressAnchor = true;
     App.renderChat();
-    if (!box) return;
-    const delta = box.scrollHeight - oldHeight;
-    if (delta > 0) {
-      setScrollTop(box, box.scrollTop + delta);
-      requestAnimationFrame(function () { setScrollTop(box, box.scrollTop + delta); });
-    }
+    suppressAnchor = false;
+    const restore = function () {
+      restoreScrollAnchor(box, el('#chat-list'), anchor);
+    };
+    restore();
+    requestAnimationFrame(restore);
   }
 
   /* 微信式语音气泡：只用一个播放器，列表重绘、来新消息都不会打断 */
@@ -987,11 +1007,40 @@
     box.style.scrollBehavior = prev;
   }
 
-  /* 是否已经停在最底部（留一点容差） */
+  /* 是否已经停在最底部（容差很小：往上翻一点点就算离开了底部，
+     TA 再来消息就绝不把画面拽下去） */
   function atScrollBottom() {
     const box = el('#chat-scroll');
     if (!box) return true;
-    return box.scrollHeight - box.scrollTop - box.clientHeight <= 24;
+    return box.scrollHeight - box.scrollTop - box.clientHeight <= 4;
+  }
+
+  /* 记住此刻视口顶部那一条消息，以及它离容器顶边的距离。
+     重绘后把同一条消息放回同一位置，画面就一点都不会动——
+     消息超过一页、渲染窗口往前滑了一条时也能精确补回来 */
+  function captureScrollAnchor(box, list) {
+    if (!box || !list) return null;
+    const boxTop = box.getBoundingClientRect().top;
+    const nodes = list.querySelectorAll('[data-msg-id]');
+    for (let i = 0; i < nodes.length; i++) {
+      const rect = nodes[i].getBoundingClientRect();
+      if (rect.bottom > boxTop + 1) {
+        return { id: nodes[i].getAttribute('data-msg-id'), offset: rect.top - boxTop };
+      }
+    }
+    return null;
+  }
+
+  function restoreScrollAnchor(box, list, anchor) {
+    if (!box || !list || !anchor) return false;
+    const nodes = list.querySelectorAll('[data-msg-id]');
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].getAttribute('data-msg-id') !== anchor.id) continue;
+      const delta = (nodes[i].getBoundingClientRect().top - box.getBoundingClientRect().top) - anchor.offset;
+      if (Math.abs(delta) > 0.5) setScrollTop(box, box.scrollTop + delta);
+      return true;
+    }
+    return false;
   }
 
   /* 左下角「有新消息」提示 */
@@ -1007,32 +1056,34 @@
   const typingContacts = {};
   App.typingContacts = typingContacts;
 
-  function typingRow() {
-    const row = document.createElement('div');
-    row.className = 'typing-row';
-    row.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-    return row;
-  }
-
   /* 没有待发消息时不显示正在输入 */
   function typingAllowed(contactId) {
     return typingContacts[contactId] > 0;
   }
 
+  /* 正在输入做成一枚固定在右下角的浮层：不属于消息列表，
+     往上翻聊天记录它也一直挂在右下角，直到 TA 真的发出消息才消失 */
+  function positionTypingFloat() {
+    const float = el('#chat-typing-float');
+    const view = document.getElementById('view-chat');
+    const composer = el('#composer');
+    if (!float || !view || !composer) return;
+    /* 以输入框顶边为准，这样上面弹出引用条时浮层会跟着抬高 */
+    const viewRect = view.getBoundingClientRect();
+    const composerRect = composer.getBoundingClientRect();
+    let above = viewRect.bottom - composerRect.top;
+    /* 底部那条「TA 想知道你在哪」提示条出现时，再往上让一让 */
+    const prompt = el('#chat-loc-prompt');
+    if (prompt && !prompt.hidden) above += prompt.offsetHeight + 8;
+    float.style.bottom = Math.max(12, above + 10) + 'px';
+  }
+
   function syncTypingRow(contactId) {
-    if (!App.chatOpen(contactId)) return;
-    const list = el('#chat-list');
-    if (!list) return;
-    const row = list.querySelector('.typing-row');
-    if (typingAllowed(contactId)) {
-      if (!row) {
-        const stick = atScrollBottom();
-        list.appendChild(typingRow());
-        if (stick) scrollBottom(true);
-      }
-    } else if (row) {
-      row.remove();
-    }
+    const float = el('#chat-typing-float');
+    if (!float) return;
+    const show = typingAllowed(contactId) && App.chatOpen(contactId);
+    float.hidden = !show;
+    if (show) positionTypingFloat();
   }
 
   function setTyping(contactId, on) {
@@ -1297,7 +1348,7 @@
     if (!contact) return;
     const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).taPatProb) || 0));
     if (Math.random() * 100 >= prob) return;
-    if (!App.taDisturbHit()) return;
+    if (!App.taDisturbHit('pat')) return;
 
     const card = App.pickPatCard();
     const raw = card ? card.text : '拍了拍{name}';
@@ -1417,7 +1468,7 @@
     if (now - Math.max(lastTs, lastTaStartAt) < idle) return;
     const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
     if (Math.random() * 100 >= prob) return;
-    if (!App.taDisturbHit()) return;
+    if (!App.taDisturbHit('msg')) return;
 
     /* 这一次主动发几条：在最少～最多之间随机 */
     const min = Math.max(1, Math.min(10, Math.round(Number(cs.taMsgMin) || 1)));
@@ -1807,7 +1858,7 @@
     if (App.musicPlaying && App.musicPlaying()) return;
     const pool = musicInvitePool();
     if (!pool.length) return;
-    if (!App.taDisturbHit()) return;
+    if (!App.taDisturbHit('music')) return;
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       if (App.musicPlaying && App.musicPlaying()) return;
@@ -2679,7 +2730,13 @@
       input.style.height = 'auto';
       /* 多留 1px，避免 scrollHeight 取整多出一点导致右侧冒出滚动条 */
       input.style.height = Math.min(118, input.scrollHeight + 1) + 'px';
+      /* 输入框变高时，右下角的正在输入浮层跟着抬高，别压住输入框 */
+      positionTypingFloat();
     });
+
+    /* 视口尺寸变化 / 键盘弹出收起时，重新把浮层贴到输入框上方 */
+    window.addEventListener('resize', positionTypingFloat);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', positionTypingFloat);
 
     /* 输入法弹出、视口变矮时，消息重新贴到最后一条 */
     let keepBottomRaf = 0;

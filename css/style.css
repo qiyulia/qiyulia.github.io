@@ -1137,6 +1137,9 @@ dialog.moment-sheet {
   gap: 10px;
   scroll-behavior: smooth;
   scrollbar-width: thin;
+  /* 关掉浏览器的自动滚动锚定：重绘时位置完全由脚本控制，
+     不然 TA 发来消息浏览器会自己"帮忙"把画面往上顶一下 */
+  overflow-anchor: none;
 }
 
 .chat-hint {
@@ -2036,11 +2039,16 @@ dialog.moment-sheet {
   align-items: center;
   gap: 8px;
   padding: 0 2px;
+  /* 5 个分类在窄屏放不下时横向滑动，不压缩文字 */
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.chat-settings-tabs::-webkit-scrollbar { display: none; }
 .chat-settings-tab {
-  flex: 1 1 0;
+  flex: 1 0 auto;
+  min-width: 64px;
   min-height: 42px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   white-space: nowrap;
   border-radius: 14px;
   color: var(--muted);
@@ -6642,4 +6650,22 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 .msg-avatar[data-grp-avatar] {
   -webkit-touch-callout: none;
   user-select: none;
+}
+
+/* 正在输入：固定在聊天区右下角的浮层，不属于消息列表，往上翻记录也不动 */
+#view-chat > .chat-typing-float {
+  position: absolute;
+  right: 14px;
+  bottom: 70px;
+  z-index: 9;
+  pointer-events: none;
+  animation: typing-float-in .18s ease both;
+}
+.chat-typing-float[hidden] { display: none; }
+.chat-typing-float .typing {
+  box-shadow: 0 6px 18px var(--shadow);
+}
+@keyframes typing-float-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }

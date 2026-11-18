@@ -148,20 +148,53 @@
     }, 200);
   };
 
-  /* TA 每天主动冒出来的总次数：主动开口、拍一拍、邀请听歌、发问卷、写信共用。
-     命中一次就扣一次，发满当天不再主动打扰；填 0 就是完全安静 */
-  App.taDisturbHit = function () {
-    const st = App.state;
-    if (!st) return false;
-    const raw = Math.round(Number(st.settings && st.settings.taDailyDisturbLimit));
-    const limit = Number.isFinite(raw) ? Math.max(0, Math.min(999, raw)) : 12;
-    if (limit <= 0) return false;
+  /* 主动打扰：5 件事各算各的次数，谁也不占谁的。
+     每一类单独计数、单独封顶，发满当天只有这一类安静，第二天零点各自重置。
+     填 0 就是这一类彻底不主动冒出来。默认合计 12 次，跟以前共用一个总闸时一样，
+     但不会再出现某一件事把次数全吃掉、别的事一次都轮不到。 */
+  const DISTURB_FIELDS = {
+    msg:    { setting: 'taDisturbMsgLimit',    fallback: 3, label: '主动发消息' },
+    pat:    { setting: 'taDisturbPatLimit',    fallback: 3, label: '拍一拍' },
+    music:  { setting: 'taDisturbMusicLimit',  fallback: 2, label: '邀请一起听歌' },
+    survey: { setting: 'taDisturbSurveyLimit', fallback: 2, label: '发问卷' },
+    mail:   { setting: 'taDisturbMailLimit',   fallback: 2, label: '写信' }
+  };
+  App.TA_DISTURB_FIELDS = DISTURB_FIELDS;
+
+  function dayStampNow() {
     const d = new Date();
-    const day = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-    const q = st.taDisturb || (st.taDisturb = { day: day, count: 0 });
-    if (q.day !== day) { q.day = day; q.count = 0; }
-    if ((Number(q.count) || 0) >= limit) return false;
-    q.count = (Number(q.count) || 0) + 1;
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  App.taDisturbLimit = function (key) {
+    const cfg = DISTURB_FIELDS[key];
+    if (!cfg) return 0;
+    const st = App.state;
+    const raw = Math.round(Number(st && st.settings && st.settings[cfg.setting]));
+    return Number.isFinite(raw) ? Math.max(0, Math.min(999, raw)) : cfg.fallback;
+  };
+
+  App.taDisturbUsed = function (key) {
+    const st = App.state;
+    const q = st && st.taDisturb;
+    if (!q || q.day !== dayStampNow()) return 0;
+    return Number(q[key]) || 0;
+  };
+
+  App.taDisturbHit = function (key) {
+    const st = App.state;
+    if (!st || !DISTURB_FIELDS[key]) return false;
+    const limit = App.taDisturbLimit(key);
+    if (limit <= 0) return false;
+    const day = dayStampNow();
+    const q = st.taDisturb || (st.taDisturb = { day: day });
+    if (q.day !== day) {
+      q.day = day;
+      Object.keys(DISTURB_FIELDS).forEach(function (k) { q[k] = 0; });
+      delete q.count;
+    }
+    if ((Number(q[key]) || 0) >= limit) return false;
+    q[key] = (Number(q[key]) || 0) + 1;
     App.save();
     return true;
   };
@@ -695,7 +728,15 @@
     if (s.settings.taMarketFavProb == null) s.settings.taMarketFavProb = 4;
     if (s.settings.taMarketBuyForMeProb == null) s.settings.taMarketBuyForMeProb = 4;
     if (s.settings.taMarketDailyLimit == null) s.settings.taMarketDailyLimit = 8;
-    if (s.settings.taDailyDisturbLimit == null) s.settings.taDailyDisturbLimit = 12;
+    /* 主动打扰：由「一个共用次数」拆成 5 类各自独立的次数。
+       老存档若把总闸关成 0，就沿用为全关；否则给每一类各自的默认值 */
+    const legacyDisturb = Number(s.settings.taDailyDisturbLimit);
+    const disturbAllOff = s.settings.taDailyDisturbLimit != null && legacyDisturb === 0;
+    Object.keys(App.TA_DISTURB_FIELDS).forEach(function (k) {
+      const f = App.TA_DISTURB_FIELDS[k];
+      if (s.settings[f.setting] == null) s.settings[f.setting] = disturbAllOff ? 0 : f.fallback;
+    });
+    delete s.settings.taDailyDisturbLimit;
     if (s.settings.taDailyAllowance == null) s.settings.taDailyAllowance = 30;
     /* 集市互动恢复为 5 个各自独立的概率，清掉中间版本合并出来的单一概率字段；
        间隔改为按「每天几条」自动平均，旧的手动间隔字段不再使用 */
@@ -953,7 +994,6 @@
       taMarketFavProb: pick('taMarketFavProb', 4),
       taMarketBuyForMeProb: pick('taMarketBuyForMeProb', 4),
       taMarketDailyLimit: pick('taMarketDailyLimit', 8),
-      taDailyDisturbLimit: pick('taDailyDisturbLimit', 12),
       taDailyAllowance: pick('taDailyAllowance', 30),
       taStickerProb: pick('taStickerProb', 30),
       taStickerComboProb: pick('taStickerComboProb', 25),
