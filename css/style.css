@@ -6358,9 +6358,13 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 }
 .loc-quick-field input:focus { outline: none; border-color: var(--accent); }
 .loc-quick-actions {
+  position: sticky;
+  bottom: -8px;
   display: flex;
   gap: 8px;
-  margin-top: 14px;
-  padding-bottom: 4px;
+  margin: 10px -14px -8px;
+  padding: 10px 14px calc(10px + var(--safe-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
 }
 .loc-quick-actions .btn { flex: 1 1 0; }
