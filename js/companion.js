@@ -1272,6 +1272,103 @@
     showPanel('#loc-status-dialog');
   }
 
+  /* ---------- 共享定位小窗：可以在聊天界面里自由拖动 ---------- */
+  const LOC_CHIP_POS_KEY = 'shiyi-loc-chip-pos';
+
+  function locChipParent(chip) {
+    return chip.offsetParent || chip.parentElement;
+  }
+
+  function applyLocChipPos(chip) {
+    let pos = null;
+    try { pos = JSON.parse(localStorage.getItem(LOC_CHIP_POS_KEY) || 'null'); } catch (err) { pos = null; }
+    if (!pos || !Number.isFinite(pos.x) || !Number.isFinite(pos.y)) return;
+    const parent = locChipParent(chip);
+    if (!parent) return;
+    const x = Math.min(Math.max(pos.x, 6), Math.max(6, parent.clientWidth - chip.offsetWidth - 6));
+    const y = Math.min(Math.max(pos.y, 6), Math.max(6, parent.clientHeight - chip.offsetHeight - 6));
+    chip.style.right = 'auto';
+    chip.style.bottom = 'auto';
+    chip.style.left = x + 'px';
+    chip.style.top = y + 'px';
+  }
+
+  function initLocChipDrag() {
+    const chip = el('#chat-loc-chip');
+    if (!chip || chip.dataset.dragReady) return;
+    chip.dataset.dragReady = '1';
+    let dragging = false;
+    let moved = false;
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let origX = 0;
+    let origY = 0;
+
+    chip.addEventListener('pointerdown', function (e) {
+      if (chip.hidden || e.button === 2) return;
+      dragging = true;
+      moved = false;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      const parent = locChipParent(chip);
+      if (parent) {
+        const pr = parent.getBoundingClientRect();
+        const cr = chip.getBoundingClientRect();
+        origX = cr.left - pr.left;
+        origY = cr.top - pr.top;
+      }
+      try { chip.setPointerCapture(e.pointerId); } catch (err) { /* 忽略不支持的情况 */ }
+    });
+
+    chip.addEventListener('pointermove', function (e) {
+      if (!dragging || pointerId == null || e.pointerId !== pointerId) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!moved && Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      if (!moved) {
+        moved = true;
+        chip.classList.add('is-dragging');
+        chip.style.right = 'auto';
+        chip.style.bottom = 'auto';
+      }
+      if (e.cancelable) e.preventDefault();
+      const parent = locChipParent(chip);
+      if (!parent) return;
+      const x = Math.min(Math.max(origX + dx, 6), Math.max(6, parent.clientWidth - chip.offsetWidth - 6));
+      const y = Math.min(Math.max(origY + dy, 6), Math.max(6, parent.clientHeight - chip.offsetHeight - 6));
+      chip.style.left = x + 'px';
+      chip.style.top = y + 'px';
+      chip._dragPos = { x: x, y: y };
+    });
+
+    function endDrag(e) {
+      if (!dragging) return;
+      if (e && pointerId != null && e.pointerId != null && e.pointerId !== pointerId) return;
+      dragging = false;
+      pointerId = null;
+      if (moved) {
+        chip.classList.remove('is-dragging');
+        if (chip._dragPos) {
+          try { localStorage.setItem(LOC_CHIP_POS_KEY, JSON.stringify(chip._dragPos)); } catch (err) { /* 存不进去就算了 */ }
+        }
+        /* 刚拖完的这次点击不触发跳转 */
+        chip.dataset.justDragged = '1';
+        setTimeout(function () { delete chip.dataset.justDragged; }, 350);
+      }
+    }
+    chip.addEventListener('pointerup', endDrag);
+    chip.addEventListener('pointercancel', endDrag);
+    /* 捕获阶段拦下拖动后的那次 click，避免误跳到位置页 */
+    chip.addEventListener('click', function (e) {
+      if (chip.dataset.justDragged) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+  }
+
   function renderChatLocation() {
     const chip = el('#chat-loc-chip');
     if (!chip) return;
@@ -1281,6 +1378,7 @@
     const show = !!(loc && loc.enabled && !loc.paused && loc.shareChip);
     chip.hidden = !show;
     if (!show) return;
+    applyLocChipPos(chip);
     const dist = el('#chat-loc-distance');
     const detail = el('#chat-loc-detail');
     if (dist) dist.textContent = distanceText(distanceMeters(loc.me, loc.ta));
@@ -2588,8 +2686,9 @@
       loc.shareChip = !!locShareChip.checked;
       App.save();
       renderLocation();
-      App.toast(loc.shareChip ? '聊天界面会显示距离小窗' : '已关闭聊天距离小窗');
+      App.toast(loc.shareChip ? '聊天界面会显示距离小窗，可以随便拖' : '已关闭聊天距离小窗');
     });
+    initLocChipDrag();
     const locPromptGo = el('#chat-loc-prompt-go');
     if (locPromptGo) locPromptGo.addEventListener('click', function () {
       const box = el('#chat-loc-prompt');

@@ -5897,7 +5897,15 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
   box-shadow: 0 6px 18px var(--shadow);
   color: var(--ink);
   text-align: left;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-loc-chip.is-dragging {
+  cursor: grabbing;
+  box-shadow: 0 12px 26px var(--shadow);
+  transition: none;
 }
 .chat-loc-chip[hidden] { display: none; }
 .chat-loc-pin {
