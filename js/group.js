@@ -606,16 +606,47 @@
     });
   }
 
+  /* 表情分类：公共、我、再加上群里每位成员（各自存在联系人身上的表情包） */
+  function grpStickerSides() {
+    const sides = [{ key: 'public', label: '公共' }, { key: 'me', label: '我' }];
+    const g = groupById(currentGroupId);
+    if (g) {
+      g.members.forEach(function (cid) {
+        const c = contactById(cid);
+        if (c) sides.push({ key: 'c:' + cid, label: c.name });
+      });
+    }
+    return sides;
+  }
+
+  function grpStickerMemberId() {
+    return grpStickerSide.indexOf('c:') === 0 ? grpStickerSide.slice(2) : null;
+  }
+
   function grpStickerList() {
-    const key = grpStickerSide === 'ta' ? 'ta' : (grpStickerSide === 'me' ? 'mine' : 'public');
     const all = (App.state && App.state.stickers) || {};
-    return Array.isArray(all[key]) ? all[key] : [];
+    if (grpStickerSide === 'me') return Array.isArray(all.mine) ? all.mine : [];
+    if (grpStickerSide === 'public') return Array.isArray(all.public) ? all.public : [];
+    const cid = grpStickerMemberId();
+    const c = cid ? contactById(cid) : null;
+    return c && Array.isArray(c.stickers) ? c.stickers : [];
   }
 
   function renderGrpStickerPanel() {
+    const sides = grpStickerSides();
+    if (!sides.some(function (s) { return s.key === grpStickerSide; })) grpStickerSide = 'me';
+    const tabs = el('#grp-sticker-tabs');
+    if (tabs) {
+      tabs.innerHTML = sides.map(function (s) {
+        return '<button type="button" class="sticker-tab' + (s.key === grpStickerSide ? ' is-on' : '') +
+          '" data-grp-sticker-side="' + App.esc(s.key) + '">' + App.esc(s.label) + '</button>';
+      }).join('');
+    }
     const grid = el('#grp-sticker-grid');
     if (!grid) return;
     const list = grpStickerList();
+    const memberId = grpStickerMemberId();
+    const member = memberId ? contactById(memberId) : null;
     grid.innerHTML = list.length
       ? list.map(function (src, i) {
           return '<div class="sticker-cell">' +
@@ -623,10 +654,9 @@
               '<img loading="lazy" decoding="async" src="' + App.esc(src) + '" alt="表情包">' +
             '</button></div>';
         }).join('')
-      : '<p class="sticker-empty">这一类还没有表情包，去聊天界面的表情里添加。</p>';
-    document.querySelectorAll('[data-grp-sticker-side]').forEach(function (b) {
-      b.classList.toggle('is-on', b.dataset.grpStickerSide === grpStickerSide);
-    });
+      : '<p class="sticker-empty">' + (member
+          ? App.esc(member.name) + ' 还没有表情包，去和 TA 的聊天里添加。'
+          : '这一类还没有表情包，去聊天界面的表情里添加。') + '</p>';
     const emoji = el('#grp-emoji-grid');
     if (emoji && !emoji.dataset.ready) {
       emoji.innerHTML = GRP_EMOJIS.map(function (s) {
@@ -651,9 +681,18 @@
   function sendGrpSticker(index) {
     const src = grpStickerList()[index];
     if (!src || !currentGroupId) return;
-    pushGroupMessage(currentGroupId, {
-      id: App.uid('gm'), role: 'me', type: 'sticker', src: src, text: '[表情]', ts: Date.now(),
-    });
+    /* 成员的表情包：直接以那位成员的名义发到群里 */
+    const memberId = grpStickerMemberId();
+    const message = {
+      id: App.uid('gm'),
+      role: memberId ? 'ta' : 'me',
+      type: 'sticker',
+      src: src,
+      text: '[表情]',
+      ts: Date.now(),
+    };
+    if (memberId) message.senderId = memberId;
+    pushGroupMessage(currentGroupId, message);
     const panel = el('#grp-sticker-panel');
     if (panel) panel.hidden = true;
   }

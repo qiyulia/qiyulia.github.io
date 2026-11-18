@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-132">
+<link rel="stylesheet" href="css/style.css?v=20261118-133">
 </head>
 <body>
 <div class="stage">
@@ -960,14 +960,10 @@ if ('caches' in window) {
 
       <!-- 群聊表情：和聊天界面同款的表情包，点一下直接发到群里 -->
       <div id="grp-sticker-panel" class="sticker-panel" hidden>
-        <div class="sticker-tabs sticker-kinds" role="group" aria-label="表情分类">
-          <button type="button" class="sticker-tab" data-grp-sticker-side="public">公共</button>
-          <button type="button" class="sticker-tab is-on" data-grp-sticker-side="me">我</button>
-          <button type="button" class="sticker-tab" data-grp-sticker-side="ta">TA</button>
-        </div>
+        <div class="sticker-tabs sticker-kinds" id="grp-sticker-tabs" role="group" aria-label="表情分类"></div>
         <div id="grp-sticker-grid" class="sticker-grid"></div>
         <div id="grp-emoji-grid" class="grp-emoji-grid"></div>
-        <p class="field-hint">点表情包直接发到群里；下面的小表情会插进输入框。</p>
+        <p class="field-hint">点表情包直接发到群里；点成员的名字可以用 TA 自己的表情包，并以 TA 的名义发出；下面的小表情会插进输入框。</p>
       </div>
 
       <!-- 工具：红包 + 问卷合并成一类 -->
@@ -2792,22 +2788,22 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261118-132"></script>
-<script src="js/seed.js?v=20261118-132"></script>
-<script src="js/store.js?v=20261118-132"></script>
-<script src="js/desktop.js?v=20261118-132"></script>
-<script src="js/chat.js?v=20261118-132"></script>
-<script src="js/cards.js?v=20261118-132"></script>
-<script src="js/settings.js?v=20261118-132"></script>
-<script src="js/moments.js?v=20261118-132"></script>
-<script src="js/calendar.js?v=20261118-132"></script>
-<script src="js/music.js?v=20261118-132"></script>
-<script src="js/market.js?v=20261118-132"></script>
-<script src="js/mail.js?v=20261118-132"></script>
-<script src="js/extras.js?v=20261118-132"></script>
-<script src="js/companion.js?v=20261118-132"></script>
-<script src="js/memoir.js?v=20261118-132"></script>
-<script src="js/group.js?v=20261118-132"></script>
-<script src="js/app.js?v=20261118-132"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-133"></script>
+<script src="js/seed.js?v=20261118-133"></script>
+<script src="js/store.js?v=20261118-133"></script>
+<script src="js/desktop.js?v=20261118-133"></script>
+<script src="js/chat.js?v=20261118-133"></script>
+<script src="js/cards.js?v=20261118-133"></script>
+<script src="js/settings.js?v=20261118-133"></script>
+<script src="js/moments.js?v=20261118-133"></script>
+<script src="js/calendar.js?v=20261118-133"></script>
+<script src="js/music.js?v=20261118-133"></script>
+<script src="js/market.js?v=20261118-133"></script>
+<script src="js/mail.js?v=20261118-133"></script>
+<script src="js/extras.js?v=20261118-133"></script>
+<script src="js/companion.js?v=20261118-133"></script>
+<script src="js/memoir.js?v=20261118-133"></script>
+<script src="js/group.js?v=20261118-133"></script>
+<script src="js/app.js?v=20261118-133"></script>
 </body>
 </html>

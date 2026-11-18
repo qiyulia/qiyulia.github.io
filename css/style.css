@@ -1459,6 +1459,24 @@ dialog.moment-sheet {
   background: var(--field);
 }
 .sticker-tab.is-on { background: var(--accent); color: var(--accent-ink); }
+/* 群聊表情分类里成员可能很多，标签栏横向滚动，不挤成两行 */
+#grp-sticker-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+#grp-sticker-tabs::-webkit-scrollbar { display: none; }
+#grp-sticker-tabs .sticker-tab {
+  min-width: 0;
+  max-width: 96px;
+  padding: 7px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .sticker-side-hint { flex: 1 1 100%; font-size: 11px; color: var(--muted); }
 .sticker-grid {
   display: grid;

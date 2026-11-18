@@ -250,8 +250,11 @@
     if (!m || m.type !== 'image' || !m.src) return false;
     if (m.sticker) return true;
     const stickers = App.state.stickers || {};
-    return ['public', 'me', 'ta'].some(function (key) {
+    if (['public', 'mine'].some(function (key) {
       return Array.isArray(stickers[key]) && stickers[key].indexOf(m.src) !== -1;
+    })) return true;
+    return (App.state.contacts || []).some(function (c) {
+      return Array.isArray(c.stickers) && c.stickers.indexOf(m.src) !== -1;
     });
   }
 
@@ -1290,7 +1293,7 @@
     const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
     if (!contact) return;
     const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).taStickerProb) || 0));
-    const pool = (App.state.stickers.ta || []).concat(App.state.stickers.public || []);
+    const pool = (Array.isArray(contact.stickers) ? contact.stickers : []).concat(App.state.stickers.public || []);
     if (!pool.length || Math.random() * 100 >= prob) return;
     const src = pool[Math.floor(Math.random() * pool.length)];
 
@@ -1589,7 +1592,7 @@
          引用消息时只打字就不配表情包，保持纯文字 */
       if (message.type === 'text' && group.length === 1 && !message.quote) {
         const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerComboProb) || 0));
-        const stickerPool = (App.state.stickers.ta || []).concat(App.state.stickers.public || []);
+        const stickerPool = (Array.isArray(contact.stickers) ? contact.stickers : []).concat(App.state.stickers.public || []);
         if (stickerPool.length && Math.random() * 100 < stickerProb) {
           message.stickerSrc = stickerPool[Math.floor(Math.random() * stickerPool.length)];
         }
@@ -1901,6 +1904,13 @@
 
   function stickerList() {
     const key = stickerKey();
+    /* 「TA」的表情包存在当前联系人自己身上，每个联系人各一套 */
+    if (key === 'ta') {
+      const contact = currentContact();
+      if (!contact) return [];
+      if (!Array.isArray(contact.stickers)) contact.stickers = [];
+      return contact.stickers;
+    }
     if (!Array.isArray(App.state.stickers[key])) App.state.stickers[key] = [];
     return App.state.stickers[key];
   }
@@ -1911,9 +1921,11 @@
     });
     const hint = el('#sticker-side-hint');
     if (hint) {
+      const contact = currentContact();
+      const taName = contact ? contact.name : 'TA';
       hint.textContent = App.stickerTab === 'public'
-        ? '公共表情包 · 以「' + (sendRole() === 'ta' ? 'TA' : '我') + '」身份发送'
-        : '当前：' + (App.stickerTab === 'ta' ? 'TA' : '我') + '的表情包';
+        ? '公共表情包 · 以「' + (sendRole() === 'ta' ? taName : '我') + '」身份发送'
+        : '当前：' + (App.stickerTab === 'ta' ? taName : '我') + '的表情包';
     }
   }
 

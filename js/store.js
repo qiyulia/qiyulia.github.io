@@ -717,24 +717,24 @@
       return m;
     });
     if (!s.calendar || typeof s.calendar !== 'object' || Array.isArray(s.calendar)) s.calendar = {};
-    if (!s.stickers || typeof s.stickers !== 'object') s.stickers = { mine: [], ta: [], public: [] };
+    if (!s.stickers || typeof s.stickers !== 'object') s.stickers = { mine: [], public: [] };
     if (!Array.isArray(s.stickers.mine)) s.stickers.mine = [];
-    if (!Array.isArray(s.stickers.ta)) s.stickers.ta = [];
     if (!Array.isArray(s.stickers.public)) s.stickers.public = [];
     /* 清理旧版本内置的默认表情包（矢量图），用户自己导入的图片不受影响 */
-    ['mine', 'ta', 'public'].forEach(function (side) {
-      s.stickers[side] = s.stickers[side].filter(function (src) {
-        return typeof src === 'string' && src && !/^data:image\/svg/i.test(src);
-      });
+    ['mine', 'public', 'ta'].forEach(function (side) {
+      if (Array.isArray(s.stickers[side])) {
+        s.stickers[side] = s.stickers[side].filter(function (src) {
+          return typeof src === 'string' && src && !/^data:image\/svg/i.test(src);
+        });
+      }
     });
     /* 兼容旧版本误存到 stickers.me 的表情，迁移到 mine */
     if (Array.isArray(s.stickers.me) && s.stickers.me.length) {
       s.stickers.mine = s.stickers.mine.concat(s.stickers.me);
       delete s.stickers.me;
     }
-    if (!s.stickers.mine.length && !s.stickers.ta.length && App.DEFAULT_STICKERS) {
+    if (!s.stickers.mine.length && App.DEFAULT_STICKERS) {
       s.stickers.mine = App.DEFAULT_STICKERS.mine.slice();
-      s.stickers.ta = App.DEFAULT_STICKERS.ta.slice();
     }
     App.normalizeCards(s);
     App.normalizeMusic(s);
@@ -818,7 +818,23 @@
       }
       delete c.settings.typingMs;
       if (typeof c.birthday !== 'string') c.birthday = '';
+      /* 每位联系人各自存一套表情包 */
+      if (!Array.isArray(c.stickers)) c.stickers = [];
+      c.stickers = c.stickers.filter(function (src) {
+        return typeof src === 'string' && src && !/^data:image\/svg/i.test(src);
+      });
     });
+    /* 旧版全局的「TA 的表情包」拆到每位联系人各自的表情包里，之后只用联系人自己的 */
+    if (Array.isArray(s.stickers.ta)) {
+      if (s.stickers.ta.length) {
+        s.contacts.forEach(function (c) {
+          s.stickers.ta.forEach(function (src) {
+            if (c.stickers.indexOf(src) === -1) c.stickers.push(src);
+          });
+        });
+      }
+      delete s.stickers.ta;
+    }
     if (!s.contacts.some(function (c) { return c.id === s.currentContactId; })) {
       s.currentContactId = s.contacts.length ? s.contacts[0].id : null;
     }
