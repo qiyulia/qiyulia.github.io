@@ -135,7 +135,7 @@
       if (seen[node.getAttribute('data-msg-id')]) node.classList.add('is-static');
     });
     bindVoiceBubbles(list);
-    /* 正在输入是右下角浮层，不占消息列表的位置，也不会推动滚动 */
+    /* 正在输入是左下角浮层，不占消息列表的位置，也不会推动滚动 */
     syncTypingRow(id);
     updateSideButtons();
     if (App.renderChatLocation) App.renderChatLocation();
@@ -1061,8 +1061,8 @@
     return typingContacts[contactId] > 0;
   }
 
-  /* 正在输入做成一枚固定在右下角的浮层：不属于消息列表，
-     往上翻聊天记录它也一直挂在右下角，直到 TA 真的发出消息才消失 */
+  /* 正在输入做成一枚固定在左下角的浮层：不属于消息列表，
+     往上翻聊天记录它也一直挂在左下角，直到 TA 真的发出消息才消失 */
   function positionTypingFloat() {
     const float = el('#chat-typing-float');
     const view = document.getElementById('view-chat');
@@ -2730,7 +2730,7 @@
       input.style.height = 'auto';
       /* 多留 1px，避免 scrollHeight 取整多出一点导致右侧冒出滚动条 */
       input.style.height = Math.min(118, input.scrollHeight + 1) + 'px';
-      /* 输入框变高时，右下角的正在输入浮层跟着抬高，别压住输入框 */
+      /* 输入框变高时，左下角的正在输入浮层跟着抬高，别压住输入框 */
       positionTypingFloat();
     });
 

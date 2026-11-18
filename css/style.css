@@ -6652,10 +6652,10 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
   user-select: none;
 }
 
-/* 正在输入：固定在聊天区右下角的浮层，不属于消息列表，往上翻记录也不动 */
+/* 正在输入：固定在聊天区左下角的浮层，不属于消息列表，往上翻记录也不动 */
 #view-chat > .chat-typing-float {
   position: absolute;
-  right: 14px;
+  left: 14px;
   bottom: 70px;
   z-index: 9;
   pointer-events: none;
