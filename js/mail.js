@@ -4,9 +4,9 @@
   const el = function (sel) { return document.querySelector(sel); };
 
   let currentMailId = null;
-  let composeMode = 'new';
-  let composeContactId = null;
-  let selectedCardId = null;
+  /* 打字编辑器有两种模式：'new' = 在「我的信」里写一封新信；'reply' = 回信（带原信引用） */
+  let editorMode = 'new';
+  let editorContactId = null;
   let replyMailId = null;
   let mailTab = 'ta';
 
@@ -212,81 +212,35 @@
     openPreview(mail);
   }
 
-  function openCompose(mode, contactId) {
-    const contact = contactOf(contactId) || fallbackContact();
+  /* 打字编辑器：既用于「我的信」写新信，也用于回信（回信时上方带原信引用）。
+     写信内容完全由我手动输入，不再从字卡库里选。 */
+  function openEditor(mode, mailOrContactId) {
+    const isReply = mode === 'reply';
+    const mail = isReply ? mailList().find(function (m) { return m.id === mailOrContactId; }) : null;
+    const contact = isReply
+      ? ((mail && contactOf(mail.contactId)) || fallbackContact())
+      : (contactOf(mailOrContactId) || fallbackContact());
     if (!contact) {
       App.toast('先添加一个角色吧');
       return;
     }
-    const cards = mailCards();
-    if (!cards.length) {
-      App.toast('字卡库是空的，先去添加几张字卡');
-      return;
-    }
-    composeMode = mode === 'reply' ? 'reply' : 'new';
-    composeContactId = contact.id;
-    selectedCardId = cards[0].id;
-    el('#mail-dialog-title').textContent = composeMode === 'reply' ? '回信' : '写信';
-    el('#mail-dialog-hint').textContent = (composeMode === 'reply' ? '回信给 ' : '寄给 ') + contact.name + ' · 从字卡库选一张装进信封';
-    renderComposeCards();
-    el('#mail-dialog').showModal();
-  }
+    editorMode = isReply ? 'reply' : 'new';
+    replyMailId = isReply && mail ? mail.id : null;
+    editorContactId = contact.id;
 
-  function renderComposeCards() {
-    const cards = mailCards();
-    el('#mail-card-list').innerHTML = cards.map(function (c) {
-      return '<button type="button" class="mail-card-option' + (c.id === selectedCardId ? ' is-selected' : '') + '" data-mail-card="' + App.esc(c.id) + '">' +
-        App.esc(c.text) +
-      '</button>';
-    }).join('');
-  }
-
-  function sendMail() {
-    const cards = mailCards();
-    const card = cards.find(function (c) { return c.id === selectedCardId; }) || cards[0];
-    if (!card) {
-      App.toast('先选一张字卡');
-      return false;
-    }
-    const contact = contactOf(composeContactId) || fallbackContact();
-    if (!contact) {
-      App.toast('先添加一个角色吧');
-      return false;
-    }
-    const id = App.uid('mail');
-    mailList().unshift({
-      id: id,
-      from: 'me',
-      contactId: contact.id,
-      text: card.text,
-      cardId: card.id,
-      cardIds: [card.id],
-      ts: Date.now(),
-      read: true,
-      fav: false,
-    });
-    App.save();
-    App.updateMailBadge();
-    el('#mail-dialog').close();
-    App.toast('信已寄出');
-    mailTab = 'mine';
-    if (el('#view-mail').classList.contains('is-active')) showList();
-    scheduleTaReply(contact.id, id);
-    return true;
-  }
-
-  /* 回信：全屏编辑，上方是原信，下方用输入法写字 */
-  function openEditor(mail) {
-    if (!mail) return;
-    replyMailId = mail.id;
-    const contact = contactOf(mail.contactId) || fallbackContact();
     const title = el('#mail-editor-title');
-    if (title) title.textContent = contact ? '回信给 ' + contact.name : '回信';
+    if (title) title.textContent = (isReply ? '回信给 ' : '写信给 ') + contact.name;
     const quote = el('#mail-editor-quote');
     if (quote) {
-      quote.innerHTML = '<p class="mail-quote-head">『' + App.esc(senderName(mail)) + ' 的信 · ' + App.esc(mailTime(mail.ts)) + '』</p>' +
-        '<p class="mail-quote-text">' + App.esc(mail.text) + '</p>';
-      quote.scrollTop = 0;
+      if (isReply && mail) {
+        quote.innerHTML = '<p class="mail-quote-head">『' + App.esc(senderName(mail)) + ' 的信 · ' + App.esc(mailTime(mail.ts)) + '』</p>' +
+          '<p class="mail-quote-text">' + App.esc(mail.text) + '</p>';
+        quote.hidden = false;
+        quote.scrollTop = 0;
+      } else {
+        quote.innerHTML = '';
+        quote.hidden = true;
+      }
     }
     const input = el('#mail-editor-text');
     if (input) input.value = '';
@@ -300,27 +254,28 @@
 
   function closeEditor() {
     replyMailId = null;
+    editorContactId = null;
     const box = el('#mail-editor');
     if (box) box.hidden = true;
     const input = el('#mail-editor-text');
     if (input) input.value = '';
     const quote = el('#mail-editor-quote');
-    if (quote) quote.innerHTML = '';
+    if (quote) { quote.innerHTML = ''; quote.hidden = true; }
   }
 
-  function sendReply() {
+  function sendLetter() {
     const input = el('#mail-editor-text');
     const text = String((input && input.value) || '').trim();
     if (!text) {
       App.toast('先写点什么');
       return;
     }
-    const mail = mailList().find(function (m) { return m.id === replyMailId; });
-    const contact = (mail && contactOf(mail.contactId)) || fallbackContact();
+    const contact = contactOf(editorContactId) || fallbackContact();
     if (!contact) {
       App.toast('先添加一个角色吧');
       return;
     }
+    const isReply = editorMode === 'reply';
     const id = App.uid('mail');
     mailList().unshift({
       id: id,
@@ -329,7 +284,7 @@
       text: text,
       cardId: null,
       cardIds: [],
-      replyTo: mail ? mail.id : null,
+      replyTo: isReply ? replyMailId : null,
       ts: Date.now(),
       read: true,
       fav: false,
@@ -337,8 +292,8 @@
     App.save();
     App.updateMailBadge();
     closeEditor();
-    App.toast('回信已寄出');
-    mailTab = 'replies';
+    App.toast(isReply ? '回信已寄出' : '信已寄出');
+    mailTab = isReply ? 'replies' : 'mine';
     if (el('#view-mail').classList.contains('is-active')) showList();
     scheduleTaReply(contact.id, id);
   }
@@ -426,7 +381,7 @@
 
   App.initMail = function () {
     document.querySelectorAll('#btn-mail-compose-2, #btn-mail-compose-3').forEach(function (btn) {
-      btn.addEventListener('click', function () { openCompose('new'); });
+      btn.addEventListener('click', function () { openEditor('new', null); });
     });
 
     const readAll = el('#btn-mail-read-all');
@@ -463,7 +418,7 @@
         }
         if (e.target.closest('#mail-preview-reply')) {
           const mail = mailList().find(function (m) { return m.id === currentMailId; });
-          if (mail) openEditor(mail);
+          if (mail) openEditor('reply', mail.id);
         }
       });
     }
@@ -475,12 +430,13 @@
           closeEditor();
           return;
         }
-        if (e.target.closest('#mail-editor-save')) sendReply();
+        if (e.target.closest('#mail-editor-save')) sendLetter();
       });
     }
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
-      if (replyMailId) closeEditor();
+      const editorBox = el('#mail-editor');
+      if (editorBox && !editorBox.hidden) closeEditor();
       else if (currentMailId) closePreview();
     });
 
@@ -496,18 +452,6 @@
       const item = e.target.closest('[data-mail-id]');
       if (!item) return;
       openMail(item.dataset.mailId);
-    });
-
-    el('#mail-card-list').addEventListener('click', function (e) {
-      const option = e.target.closest('[data-mail-card]');
-      if (!option) return;
-      selectedCardId = option.dataset.mailCard;
-      renderComposeCards();
-    });
-
-    el('#mail-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      sendMail();
     });
 
     setInterval(maybeTaWrites, 90000);

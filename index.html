@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-134">
+<link rel="stylesheet" href="css/style.css?v=20261118-135">
 </head>
 <body>
 <div class="stage">
@@ -321,7 +321,7 @@ if ('caches' in window) {
           </div>
           <span class="avatar moments-hero-avatar" id="m-avatar">🍊</span>
         </div>
-        <input type="file" id="moments-cover-input" accept="image/*" hidden>
+        <input autocomplete="off" type="file" id="moments-cover-input" accept="image/*" hidden>
 
         <div id="moment-list" class="moment-list"></div>
         <div id="moment-empty" class="empty-state">
@@ -330,15 +330,15 @@ if ('caches' in window) {
       </div>
 
       <dialog id="moment-dialog" class="sheet moment-sheet">
-        <form id="moment-form" class="moment-compose-form">
+        <form autocomplete="off" id="moment-form" class="moment-compose-form">
           <div class="sheet-head">
             <h3>分享此刻</h3>
             <button type="button" class="icon-btn" data-close aria-label="关闭">✕</button>
           </div>
-          <textarea id="moment-input" rows="5" maxlength="300" placeholder="今天发生了什么？"></textarea>
+          <textarea autocomplete="off" id="moment-input" rows="5" maxlength="300" placeholder="今天发生了什么？"></textarea>
           <div class="moment-compose-tools">
             <button type="button" class="btn ghost" id="moment-image-btn">添加图片</button>
-            <input type="file" id="moment-image-input" accept="image/*" hidden>
+            <input autocomplete="off" type="file" id="moment-image-input" accept="image/*" hidden>
             <div class="moment-image-preview" id="moment-image-preview" hidden>
               <img id="moment-image-img" alt="配图预览">
               <button type="button" class="icon-btn" id="moment-image-remove" aria-label="移除图片">✕</button>
@@ -387,7 +387,7 @@ if ('caches' in window) {
         <div class="panel">
           <h3 id="cal-selected-title">选择一天</h3>
           <label class="field"><span>这一天要做的事</span>
-            <textarea id="cal-todo" rows="3" maxlength="200" placeholder="记一下今天要做的事…"></textarea>
+            <textarea autocomplete="off" id="cal-todo" rows="3" maxlength="200" placeholder="记一下今天要做的事…"></textarea>
           </label>
           <p class="panel-note">待办会自动保存。点击日期，可在弹窗中记录连续 5 天经期或排卵期。</p>
           <p class="panel-note cal-prediction" id="cal-prediction"></p>
@@ -467,17 +467,17 @@ if ('caches' in window) {
 
         <section class="panel music-import-panel">
           <h3>导入音乐</h3>
-          <form id="music-link-form" class="music-link-form">
-            <label class="field"><span>歌曲链接</span><input id="music-url" type="url" inputmode="url" placeholder="网易云歌曲链接或音频直链" required></label>
+          <form autocomplete="off" id="music-link-form" class="music-link-form">
+            <label class="field"><span>歌曲链接</span><input autocomplete="off" id="music-url" type="url" inputmode="url" placeholder="网易云歌曲链接或音频直链" required></label>
             <div class="field-row">
-              <label class="field"><span>歌名</span><input id="music-track-title" maxlength="60" placeholder="留空自动识别"></label>
-              <label class="field"><span>歌手</span><input id="music-track-artist" maxlength="60" placeholder="留空自动识别"></label>
+              <label class="field"><span>歌名</span><input autocomplete="off" id="music-track-title" maxlength="60" placeholder="留空自动识别"></label>
+              <label class="field"><span>歌手</span><input autocomplete="off" id="music-track-artist" maxlength="60" placeholder="留空自动识别"></label>
             </div>
             <div class="btn-row music-import-actions">
               <button type="submit" class="btn primary">导入直链</button>
               <button type="button" class="btn" id="music-local-button">选择本地文件</button>
             </div>
-            <input type="file" id="music-local-file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" multiple hidden>
+            <input autocomplete="off" type="file" id="music-local-file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" multiple hidden>
             <div class="music-import-status">
               <p class="field-hint" id="music-link-status">支持网易云歌曲链接自动识别歌名和歌手。</p>
               <p class="field-hint" id="music-local-status">支持多选，会从文件名自动识别歌名和歌手。</p>
@@ -505,10 +505,10 @@ if ('caches' in window) {
         <span class="topbar-spacer"></span>
       </header>
       <div class="page-body">
-        <form id="anniv-form" class="panel">
+        <form autocomplete="off" id="anniv-form" class="panel">
           <h3>新建纪念日</h3>
-          <label class="field"><span>名称</span><input id="anniv-name" maxlength="12" placeholder="比如：第一次见面" required></label>
-          <label class="field"><span>日期</span><input id="anniv-date" type="date" required></label>
+          <label class="field"><span>名称</span><input autocomplete="off" id="anniv-name" maxlength="12" placeholder="比如：第一次见面" required></label>
+          <label class="field"><span>日期</span><input autocomplete="off" id="anniv-date" type="date" required></label>
           <button type="submit" class="btn primary">添加</button>
         </form>
         <div id="anniv-list" class="anniv-list"></div>
@@ -525,12 +525,12 @@ if ('caches' in window) {
         <span class="topbar-spacer"></span>
       </header>
       <div class="page-body">
-        <form id="reminder-form" class="panel">
+        <form autocomplete="off" id="reminder-form" class="panel">
           <h3>新建提醒</h3>
-          <label class="field"><span>要记的事</span><input id="rem-title" maxlength="40" placeholder="比如：吃药、开会、浇花" required></label>
+          <label class="field"><span>要记的事</span><input autocomplete="off" id="rem-title" maxlength="40" placeholder="比如：吃药、开会、浇花" required></label>
           <div class="field-row">
-            <label class="field"><span>开始时间</span><input id="rem-start" type="time" required></label>
-            <label class="field"><span>结束时间</span><input id="rem-end" type="time" required></label>
+            <label class="field"><span>开始时间</span><input autocomplete="off" id="rem-start" type="time" required></label>
+            <label class="field"><span>结束时间</span><input autocomplete="off" id="rem-end" type="time" required></label>
           </div>
           <p class="field-hint">每天到开始和结束的时候，TA 会在聊天里提醒你一次。</p>
           <button type="submit" class="btn primary">添加提醒</button>
@@ -566,7 +566,7 @@ if ('caches' in window) {
               <strong>共享定位小窗</strong>
               <span class="field-hint">开启后只在聊天界面显示距离小窗，其他页面不显示。</span>
             </div>
-            <label class="switch"><input type="checkbox" id="loc-share-chip"><span class="slider"></span></label>
+            <label class="switch"><input autocomplete="off" type="checkbox" id="loc-share-chip"><span class="slider"></span></label>
           </div>
         </div>
 
@@ -596,7 +596,7 @@ if ('caches' in window) {
             </button>
           </label>
           <div class="loc-place-add">
-            <input id="loc-new-place" maxlength="14" placeholder="新增地点，如：第一次约会的电影院">
+            <input autocomplete="off" id="loc-new-place" maxlength="14" placeholder="新增地点，如：第一次约会的电影院">
             <button type="button" class="btn ghost" id="loc-add-place">添加</button>
           </div>
           <div class="loc-pick-row">
@@ -678,19 +678,19 @@ if ('caches' in window) {
         <div id="mw-timeline" class="mw-timeline"></div>
         <p class="empty-note" id="mw-empty">还没有照片，先把相册里喜欢的瞬间放进来。</p>
       </div>
-      <input type="file" id="mw-file" accept="image/*" multiple hidden>
+      <input autocomplete="off" type="file" id="mw-file" accept="image/*" multiple hidden>
 
       <dialog id="mw-dialog" class="sheet">
-        <form id="mw-form">
+        <form autocomplete="off" id="mw-form">
           <div class="sheet-head">
             <h3>放入回忆</h3>
             <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
           </div>
           <div class="mw-preview" id="mw-preview"></div>
-          <label class="field"><span>配一句话</span><input id="mw-caption" maxlength="60" placeholder="那天的风很好"></label>
-          <label class="field"><span>日期</span><input id="mw-date" type="date"></label>
+          <label class="field"><span>配一句话</span><input autocomplete="off" id="mw-caption" maxlength="60" placeholder="那天的风很好"></label>
+          <label class="field"><span>日期</span><input autocomplete="off" id="mw-date" type="date"></label>
           <label class="field"><span>绑定纪念日</span><select id="mw-anniv"><option value="">不绑定</option></select></label>
-          <label class="mw-check"><input type="checkbox" id="mw-secret"> 放进隐藏相册（需要验证）</label>
+          <label class="mw-check"><input autocomplete="off" type="checkbox" id="mw-secret"> 放进隐藏相册（需要验证）</label>
           <div class="sheet-actions">
             <button type="button" class="btn ghost" data-close>取消</button>
             <button type="submit" class="btn primary">放进去</button>
@@ -705,7 +705,7 @@ if ('caches' in window) {
         </div>
         <div id="mw-view-body"></div>
         <div class="mw-comment-bar">
-          <input id="mw-comment-input" maxlength="60" placeholder="说点什么…">
+          <input autocomplete="off" id="mw-comment-input" maxlength="60" placeholder="说点什么…">
           <button type="button" class="btn primary" id="mw-comment-send">发送</button>
         </div>
       </dialog>
@@ -753,9 +753,9 @@ if ('caches' in window) {
           </div>
           <div class="mood-picker" id="mood-picker"></div>
           <div class="mood-note-row">
-            <input id="mood-note" maxlength="80" placeholder="用一句话记下今天（可选）">
+            <input autocomplete="off" id="mood-note" maxlength="80" placeholder="用一句话记下今天（可选）">
             <label class="mood-photo-btn" for="mood-photo">照片
-              <input type="file" id="mood-photo" accept="image/*" hidden>
+              <input autocomplete="off" type="file" id="mood-photo" accept="image/*" hidden>
             </label>
           </div>
           <div id="mood-photo-preview" class="mood-photo-preview" hidden></div>
@@ -795,7 +795,7 @@ if ('caches' in window) {
             <strong id="c-name">TA</strong>
             <span id="c-note"></span>
           </button>
-          <input type="file" id="chat-avatar-file" accept="image/*" hidden>
+          <input autocomplete="off" type="file" id="chat-avatar-file" accept="image/*" hidden>
         </div>
         <button type="button" class="icon-btn" id="btn-call" aria-label="发起语音通话" title="语音通话">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.8l3 4.2-2 2c1.2 2.5 3.2 4.5 5.7 5.7l2-2 4.3 3c.5.4.7 1 .4 1.6-.7 1.4-2 2.2-3.6 2.1C10 19.5 4.4 14 3.6 7c-.2-1.6.7-2.9 2.1-3.6.6-.3 1.2-.1 1.5.4z"/></svg>
@@ -864,14 +864,14 @@ if ('caches' in window) {
         </div>
         <button type="button" class="composer-quote-close" id="composer-quote-close" aria-label="取消引用">×</button>
       </div>
-      <form id="composer" class="composer">
+      <form autocomplete="off" id="composer" class="composer">
         <button type="button" class="composer-icon-btn" id="btn-more" aria-label="工具" title="工具">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17v3h3l5.5-5.5a4 4 0 0 0 5.2-5.2l-2.5 2.5-2.1-2.1 2.5-2.5z"/></svg>
         </button>
         <button type="button" class="composer-icon-btn" id="btn-sticker" aria-label="表情包" title="表情包">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14.5c1.4 1.8 2.6 2.5 4 2.5s2.6-.7 4-2.5"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
         </button>
-        <textarea id="msg-input" rows="1" maxlength="500" placeholder="说点什么…" aria-label="输入消息"></textarea>
+        <textarea autocomplete="off" id="msg-input" rows="1" maxlength="500" placeholder="说点什么…" aria-label="输入消息"></textarea>
         <button type="submit" class="send-btn" aria-label="发送">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-7-7 16-2.2-6.8L4 12z"/></svg>
         </button>
@@ -891,12 +891,12 @@ if ('caches' in window) {
         </div>
         <div id="sticker-grid" class="sticker-grid"></div>
         <label class="btn sticker-add" id="btn-add-sticker" for="sticker-file" role="button" tabindex="0">+ 从本地相册添加到当前分类
-          <input type="file" id="sticker-file" accept="image/*" multiple class="file-input-ghost" aria-hidden="true" tabindex="-1">
+          <input autocomplete="off" type="file" id="sticker-file" accept="image/*" multiple class="file-input-ghost" aria-hidden="true" tabindex="-1">
         </label>
         <button type="button" class="sticker-paste-link" id="btn-paste-sticker">相册选不了？从剪贴板粘贴图片</button>
         <div id="sticker-image-view" class="sticker-image-view" hidden>
           <label class="sticker-image-pick" for="chat-image-file">
-            <input type="file" id="chat-image-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
+            <input autocomplete="off" type="file" id="chat-image-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
             <span class="sticker-image-preview" id="sticker-image-preview">点这里从相册选择一张图片</span>
           </label>
           <div class="sticker-image-actions">
@@ -945,14 +945,14 @@ if ('caches' in window) {
         <div class="chat-hint">群聊只保存在这台设备上</div>
         <div id="grp-list" class="chat-list"></div>
       </div>
-      <form id="grp-composer" class="composer">
+      <form autocomplete="off" id="grp-composer" class="composer">
         <button type="button" class="composer-icon-btn" id="grp-sticker-btn" aria-label="表情" title="表情">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14.5c1.4 1.8 2.6 2.5 4 2.5s2.6-.7 4-2.5"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
         </button>
         <button type="button" class="composer-icon-btn" id="grp-tool-btn" aria-label="工具" title="工具">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17v3h3l5.5-5.5a4 4 0 0 0 5.2-5.2l-2.5 2.5-2.1-2.1 2.5-2.5z"/></svg>
         </button>
-        <textarea id="grp-input" rows="1" maxlength="500" placeholder="说点什么…" aria-label="群聊输入"></textarea>
+        <textarea autocomplete="off" id="grp-input" rows="1" maxlength="500" placeholder="说点什么…" aria-label="群聊输入"></textarea>
         <button type="submit" class="send-btn" aria-label="发送">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-7-7 16-2.2-6.8L4 12z"/></svg>
         </button>
@@ -1013,12 +1013,12 @@ if ('caches' in window) {
       <div class="page-body">
         <div class="panel">
           <h3>群信息</h3>
-          <label class="field"><span>群名称</span><input id="grp-set-name" maxlength="20" placeholder="给群起个名字"></label>
+          <label class="field"><span>群名称</span><input autocomplete="off" id="grp-set-name" maxlength="20" placeholder="给群起个名字"></label>
           <div class="grp-avatar-row">
             <div id="grp-set-avatar" class="grp-avatar-wrap" aria-hidden="true"></div>
             <div class="grp-avatar-actions">
               <label class="btn ghost" for="grp-avatar-file" role="button" tabindex="0">上传群头像
-                <input type="file" id="grp-avatar-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
+                <input autocomplete="off" type="file" id="grp-avatar-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
               </label>
               <button type="button" class="btn ghost" id="grp-avatar-reset">恢复默认九宫格</button>
             </div>
@@ -1034,14 +1034,14 @@ if ('caches' in window) {
           <label class="field"><span>角色接别人的话茬（%）</span>
             <span class="prob-input">
               <button type="button" class="step-btn" data-step-for="grp-set-link" data-step="-1">−</button>
-              <input id="grp-set-link" type="number" min="0" max="100" step="1" inputmode="numeric">
+              <input autocomplete="off" id="grp-set-link" type="number" min="0" max="100" step="1" inputmode="numeric">
               <button type="button" class="step-btn" data-step-for="grp-set-link" data-step="1">+</button>
             </span>
           </label>
           <label class="field"><span>禁言冷却时间（分钟）</span>
             <span class="prob-input">
               <button type="button" class="step-btn" data-step-for="grp-set-cd" data-step="-1">−</button>
-              <input id="grp-set-cd" type="number" min="0" max="1440" step="1" inputmode="numeric">
+              <input autocomplete="off" id="grp-set-cd" type="number" min="0" max="1440" step="1" inputmode="numeric">
               <button type="button" class="step-btn" data-step-for="grp-set-cd" data-step="1">+</button>
             </span>
           </label>
@@ -1087,45 +1087,45 @@ if ('caches' in window) {
             <div class="panel">
               <h3 class="settings-subtitle">回复</h3>
               <div class="field-row">
-                <label class="field"><span>每句话最少</span><input id="set-min" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
-                <label class="field"><span>最多</span><input id="set-max" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
+                <label class="field"><span>每句话最少</span><input autocomplete="off" id="set-min" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
+                <label class="field"><span>最多</span><input autocomplete="off" id="set-max" type="number" min="0" max="5" step="1" inputmode="numeric"></label>
               </div>
               <div class="field-row">
-                <label class="field"><span>回复最快（秒）</span><input id="set-typing-min" type="number" min="0" max="300" step="1" inputmode="numeric"></label>
-                <label class="field"><span>回复最慢（秒）</span><input id="set-typing-max" type="number" min="0" max="300" step="1" inputmode="numeric"></label>
+                <label class="field"><span>回复最快（秒）</span><input autocomplete="off" id="set-typing-min" type="number" min="0" max="300" step="1" inputmode="numeric"></label>
+                <label class="field"><span>回复最慢（秒）</span><input autocomplete="off" id="set-typing-max" type="number" min="0" max="300" step="1" inputmode="numeric"></label>
               </div>
               <label class="field"><span>TA 主动发消息（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-prob" data-step="-1">−</button>
-                  <input id="set-ta-msg-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-msg-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-prob" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>空闲多久后主动发消息（分钟）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-gap" data-step="-1">−</button>
-                  <input id="set-ta-msg-gap" type="number" min="1" max="120" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-msg-gap" type="number" min="1" max="120" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-gap" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>每次主动发消息 · 最少条数</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-min" data-step="-1">−</button>
-                  <input id="set-ta-msg-min" type="number" min="1" max="10" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-msg-min" type="number" min="1" max="10" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-min" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>每次主动发消息 · 最多条数</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-max" data-step="-1">−</button>
-                  <input id="set-ta-msg-max" type="number" min="1" max="10" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-msg-max" type="number" min="1" max="10" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-max" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 文字配表情包（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-sticker-combo" data-step="-1">−</button>
-                  <input id="set-ta-sticker-combo" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-sticker-combo" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-sticker-combo" data-step="1">+</button>
                 </span>
               </label>
@@ -1136,48 +1136,48 @@ if ('caches' in window) {
               <label class="field"><span>情绪出现概率（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-emotion-prob" data-step="-1">−</button>
-                  <input id="set-emotion-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-emotion-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-emotion-prob" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 拍我（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-pat-back" data-step="-1">−</button>
-                  <input id="set-pat-back" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-pat-back" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-pat-back" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 主动发表情包（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-sticker" data-step="-1">−</button>
-                  <input id="set-ta-sticker" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-sticker" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-sticker" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 发语音字卡（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-voice-prob" data-step="-1">−</button>
-                  <input id="set-ta-voice-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-voice-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-voice-prob" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>已读不回（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-ignore" data-step="-1">−</button>
-                  <input id="set-ta-ignore" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-ignore" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-ignore" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>多字卡拼接（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-merge-prob" data-step="-1">−</button>
-                  <input id="set-merge-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-merge-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-merge-prob" data-step="1">+</button>
                 </span>
               </label>
               <div class="field-row">
-                <label class="field"><span>拼接最少条</span><input id="set-merge-min" type="number" min="2" max="6" step="1" inputmode="numeric"></label>
-                <label class="field"><span>最多</span><input id="set-merge-max" type="number" min="2" max="6" step="1" inputmode="numeric"></label>
+                <label class="field"><span>拼接最少条</span><input autocomplete="off" id="set-merge-min" type="number" min="2" max="6" step="1" inputmode="numeric"></label>
+                <label class="field"><span>最多</span><input autocomplete="off" id="set-merge-max" type="number" min="2" max="6" step="1" inputmode="numeric"></label>
               </div>
               <p class="panel-note">触发多字卡拼接时，这一次回复里的多条字卡会挤进同一个气泡里说。</p>
               <p class="panel-note">消息里出现字卡的触发词时，那张卡会被优先说出。</p>
@@ -1187,7 +1187,7 @@ if ('caches' in window) {
               <label class="field"><span>TA 记录心情（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-mood-prob" data-step="-1">−</button>
-                  <input id="set-ta-mood-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-mood-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-mood-prob" data-step="1">+</button>
                 </span>
               </label>
@@ -1198,7 +1198,7 @@ if ('caches' in window) {
               <label class="field"><span>TA 邀请开启定位（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-loc-prompt-prob" data-step="-1">−</button>
-                  <input id="set-loc-prompt-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-loc-prompt-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-loc-prompt-prob" data-step="1">+</button>
                 </span>
               </label>
@@ -1209,21 +1209,21 @@ if ('caches' in window) {
               <label class="field"><span>TA 主动发红包（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-redpacket-prob" data-step="-1">−</button>
-                  <input id="set-ta-redpacket-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-redpacket-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-redpacket-prob" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 领取红包（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-rp-accept-prob" data-step="-1">−</button>
-                  <input id="set-rp-accept-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-rp-accept-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-rp-accept-prob" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 退回红包（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-rp-return-prob" data-step="-1">−</button>
-                  <input id="set-rp-return-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-rp-return-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-rp-return-prob" data-step="1">+</button>
                 </span>
               </label>
@@ -1234,21 +1234,21 @@ if ('caches' in window) {
               <label class="field"><span>TA 撤回自己的消息（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-recall" data-step="-1">−</button>
-                  <input id="set-ta-recall" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-recall" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-recall" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 收藏消息（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-fav" data-step="-1">−</button>
-                  <input id="set-ta-fav" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-fav" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-fav" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>提到其他角色时 TA 吃醋（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-jealousy-prob" data-step="-1">−</button>
-                  <input id="set-jealousy-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-jealousy-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-jealousy-prob" data-step="1">+</button>
                 </span>
               </label>
@@ -1262,7 +1262,7 @@ if ('caches' in window) {
                   <span class="field-hint">开启后，TA 会连着追发「追加」字卡（带正在输入动效），你太久没回时也会追问</span>
                 </div>
                 <label class="switch" title="上下文连贯">
-                  <input type="checkbox" id="set-context-reply" checked>
+                  <input autocomplete="off" type="checkbox" id="set-context-reply" checked>
                   <span class="slider"></span>
                 </label>
               </div>
@@ -1272,35 +1272,35 @@ if ('caches' in window) {
               <label class="field"><span>TA 主动来电（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-call-incoming" data-step="-1">−</button>
-                  <input id="set-call-incoming" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-call-incoming" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-call-incoming" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 接听我的来电（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-call-answer" data-step="-1">−</button>
-                  <input id="set-call-answer" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-call-answer" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-call-answer" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>对方忙音（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-call-busy" data-step="-1">−</button>
-                  <input id="set-call-busy" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-call-busy" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-call-busy" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>拒接（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-call-reject" data-step="-1">−</button>
-                  <input id="set-call-reject" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-call-reject" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-call-reject" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>通话中 TA 主动挂断（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-call-hangup" data-step="-1">−</button>
-                  <input id="set-call-hangup" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-call-hangup" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-call-hangup" data-step="1">+</button>
                 </span>
               </label>
@@ -1314,35 +1314,35 @@ if ('caches' in window) {
               <label class="field"><span>TA 暂停音乐（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-music-pause" data-step="-1">−</button>
-                  <input id="set-music-pause" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-music-pause" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-music-pause" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 重新播放音乐（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-music-play" data-step="-1">−</button>
-                  <input id="set-music-play" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-music-play" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-music-play" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 收藏音乐（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-music-fav" data-step="-1">−</button>
-                  <input id="set-music-fav" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-music-fav" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-music-fav" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 切歌（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-music-switch" data-step="-1">−</button>
-                  <input id="set-music-switch" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-music-switch" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-music-switch" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 邀请一起听音乐（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-music-invite" data-step="-1">−</button>
-                  <input id="set-music-invite" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-music-invite" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-music-invite" data-step="1">+</button>
                 </span>
               </label>
@@ -1355,48 +1355,48 @@ if ('caches' in window) {
               <label class="field"><span>TA 点赞我的动态（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-like" data-step="-1">−</button>
-                  <input id="set-ta-like" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-like" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-like" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 评论我的动态（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-comment" data-step="-1">−</button>
-                  <input id="set-ta-comment" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-comment" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-comment" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>TA 主动发朋友圈（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-moment-prob" data-step="-1">−</button>
-                  <input id="set-ta-moment-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-moment-prob" type="number" min="0" max="100" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-moment-prob" data-step="1">+</button>
                 </span>
               </label>
               <label class="field"><span>每天最多发布（条）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-moment-daily" data-step="-1">−</button>
-                  <input id="set-ta-moment-daily" type="number" min="1" max="20" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-moment-daily" type="number" min="1" max="20" step="1" inputmode="numeric">
                   <button type="button" class="step-btn" data-step-for="set-ta-moment-daily" data-step="1">+</button>
                 </span>
               </label>
               <div class="field-row">
                 <label class="field"><span>最短间隔（分钟）</span>
-                  <input id="set-ta-moment-gap-min" type="number" min="0" max="1440" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-moment-gap-min" type="number" min="0" max="1440" step="1" inputmode="numeric">
                 </label>
                 <label class="field"><span>最长间隔（分钟）</span>
-                  <input id="set-ta-moment-gap-max" type="number" min="1" max="2880" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-moment-gap-max" type="number" min="1" max="2880" step="1" inputmode="numeric">
                 </label>
               </div>
               <label class="field"><span>冷却时间（分钟）</span>
-                <input id="set-ta-moment-cooldown" type="number" min="0" max="1440" step="1" inputmode="numeric">
+                <input autocomplete="off" id="set-ta-moment-cooldown" type="number" min="0" max="1440" step="1" inputmode="numeric">
               </label>
               <div class="field-row">
                 <label class="field"><span>最少用字卡数</span>
-                  <input id="set-ta-moment-card-min" type="number" min="1" max="9" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-moment-card-min" type="number" min="1" max="9" step="1" inputmode="numeric">
                 </label>
                 <label class="field"><span>最多</span>
-                  <input id="set-ta-moment-card-max" type="number" min="1" max="9" step="1" inputmode="numeric">
+                  <input autocomplete="off" id="set-ta-moment-card-max" type="number" min="1" max="9" step="1" inputmode="numeric">
                 </label>
               </div>
               <p class="panel-note">TA 的朋友圈会从字卡库（聊天 / 情绪）、内置颜文字和表情包里随机取内容。超过最长间隔时会保底发一条。</p>
@@ -1435,12 +1435,12 @@ if ('caches' in window) {
           <button type="button" class="tool-btn" id="btn-export-cards">导出</button>
           <button type="button" class="tool-btn" id="btn-dedupe-cards">去重</button>
           <button type="button" class="tool-btn" id="btn-restore-cards">恢复内置</button>
-          <input type="file" id="file-import-cards" accept="application/json,.json" hidden>
+          <input autocomplete="off" type="file" id="file-import-cards" accept="application/json,.json" hidden>
         </div>
         <div class="card-batch-bar" id="card-batch-bar" hidden>
           <p class="field-hint" id="card-batch-count">已选 0 张，点字卡可多选</p>
           <div class="card-batch-row">
-            <input id="card-batch-trigger" maxlength="40" placeholder="触发词，多个用 / 分隔" aria-label="批量触发词">
+            <input autocomplete="off" id="card-batch-trigger" maxlength="40" placeholder="触发词，多个用 / 分隔" aria-label="批量触发词">
             <button type="button" class="btn primary" id="card-batch-apply">应用</button>
             <button type="button" class="btn ghost" id="card-batch-cancel">退出</button>
           </div>
@@ -1470,7 +1470,7 @@ if ('caches' in window) {
             <button type="button" data-market-as="ta">TA</button>
           </div>
           <div class="market-subsidy">
-            <input id="market-subsidy-amount" class="market-subsidy-input" type="number" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="输入补贴金额（1 ~ 1000000000）">
+            <input autocomplete="off" id="market-subsidy-amount" class="market-subsidy-input" type="number" min="1" max="1000000000" step="1" inputmode="numeric" placeholder="输入补贴金额（1 ~ 1000000000）">
             <div class="market-subsidy-actions">
               <button type="button" class="btn ghost" id="market-subsidy-me">补贴我</button>
               <button type="button" class="btn ghost" id="market-subsidy-ta">补贴 TA</button>
@@ -1481,11 +1481,11 @@ if ('caches' in window) {
 
         <section class="panel">
           <h3>上架商品</h3>
-          <form id="market-add-form" class="market-add-form">
-            <label class="field"><span>商品名</span><input id="market-name" maxlength="20" placeholder="比如：月光抱枕" required></label>
+          <form autocomplete="off" id="market-add-form" class="market-add-form">
+            <label class="field"><span>商品名</span><input autocomplete="off" id="market-name" maxlength="20" placeholder="比如：月光抱枕" required></label>
             <div class="field-row">
-              <label class="field"><span>价格（同心币）</span><input id="market-price" type="number" min="1" max="99999" step="1" placeholder="88" required></label>
-              <label class="field"><span>图标</span><input id="market-icon" maxlength="4" placeholder="🎁"></label>
+              <label class="field"><span>价格（同心币）</span><input autocomplete="off" id="market-price" type="number" min="1" max="99999" step="1" placeholder="88" required></label>
+              <label class="field"><span>图标</span><input autocomplete="off" id="market-icon" maxlength="4" placeholder="🎁"></label>
             </div>
             <label class="field"><span>分类</span><select id="market-cat">
               <option>日常用品</option>
@@ -1560,16 +1560,16 @@ if ('caches' in window) {
         <div class="settings-page" data-settings-panel="profile">
         <div class="panel">
           <h3>我的资料</h3>
-          <label class="field"><span>名字</span><input id="set-name" maxlength="12" placeholder="你的名字"></label>
+          <label class="field"><span>名字</span><input autocomplete="off" id="set-name" maxlength="12" placeholder="你的名字"></label>
           <div class="field avatar-field">
             <span>头像</span>
             <div class="avatar-picker">
               <span class="avatar avatar-preview" id="set-avatar-preview"></span>
               <button type="button" class="btn" id="btn-set-avatar">从本地相册选择</button>
-              <input type="file" id="set-avatar-file" accept="image/*" hidden>
+              <input autocomplete="off" type="file" id="set-avatar-file" accept="image/*" hidden>
             </div>
           </div>
-          <label class="field"><span>纪念日</span><input id="set-since" type="date"></label>
+          <label class="field"><span>纪念日</span><input autocomplete="off" id="set-since" type="date"></label>
         </div>
 
         <div class="panel">
@@ -1596,7 +1596,7 @@ if ('caches' in window) {
               <span class="field-hint">TA 发语音时，在播放器下方显示语音卡里写的文字</span>
             </div>
             <label class="switch" title="语音转文字">
-              <input type="checkbox" id="set-voice-transcript" checked>
+              <input autocomplete="off" type="checkbox" id="set-voice-transcript" checked>
               <span class="slider"></span>
             </label>
           </div>
@@ -1604,17 +1604,17 @@ if ('caches' in window) {
 
         <div class="panel">
           <h3>消息引用</h3>
-          <label class="field"><span>TA 引用消息（%）</span><input id="set-ta-quote" inputmode="numeric" maxlength="3" placeholder="20"></label>
+          <label class="field"><span>TA 引用消息（%）</span><input autocomplete="off" id="set-ta-quote" inputmode="numeric" maxlength="3" placeholder="20"></label>
           <p class="field-hint">TA 引用时大多会引用你发的消息（约 85%），很少引用他自己的。</p>
         </div>
 
         <div class="panel">
           <h3>信</h3>
-          <label class="field"><span>TA 主动写信（%）</span><input id="set-ta-mail-prob" inputmode="numeric" maxlength="3" placeholder="12"></label>
-          <label class="field"><span>写信冷却时间（分钟）</span><input id="set-ta-mail-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
+          <label class="field"><span>TA 主动写信（%）</span><input autocomplete="off" id="set-ta-mail-prob" inputmode="numeric" maxlength="3" placeholder="12"></label>
+          <label class="field"><span>写信冷却时间（分钟）</span><input autocomplete="off" id="set-ta-mail-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
           <div class="field-row">
-            <label class="field"><span>信里字卡最少</span><input id="set-mail-card-min" type="number" min="0" max="15" step="1" inputmode="numeric" placeholder="1"></label>
-            <label class="field"><span>最多</span><input id="set-mail-card-max" type="number" min="0" max="15" step="1" inputmode="numeric" placeholder="3"></label>
+            <label class="field"><span>信里字卡最少</span><input autocomplete="off" id="set-mail-card-min" type="number" min="0" max="15" step="1" inputmode="numeric" placeholder="1"></label>
+            <label class="field"><span>最多</span><input autocomplete="off" id="set-mail-card-max" type="number" min="0" max="15" step="1" inputmode="numeric" placeholder="3"></label>
           </div>
           <p class="field-hint">冷却时间内 TA 不会再主动寄信；TA 写信时会从字卡库随机取这么多条拼成一封，设成 0 就是不带字卡。</p>
         </div>
@@ -1627,48 +1627,48 @@ if ('caches' in window) {
               <span class="field-hint">关闭后 TA 不会换自己的头像，也不会动你的头像</span>
             </div>
             <label class="switch" title="TA 换头像">
-              <input type="checkbox" id="set-avatar-enabled" checked>
+              <input autocomplete="off" type="checkbox" id="set-avatar-enabled" checked>
               <span class="slider"></span>
             </label>
           </div>
-          <label class="field"><span>TA 给自己换头像的概率（%）</span><input id="set-avatar-self-prob" inputmode="numeric" maxlength="3" placeholder="40"></label>
-          <label class="field"><span>TA 给我换头像的概率（%）</span><input id="set-avatar-me-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
-          <label class="field"><span>换头像冷却时间（分钟）</span><input id="set-avatar-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
+          <label class="field"><span>TA 给自己换头像的概率（%）</span><input autocomplete="off" id="set-avatar-self-prob" inputmode="numeric" maxlength="3" placeholder="40"></label>
+          <label class="field"><span>TA 给我换头像的概率（%）</span><input autocomplete="off" id="set-avatar-me-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
+          <label class="field"><span>换头像冷却时间（分钟）</span><input autocomplete="off" id="set-avatar-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
           <p class="field-hint">按两个概率决定换谁的；换过一次后要等冷却时间结束，TA 才会再次换头像。</p>
         </div>
 
         <div class="panel">
           <h3>改名字概率</h3>
-          <label class="field"><span>TA 给自己改名字的概率（%）</span><input id="set-name-self-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
-          <label class="field"><span>TA 给我改名字的概率（%）</span><input id="set-name-me-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
-          <label class="field"><span>改名字冷却时间（分钟）</span><input id="set-name-cooldown" inputmode="numeric" maxlength="4" placeholder="120"></label>
+          <label class="field"><span>TA 给自己改名字的概率（%）</span><input autocomplete="off" id="set-name-self-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
+          <label class="field"><span>TA 给我改名字的概率（%）</span><input autocomplete="off" id="set-name-me-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
+          <label class="field"><span>改名字冷却时间（分钟）</span><input autocomplete="off" id="set-name-cooldown" inputmode="numeric" maxlength="4" placeholder="120"></label>
           <p class="field-hint">TA 会从「头像」工具里「名字」分类保存过的名字中挑一个换上，改过一次后要等冷却时间结束才会再改。</p>
         </div>
 
         <div class="panel">
           <h3>字卡征询</h3>
-          <label class="field"><span>TA 想把你的话加入字卡（%）</span><input id="set-card-offer-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
+          <label class="field"><span>TA 想把你的话加入字卡（%）</span><input autocomplete="off" id="set-card-offer-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
           <p class="field-hint">你发消息后，TA 有概率问你这句话能不能收进字卡库的「聊天」分类。</p>
         </div>
         <div class="panel">
           <h3>问卷</h3>
-          <label class="field"><span>TA 主动发问卷（%）</span><input id="set-ta-survey-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
+          <label class="field"><span>TA 主动发问卷（%）</span><input autocomplete="off" id="set-ta-survey-prob" inputmode="numeric" maxlength="3" placeholder="10"></label>
           <p class="field-hint">即使你不发问卷，TA 也会按这个概率主动给你发一份，点开卡片就能直接作答。</p>
-          <label class="field"><span>发问卷冷却时间（分钟）</span><input id="set-ta-survey-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
+          <label class="field"><span>发问卷冷却时间（分钟）</span><input autocomplete="off" id="set-ta-survey-cooldown" inputmode="numeric" maxlength="4" placeholder="30"></label>
           <p class="field-hint">冷却时间内 TA 不会再发新的问卷；上一份还没答完时也会先等着。</p>
         </div>
 
         <div class="panel">
           <h3>集市互动</h3>
-          <label class="field"><span>TA 送你集市礼物的概率（%）</span><input id="set-ta-market-gift-prob" inputmode="numeric" maxlength="3" placeholder="6"></label>
-          <label class="field"><span>TA 买下集市东西的概率（%）</span><input id="set-ta-market-buy-prob" inputmode="numeric" maxlength="3" placeholder="6"></label>
-          <label class="field"><span>TA 说出想要什么的概率（%）</span><input id="set-ta-market-wish-prob" inputmode="numeric" maxlength="3" placeholder="8"></label>
-          <label class="field"><span>TA 收藏集市东西的概率（%）</span><input id="set-ta-market-fav-prob" inputmode="numeric" maxlength="3" placeholder="4"></label>
-          <label class="field"><span>TA 给你买下的概率（%）</span><input id="set-ta-market-buy-for-me-prob" inputmode="numeric" maxlength="3" placeholder="4"></label>
-          <p class="field-hint">这 5 个概率各自独立生效，分别控制对应那件事「发出来的多少」：每次机会每件事都按自己的概率单独判定一次，数值越小，那件事出现得越少，填 0 就基本不会出现。</p>
+          <label class="field"><span>TA 送你集市礼物的概率（%）</span><input autocomplete="off" id="set-ta-market-gift-prob" inputmode="numeric" maxlength="3" placeholder="6"></label>
+          <label class="field"><span>TA 买下集市东西的概率（%）</span><input autocomplete="off" id="set-ta-market-buy-prob" inputmode="numeric" maxlength="3" placeholder="6"></label>
+          <label class="field"><span>TA 说出想要什么的概率（%）</span><input autocomplete="off" id="set-ta-market-wish-prob" inputmode="numeric" maxlength="3" placeholder="8"></label>
+          <label class="field"><span>TA 收藏集市东西的概率（%）</span><input autocomplete="off" id="set-ta-market-fav-prob" inputmode="numeric" maxlength="3" placeholder="4"></label>
+          <label class="field"><span>TA 给你买下的概率（%）</span><input autocomplete="off" id="set-ta-market-buy-for-me-prob" inputmode="numeric" maxlength="3" placeholder="4"></label>
+          <p class="field-hint">填的数字就是概率本身：填 1 就是 1%，填 100 就是 100%，1~100 之间随便填，没有隐藏换算。这 5 个概率各自独立生效，每次机会每件事都按自己的概率单独判定一次，数值越小，那件事出现得越少，填 0 就基本不会出现。</p>
           <p class="field-hint">同一轮即使有好几件事同时命中，也只会随机挑一件发出来，一次最多一条，不会一次刷出一堆；一件都没命中就什么都不发。</p>
-          <label class="field"><span>TA 答应你心愿的概率（%）</span><input id="set-ta-wish-accept-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
-          <label class="field"><span>TA 拒绝你心愿的概率（%）</span><input id="set-ta-wish-reject-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
+          <label class="field"><span>TA 答应你心愿的概率（%）</span><input autocomplete="off" id="set-ta-wish-accept-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
+          <label class="field"><span>TA 拒绝你心愿的概率（%）</span><input autocomplete="off" id="set-ta-wish-reject-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
           <p class="field-hint">你在集市许愿后，TA 看到时有概率直接答应并送你（已接受），也可能拒绝（已被拒绝）；剩下的概率不作处理，保持等待。</p>
         </div>
 
@@ -1680,7 +1680,7 @@ if ('caches' in window) {
               <span class="field-hint">开启后，你在通话中说「挂电话」，TA 有 50% 概率回一句「好」再挂断；关闭后 TA 不会因为这个挂断。</span>
             </div>
             <label class="switch" title="说挂电话后 TA 可能挂断">
-              <input type="checkbox" id="set-call-words-hangup" checked>
+              <input autocomplete="off" type="checkbox" id="set-call-words-hangup" checked>
               <span class="slider"></span>
             </label>
           </div>
@@ -1706,16 +1706,16 @@ if ('caches' in window) {
                   <span class="field-hint">节日和纪念日当天，自动更换主页皮肤、问候语、今日字笺和图标角标。</span>
                 </div>
                 <label class="switch" title="日历联动与主题变换">
-                  <input type="checkbox" id="set-calendar-theme">
+                  <input autocomplete="off" type="checkbox" id="set-calendar-theme">
                   <span class="slider"></span>
                 </label>
               </div>
               <div class="festival-options" id="festival-options">
-                <label><input type="checkbox" data-festival-opt="valentine"><span>情人节</span></label>
-                <label><input type="checkbox" data-festival-opt="qixi"><span>七夕</span></label>
-                <label><input type="checkbox" data-festival-opt="christmas"><span>圣诞</span></label>
-                <label><input type="checkbox" data-festival-opt="newyear"><span>元旦</span></label>
-                <label><input type="checkbox" data-festival-opt="anniversary"><span>纪念日</span></label>
+                <label><input autocomplete="off" type="checkbox" data-festival-opt="valentine"><span>情人节</span></label>
+                <label><input autocomplete="off" type="checkbox" data-festival-opt="qixi"><span>七夕</span></label>
+                <label><input autocomplete="off" type="checkbox" data-festival-opt="christmas"><span>圣诞</span></label>
+                <label><input autocomplete="off" type="checkbox" data-festival-opt="newyear"><span>元旦</span></label>
+                <label><input autocomplete="off" type="checkbox" data-festival-opt="anniversary"><span>纪念日</span></label>
               </div>
               <p class="field-hint">关掉开关后不会替换主页；上面的勾选只控制开启时哪些节日生效。</p>
             </div>
@@ -1738,7 +1738,7 @@ if ('caches' in window) {
                   <span class="field-hint">应用图标和底部导航图标会跟着当前外观主题变色；关闭后使用上面的图标颜色。</span>
                 </div>
                 <label class="switch" title="图标跟随外观">
-                  <input type="checkbox" id="set-icons-follow-theme" checked>
+                  <input autocomplete="off" type="checkbox" id="set-icons-follow-theme" checked>
                   <span class="slider"></span>
                 </label>
               </div>
@@ -1766,21 +1766,21 @@ if ('caches' in window) {
                   <button type="button" class="tool-btn" data-look-clear="call">清除</button>
                 </span>
               </div>
-              <input type="file" id="look-file-bg" accept="image/*" hidden>
-              <input type="file" id="look-file-chat" accept="image/*" hidden>
-              <input type="file" id="look-file-call" accept="image/*" hidden>
+              <input autocomplete="off" type="file" id="look-file-bg" accept="image/*" hidden>
+              <input autocomplete="off" type="file" id="look-file-chat" accept="image/*" hidden>
+              <input autocomplete="off" type="file" id="look-file-call" accept="image/*" hidden>
             </div>
             <div class="panel">
               <h3 class="settings-subtitle">透明度</h3>
               <label class="field"><span>界面透明度（%）</span>
-                <input id="look-opacity" type="text" inputmode="numeric" maxlength="3" value="100" placeholder="100">
+                <input autocomplete="off" id="look-opacity" type="text" inputmode="numeric" maxlength="3" value="100" placeholder="100">
               </label>
               <p class="field-hint">手动输入 20–100 的整数，默认 100（保持原样）；数字越小，界面越淡。</p>
             </div>
             <div class="panel">
               <h3 class="settings-subtitle">气泡 CSS</h3>
               <label class="field"><span>自定义气泡样式</span>
-                <textarea id="look-bubble-css" rows="5" maxlength="2000" placeholder=".bubble { border-radius: 18px; }"></textarea>
+                <textarea autocomplete="off" id="look-bubble-css" rows="5" maxlength="2000" placeholder=".bubble { border-radius: 18px; }"></textarea>
               </label>
               <p class="field-hint">写在这里的 CSS 会作用到整个聊天界面，留空即恢复默认。</p>
               <button type="button" class="btn ghost" id="look-reset">恢复默认外观</button>
@@ -1797,7 +1797,7 @@ if ('caches' in window) {
                 <span class="field-hint">开启后，TA 发来新消息时会在手机通知栏弹出提示。</span>
               </div>
               <label class="switch" title="通知弹窗">
-                <input type="checkbox" id="set-notify-enabled">
+                <input autocomplete="off" type="checkbox" id="set-notify-enabled">
                 <span class="slider"></span>
               </label>
             </div>
@@ -1813,7 +1813,7 @@ if ('caches' in window) {
                 <span class="field-hint">让浏览器尽量不回收页面，通知更不容易被系统清掉。</span>
               </div>
               <label class="switch" title="后台保活">
-                <input type="checkbox" id="set-keepalive">
+                <input autocomplete="off" type="checkbox" id="set-keepalive">
                 <span class="slider"></span>
               </label>
             </div>
@@ -1830,7 +1830,7 @@ if ('caches' in window) {
                 <span class="field-hint">开启后网站会撑满屏幕的长宽，不再保留手机外壳的宽度和圆角。</span>
               </div>
               <label class="switch" title="强制延伸至全屏幕">
-                <input type="checkbox" id="set-force-fullscreen">
+                <input autocomplete="off" type="checkbox" id="set-force-fullscreen">
                 <span class="slider"></span>
               </label>
             </div>
@@ -1841,18 +1841,18 @@ if ('caches' in window) {
             <h3>备份内容</h3>
             <p class="field-hint">导出时只写入勾选的分类；导入时也只覆盖勾选的分类，没勾的保持本机原样。</p>
             <div class="backup-scopes" id="backup-scopes">
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="profile" checked><span>资料与联系人</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="chats" checked><span>聊天记录</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="cards" checked><span>字卡库</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="stickers" checked><span>表情包</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="look" checked><span>外观美化</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="settings" checked><span>互动设置</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="anniv" checked><span>纪念日与笔记</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="moments" checked><span>朋友圈</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="mail" checked><span>信箱</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="calendar" checked><span>日历</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="music" checked><span>音乐列表</span></label>
-              <label class="backup-scope"><input type="checkbox" data-backup-scope="market" checked><span>集市与钱包</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="profile" checked><span>资料与联系人</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="chats" checked><span>聊天记录</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="cards" checked><span>字卡库</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="stickers" checked><span>表情包</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="look" checked><span>外观美化</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="settings" checked><span>互动设置</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="anniv" checked><span>纪念日与笔记</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="moments" checked><span>朋友圈</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="mail" checked><span>信箱</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="calendar" checked><span>日历</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="music" checked><span>音乐列表</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="market" checked><span>集市与钱包</span></label>
             </div>
             <div class="btn-row">
               <button type="button" class="btn ghost" id="backup-select-all">全选</button>
@@ -1871,7 +1871,7 @@ if ('caches' in window) {
             </div>
             <button type="button" class="btn danger" id="btn-reset">清空并重置</button>
             <p class="list-meta" id="storage-size"></p>
-            <input type="file" id="file-import-all" accept="application/json,.json" hidden>
+            <input autocomplete="off" type="file" id="file-import-all" accept="application/json,.json" hidden>
           </div>
 
 
@@ -1984,7 +1984,7 @@ if ('caches' in window) {
 
 <!-- ============ 日历经期 / 排卵期弹窗 ============ -->
 <dialog id="cal-cycle-dialog" class="sheet cal-cycle-dialog">
-  <form>
+  <form autocomplete="off">
     <div class="sheet-head">
       <h3 id="cal-cycle-title">选择记录</h3>
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
@@ -2000,28 +2000,28 @@ if ('caches' in window) {
 
 <!-- ============ 字卡弹窗 ============ -->
 <dialog id="card-dialog" class="sheet">
-  <form id="card-form">
+  <form autocomplete="off" id="card-form">
     <div class="sheet-head">
       <h3 id="card-dialog-title">新建字卡</h3>
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
     <label class="field">
       <span id="card-text-label">内容</span>
-      <textarea id="card-text" rows="5" maxlength="20000" placeholder="写一句想被随机说出口的话…" required></textarea>
+      <textarea autocomplete="off" id="card-text" rows="5" maxlength="20000" placeholder="写一句想被随机说出口的话…" required></textarea>
     </label>
     <p class="field-hint" id="card-text-hint">一行一张字卡，可一次粘贴多行批量添加。</p>
     <label class="field"><span>分类</span><select id="card-cat"></select></label>
     <div class="field-row" id="card-emotion-fields">
-      <label class="field"><span>情绪</span><input id="card-emotion" maxlength="12" placeholder="如：高兴"></label>
+      <label class="field"><span>情绪</span><input autocomplete="off" id="card-emotion" maxlength="12" placeholder="如：高兴"></label>
     </div>
     <div class="card-voice-fields" id="card-voice-fields">
       <label class="field"><span>语音文件（mp3，建议 1.5MB 以内）</span>
-        <input id="card-audio-file" type="file" accept="audio/mpeg,audio/mp3,audio/*">
+        <input autocomplete="off" id="card-audio-file" type="file" accept="audio/mpeg,audio/mp3,audio/*">
       </label>
       <p class="field-hint" id="card-audio-hint">还没有语音，请选择一段 mp3 文件</p>
       <audio id="card-audio-preview" controls preload="metadata" hidden></audio>
     </div>
-    <label class="field"><span>触发词（可选）</span><input id="card-trigger" maxlength="40" placeholder="多个用 / 分隔，如：想你/晚安/在吗"></label>
+    <label class="field"><span>触发词（可选）</span><input autocomplete="off" id="card-trigger" maxlength="40" placeholder="多个用 / 分隔，如：想你/晚安/在吗"></label>
     <div class="card-followup-fields" id="card-followup-fields" style="display:none">
       <label class="field"><span>接在哪句话后面</span><select id="card-followup-parent"></select></label>
       <label class="field"><span>追加方式</span>
@@ -2030,7 +2030,7 @@ if ('caches' in window) {
           <option value="noreply">未回复追问（你没回时 TA 追问）</option>
         </select>
       </label>
-      <label class="field" id="card-followup-delay-row"><span>超过多少秒没回复就追问</span><input id="card-followup-delay" type="number" min="5" max="3600" step="1" inputmode="numeric" value="60"></label>
+      <label class="field" id="card-followup-delay-row"><span>超过多少秒没回复就追问</span><input autocomplete="off" id="card-followup-delay" type="number" min="5" max="3600" step="1" inputmode="numeric" value="60"></label>
       <p class="field-hint" id="card-followup-kind-hint"></p>
     </div>
     <button type="button" class="btn ghost" id="card-import-file-btn">文件</button>
@@ -2043,14 +2043,14 @@ if ('caches' in window) {
 
 <!-- ============ 音乐信息弹窗 ============ -->
 <dialog id="music-edit-dialog" class="sheet">
-  <form id="music-edit-form">
+  <form autocomplete="off" id="music-edit-form">
     <div class="sheet-head">
       <h3>编辑歌曲信息</h3>
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
-    <input type="hidden" id="music-edit-id">
-    <label class="field"><span>歌名</span><input id="music-edit-title" maxlength="60" required></label>
-    <label class="field"><span>歌手</span><input id="music-edit-artist" maxlength="60" placeholder="未知歌手"></label>
+    <input autocomplete="off" type="hidden" id="music-edit-id">
+    <label class="field"><span>歌名</span><input autocomplete="off" id="music-edit-title" maxlength="60" required></label>
+    <label class="field"><span>歌手</span><input autocomplete="off" id="music-edit-artist" maxlength="60" placeholder="未知歌手"></label>
     <div class="sheet-actions">
       <button type="button" class="btn ghost" data-close>取消</button>
       <button type="submit" class="btn primary">保存</button>
@@ -2060,14 +2060,14 @@ if ('caches' in window) {
 
 <!-- ============ 红包弹窗 ============ -->
 <dialog id="redpacket-dialog" class="sheet">
-  <form id="redpacket-form">
+  <form autocomplete="off" id="redpacket-form">
     <div class="sheet-head">
       <h3>发同心币红包</h3>
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
     <p class="field-hint" id="redpacket-side-hint">以「我」的身份发出</p>
-    <label class="field"><span>金额（同心币）</span><input id="redpacket-amount" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="比如 88" autocomplete="one-time-code" required></label>
-    <label class="field"><span>备注（可选）</span><input id="redpacket-note" maxlength="20" placeholder="恭喜发财，大吉大利"></label>
+    <label class="field"><span>金额（同心币）</span><input id="redpacket-amount" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="比如 88" autocomplete="off" required></label>
+    <label class="field"><span>备注（可选）</span><input autocomplete="off" id="redpacket-note" maxlength="20" placeholder="恭喜发财，大吉大利"></label>
     <div class="sheet-actions">
       <button type="button" class="btn ghost" data-close>取消</button>
       <button type="submit" class="btn primary">塞进红包</button>
@@ -2138,7 +2138,7 @@ if ('caches' in window) {
         <p class="field-hint">点一张图片设为当前头像；点右上角的 × 删除这张。</p>
         <div class="avatar-pool-grid" id="avatar-pool-grid"></div>
         <button type="button" class="btn ghost" id="avatar-pool-import">＋ 从相册导入</button>
-        <input type="file" id="avatar-pool-file" accept="image/*" multiple hidden>
+        <input autocomplete="off" type="file" id="avatar-pool-file" accept="image/*" multiple hidden>
         <p class="field-hint">TA 会自己在有概率的时候换头像，换成哪个位置由系统随机决定。</p>
       </div>
       <div data-avatar-panel="name" hidden>
@@ -2147,7 +2147,7 @@ if ('caches' in window) {
           <button type="button" data-name-side="ta">他的名字</button>
         </div>
         <label class="field"><span>名字</span>
-          <input id="name-input" maxlength="16" placeholder="写一个名字，回车保存">
+          <input autocomplete="off" id="name-input" maxlength="16" placeholder="写一个名字，回车保存">
         </label>
         <button type="button" class="btn" id="name-save">保存这个名字</button>
         <div class="name-chip-list" id="name-chip-list"></div>
@@ -2171,7 +2171,7 @@ if ('caches' in window) {
     </div>
     <div id="survey-one">
       <label class="field"><span>问题</span>
-        <input id="survey-question-input" maxlength="80" placeholder="写一个问题，比如：今天最想和我做什么？">
+        <input autocomplete="off" id="survey-question-input" maxlength="80" placeholder="写一个问题，比如：今天最想和我做什么？">
       </label>
       <div class="field survey-mode-field"><span>回答方式</span>
         <div class="segmented" id="survey-mode" role="group" aria-label="回答方式">
@@ -2181,7 +2181,7 @@ if ('caches' in window) {
         </div>
       </div>
       <label class="field" id="survey-options-wrap" hidden><span>选项</span>
-        <input id="survey-options" maxlength="120" placeholder="用 / 分隔 2~6 个选项，如：吃饭 / 散步 / 看电影">
+        <input autocomplete="off" id="survey-options" maxlength="120" placeholder="用 / 分隔 2~6 个选项，如：吃饭 / 散步 / 看电影">
       </label>
       <label class="field" id="survey-scope-wrap"><span>字卡范围</span>
         <select id="survey-scope">
@@ -2197,7 +2197,7 @@ if ('caches' in window) {
       <p class="field-hint">一次可以出多道题，TA 会在设定时间后把答案一起发回来。</p>
     </div>
     <label class="field"><span>TA 多久后答（秒）</span>
-      <input id="survey-answer-delay" inputmode="numeric" maxlength="3" value="4" placeholder="比如 4">
+      <input autocomplete="off" id="survey-answer-delay" inputmode="numeric" maxlength="3" value="4" placeholder="比如 4">
     </label>
     <p class="field-hint">选好回答方式后直接发送，TA 会在你设定的秒数后回一份答案卡。</p>
   </div>
@@ -2434,7 +2434,7 @@ if ('caches' in window) {
         <button type="button" class="dg-tool" id="dg-undo">撤销</button>
         <button type="button" class="dg-tool" id="dg-clear">清空</button>
       </div>
-      <input id="dg-desc" class="dg-desc" maxlength="40" placeholder="也可以写一句描述：黄色、弯弯的、猴子爱吃">
+      <input autocomplete="off" id="dg-desc" class="dg-desc" maxlength="40" placeholder="也可以写一句描述：黄色、弯弯的、猴子爱吃">
       <div id="dg-options" class="dg-options" hidden></div>
       <p class="dg-result" id="dg-result" hidden></p>
       <div class="dg-actions">
@@ -2473,7 +2473,7 @@ if ('caches' in window) {
           </div>
           <p class="quiz-question" id="quiz-question">…</p>
           <label class="field"><span>正确答案（只有你先知道）</span>
-            <input id="quiz-answer" maxlength="40" placeholder="比如：草莓">
+            <input autocomplete="off" id="quiz-answer" maxlength="40" placeholder="比如：草莓">
           </label>
           <button type="button" class="btn primary" id="quiz-submit">出这道题，等 TA 来猜</button>
           <p class="field-hint">你先写下答案，系统会通知 TA 来猜，猜完双方一起看结果。</p>
@@ -2484,10 +2484,10 @@ if ('caches' in window) {
 
       <div data-quiz-panel="custom" hidden>
         <label class="field"><span>题目</span>
-          <input id="quiz-custom-q" maxlength="60" placeholder="比如：我们第一次约会看的什么电影？">
+          <input autocomplete="off" id="quiz-custom-q" maxlength="60" placeholder="比如：我们第一次约会看的什么电影？">
         </label>
         <label class="field"><span>正确答案</span>
-          <input id="quiz-custom-a" maxlength="40" placeholder="只有你知道的答案">
+          <input autocomplete="off" id="quiz-custom-a" maxlength="40" placeholder="只有你知道的答案">
         </label>
         <label class="field"><span>分类</span>
           <select id="quiz-custom-cat"></select>
@@ -2561,7 +2561,7 @@ if ('caches' in window) {
       </div>
 
       <div class="song-guess-row" id="song-guess-row">
-        <input id="song-input" maxlength="30" placeholder="手写歌名">
+        <input autocomplete="off" id="song-input" maxlength="30" placeholder="手写歌名">
         <button type="button" class="btn primary" id="song-submit">提交</button>
       </div>
       <p class="song-result" id="song-result" hidden></p>
@@ -2586,65 +2586,65 @@ if ('caches' in window) {
 
 <!-- ============ 联系人弹窗 ============ -->
 <dialog id="contact-dialog" class="sheet">
-  <form id="contact-form">
+  <form autocomplete="off" id="contact-form">
     <div class="sheet-head">
       <h3 id="contact-dialog-title">新建联系人</h3>
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
-    <label class="field"><span>名字</span><input id="contact-name" maxlength="12" placeholder="TA 的名字" required></label>
+    <label class="field"><span>名字</span><input autocomplete="off" id="contact-name" maxlength="12" placeholder="TA 的名字" required></label>
     <div class="field avatar-field">
       <span>头像</span>
       <div class="avatar-picker">
         <span class="avatar avatar-preview" id="contact-avatar-preview"></span>
         <button type="button" class="btn" id="btn-contact-avatar">从本地相册选择</button>
-        <input type="file" id="contact-avatar-file" accept="image/*" hidden>
+        <input autocomplete="off" type="file" id="contact-avatar-file" accept="image/*" hidden>
       </div>
     </div>
-    <label class="field"><span>备注</span><input id="contact-note" maxlength="20" placeholder="一句话介绍（可选）"></label>
-    <label class="field"><span>生日</span><input id="contact-birthday" type="date"></label>
+    <label class="field"><span>备注</span><input autocomplete="off" id="contact-note" maxlength="20" placeholder="一句话介绍（可选）"></label>
+    <label class="field"><span>生日</span><input autocomplete="off" id="contact-birthday" type="date"></label>
 
     <div class="contact-settings">
       <h4>这个角色的回复与互动</h4>
       <div class="field-row">
-        <label class="field"><span>每句话最少</span><input id="ct-reply-min" type="number" min="0" max="5" step="1"></label>
-        <label class="field"><span>最多</span><input id="ct-reply-max" type="number" min="0" max="5" step="1"></label>
+        <label class="field"><span>每句话最少</span><input autocomplete="off" id="ct-reply-min" type="number" min="0" max="5" step="1"></label>
+        <label class="field"><span>最多</span><input autocomplete="off" id="ct-reply-max" type="number" min="0" max="5" step="1"></label>
       </div>
       <div class="field-row">
-        <label class="field"><span>回复最快（秒）</span><input id="ct-typing-min" type="number" min="0" max="300" step="1" inputmode="numeric"></label>
-        <label class="field"><span>回复最慢（秒）</span><input id="ct-typing-max" type="number" min="0" max="300" step="1" inputmode="numeric"></label>
+        <label class="field"><span>回复最快（秒）</span><input autocomplete="off" id="ct-typing-min" type="number" min="0" max="300" step="1" inputmode="numeric"></label>
+        <label class="field"><span>回复最慢（秒）</span><input autocomplete="off" id="ct-typing-max" type="number" min="0" max="300" step="1" inputmode="numeric"></label>
       </div>
       <label class="field"><span>拍我（%）</span>
         <span class="prob-input">
           <button type="button" class="step-btn" data-step-for="ct-pat-back" data-step="-1">−</button>
-          <input id="ct-pat-back" type="number" min="0" max="100" step="1" inputmode="numeric">
+          <input autocomplete="off" id="ct-pat-back" type="number" min="0" max="100" step="1" inputmode="numeric">
           <button type="button" class="step-btn" data-step-for="ct-pat-back" data-step="1">+</button>
         </span>
       </label>
       <label class="field"><span>主动发表情包（%）</span>
         <span class="prob-input">
           <button type="button" class="step-btn" data-step-for="ct-sticker" data-step="-1">−</button>
-          <input id="ct-sticker" type="number" min="0" max="100" step="1" inputmode="numeric">
+          <input autocomplete="off" id="ct-sticker" type="number" min="0" max="100" step="1" inputmode="numeric">
           <button type="button" class="step-btn" data-step-for="ct-sticker" data-step="1">+</button>
         </span>
       </label>
       <label class="field"><span>点赞我的动态（%）</span>
         <span class="prob-input">
           <button type="button" class="step-btn" data-step-for="ct-like" data-step="-1">−</button>
-          <input id="ct-like" type="number" min="0" max="100" step="1" inputmode="numeric">
+          <input autocomplete="off" id="ct-like" type="number" min="0" max="100" step="1" inputmode="numeric">
           <button type="button" class="step-btn" data-step-for="ct-like" data-step="1">+</button>
         </span>
       </label>
       <label class="field"><span>评论我的动态（%）</span>
         <span class="prob-input">
           <button type="button" class="step-btn" data-step-for="ct-comment" data-step="-1">−</button>
-          <input id="ct-comment" type="number" min="0" max="100" step="1" inputmode="numeric">
+          <input autocomplete="off" id="ct-comment" type="number" min="0" max="100" step="1" inputmode="numeric">
           <button type="button" class="step-btn" data-step-for="ct-comment" data-step="1">+</button>
         </span>
       </label>
       <label class="field"><span>每条动态用几张字卡</span>
         <span class="prob-input">
           <button type="button" class="step-btn" data-step-for="ct-moment-cards" data-step="-1">−</button>
-          <input id="ct-moment-cards" type="number" min="1" max="3" step="1" inputmode="numeric">
+          <input autocomplete="off" id="ct-moment-cards" type="number" min="1" max="3" step="1" inputmode="numeric">
           <button type="button" class="step-btn" data-step-for="ct-moment-cards" data-step="1">+</button>
         </span>
       </label>
@@ -2661,12 +2661,12 @@ if ('caches' in window) {
 
 <!-- ============ 修改聊天对象名字 ============ -->
 <dialog id="rename-dialog" class="sheet">
-  <form id="rename-form">
+  <form autocomplete="off" id="rename-form">
     <div class="sheet-head">
       <h3>修改名字</h3>
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
-    <label class="field"><span>名字</span><input id="rename-input" maxlength="12" placeholder="TA 的名字" required></label>
+    <label class="field"><span>名字</span><input autocomplete="off" id="rename-input" maxlength="12" placeholder="TA 的名字" required></label>
     <div class="sheet-actions">
       <span class="sheet-spacer"></span>
       <button type="button" class="btn ghost" data-close>取消</button>
@@ -2677,14 +2677,14 @@ if ('caches' in window) {
 
 <!-- ============ 群聊：发起群聊 ============ -->
 <dialog id="group-create-dialog" class="sheet">
-  <form id="group-create-form">
+  <form autocomplete="off" id="group-create-form">
     <div class="sheet-head">
       <h3>发起群聊</h3>
       <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
     </div>
     <p class="field-hint">勾选要拉进群的角色（至少 2 个）。</p>
     <div id="group-create-members" class="grp-mention-list"></div>
-    <label class="field"><span>群名称</span><input id="group-create-name" maxlength="20" placeholder="如：相亲相爱一家人"></label>
+    <label class="field"><span>群名称</span><input autocomplete="off" id="group-create-name" maxlength="20" placeholder="如：相亲相爱一家人"></label>
     <div class="confirm-actions">
       <button type="button" class="btn ghost" data-close>取消</button>
       <button type="submit" class="btn primary" id="group-create-ok">创建</button>
@@ -2713,29 +2713,13 @@ if ('caches' in window) {
   </div>
   <p class="confirm-text" id="grp-mute-text">禁言这位成员多久？</p>
   <div class="grp-mute-field">
-    <input id="grp-mute-minutes" type="number" min="1" max="1440" step="1" inputmode="numeric" value="3">
+    <input autocomplete="off" id="grp-mute-minutes" type="number" min="1" max="1440" step="1" inputmode="numeric" value="3">
     <span>分钟</span>
   </div>
   <div class="confirm-actions">
     <button type="button" class="btn ghost" data-close>取消</button>
     <button type="button" class="btn primary" id="grp-mute-ok">确定</button>
   </div>
-</dialog>
-
-<!-- ============ 信箱：写信 / 回信 ============ -->
-<dialog id="mail-dialog" class="sheet">
-  <form id="mail-form">
-    <div class="sheet-head">
-      <h3 id="mail-dialog-title">写信</h3>
-      <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
-    </div>
-    <p class="field-hint" id="mail-dialog-hint">从字卡库选一张，装进信封。</p>
-    <div id="mail-card-list" class="mail-card-list"></div>
-    <div class="sheet-actions">
-      <button type="button" class="btn ghost" data-close>取消</button>
-      <button type="submit" class="btn primary">寄出</button>
-    </div>
-  </form>
 </dialog>
 
 <!-- ============ 信箱：来信详情 / 回信 ============ -->
@@ -2763,12 +2747,12 @@ if ('caches' in window) {
     <button type="button" class="icon-btn" data-mail-editor-close aria-label="取消">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
-    <h2 id="mail-editor-title">回信</h2>
-    <button type="button" class="mail-editor-save" id="mail-editor-save">确定</button>
+    <h2 id="mail-editor-title">写信</h2>
+    <button type="button" class="mail-editor-save" id="mail-editor-save">寄出</button>
   </header>
-  <div class="mail-editor-quote" id="mail-editor-quote"></div>
+  <div class="mail-editor-quote" id="mail-editor-quote" hidden></div>
   <div class="mail-editor-write">
-    <textarea id="mail-editor-text" class="mail-editor-input" placeholder="写点什么…"></textarea>
+    <textarea autocomplete="off" id="mail-editor-text" class="mail-editor-input" placeholder="写点什么给 TA…"></textarea>
   </div>
 </div>
 
@@ -2805,22 +2789,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261118-134"></script>
-<script src="js/seed.js?v=20261118-134"></script>
-<script src="js/store.js?v=20261118-134"></script>
-<script src="js/desktop.js?v=20261118-134"></script>
-<script src="js/chat.js?v=20261118-134"></script>
-<script src="js/cards.js?v=20261118-134"></script>
-<script src="js/settings.js?v=20261118-134"></script>
-<script src="js/moments.js?v=20261118-134"></script>
-<script src="js/calendar.js?v=20261118-134"></script>
-<script src="js/music.js?v=20261118-134"></script>
-<script src="js/market.js?v=20261118-134"></script>
-<script src="js/mail.js?v=20261118-134"></script>
-<script src="js/extras.js?v=20261118-134"></script>
-<script src="js/companion.js?v=20261118-134"></script>
-<script src="js/memoir.js?v=20261118-134"></script>
-<script src="js/group.js?v=20261118-134"></script>
-<script src="js/app.js?v=20261118-134"></script>
+<script src="js/no-autofill.js?v=20261118-135"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-135"></script>
+<script src="js/seed.js?v=20261118-135"></script>
+<script src="js/store.js?v=20261118-135"></script>
+<script src="js/desktop.js?v=20261118-135"></script>
+<script src="js/chat.js?v=20261118-135"></script>
+<script src="js/cards.js?v=20261118-135"></script>
+<script src="js/settings.js?v=20261118-135"></script>
+<script src="js/moments.js?v=20261118-135"></script>
+<script src="js/calendar.js?v=20261118-135"></script>
+<script src="js/music.js?v=20261118-135"></script>
+<script src="js/market.js?v=20261118-135"></script>
+<script src="js/mail.js?v=20261118-135"></script>
+<script src="js/extras.js?v=20261118-135"></script>
+<script src="js/companion.js?v=20261118-135"></script>
+<script src="js/memoir.js?v=20261118-135"></script>
+<script src="js/group.js?v=20261118-135"></script>
+<script src="js/app.js?v=20261118-135"></script>
 </body>
 </html>

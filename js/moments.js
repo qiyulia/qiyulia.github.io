@@ -514,8 +514,8 @@
       }
       if (!contact) return;
       const cs = App.contactSettings(contact);
-      /* 回复评论的再互动概率：沿用该角色的评论概率，减半处理 */
-      const prob = Math.max(0, Math.min(100, Number(cs.taCommentProb) || 0)) / 2;
+      /* 回复评论的再互动概率：直接用该角色设置的评论概率，填多少就是多少 % */
+      const prob = Math.max(0, Math.min(100, Number(cs.taCommentProb) || 0));
       if (Math.random() * 100 >= prob) return;
       setTimeout(function () {
         const target = (App.state.moments || []).find(function (m) { return m.id === momentId; });

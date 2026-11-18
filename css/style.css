@@ -3387,6 +3387,7 @@ dialog.more-sheet::backdrop {
   border: 1px solid var(--line);
   background: var(--surface-2);
 }
+.mail-editor-quote[hidden] { display: none; }
 .mail-editor-write { flex: 1 1 auto; display: flex; min-height: 0; }
 .mail-editor-input {
   flex: 1 1 auto;
