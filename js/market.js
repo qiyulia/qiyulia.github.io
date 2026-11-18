@@ -130,17 +130,17 @@
   const TA_MARKET_TICK = 60000;
   const TA_MARKET_COOLDOWN = 6 * 60000;
 
-  /* 各动作的相对偏好：只决定「发什么」，不决定「发不发」。
-     发不发由设置里的单一概率控制，所以这里的数值不再是那种没用的概率 */
-  const TA_MARKET_MIX = [
-    { key: 'gift', weight: 6 },
-    { key: 'buy', weight: 6 },
-    { key: 'wish', weight: 8 },
-    { key: 'fav', weight: 4 },
-    { key: 'buyForMe', weight: 4 },
+  /* 5 个动作各自独立一个概率：每个概率只控制自己那件事出现的频率，
+     概率越小那件事越少出现，填 0 就基本不会出现 */
+  const TA_MARKET_ACTIONS = [
+    { key: 'gift', probKey: 'taMarketGiftProb', fallback: 6 },
+    { key: 'buy', probKey: 'taMarketBuyProb', fallback: 6 },
+    { key: 'wish', probKey: 'taMarketWishProb', fallback: 8 },
+    { key: 'fav', probKey: 'taMarketFavProb', fallback: 4 },
+    { key: 'buyForMe', probKey: 'taMarketBuyForMeProb', fallback: 4 },
   ];
 
-  /* TA 在集市里的自发行为：一次最多只发一条集市相关内容 */
+  /* TA 在集市里的自发行为：每个动作按自己的概率单独判定，一次最多只发一条 */
   function taMarketTick() {
     if (!Array.isArray(App.state.market.products) || !products().length) return;
     const contact = currentContact();
@@ -148,12 +148,13 @@
     const now = Date.now();
     if (now - (Number(App.state.settings.taMarketLastAt) || 0) < TA_MARKET_COOLDOWN) return;
 
-    /* 1~100 的概率 = 集市内容冒出来的频繁程度。
-       每次机会只判定一次，没命中就什么都不发、也不进入冷却；
-       概率越小，能发出来的集市相关内容就越少，不会一次刷出一堆 */
-    const prob = marketProb('taMarketProb', 20);
-    if (prob <= 0) return;
-    if (Math.random() * 100 >= prob) return;
+    /* 每件事各掷一次骰子：命中几件事就把几件放进候选，
+       一件都没命中就什么都不发、也不进入冷却，下次继续按概率判定 */
+    const hits = TA_MARKET_ACTIONS.filter(function (a) {
+      const prob = marketProb(a.probKey, a.fallback);
+      return prob > 0 && Math.random() * 100 < prob;
+    });
+    if (!hits.length) return;
 
     const wallet = App.state.wallet;
     const affordable = products().filter(function (p) { return Number(p.price) <= wallet.ta; });
@@ -161,54 +162,59 @@
       return !(p.fav && p.fav.ta) && !favLocked(p);
     });
 
-    const total = TA_MARKET_MIX.reduce(function (sum, a) { return sum + a.weight; }, 0);
-    let roll = Math.random() * total;
-    let picked = TA_MARKET_MIX[TA_MARKET_MIX.length - 1];
-    for (let i = 0; i < TA_MARKET_MIX.length; i++) {
-      roll -= TA_MARKET_MIX[i].weight;
-      if (roll <= 0) { picked = TA_MARKET_MIX[i]; break; }
-    }
-
     function randomOf(list) { return list[Math.floor(Math.random() * list.length)]; }
-    let done = true;
 
-    if (picked.key === 'gift') {
-      if (!affordable.length) done = false;
-      else {
+    function tryAction(key) {
+      if (key === 'gift') {
+        if (!affordable.length) return false;
         const product = randomOf(affordable);
         wallet.ta -= product.price;
         postGift(product, 'ta');
+        return true;
       }
-    } else if (picked.key === 'buy') {
-      if (!affordable.length) done = false;
-      else {
+      if (key === 'buy') {
+        if (!affordable.length) return false;
         const product = randomOf(affordable);
         wallet.ta -= product.price;
         postPurchase(product, 'ta');
+        return true;
       }
-    } else if (picked.key === 'wish') {
-      postWish(randomOf(products()), 'ta');
-    } else if (picked.key === 'fav') {
-      if (!favPool.length) done = false;
-      else {
+      if (key === 'wish') {
+        postWish(randomOf(products()), 'ta');
+        return true;
+      }
+      if (key === 'fav') {
+        if (!favPool.length) return false;
         const product = randomOf(favPool);
         product.fav = product.fav && typeof product.fav === 'object' ? product.fav : { me: false, ta: false };
         product.fav.ta = true;
         App.save();
         postSystem(taName() + '收藏了「' + product.name + '」');
+        return true;
       }
-    } else if (picked.key === 'buyForMe') {
+      /* buyForMe */
       const chat = App.state.chats[contact.id] || [];
       const wish = chat.slice().reverse().find(function (m) {
         return m.type === 'wish' && m.role === 'me' && m.status === 'pending';
       });
-      if (!wish) done = false;
-      else if (wallet.ta < Number(wish.price || 0)) done = false;
-      else {
-        wallet.ta -= Number(wish.price || 0);
-        wish.status = 'fulfilled';
-        postSystem(taName() + '给你买下了「' + (wish.productName || '礼物') + '」，花掉 ' + wish.price + ' 同心币');
-      }
+      if (!wish) return false;
+      if (wallet.ta < Number(wish.price || 0)) return false;
+      wallet.ta -= Number(wish.price || 0);
+      wish.status = 'fulfilled';
+      postSystem(taName() + '给你买下了「' + (wish.productName || '礼物') + '」，花掉 ' + wish.price + ' 同心币');
+      return true;
+    }
+
+    /* 同时命中多件时打乱顺序只做成一件，不会一次发一堆；
+       选中的那件做不了（没钱、没心愿等）就换下一件试 */
+    const queue = hits.slice();
+    for (let i = queue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = queue[i]; queue[i] = queue[j]; queue[j] = tmp;
+    }
+    let done = false;
+    for (let i = 0; i < queue.length; i++) {
+      if (tryAction(queue[i].key)) { done = true; break; }
     }
 
     if (!done) return;

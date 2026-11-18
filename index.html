@@ -21,7 +21,7 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-130">
+<link rel="stylesheet" href="css/style.css?v=20261118-131">
 </head>
 <body>
 <div class="stage">
@@ -1665,9 +1665,13 @@ if ('caches' in window) {
 
         <div class="panel">
           <h3>集市互动</h3>
-          <label class="field"><span>TA 发集市互动的概率（%）</span><input id="set-ta-market-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
-          <p class="field-hint">这个概率决定集市相关内容「发出来的多少」，填 1~100：数值越小，TA 发的集市消息越少，1% 时几乎看不到；100% 时每次机会都会发一条。每次最多只发一条，不会一次刷出一堆。</p>
-          <p class="field-hint">每隔一小会儿判定一次，没命中就什么都不发、也不进入冷却；命中后 TA 才会从送你礼物、买下东西、说出想要的、收藏、替你买单里随机挑一件事做，发完进入约 6 分钟冷却。</p>
+          <label class="field"><span>TA 送你集市礼物的概率（%）</span><input id="set-ta-market-gift-prob" inputmode="numeric" maxlength="3" placeholder="6"></label>
+          <label class="field"><span>TA 买下集市东西的概率（%）</span><input id="set-ta-market-buy-prob" inputmode="numeric" maxlength="3" placeholder="6"></label>
+          <label class="field"><span>TA 说出想要什么的概率（%）</span><input id="set-ta-market-wish-prob" inputmode="numeric" maxlength="3" placeholder="8"></label>
+          <label class="field"><span>TA 收藏集市东西的概率（%）</span><input id="set-ta-market-fav-prob" inputmode="numeric" maxlength="3" placeholder="4"></label>
+          <label class="field"><span>TA 给你买下的概率（%）</span><input id="set-ta-market-buy-for-me-prob" inputmode="numeric" maxlength="3" placeholder="4"></label>
+          <p class="field-hint">这 5 个概率各自独立生效，分别控制对应那件事「发出来的多少」：每次机会每件事都按自己的概率单独判定一次，数值越小，那件事出现得越少，填 0 就基本不会出现。</p>
+          <p class="field-hint">同一轮即使有好几件事同时命中，也只会随机挑一件发出来，一次最多一条，不会一次刷出一堆；一件都没命中就什么都不发。发完进入约 6 分钟冷却。</p>
           <label class="field"><span>TA 答应你心愿的概率（%）</span><input id="set-ta-wish-accept-prob" inputmode="numeric" maxlength="3" placeholder="25"></label>
           <label class="field"><span>TA 拒绝你心愿的概率（%）</span><input id="set-ta-wish-reject-prob" inputmode="numeric" maxlength="3" placeholder="20"></label>
           <p class="field-hint">你在集市许愿后，TA 看到时有概率直接答应并送你（已接受），也可能拒绝（已被拒绝）；剩下的概率不作处理，保持等待。</p>
@@ -2789,22 +2793,22 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261118-130"></script>
-<script src="js/seed.js?v=20261118-130"></script>
-<script src="js/store.js?v=20261118-130"></script>
-<script src="js/desktop.js?v=20261118-130"></script>
-<script src="js/chat.js?v=20261118-130"></script>
-<script src="js/cards.js?v=20261118-130"></script>
-<script src="js/settings.js?v=20261118-130"></script>
-<script src="js/moments.js?v=20261118-130"></script>
-<script src="js/calendar.js?v=20261118-130"></script>
-<script src="js/music.js?v=20261118-130"></script>
-<script src="js/market.js?v=20261118-130"></script>
-<script src="js/mail.js?v=20261118-130"></script>
-<script src="js/extras.js?v=20261118-130"></script>
-<script src="js/companion.js?v=20261118-130"></script>
-<script src="js/memoir.js?v=20261118-130"></script>
-<script src="js/group.js?v=20261118-130"></script>
-<script src="js/app.js?v=20261118-130"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-131"></script>
+<script src="js/seed.js?v=20261118-131"></script>
+<script src="js/store.js?v=20261118-131"></script>
+<script src="js/desktop.js?v=20261118-131"></script>
+<script src="js/chat.js?v=20261118-131"></script>
+<script src="js/cards.js?v=20261118-131"></script>
+<script src="js/settings.js?v=20261118-131"></script>
+<script src="js/moments.js?v=20261118-131"></script>
+<script src="js/calendar.js?v=20261118-131"></script>
+<script src="js/music.js?v=20261118-131"></script>
+<script src="js/market.js?v=20261118-131"></script>
+<script src="js/mail.js?v=20261118-131"></script>
+<script src="js/extras.js?v=20261118-131"></script>
+<script src="js/companion.js?v=20261118-131"></script>
+<script src="js/memoir.js?v=20261118-131"></script>
+<script src="js/group.js?v=20261118-131"></script>
+<script src="js/app.js?v=20261118-131"></script>
 </body>
 </html>
