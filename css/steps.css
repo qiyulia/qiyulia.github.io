@@ -1,0 +1,342 @@
+/* ============ 今日步数 ============ */
+
+/* 主页应用图标：脚印 */
+.steps-app-icon {
+  background: linear-gradient(145deg, #ffd98a, #f0a83a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+}
+
+/* 页面顶部 */
+.steps-hero {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 4px 2px 14px;
+}
+.steps-hero h2 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+.steps-hero .steps-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 步数卡片 */
+.steps-card {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 20px 18px;
+  box-shadow: 0 8px 24px var(--shadow);
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+/* 防止 page-body（flex 列、固定高）把子元素压缩，导致 overflow:hidden 裁剪掉进度条/按钮 */
+#view-steps .page-body > * { flex: none; }
+.steps-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: .7;
+}
+.steps-card.steps-ta::before {
+  background: linear-gradient(90deg, #f0a83a, transparent);
+}
+.steps-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.steps-card-title {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.steps-ta-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.steps-ta-head .avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  overflow: hidden;
+}
+.steps-ta-head .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.steps-ta-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+
+/* 大号数字 */
+.steps-num {
+  font-size: 54px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--ink);
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0 2px;
+}
+.steps-num.is-gold { color: #e8a317; }
+.steps-num small {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+/* 进度条 */
+.steps-progress {
+  margin-top: 12px;
+}
+.steps-progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.steps-progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff));
+  transition: width .9s cubic-bezier(.2,.8,.2,1), background .4s;
+}
+.steps-progress-fill.is-gold {
+  background: linear-gradient(90deg, #f5c451, #e8a317);
+  box-shadow: 0 0 12px rgba(232, 163, 23, .5);
+}
+.steps-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.steps-progress-meta .steps-goal-done { color: #e8a317; font-weight: 600; }
+
+/* 卡片按钮 */
+.steps-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.steps-card-actions .btn { flex: 1; }
+
+.btn.is-cooling, .btn.is-claimed {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* 跨次元排行榜 */
+.steps-board-title {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin: 8px 2px 10px;
+}
+.steps-board {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 6px 14px;
+  box-shadow: 0 8px 24px var(--shadow);
+  margin-bottom: 14px;
+}
+.steps-board-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.steps-board-row:last-child { border-bottom: none; }
+.steps-board-row.is-me { /* 我 */ }
+.steps-crown {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 2px 3px rgba(232, 163, 23, .4));
+}
+.steps-rank {
+  width: 28px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.steps-board-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  overflow: hidden;
+}
+.steps-board-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.steps-board-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.steps-board-count {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.steps-board-row:first-child .steps-board-count { color: #e8a317; }
+
+/* 视觉彩蛋：两个小人并排散步 */
+.steps-walk {
+  margin: 6px 0 18px;
+  padding: 18px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  text-align: center;
+  overflow: hidden;
+  position: relative;
+}
+.steps-walk-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.steps-walk-scene {
+  position: relative;
+  height: 64px;
+}
+.steps-ground {
+  position: absolute;
+  bottom: 14px; left: -10%; right: -10%;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--line) 0 10px, transparent 10px 22px);
+  animation: steps-ground-move 1.2s linear infinite;
+}
+@keyframes steps-ground-move {
+  from { transform: translateX(0); }
+  to { transform: translateX(22px); }
+}
+.steps-couple {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+.steps-person {
+  position: relative;
+  width: 26px;
+  height: 46px;
+  animation: steps-bob .55s ease-in-out infinite alternate;
+}
+.steps-person + .steps-person { animation-delay: .18s; }
+.steps-person .head {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.steps-person + .steps-person .head { background: #f0a83a; }
+.steps-person .body {
+  position: absolute;
+  top: 12px; left: 50%;
+  transform: translateX(-50%);
+  width: 14px; height: 18px;
+  border-radius: 7px 7px 4px 4px;
+  background: var(--accent);
+  opacity: .85;
+}
+.steps-person + .steps-person .body { background: #f0a83a; opacity: .85; }
+.steps-person .leg {
+  position: absolute;
+  top: 28px;
+  width: 4px; height: 16px;
+  background: var(--ink);
+  border-radius: 3px;
+  transform-origin: top center;
+}
+.steps-person .leg.l { left: 6px; animation: steps-leg-a .55s ease-in-out infinite alternate; }
+.steps-person .leg.r { right: 6px; animation: steps-leg-b .55s ease-in-out infinite alternate; }
+.steps-person + .steps-person .leg.l { animation-delay: .18s; }
+.steps-person + .steps-person .leg.r { animation-delay: .18s; }
+@keyframes steps-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(-3px); }
+}
+@keyframes steps-leg-a {
+  from { transform: rotate(-24deg); }
+  to { transform: rotate(24deg); }
+}
+@keyframes steps-leg-b {
+  from { transform: rotate(24deg); }
+  to { transform: rotate(-24deg); }
+}
+
+/* ============ 设置页：步数配置 ============ */
+.steps-settings-fields.is-disabled { opacity: .45; pointer-events: none; }
+
+.steps-range-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.steps-range-row input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  outline: none;
+}
+.steps-range-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--surface);
+  box-shadow: 0 2px 6px var(--shadow);
+  cursor: pointer;
+}
+.steps-range-row input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--surface);
+  box-shadow: 0 2px 6px var(--shadow);
+  cursor: pointer;
+}
+.steps-range-val {
+  min-width: 46px;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 同步弹窗里的输入 */
+#steps-sync-input {
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 1px;
+}

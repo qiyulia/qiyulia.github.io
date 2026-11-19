@@ -390,6 +390,7 @@
       input.disabled = calTheme.enabled === false;
     });
     storageSize();
+    if (App.renderStepSettings) App.renderStepSettings();
   };
 
   App.renderChatSettings = function () {

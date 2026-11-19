@@ -41,6 +41,7 @@ if ('caches' in window) {
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css?v=20261118-223">
+<link rel="stylesheet" href="css/steps.css?v=20261119-steps">
 </head>
 <body>
 <div class="stage">
@@ -204,6 +205,10 @@ if ('caches' in window) {
                     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27s-9-5.6-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.4-9 12-9 12z"/></svg>
                   </span>
                   <span class="app-entry-label">纪念日</span>
+                </button>
+                <button type="button" class="app-entry" data-go="steps" data-app-key="steps" aria-label="打开今日步数">
+                  <span class="software-icon steps-app-icon" aria-hidden="true">👣</span>
+                  <span class="app-entry-label">步数</span>
                 </button>
               </div>
             </div>
@@ -832,6 +837,85 @@ if ('caches' in window) {
 
         <div class="panel mood-report-panel" id="mood-report"></div>
       </div>
+    </section>
+
+    <!-- ============ 今日步数 ============ -->
+    <section id="view-steps" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>今日步数</h2>
+        <button type="button" class="icon-btn" data-go="settings" aria-label="步数设置" title="设置">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+        </button>
+      </header>
+      <div class="page-body">
+        <div class="steps-hero">
+          <h2>今日步数</h2>
+          <span class="steps-date" id="steps-date">…</span>
+        </div>
+
+        <div class="steps-card">
+          <div class="steps-card-head">
+            <span class="steps-card-title">我的步数</span>
+          </div>
+          <div class="steps-num"><span id="steps-my-num">0</span><small>步</small></div>
+          <div class="steps-progress">
+            <div class="steps-progress-track"><span class="steps-progress-fill" id="steps-progress-fill"></span></div>
+            <div class="steps-progress-meta">
+              <span id="steps-progress-text">0 / 8000 步</span>
+              <span class="steps-goal">目标 8000</span>
+            </div>
+          </div>
+          <div class="steps-card-actions">
+            <button type="button" class="btn" id="steps-sync-btn">同步我的步数</button>
+            <button type="button" class="btn primary" id="steps-claim-btn">兑换同心币</button>
+          </div>
+        </div>
+
+        <div class="steps-card steps-ta">
+          <div class="steps-card-head">
+            <span class="steps-card-title">TA 的步数</span>
+            <div class="steps-ta-head">
+              <span class="avatar" id="steps-ta-avatar">🙂</span>
+              <span class="steps-ta-name" id="steps-ta-name">TA</span>
+            </div>
+          </div>
+          <div class="steps-num"><span id="steps-ta-num">0</span><small>步</small></div>
+        </div>
+
+        <div class="steps-board-title">跨次元排行榜</div>
+        <div class="steps-board" id="steps-board"></div>
+
+        <div class="steps-walk" id="steps-walk" hidden>
+          <div class="steps-walk-note">今天我们都走了好多路，仿佛在不同的时空里并肩散了一场步 🌿</div>
+          <div class="steps-walk-scene">
+            <div class="steps-ground"></div>
+            <div class="steps-couple">
+              <div class="steps-person"><span class="head"></span><span class="body"></span><span class="leg l"></span><span class="leg r"></span></div>
+              <div class="steps-person"><span class="head"></span><span class="body"></span><span class="leg l"></span><span class="leg r"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <dialog id="steps-sync-dialog" class="sheet">
+        <form autocomplete="off" id="steps-sync-form" class="moment-compose-form" data-form-type="other" spellcheck="false">
+          <div class="sheet-head">
+            <h3>同步我的步数</h3>
+            <button type="button" class="icon-btn" data-close aria-label="关闭">✕</button>
+          </div>
+          <label class="field"><span>今天走了多少步</span>
+            <input autocomplete="off" id="steps-sync-input" type="number" min="0" max="30000" step="1" inputmode="numeric" placeholder="0" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+          </label>
+          <p class="field-hint">上限 30000 步。同步后 TA 会根据你的步数说点什么。</p>
+          <div class="sheet-actions">
+            <button type="button" class="btn ghost" data-close>取消</button>
+            <button type="submit" class="btn primary">同步</button>
+          </div>
+        </form>
+      </dialog>
     </section>
 
     <!-- ============ 聊天 ============ -->
@@ -1752,6 +1836,45 @@ if ('caches' in window) {
           <p class="field-hint">你在集市许愿后，TA 看到时有概率直接答应并送你（已接受），也可能拒绝（已被拒绝）；剩下的概率不作处理，保持等待。</p>
           <button type="button" class="btn ghost" id="btn-clear-market-cards">清理已结束的集市卡片</button>
           <p class="field-hint">把已经收下/退回/买下、以及放了超过 24 小时过期的集市卡片（含集市订单）从聊天里清掉；还没处理的礼物和心愿会保留。聊天记录里的其它消息不受影响。</p>
+        </div>
+
+        <div class="panel">
+          <div class="section-title-row">
+            <h3>步数</h3>
+            <button type="button" class="tool-btn" id="set-steps-go">去看看</button>
+          </div>
+          <div class="setting-switch-row">
+            <div class="setting-switch-copy">
+              <strong>TA 的步数记录</strong>
+              <span class="field-hint">总开关。关闭后 TA 步数强制归零，下面的选项也会暂时停用。</span>
+            </div>
+            <label class="switch" title="TA 的步数记录">
+              <input autocomplete="off" type="checkbox" id="set-steps-enabled" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="steps-settings-fields" id="steps-settings-fields">
+            <label class="field"><span>TA 步数更新频率（分钟）</span>
+              <input autocomplete="off" id="set-steps-interval" type="number" min="1" max="30" step="1" inputmode="numeric" placeholder="3" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+            </label>
+            <p class="field-hint">每隔这么久判定一次是否增加 TA 的步数；范围 1~30 分钟，填太小或太大、留空都会被自动修正。</p>
+            <label class="field"><span>TA 步数增加概率（%）</span>
+              <div class="steps-range-row">
+                <input autocomplete="off" id="set-steps-probability" type="range" min="1" max="100" step="1" value="50">
+                <span class="steps-range-val" id="set-steps-probability-val">50%</span>
+              </div>
+            </label>
+            <label class="field"><span>同步冷却</span>
+              <select id="set-steps-cooldown" autocomplete="off">
+                <option value="无">无冷却</option>
+                <option value="30分钟">30分钟</option>
+                <option value="1小时">1小时</option>
+                <option value="3小时">3小时</option>
+                <option value="6小时">6小时</option>
+              </select>
+            </label>
+            <p class="field-hint">同步步数或兑换同心币后，按钮会进入倒计时变灰；冷却期间再点，TA 会吐槽你。</p>
+          </div>
         </div>
 
         <div class="panel">
@@ -2871,8 +2994,6 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/no-autofill.js?v=20261118-223"></script>
-<script src="js/file-pick-fallback.js?v=20261118-223"></script>
 <script src="js/vendor/html2canvas.min.js?v=20261118-223"></script>
 <script src="js/seed.js?v=20261118-223"></script>
 <script src="js/store.js?v=20261118-223"></script>
@@ -2889,6 +3010,7 @@ if ('caches' in window) {
 <script src="js/companion.js?v=20261118-223"></script>
 <script src="js/memoir.js?v=20261118-223"></script>
 <script src="js/group.js?v=20261118-223"></script>
+<script src="js/steps.js?v=20261119-steps"></script>
 <script src="js/app.js?v=20261118-223"></script>
 </body>
 </html>

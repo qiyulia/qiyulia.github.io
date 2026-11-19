@@ -234,6 +234,9 @@
       };
       request.onsuccess = function () { resolve(request.result); };
       request.onerror = function () { reject(request.error || new Error('本地媒体库打开失败')); };
+      /* 被其它连接挡住（版本升级 / 旧连接未关）时不能一直挂起；
+         reject 后读取流程会回退到 localStorage / 种子数据，界面至少能跑起来。 */
+      request.onblocked = function () { reject(new Error('本地媒体库打开被阻塞')); };
     });
     return mediaDbPromise;
   };

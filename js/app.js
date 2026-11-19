@@ -75,6 +75,7 @@
     else if (view === 'groups' && App.renderGroups) App.renderGroups();
     else if (view === 'group-chat' && App.renderGroupChat) App.renderGroupChat();
     else if (view === 'group-settings' && App.renderGroupSettings) App.renderGroupSettings();
+    else if (view === 'steps' && App.renderSteps) App.renderSteps();
     if (App.applyLook && (view === 'chat-settings' || view === 'desktop' || view === 'chat' || view === 'group-chat')) App.applyLook();
   };
 
@@ -364,66 +365,23 @@
     }
   });
 
-  /* 关掉系统输入法上方自带的站外填充条（密码 / 银行卡 / 联系人），让键盘只属于本站 */
-  function isIOS() {
-    return /iP(hone|ad|od)/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  }
-
-  function applyNoAutofill(node) {
-    if (!node || !node.getAttribute) return;
-    const type = String(node.getAttribute('type') || '').toLowerCase();
-    if (type === 'file' || type === 'checkbox' || type === 'radio' || type === 'date' || type === 'time') return;
-    /* iOS Safari 对 autocomplete="off" 仍会弹出填充条，用 one-time-code 才能压掉；
-       其他浏览器用 off，避免触发 OTP / 密码填充建议 */
-    node.setAttribute('autocomplete', isIOS() ? 'one-time-code' : 'off');
-    node.setAttribute('autocorrect', 'off');
-    node.setAttribute('autocapitalize', 'off');
-    node.setAttribute('spellcheck', 'false');
-    node.setAttribute('data-form-type', 'other');
-    node.setAttribute('data-lpignore', 'true');
-    node.setAttribute('data-1p-ignore', 'true');
-  }
-
-  function disableSystemAutofill() {
-    document.querySelectorAll('input, textarea').forEach(applyNoAutofill);
-    /* 评论框、问卷题目这类后面才生成的输入框也要一并处理 */
-    const watch = function (root) {
-      if (!root.querySelectorAll) return;
-      root.querySelectorAll('input, textarea').forEach(applyNoAutofill);
-      if (root.matches && root.matches('input, textarea')) applyNoAutofill(root);
-    };
-    if (window.MutationObserver) {
-      new MutationObserver(function (records) {
-        records.forEach(function (record) {
-          Array.prototype.forEach.call(record.addedNodes, function (node) {
-            if (node && node.nodeType === 1) watch(node);
-          });
-        });
-      }).observe(document.body, { childList: true, subtree: true });
-    }
-  }
-
   /* 数据在 IndexedDB 里，读取是异步的，读完再初始化界面 */
   function boot() {
   seedSeenChats();
   App.chatContactId = null;
   App.applyTheme();
-  disableSystemAutofill();
 
-  App.initDesktop();
-  App.initChat();
-  App.initCards();
-  App.initSettings();
-  App.initMoments();
-  App.initCalendar();
-  App.initMusic();
-  App.initMarket();
-  App.initMail();
-  if (App.initExtras) App.initExtras();
-  if (App.initCompanion) App.initCompanion();
-  if (App.initMemoir) App.initMemoir();
-  if (App.initGroups) App.initGroups();
+  /* 每个模块独立初始化：单个模块抛错不能拖垮整站的事件绑定，
+     否则就会出现「界面在、但什么都点不了」的假死状态。 */
+  ['initDesktop','initChat','initCards','initSettings','initMoments','initCalendar',
+   'initMusic','initMarket','initMail','initExtras','initCompanion','initMemoir',
+   'initGroups','initSteps'].forEach(function (name) {
+    const fn = App[name];
+    if (typeof fn !== 'function') return;
+    try { fn.call(App); } catch (e) {
+      try { console.error('[boot] ' + name + ' 初始化失败：', e); } catch (_) {}
+    }
+  });
 
   /* 选图前写入的记忆，localStorage 比 sessionStorage 更容易在系统重载后保留 */
   let pickView = null;
@@ -485,10 +443,17 @@
 
   /* 无论 boot 正常完成还是中途某个模块异常，都通知开屏（幂等）。
      这样偶发的脚本加载问题也不会把人一直挡在开屏页。 */
-  App.load().then(function () {
-    try { boot(); } finally { notifyBootReady(); }
-  }, function () {
+  var booted = false;
+  function runBoot() {
+    if (booted) return;          /* load 超时兜底与正常完成只能跑一次，避免重复绑定事件 */
+    booted = true;
     if (!App.state) App.state = App.seedState();
     try { boot(); } finally { notifyBootReady(); }
-  });
+  }
+  /* 兜底：IndexedDB 偶发被阻塞或读取卡死时，load 会一直 pending；
+     不兜底的话开屏淡出后就是一个没有数据、也没有事件绑定的死界面。
+     6 秒还没读完就先用种子数据把界面跑起来，保证至少能点、能操作。 */
+  var loadGuard = setTimeout(runBoot, 6000);
+  App.load().then(function () { clearTimeout(loadGuard); runBoot(); },
+                 function () { clearTimeout(loadGuard); runBoot(); });
 })();
