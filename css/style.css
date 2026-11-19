@@ -3120,6 +3120,27 @@ dialog.more-sheet::backdrop {
   pointer-events: none;
 }
 
+/* 原生相册直通：文件输入框覆盖整个可见按钮，实际触摸目标就是 input。
+   不经过 label，也不需要 JS 调用 input.click()。 */
+.sticker-add,
+.sticker-image-pick { position: relative; }
+.sticker-add { overflow: hidden; }
+.file-input-direct {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.sticker-add > span,
+.sticker-image-pick > span { pointer-events: none; }
+
 .sticker-paste-link {
   align-self: center;
   margin-top: -4px;

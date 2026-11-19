@@ -2942,21 +2942,6 @@
         pickChatImage(file);
       });
     }
-    /* 图片选择也统一用 JS 唤起，避免部分手机浏览器对 <label for> 不响应 */
-    const chatImagePick = el('#btn-pick-chat-image');
-    if (chatImagePick) {
-      const openChatImagePicker = function () {
-        if (!chatImageFile) return;
-        try { chatImageFile.click(); } catch (err) {}
-      };
-      chatImagePick.addEventListener('click', openChatImagePicker);
-      chatImagePick.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openChatImagePicker();
-        }
-      });
-    }
     const chatImageSend = el('#sticker-image-send');
     if (chatImageSend) chatImageSend.addEventListener('click', sendChatImageDraft);
     const chatImageCancel = el('#sticker-image-cancel');
@@ -2980,21 +2965,7 @@
       scrollBottom();
     });
     window.addEventListener('resize', closeMsgActions);
-    /* 直接唤起系统相册。这里不显示「正在打开相册…」之类的挂起状态，也不写任何
-       sessionStorage/localStorage 标记：相册是否弹出、用户是否取消，都不影响界面，
-       刷新后也不会被自动拉回表情面板。 */
-    function openStickerPicker() {
-      const input = el('#sticker-file');
-      if (!input) return;
-      try { input.click(); } catch (err) {}
-    }
-    el('#btn-add-sticker').addEventListener('click', openStickerPicker);
-    el('#btn-add-sticker').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        openStickerPicker();
-      }
-    });
+    /* 文件输入框直接覆盖在按钮上，由浏览器原生响应点击；不再用 JS 代点。 */
     el('#sticker-file').addEventListener('change', function (e) {
       const input = e.target;
       const files = Array.from(input.files || []);
