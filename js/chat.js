@@ -2942,6 +2942,21 @@
         pickChatImage(file);
       });
     }
+    /* 图片选择也统一用 JS 唤起，避免部分手机浏览器对 <label for> 不响应 */
+    const chatImagePick = el('#btn-pick-chat-image');
+    if (chatImagePick) {
+      const openChatImagePicker = function () {
+        if (!chatImageFile) return;
+        try { chatImageFile.click(); } catch (err) {}
+      };
+      chatImagePick.addEventListener('click', openChatImagePicker);
+      chatImagePick.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openChatImagePicker();
+        }
+      });
+    }
     const chatImageSend = el('#sticker-image-send');
     if (chatImageSend) chatImageSend.addEventListener('click', sendChatImageDraft);
     const chatImageCancel = el('#sticker-image-cancel');
@@ -2965,38 +2980,22 @@
       scrollBottom();
     });
     window.addEventListener('resize', closeMsgActions);
-    let awaitingPick = false;
-    /* 取消选图时，部分移动浏览器不派发 change，“正在打开相册…”会一直挂着。
-       页面回到前台时若仍没拿到文件，就清掉状态；再加一个 60 秒兜底。 */
-    function clearStickerPickIfCancelled() {
-      if (!awaitingPick) return;
+    /* 直接唤起系统相册。这里不显示「正在打开相册…」之类的挂起状态，也不写任何
+       sessionStorage/localStorage 标记：相册是否弹出、用户是否取消，都不影响界面，
+       刷新后也不会被自动拉回表情面板。 */
+    function openStickerPicker() {
       const input = el('#sticker-file');
-      const hasFile = !!(input && input.files && input.files.length);
-      if (!hasFile) {
-        awaitingPick = false;
-        setStickerStatus('');
-      }
+      if (!input) return;
+      try { input.click(); } catch (err) {}
     }
-    el('#btn-add-sticker').addEventListener('click', function () {
-      awaitingPick = true;
-      setStickerStatus('正在打开相册…');
-      try { sessionStorage.setItem('xuyu.stickerPick', String(Date.now())); } catch (err) {}
-      try { localStorage.setItem('xuyu.pickView', App.chatContactId || ''); } catch (err) {}
-      setTimeout(clearStickerPickIfCancelled, 60000);
-    });
-    window.addEventListener('focus', clearStickerPickIfCancelled);
-    window.addEventListener('pageshow', clearStickerPickIfCancelled);
-    document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) clearStickerPickIfCancelled();
-    });
+    el('#btn-add-sticker').addEventListener('click', openStickerPicker);
     el('#btn-add-sticker').addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        el('#sticker-file').click();
+        openStickerPicker();
       }
     });
     el('#sticker-file').addEventListener('change', function (e) {
-      awaitingPick = false;
       const input = e.target;
       const files = Array.from(input.files || []);
       const tab = App.stickerTab || 'me';
@@ -3006,8 +3005,6 @@
       }).finally(function () {
         /* 压缩完成后再清空，避免 iOS 提前让选中的文件失效 */
         try { input.value = ''; } catch (err) {}
-        try { sessionStorage.removeItem('xuyu.stickerPick'); } catch (err) {}
-        try { localStorage.removeItem('xuyu.pickView'); } catch (err) {}
       });
     });
 
@@ -3076,17 +3073,6 @@
         addPastedFiles(files);
       });
     }
-    /* 从相册返回却没有收到文件时，清掉中断标记并提示；若页面被系统重载，标记会留到下次启动 */
-    window.addEventListener('focus', function () {
-      setTimeout(function () {
-        if (!awaitingPick) return;
-        awaitingPick = false;
-        try { sessionStorage.removeItem('xuyu.stickerPick'); } catch (err) {}
-        try { localStorage.removeItem('xuyu.pickView'); } catch (err) {}
-        setStickerStatus('没有收到图片，请重新选择', true);
-      }, 3000);
-    });
-
     el('#btn-clear-chat').addEventListener('click', async function () {
       const id = App.chatContactId;
       if (!id) return;

@@ -383,12 +383,10 @@
     }
   });
 
-  /* 选图前写入的记忆，localStorage 比 sessionStorage 更容易在系统重载后保留 */
-  let pickView = null;
-  try {
-    pickView = localStorage.getItem('xuyu.pickView');
-    localStorage.removeItem('xuyu.pickView');
-  } catch (e) { pickView = null; }
+  /* 旧版本在选图时写入的跳转标记已废弃：启动时直接清掉，不再据此自动打开聊天或
+     表情面板。老用户升级后刷新一次即可摆脱之前被卡住的状态。 */
+  try { localStorage.removeItem('xuyu.pickView'); } catch (e) {}
+  try { sessionStorage.removeItem('xuyu.stickerPick'); } catch (e) {}
 
   App.go('desktop');
 
@@ -400,27 +398,7 @@
     }).catch(function () {});
   }
 
-  /* 手机选图时页面可能被系统重载，重载后回到原来的聊天 */
-  if (pickView && App.state.contacts.some(function (c) { return c.id === pickView; })) {
-    App.openChat(pickView);
-  }
-
-  /* 选图过程中页面被系统重载时，给出明确提示并重新打开表情面板 */
-  let pickInterrupted = false;
-  try {
-    const pickedAt = Number(sessionStorage.getItem('xuyu.stickerPick')) || 0;
-    sessionStorage.removeItem('xuyu.stickerPick');
-    pickInterrupted = pickedAt > 0 && Date.now() - pickedAt < 10 * 60 * 1000;
-  } catch (e) {}
-  if ((pickInterrupted || pickView) && App.chatContactId) {
-    setTimeout(function () {
-      if (App.openStickerPanel) App.openStickerPanel();
-      if (App.stickerNotice) App.stickerNotice('上次选图被系统中断了，请重新选择', true);
-      App.toast('上次选图被系统中断了，请重新选择');
-    }, 400);
-  }
-
-  /* 如果上次选中的图片已暂存，重载后自动恢复成表情包 */
+  /* 如果上次选中的图片已暂存，重载后在后台静默恢复成表情包（不切换界面） */
   setTimeout(function () {
     if (App.recoverPendingStickers) App.recoverPendingStickers();
   }, 900);
