@@ -2190,79 +2190,6 @@
     box.classList.toggle('is-error', !!isError);
   }
 
-  /* 选中的图片先暂存到 IndexedDB：即使压缩时页面被系统重载，下次打开也能恢复 */
-  function mediaDb() {
-    return new Promise(function (resolve, reject) {
-      if (!window.indexedDB) { reject(new Error('no indexedDB')); return; }
-      const req = indexedDB.open('xuyu-media', 2);
-      req.onupgradeneeded = function () {
-        const db = req.result;
-        if (!db.objectStoreNames.contains('audio')) db.createObjectStore('audio', { keyPath: 'id' });
-        if (!db.objectStoreNames.contains('voice')) db.createObjectStore('voice', { keyPath: 'id' });
-        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
-      };
-      req.onsuccess = function () { resolve(req.result); };
-      req.onerror = function () { reject(req.error); };
-    });
-  }
-
-  function stashPending(files, tab, attempts) {
-    return mediaDb().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        const tx = db.transaction('kv', 'readwrite');
-        tx.objectStore('kv').put({ files: files, tab: tab, attempts: attempts || 0 }, 'pending');
-        tx.oncomplete = function () { db.close(); resolve(); };
-        tx.onerror = function () { db.close(); reject(tx.error); };
-      });
-    });
-  }
-
-  function readPending() {
-    return mediaDb().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        const tx = db.transaction('kv', 'readonly');
-        const get = tx.objectStore('kv').get('pending');
-        let value = null;
-        get.onsuccess = function () { value = get.result || null; };
-        tx.oncomplete = function () { db.close(); resolve(value); };
-        tx.onerror = function () { db.close(); reject(tx.error); };
-      });
-    });
-  }
-
-  function clearPending() {
-    return mediaDb().then(function (db) {
-      return new Promise(function (resolve) {
-        const tx = db.transaction('kv', 'readwrite');
-        tx.objectStore('kv').delete('pending');
-        tx.oncomplete = function () { db.close(); resolve(); };
-        tx.onerror = function () { db.close(); resolve(); };
-      });
-    }).catch(function () {});
-  }
-
-  App.recoverPendingStickers = function () {
-    return readPending().then(function (data) {
-      if (!data || !data.files || !data.files.length) return;
-      const attempts = Number(data.attempts) || 0;
-      if (attempts >= 2) {
-        clearPending();
-        App.toast('上次选择的图片未能读取，请重新选择');
-        return;
-      }
-      return stashPending(data.files, data.tab, attempts + 1).then(function () {
-        /* 恢复选图只在后台完成，不自动弹出面板、不把界面切到「我」 */
-        const prevTab = App.stickerTab;
-        if (data.tab) App.stickerTab = data.tab;
-        App.toast('正在恢复上次选择的图片…');
-        return addStickers(data.files).then(function () {
-          App.stickerTab = prevTab || 'public';
-          renderStickerPanel();
-        });
-      });
-    }).catch(function () {});
-  };
-
   async function addStickers(files) {
     const images = Array.from(files || []).slice(0, 12);
     if (!images.length) return;
@@ -2286,13 +2213,11 @@
     }
 
     if (!added) {
-      clearPending();
       setStickerStatus(failed ? '这张图片无法读取，换一张试试' : '没有添加新表情', true);
       App.toast(failed ? '图片处理失败' : '没有添加新表情');
       return;
     }
     App.save();
-    clearPending();
     renderStickerPanel();
     const grid = el('#sticker-grid');
     if (grid) grid.scrollTop = grid.scrollHeight;
@@ -2969,11 +2894,8 @@
     el('#sticker-file').addEventListener('change', function (e) {
       const input = e.target;
       const files = Array.from(input.files || []);
-      const tab = App.stickerTab || 'me';
       if (!files.length) return;
-      stashPending(files, tab, 0).catch(function () {}).then(function () {
-        return addStickers(files);
-      }).finally(function () {
+      addStickers(files).finally(function () {
         /* 压缩完成后再清空，避免 iOS 提前让选中的文件失效 */
         try { input.value = ''; } catch (err) {}
       });
@@ -2998,10 +2920,7 @@
         return;
       }
       if (pasteDialog && pasteDialog.open) pasteDialog.close();
-      const tab = App.stickerTab || 'me';
-      stashPending(images, tab, 0).catch(function () {}).then(function () {
-        return addStickers(images);
-      });
+      addStickers(images);
     }
     if (pasteDialog && pasteZone) {
       el('#btn-paste-sticker').addEventListener('click', function () {

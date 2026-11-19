@@ -398,11 +398,6 @@
     }).catch(function () {});
   }
 
-  /* 如果上次选中的图片已暂存，重载后在后台静默恢复成表情包（不切换界面） */
-  setTimeout(function () {
-    if (App.recoverPendingStickers) App.recoverPendingStickers();
-  }, 900);
-
   }
 
   /* 界面按用户自己的数据渲染完成后，通知开屏动画「内容已就绪」。
