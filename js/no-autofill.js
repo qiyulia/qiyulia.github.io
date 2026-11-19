@@ -22,6 +22,8 @@
     node.setAttribute('autocomplete', 'off');
     if (tag === 'form') {
       node.setAttribute('data-lpignore', 'true');
+      node.setAttribute('data-form-type', 'other');
+      node.setAttribute('spellcheck', 'false');
       return;
     }
     node.setAttribute('autocorrect', 'off');
@@ -32,6 +34,21 @@
     node.setAttribute('data-1p-ignore', 'true');   /* 1Password */
     node.setAttribute('data-bwignore', 'true');    /* Bitwarden */
     node.setAttribute('data-form-type', 'other');  /* 其它填充器 */
+
+    /* 明确声明输入用途：普通文本 / 纯数字。
+       不写的话，浏览器会按 id、placeholder 去猜「姓名、电话、地址」，
+       猜中就把这个框当成可填充表单字段，弹出钥匙/卡片那一栏。 */
+    if (tag === 'input' && !node.hasAttribute('inputmode')) {
+      var t = String(node.type || '').toLowerCase();
+      if (t === 'number') {
+        node.setAttribute('inputmode', 'numeric');
+      } else if (t !== 'search' && t !== 'url' && t !== 'tel' && t !== 'email' &&
+                 t !== 'date' && t !== 'time' && t !== 'range' && t !== 'color' &&
+                 t !== 'checkbox' && t !== 'hidden' && t !== 'button' &&
+                 t !== 'submit' && t !== 'reset') {
+        node.setAttribute('inputmode', 'text');
+      }
+    }
   }
 
   function scan(root) {
