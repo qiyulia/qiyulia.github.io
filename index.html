@@ -18,14 +18,44 @@ if ('caches' in window) {
     return Promise.all(keys.map(function (key) { return caches.delete(key); }));
   }).catch(function () {});
 }
+/* 开屏动画：动画播放的这段时间正好用来加载站内内容（数据 + 界面初始化）。
+   两个条件都满足才淡出：① 动画至少放满最短时长 ② 数据/界面已就绪（boot 完成）。
+   这样进去就是「已经改好的样子」，不会先闪没用过的初始态，也不会加载到一半被点到。
+   放在最前面执行，不依赖任何后续脚本。 */
+(function () {
+  var MIN_SHOW = 1500;
+  var ready = false, elapsed = false, done = false;
+  function maybeFinish() {
+    if (done || !ready || !elapsed) return;
+    done = true;
+    var s = document.getElementById('boot-splash');
+    if (s) s.classList.add('is-hidden');
+  }
+  /* boot() 渲染完成后调用，代表站内内容与交互都已就绪 */
+  window.__bootReady = function () { ready = true; maybeFinish(); };
+  setTimeout(function () { elapsed = true; maybeFinish(); }, MIN_SHOW);
+  /* 兜底：万一数据读取卡死，也别把人一直挡在开屏页 */
+  setTimeout(function () { ready = true; elapsed = true; maybeFinish(); }, 8000);
+})();
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261118-220">
+<link rel="stylesheet" href="css/style.css?v=20261118-221">
 </head>
 <body>
 <div class="stage">
   <div id="app" class="app theme-mist" data-view="desktop">
+
+    <!-- 开屏动画：播放的这段时间用来加载站内内容，就绪后淡出进入主界面 -->
+    <div id="boot-splash" class="boot-splash" aria-hidden="true">
+      <div class="boot-splash-inner">
+        <div class="boot-splash-mark"><span>拾</span></div>
+        <div class="boot-splash-title">拾 忆</div>
+        <div class="boot-splash-sub">把日子，慢慢收好</div>
+        <div class="boot-splash-bar"><i></i></div>
+        <div class="boot-splash-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
 
     <!-- ============ 桌面 ============ -->
     <section id="view-desktop" class="view is-active">
@@ -156,12 +186,6 @@ if ('caches' in window) {
                   </span>
                   <span class="app-entry-label">纪念日</span>
                 </button>
-                <button type="button" class="app-entry" data-go="notes">
-                  <span class="software-icon notes-app-icon">
-                    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="22" rx="3"/><path d="M11 12h10M11 17h10M11 22h6"/></svg>
-                  </span>
-                  <span class="app-entry-label">笔记</span>
-                </button>
               </div>
             </div>
           </section>
@@ -178,7 +202,16 @@ if ('caches' in window) {
                 <span>应用</span>
                 <span>再向左滑是小组件</span>
               </div>
+              <!-- 第二页（收藏页）：默认排版里第 9 个及以后的应用放这里，
+                   以后新做的应用也一律加在这一页，不要往第一页塞；
+                   用户手动拖过图标时以 deskApps 存档为准 -->
               <div class="app-grid">
+                <button type="button" class="app-entry" data-go="notes">
+                  <span class="software-icon notes-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="22" rx="3"/><path d="M11 12h10M11 17h10M11 22h6"/></svg>
+                  </span>
+                  <span class="app-entry-label">笔记</span>
+                </button>
                 <button type="button" class="app-entry" data-go="location">
                   <span class="software-icon location-app-icon">
                     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 28s-9-8.2-9-15a9 9 0 0 1 18 0c0 6.8-9 15-9 15z"/><circle cx="16" cy="13" r="3.4"/></svg>
@@ -321,7 +354,7 @@ if ('caches' in window) {
           </div>
           <span class="avatar moments-hero-avatar" id="m-avatar">🍊</span>
         </div>
-        <input autocomplete="off" type="file" id="moments-cover-input" accept="image/*" hidden>
+        <input type="file" id="moments-cover-input" accept="image/*" hidden>
 
         <div id="moment-list" class="moment-list"></div>
         <div id="moment-empty" class="empty-state">
@@ -338,7 +371,7 @@ if ('caches' in window) {
           <textarea autocomplete="off" id="moment-input" rows="5" maxlength="300" placeholder="今天发生了什么？"></textarea>
           <div class="moment-compose-tools">
             <button type="button" class="btn ghost" id="moment-image-btn">添加图片</button>
-            <input autocomplete="off" type="file" id="moment-image-input" accept="image/*" hidden>
+            <input type="file" id="moment-image-input" accept="image/*" hidden>
             <div class="moment-image-preview" id="moment-image-preview" hidden>
               <img id="moment-image-img" alt="配图预览">
               <button type="button" class="icon-btn" id="moment-image-remove" aria-label="移除图片">✕</button>
@@ -477,7 +510,7 @@ if ('caches' in window) {
               <button type="submit" class="btn primary">导入直链</button>
               <button type="button" class="btn" id="music-local-button">选择本地文件</button>
             </div>
-            <input autocomplete="off" type="file" id="music-local-file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" multiple hidden>
+            <input type="file" id="music-local-file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" multiple hidden>
             <div class="music-import-status">
               <p class="field-hint" id="music-link-status">支持网易云歌曲链接自动识别歌名和歌手。</p>
               <p class="field-hint" id="music-local-status">支持多选，会从文件名自动识别歌名和歌手。</p>
@@ -678,7 +711,7 @@ if ('caches' in window) {
         <div id="mw-timeline" class="mw-timeline"></div>
         <p class="empty-note" id="mw-empty">还没有照片，先把相册里喜欢的瞬间放进来。</p>
       </div>
-      <input autocomplete="off" type="file" id="mw-file" accept="image/*" multiple hidden>
+      <input type="file" id="mw-file" accept="image/*" multiple hidden>
 
       <dialog id="mw-dialog" class="sheet">
         <form autocomplete="off" id="mw-form">
@@ -755,7 +788,7 @@ if ('caches' in window) {
           <div class="mood-note-row">
             <input autocomplete="off" id="mood-note" maxlength="80" placeholder="用一句话记下今天（可选）">
             <label class="mood-photo-btn" for="mood-photo">照片
-              <input autocomplete="off" type="file" id="mood-photo" accept="image/*" hidden>
+              <input type="file" id="mood-photo" accept="image/*" hidden>
             </label>
           </div>
           <div id="mood-photo-preview" class="mood-photo-preview" hidden></div>
@@ -795,7 +828,7 @@ if ('caches' in window) {
             <strong id="c-name">TA</strong>
             <span id="c-note"></span>
           </button>
-          <input autocomplete="off" type="file" id="chat-avatar-file" accept="image/*" hidden>
+          <input type="file" id="chat-avatar-file" accept="image/*" hidden>
         </div>
         <button type="button" class="icon-btn" id="btn-call" aria-label="发起语音通话" title="语音通话">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.8l3 4.2-2 2c1.2 2.5 3.2 4.5 5.7 5.7l2-2 4.3 3c.5.4.7 1 .4 1.6-.7 1.4-2 2.2-3.6 2.1C10 19.5 4.4 14 3.6 7c-.2-1.6.7-2.9 2.1-3.6.6-.3 1.2-.1 1.5.4z"/></svg>
@@ -891,12 +924,12 @@ if ('caches' in window) {
         </div>
         <div id="sticker-grid" class="sticker-grid"></div>
         <label class="btn sticker-add" id="btn-add-sticker" for="sticker-file" role="button" tabindex="0">+ 从本地相册添加到当前分类
-          <input autocomplete="off" type="file" id="sticker-file" accept="image/*" multiple class="file-input-ghost" aria-hidden="true" tabindex="-1">
+          <input type="file" id="sticker-file" accept="image/*" multiple class="file-input-ghost" aria-hidden="true" tabindex="-1">
         </label>
         <button type="button" class="sticker-paste-link" id="btn-paste-sticker">相册选不了？从剪贴板粘贴图片</button>
         <div id="sticker-image-view" class="sticker-image-view" hidden>
           <label class="sticker-image-pick" for="chat-image-file">
-            <input autocomplete="off" type="file" id="chat-image-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
+            <input type="file" id="chat-image-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
             <span class="sticker-image-preview" id="sticker-image-preview">点这里从相册选择一张图片</span>
           </label>
           <div class="sticker-image-actions">
@@ -1018,7 +1051,7 @@ if ('caches' in window) {
             <div id="grp-set-avatar" class="grp-avatar-wrap" aria-hidden="true"></div>
             <div class="grp-avatar-actions">
               <label class="btn ghost" for="grp-avatar-file" role="button" tabindex="0">上传群头像
-                <input autocomplete="off" type="file" id="grp-avatar-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
+                <input type="file" id="grp-avatar-file" accept="image/*" class="file-input-ghost" aria-hidden="true" tabindex="-1">
               </label>
               <button type="button" class="btn ghost" id="grp-avatar-reset">恢复默认九宫格</button>
             </div>
@@ -1460,7 +1493,7 @@ if ('caches' in window) {
           <button type="button" class="tool-btn" id="btn-export-cards">导出</button>
           <button type="button" class="tool-btn" id="btn-dedupe-cards">去重</button>
           <button type="button" class="tool-btn" id="btn-restore-cards">恢复内置</button>
-          <input autocomplete="off" type="file" id="file-import-cards" accept="application/json,.json" hidden>
+          <input type="file" id="file-import-cards" accept="application/json,.json" hidden>
         </div>
         <div class="card-batch-bar" id="card-batch-bar" hidden>
           <p class="field-hint" id="card-batch-count">已选 0 张，点字卡可多选</p>
@@ -1591,7 +1624,7 @@ if ('caches' in window) {
             <div class="avatar-picker">
               <span class="avatar avatar-preview" id="set-avatar-preview"></span>
               <button type="button" class="btn" id="btn-set-avatar">从本地相册选择</button>
-              <input autocomplete="off" type="file" id="set-avatar-file" accept="image/*" hidden>
+              <input type="file" id="set-avatar-file" accept="image/*" hidden>
             </div>
           </div>
           <label class="field"><span>纪念日</span><input autocomplete="off" id="set-since" type="date"></label>
@@ -1799,9 +1832,9 @@ if ('caches' in window) {
                   <button type="button" class="tool-btn" data-look-clear="call">清除</button>
                 </span>
               </div>
-              <input autocomplete="off" type="file" id="look-file-bg" accept="image/*" hidden>
-              <input autocomplete="off" type="file" id="look-file-chat" accept="image/*" hidden>
-              <input autocomplete="off" type="file" id="look-file-call" accept="image/*" hidden>
+              <input type="file" id="look-file-bg" accept="image/*" hidden>
+              <input type="file" id="look-file-chat" accept="image/*" hidden>
+              <input type="file" id="look-file-call" accept="image/*" hidden>
             </div>
             <div class="panel">
               <h3 class="settings-subtitle">透明度</h3>
@@ -1904,7 +1937,7 @@ if ('caches' in window) {
             </div>
             <button type="button" class="btn danger" id="btn-reset">清空并重置</button>
             <p class="list-meta" id="storage-size"></p>
-            <input autocomplete="off" type="file" id="file-import-all" accept="application/json,.json" hidden>
+            <input type="file" id="file-import-all" accept="application/json,.json" hidden>
           </div>
 
 
@@ -2049,7 +2082,7 @@ if ('caches' in window) {
     </div>
     <div class="card-voice-fields" id="card-voice-fields">
       <label class="field"><span>语音文件（mp3，建议 1.5MB 以内）</span>
-        <input autocomplete="off" id="card-audio-file" type="file" accept="audio/mpeg,audio/mp3,audio/*">
+        <input id="card-audio-file" type="file" accept="audio/mpeg,audio/mp3,audio/*">
       </label>
       <p class="field-hint" id="card-audio-hint">还没有语音，请选择一段 mp3 文件</p>
       <audio id="card-audio-preview" controls preload="metadata" hidden></audio>
@@ -2171,7 +2204,7 @@ if ('caches' in window) {
         <p class="field-hint">点一张图片设为当前头像；点右上角的 × 删除这张。</p>
         <div class="avatar-pool-grid" id="avatar-pool-grid"></div>
         <button type="button" class="btn ghost" id="avatar-pool-import">＋ 从相册导入</button>
-        <input autocomplete="off" type="file" id="avatar-pool-file" accept="image/*" multiple hidden>
+        <input type="file" id="avatar-pool-file" accept="image/*" multiple hidden>
         <p class="field-hint">TA 会自己在有概率的时候换头像，换成哪个位置由系统随机决定。</p>
       </div>
       <div data-avatar-panel="name" hidden>
@@ -2630,7 +2663,7 @@ if ('caches' in window) {
       <div class="avatar-picker">
         <span class="avatar avatar-preview" id="contact-avatar-preview"></span>
         <button type="button" class="btn" id="btn-contact-avatar">从本地相册选择</button>
-        <input autocomplete="off" type="file" id="contact-avatar-file" accept="image/*" hidden>
+        <input type="file" id="contact-avatar-file" accept="image/*" hidden>
       </div>
     </div>
     <label class="field"><span>备注</span><input autocomplete="off" id="contact-note" maxlength="20" placeholder="一句话介绍（可选）"></label>
@@ -2822,23 +2855,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/no-autofill.js?v=20261118-220"></script>
-<script src="js/vendor/html2canvas.min.js?v=20261118-220"></script>
-<script src="js/seed.js?v=20261118-220"></script>
-<script src="js/store.js?v=20261118-220"></script>
-<script src="js/desktop.js?v=20261118-220"></script>
-<script src="js/chat.js?v=20261118-220"></script>
-<script src="js/cards.js?v=20261118-220"></script>
-<script src="js/settings.js?v=20261118-220"></script>
-<script src="js/moments.js?v=20261118-220"></script>
-<script src="js/calendar.js?v=20261118-220"></script>
-<script src="js/music.js?v=20261118-220"></script>
-<script src="js/market.js?v=20261118-220"></script>
-<script src="js/mail.js?v=20261118-220"></script>
-<script src="js/extras.js?v=20261118-220"></script>
-<script src="js/companion.js?v=20261118-220"></script>
-<script src="js/memoir.js?v=20261118-220"></script>
-<script src="js/group.js?v=20261118-220"></script>
-<script src="js/app.js?v=20261118-220"></script>
+<script src="js/no-autofill.js?v=20261118-221"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261118-221"></script>
+<script src="js/seed.js?v=20261118-221"></script>
+<script src="js/store.js?v=20261118-221"></script>
+<script src="js/desktop.js?v=20261118-221"></script>
+<script src="js/chat.js?v=20261118-221"></script>
+<script src="js/cards.js?v=20261118-221"></script>
+<script src="js/settings.js?v=20261118-221"></script>
+<script src="js/moments.js?v=20261118-221"></script>
+<script src="js/calendar.js?v=20261118-221"></script>
+<script src="js/music.js?v=20261118-221"></script>
+<script src="js/market.js?v=20261118-221"></script>
+<script src="js/mail.js?v=20261118-221"></script>
+<script src="js/extras.js?v=20261118-221"></script>
+<script src="js/companion.js?v=20261118-221"></script>
+<script src="js/memoir.js?v=20261118-221"></script>
+<script src="js/group.js?v=20261118-221"></script>
+<script src="js/app.js?v=20261118-221"></script>
 </body>
 </html>

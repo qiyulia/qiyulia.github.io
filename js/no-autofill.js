@@ -12,6 +12,13 @@
       node.getAttribute('contenteditable') === 'true';
     if (!editable) return;
 
+    /* 文件选择框一律不参与防自动填充，而且这里要完全静默、连属性都不碰。
+       原因：点击 file input 时 focusin 会先触发，如果此刻去改它的属性，
+       部分浏览器（Edge、若干移动端 WebView）会认为元素被改动，
+       直接把刚要打开的文件选择器取消掉——表现就是「点了没有任何反应」。
+       文件框也不需要防自动填充，所以直接原样放过。 */
+    if (tag === 'input' && String(node.type || '').toLowerCase() === 'file') return;
+
     node.setAttribute('autocomplete', 'off');
     if (tag === 'form') {
       node.setAttribute('data-lpignore', 'true');

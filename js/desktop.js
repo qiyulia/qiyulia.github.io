@@ -496,6 +496,8 @@
     }
   }
 
+  /* 默认排版写在 HTML 里：第一页 8 个，其余以及以后新增的应用都在第二页。
+     只要用户拖过图标（存在 deskApps 存档），就以用户的排布为准，默认排版不覆盖。 */
   function applyDeskAppsLayout() {
     const saved = readDeskAppsLayout();
     if (!Array.isArray(saved)) return;

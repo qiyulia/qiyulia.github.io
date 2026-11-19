@@ -10,10 +10,15 @@
   document.addEventListener('touchmove', function (e) {
     if (e.touches && e.touches.length > 1) e.preventDefault();
   }, { passive: false });
+  /* 防双击缩放：连续两下才拦。但点在可交互控件上时绝不能拦——
+     拦掉 touchend 等于取消后续 click，按钮和文件选择会表现为「点了没反应」。 */
   let lastTapAt = 0;
   document.addEventListener('touchend', function (e) {
+    const t = e.target;
+    const interactive = t && t.closest &&
+      t.closest('button, a, input, label, select, textarea, summary, [role="button"], [contenteditable="true"]');
     const now = Date.now();
-    if (now - lastTapAt < 300) e.preventDefault();
+    if (!interactive && now - lastTapAt < 300) e.preventDefault();
     lastTapAt = now;
   }, { passive: false });
   document.addEventListener('wheel', function (e) {
@@ -461,10 +466,29 @@
   setTimeout(function () {
     if (App.recoverPendingStickers) App.recoverPendingStickers();
   }, 900);
+
   }
 
-  App.load().then(boot, function () {
+  /* 界面按用户自己的数据渲染完成后，通知开屏动画「内容已就绪」。
+     双 rAF 确保这一帧真正画出来；开屏会在「动画放满 + 就绪」都满足后淡出。 */
+  function notifyBootReady() {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (window.__bootReady) window.__bootReady();
+        else {
+          var s = document.getElementById('boot-splash');
+          if (s) s.classList.add('is-hidden');
+        }
+      });
+    });
+  }
+
+  /* 无论 boot 正常完成还是中途某个模块异常，都通知开屏（幂等）。
+     这样偶发的脚本加载问题也不会把人一直挡在开屏页。 */
+  App.load().then(function () {
+    try { boot(); } finally { notifyBootReady(); }
+  }, function () {
     if (!App.state) App.state = App.seedState();
-    boot();
+    try { boot(); } finally { notifyBootReady(); }
   });
 })();
