@@ -41,7 +41,7 @@ if ('caches' in window) {
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css?v=20261118-223">
-<link rel="stylesheet" href="css/steps.css?v=20261119-steps">
+<link rel="stylesheet" href="css/steps.css?v=20261120-fix">
 </head>
 <body>
 <div class="stage">
@@ -206,10 +206,6 @@ if ('caches' in window) {
                   </span>
                   <span class="app-entry-label">纪念日</span>
                 </button>
-                <button type="button" class="app-entry" data-go="steps" data-app-key="steps" aria-label="打开今日步数">
-                  <span class="software-icon steps-app-icon" aria-hidden="true">👣</span>
-                  <span class="app-entry-label">步数</span>
-                </button>
               </div>
             </div>
           </section>
@@ -259,6 +255,12 @@ if ('caches' in window) {
                     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l3.6 7.3 8.1 1.2-5.9 5.7 1.4 8.1L16 22.5l-7.2 3.8 1.4-8.1-5.9-5.7 8.1-1.2z"/></svg>
                   </span>
                   <span class="app-entry-label">收藏</span>
+                </button>
+                <button type="button" class="app-entry" data-go="steps" data-app-key="steps" aria-label="打开今日步数">
+                  <span class="software-icon steps-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="7" r="2.4"/><path d="M15.7 9.6 15.3 17"/><path d="M15.2 12.8 11 15.8M16.4 12.6 20 10.4"/><path d="M15.3 17 12 24.5M15.5 17 19.4 24"/></svg>
+                  </span>
+                  <span class="app-entry-label">步数</span>
                 </button>
               </div>
             </div>
@@ -2994,20 +2996,21 @@ if ('caches' in window) {
   </div>
 </dialog>
 
+<script src="js/file-pick-fallback.js?v=20261120-fix"></script>
 <script src="js/vendor/html2canvas.min.js?v=20261118-223"></script>
 <script src="js/seed.js?v=20261118-223"></script>
 <script src="js/store.js?v=20261118-223"></script>
 <script src="js/desktop.js?v=20261118-223"></script>
-<script src="js/chat.js?v=20261118-223"></script>
+<script src="js/chat.js?v=20261120-fix"></script>
 <script src="js/cards.js?v=20261118-223"></script>
 <script src="js/settings.js?v=20261118-223"></script>
 <script src="js/moments.js?v=20261118-223"></script>
 <script src="js/calendar.js?v=20261118-223"></script>
-<script src="js/music.js?v=20261118-223"></script>
+<script src="js/music.js?v=20261120-fix"></script>
 <script src="js/market.js?v=20261118-223"></script>
 <script src="js/mail.js?v=20261118-223"></script>
 <script src="js/extras.js?v=20261118-223"></script>
-<script src="js/companion.js?v=20261118-223"></script>
+<script src="js/companion.js?v=20261120-fix"></script>
 <script src="js/memoir.js?v=20261118-223"></script>
 <script src="js/group.js?v=20261118-223"></script>
 <script src="js/steps.js?v=20261119-steps"></script>

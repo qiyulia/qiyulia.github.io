@@ -2966,11 +2966,28 @@
     });
     window.addEventListener('resize', closeMsgActions);
     let awaitingPick = false;
+    /* 取消选图时，部分移动浏览器不派发 change，“正在打开相册…”会一直挂着。
+       页面回到前台时若仍没拿到文件，就清掉状态；再加一个 60 秒兜底。 */
+    function clearStickerPickIfCancelled() {
+      if (!awaitingPick) return;
+      const input = el('#sticker-file');
+      const hasFile = !!(input && input.files && input.files.length);
+      if (!hasFile) {
+        awaitingPick = false;
+        setStickerStatus('');
+      }
+    }
     el('#btn-add-sticker').addEventListener('click', function () {
       awaitingPick = true;
       setStickerStatus('正在打开相册…');
       try { sessionStorage.setItem('xuyu.stickerPick', String(Date.now())); } catch (err) {}
       try { localStorage.setItem('xuyu.pickView', App.chatContactId || ''); } catch (err) {}
+      setTimeout(clearStickerPickIfCancelled, 60000);
+    });
+    window.addEventListener('focus', clearStickerPickIfCancelled);
+    window.addEventListener('pageshow', clearStickerPickIfCancelled);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) clearStickerPickIfCancelled();
     });
     el('#btn-add-sticker').addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {

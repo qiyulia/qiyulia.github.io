@@ -1,14 +1,13 @@
 /* ============ 今日步数 ============ */
 
-/* 主页应用图标：脚印 */
+/* 主页应用图标：行走的人（白色线性 SVG，与其他应用图标风格一致） */
 .steps-app-icon {
   background: linear-gradient(145deg, #ffd98a, #f0a83a);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
-  line-height: 1;
 }
+.steps-app-icon svg { width: 100%; height: 100%; }
 
 /* 页面顶部 */
 .steps-hero {

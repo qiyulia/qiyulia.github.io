@@ -2400,7 +2400,11 @@
     } else {
       started = Promise.resolve(source).then(start);
     }
-    started.then(function () {
+    /* 音频直链可能既不触发 canplay 也不触发 error，避免一直卡在“正在加载这首歌的片段…” */
+    const songLoadTimeout = new Promise(function (_, reject) {
+      setTimeout(function () { reject(new Error('SONG_LOAD_TIMEOUT')); }, 20000);
+    });
+    Promise.race([started, songLoadTimeout]).then(function () {
       if (token !== songPlayToken) {
         songAudio.pause();
         return;

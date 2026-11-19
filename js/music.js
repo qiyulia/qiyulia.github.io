@@ -17,6 +17,7 @@
   let audioTrackId = '';
   let objectUrl = '';
   let mediaToken = 0;
+  let playToken = 0;   /* 每次点击播放自增，用于作废上一次尚未结束的加载/超时 */
   let taTimer = null;
   let taResumeTimer = null;
   let taJudgeToken = 0;
@@ -424,6 +425,7 @@
       return Promise.resolve(false);
     }
     clearTaTimers();
+    const token = ++playToken;   /* 作废之前任何未结束的加载 */
     statusText = '';
     if (track.source === 'synth') {
       releaseAudioSource();
@@ -432,25 +434,34 @@
     stopSynth();
     statusText = '正在加载音频…';
     App.renderMusic();
-    return prepareAudio(track).then(function (ready) {
-      if (!ready) return false;
+    const load = prepareAudio(track).then(function (ready) {
+      if (!ready || token !== playToken || currentTrack().id !== track.id) return false;
       return audio.play().then(function () {
+        if (token !== playToken || currentTrack().id !== track.id) return false;
         playing = true;
         statusText = '';
         App.renderMusic();
         scheduleTa();
         return true;
       });
-    }).catch(function (err) {
-      if (currentTrack().id !== track.id) return false;
+    });
+    /* 音频直链/网易云外链可能既不触发 canplay 也不触发 error，一直卡在“正在加载音频…”。
+       加一个总超时，25 秒还没播起来就给出明确提示，而不是无限转。 */
+    const timeout = new Promise(function (_, reject) {
+      setTimeout(function () { reject(new Error('AUDIO_LOAD_TIMEOUT')); }, 25000);
+    });
+    return Promise.race([load, timeout]).catch(function (err) {
+      if (token !== playToken || currentTrack().id !== track.id) return false;
       playing = false;
-      statusText = track.source === 'netease'
-        ? '这首歌需要会员或受版权限制，暂时播放不了；可以改从本地导入音频'
-        : (track.source === 'kugou'
-          ? '这首歌暂时播放不了，可以改从本地导入音频'
-          : (err && /本地音频文件缺失|音频链接无效/.test(err.message || '')
-            ? err.message
-            : (err && err.name === 'NotAllowedError' ? '浏览器阻止了播放，请再点一次播放' : '音频加载失败，请改从本地导入')));
+      statusText = (err && err.message === 'AUDIO_LOAD_TIMEOUT')
+        ? '音频加载超时，请检查网络，或改从本地导入音频'
+        : (track.source === 'netease'
+          ? '这首歌需要会员或受版权限制，暂时播放不了；可以改从本地导入音频'
+          : (track.source === 'kugou'
+            ? '这首歌暂时播放不了，可以改从本地导入音频'
+            : (err && /本地音频文件缺失|音频链接无效/.test(err.message || '')
+              ? err.message
+              : (err && err.name === 'NotAllowedError' ? '浏览器阻止了播放，请再点一次播放' : '音频加载失败，请改从本地导入'))));
       App.renderMusic();
       App.toast(statusText);
       return false;
@@ -662,6 +673,9 @@
   function resolveNetease(url) {
     const directId = neteaseId(url);
     const pageUrl = directId ? 'https://music.163.com/song?id=' + directId : url;
+    /* 链接本身已经带了歌曲 id（非短链），直接拿到，不必再走可能限流/超时的第三方代理，
+       歌名歌手留空由导入时的默认值兜底，用户也可以自己填。 */
+    if (directId) return Promise.resolve({ id: directId, pageUrl: pageUrl, title: '', artist: '' });
     return fetchMicrolink(url).then(function (info) {
       if (info.id) return info;
       return fetchTextViaProxy(pageUrl).then(function (html) {
@@ -690,7 +704,12 @@
     }
     if (isNeteaseUrl(url)) {
       status.textContent = '正在识别网易云歌曲信息…';
-      resolveNetease(url).then(function (info) {
+      const directId = neteaseId(url);
+      /* microlink + 多个代理逐个尝试，最坏要等很久；给一个总超时，避免一直“正在识别”。 */
+      const overall = new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error('NETEASE_TIMEOUT')); }, 20000);
+      });
+      Promise.race([resolveNetease(url), overall]).then(function (info) {
         if (!info.id) throw new Error('未识别到网易云歌曲，请粘贴歌曲页面链接。');
         tracks().push({
           id: App.uid('track'),
@@ -708,7 +727,28 @@
         status.textContent = '已识别网易云歌曲并加入播放列表；受版权或会员限制的歌曲可能无法站外播放。';
         App.toast('网易云歌曲已加入播放列表');
       }).catch(function (err) {
-        status.textContent = err && err.message ? err.message : '网易云链接识别失败，请粘贴歌曲页面链接或导入本地音频。';
+        if (err && err.message === 'NETEASE_TIMEOUT' && directId) {
+          /* 识别超时但链接本身带了歌曲 id，先用直链加入，至少能尝试播放 */
+          tracks().push({
+            id: App.uid('track'),
+            title: titleInput.value.trim() || '网易云音乐',
+            artist: artistInput.value.trim() || '未知歌手',
+            source: 'netease',
+            url: url,
+            pageUrl: 'https://music.163.com/song?id=' + directId,
+            audioUrl: neteaseAudioUrl(directId),
+            createdAt: Date.now(),
+          });
+          App.save();
+          App.renderMusic();
+          el('#music-link-form').reset();
+          status.textContent = '识别超时，已按歌曲链接加入列表；若播放不了，请导入本地音频。';
+          App.toast('网易云歌曲已加入播放列表');
+          return;
+        }
+        status.textContent = err && err.message === 'NETEASE_TIMEOUT'
+          ? '识别超时，请稍后重试，或直接选择本地音频文件导入。'
+          : (err && err.message ? err.message : '网易云链接识别失败，请粘贴歌曲页面链接或导入本地音频。');
       });
       return;
     }
