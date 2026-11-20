@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261120-hotfix5';
+window.__SHIYI_B_chat='20261120-hotfix6';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -2243,8 +2243,10 @@ window.__SHIYI_B_chat='20261120-hotfix5';
   }
 
   function compressImage(file) {
-    /* 表情包尽量保留画质：400px、JPEG 0.9，超出约 190KB 再逐级压缩 */
-    return App.compressImage(file, 400, { quality: 0.9, maxLength: 260000 });
+    /* 表情包在聊天里最大只显示 96px（2x 屏 192px），256px 已经够清晰。
+       旧参数 400px/q0.9/约195KB，几百张就能把 state 撑到几十 MB，
+       保存/加载时同步序列化会卡住主线程，连系统相册都要等好久才弹。 */
+    return App.compressImage(file, 256, { quality: 0.78, maxLength: 90000 });
   }
 
   /* 图片分类：只作为发送工具，选好图后确定就发到聊天，不存进表情库 */
@@ -2270,7 +2272,7 @@ window.__SHIYI_B_chat='20261120-hotfix5';
       return;
     }
     setStickerStatus('正在读取图片…');
-    App.compressImage(file, 900, { quality: 0.88, maxLength: 900000 }).then(function (src) {
+    App.compressImage(file, 640, { quality: 0.8, maxLength: 240000 }).then(function (src) {
       if (!src) {
         setStickerStatus('这张图片读取失败，换一张试试', true);
         return;

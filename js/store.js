@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-hotfix5';
+window.__SHIYI_B_store='20261120-hotfix6';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -726,7 +726,15 @@ window.__SHIYI_B_store='20261120-hotfix5';
       if (!record) return null;
       lastDbSavedAt = Number(record.savedAt) || 0;
       if (typeof record.data === 'string') {
-        try { return JSON.parse(record.data); } catch (e) { return null; }
+        /* 几千张字卡 + 图片 base64 时，这一句同步解析要占住主线程几百 ms。
+           让出一次事件循环：浏览器先完成绘制/响应点击，再接着解析，
+           控制流和返回值完全不变，只是不再一口气堵死。 */
+        return new Promise(function (resolve) {
+          setTimeout(function () {
+            try { resolve(JSON.parse(record.data)); }
+            catch (e) { resolve(null); }
+          }, 0);
+        });
       }
       if (record.state && record.state.version === 1) return record.state;
       if (record.version === 1) return record;
@@ -1511,11 +1519,11 @@ window.__SHIYI_B_store='20261120-hotfix5';
       let limit = max;
       let quality = startQuality;
       let out = '';
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 7; i++) {
         out = drawToDataUrl(source, width, height, limit, quality);
         if (out.length <= maxLength) break;
-        limit = Math.max(96, Math.round(limit * 0.78));
-        quality = Math.max(0.6, quality - 0.06);
+        limit = Math.max(64, Math.round(limit * 0.78));
+        quality = Math.max(0.5, quality - 0.06);
       }
       return out;
     }
