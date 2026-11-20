@@ -1254,8 +1254,8 @@
     });
     const tip = el('#loc-map-tip');
     if (tip) tip.textContent = locPickWho === 'ta'
-      ? '拖动 TA 的圆形图标，或点地图设置 TA 的位置'
-      : '拖动我的圆形图标，或点地图移动我的位置';
+      ? '点地图设置 TA 的位置'
+      : '点地图设置我的位置';
   }
 
   let locPlaceWho = 'me';
@@ -1501,13 +1501,25 @@
     }).join('');
   }
 
+  /* 自己添加的地点也画在地图上，方便一眼看到都放了哪些地方 */
+  function renderPlaceMarkers(loc, view) {
+    return placeCards().map(function (card, index) {
+      const coords = ensurePlaceCoords(card, loc, index);
+      const p = projectPoint(view, coords);
+      return '<g class="loc-place" data-place-id="' + App.esc(card.id) + '" transform="translate(' + p.x + ',' + p.y + ')">' +
+        '<circle r="5"></circle>' +
+        '<text y="-9">' + App.esc(card.text) + '</text>' +
+      '</g>';
+    }).join('');
+  }
+
   function pinSvg(loc, view, person) {
     const p = projectPoint(view, loc[person]);
     const me = person === 'me';
     const status = loc.status[person] || '';
     const bubbleW = Math.max(46, status.length * 9 + 14);
     const bubbleX = p.x > 250 ? -bubbleW - 12 : 12;
-    return '<g class="loc-pin ' + (me ? 'is-me' : 'is-ta') + '" id="loc-pin-' + person + '" data-loc-pin="' + person + '" transform="translate(' + p.x + ',' + p.y + ')">' +
+    return '<g class="loc-pin ' + (me ? 'is-me' : 'is-ta') + '" transform="translate(' + p.x + ',' + p.y + ')">' +
       '<circle class="loc-pin-pulse" r="18"></circle>' +
       '<circle class="loc-pin-dot" r="9"></circle>' +
       '<circle class="loc-pin-hit" cx="8" cy="-12" r="34"></circle>' +
@@ -1522,9 +1534,10 @@
     '</g>';
   }
 
-  function drawLocationMap(loc) {
-    const svg = el('#loc-map');
+  function drawLocationMap(loc, svg, uid) {
+    svg = svg || el('#loc-map');
     if (!svg) return;
+    uid = uid || 'loc';
     const view = (locView && locView.latMax > locView.latMin && locView.lngMax > locView.lngMin)
       ? locView
       : mapProject(loc);
@@ -1544,11 +1557,11 @@
 
     svg.innerHTML =
       '<defs>' +
-        '<linearGradient id="loc-bg" x1="0" y1="0" x2="1" y2="1">' +
+        '<linearGradient id="' + uid + '-bg" x1="0" y1="0" x2="1" y2="1">' +
           '<stop offset="0" stop-color="#eef7ff"></stop><stop offset="1" stop-color="#dcecf9"></stop>' +
         '</linearGradient>' +
       '</defs>' +
-      '<rect width="400" height="340" fill="url(#loc-bg)"></rect>' +
+      '<rect width="400" height="340" fill="url(#' + uid + '-bg)"></rect>' +
       '<path class="loc-river" d="M-20 250 C 80 220, 120 290, 210 260 S 340 210, 430 240 L 430 340 L -20 340 Z"></path>' +
       '<rect x="26" y="26" width="76" height="52" rx="8" class="loc-block"></rect>' +
       '<rect x="196" y="24" width="88" height="46" rx="8" class="loc-block"></rect>' +
@@ -1556,9 +1569,10 @@
       '<rect x="40" y="176" width="66" height="50" rx="8" class="loc-block"></rect>' +
       '<rect x="236" y="166" width="80" height="56" rx="8" class="loc-block"></rect>' +
       roads +
-      '<line id="loc-link" x1="' + mp.x + '" y1="' + mp.y + '" x2="' + tp.x + '" y2="' + tp.y + '" class="loc-link"></line>' +
-      '<text id="loc-link-text" x="' + mid.x + '" y="' + (mid.y - 8) + '" class="loc-link-text">' + App.esc(distanceText(distanceMeters(me, ta))) + '</text>' +
+      '<line class="loc-link" x1="' + mp.x + '" y1="' + mp.y + '" x2="' + tp.x + '" y2="' + tp.y + '"></line>' +
+      '<text class="loc-link-text" x="' + mid.x + '" y="' + (mid.y - 8) + '">' + App.esc(distanceText(distanceMeters(me, ta))) + '</text>' +
       renderZoneCircles(loc, view) +
+      renderPlaceMarkers(loc, view) +
       pinSvg(loc, view, 'ta') +
       pinSvg(loc, view, 'me');
   }
@@ -1638,7 +1652,7 @@
     }
     if (hint) {
       hint.textContent = !loc.enabled
-        ? '需要你手动授权开启，开启后你们才能看到彼此的位置。'
+        ? '点击开启即可用虚拟位置共享，不会读取手机定位，也不会弹授权。'
         : loc.paused
           ? '共享已暂停，TA 现在看不到你的位置，随时可以继续。'
           : '位置只在本机模拟，不会上传到任何地方。';
@@ -1656,49 +1670,45 @@
     const shareChip = el('#loc-share-chip');
     if (shareChip) shareChip.checked = !!loc.shareChip;
 
+    const zoomBtn = el('#loc-zoom-open');
+    if (zoomBtn) zoomBtn.disabled = !(loc.enabled && !loc.paused);
+
     if (loc.enabled && !loc.paused) drawLocationMap(loc);
     else {
       const svg = el('#loc-map');
       if (svg) svg.innerHTML = '<rect width="400" height="340" fill="#e9f2fa"></rect>';
     }
+    const zoomLayer = el('#loc-zoom-layer');
+    if (zoomLayer && !zoomLayer.hidden) drawLocationMap(loc, el('#loc-map-big'), 'loc-big');
     renderLocationCards(loc);
     renderLocationZones(loc);
     renderLocationPlaces(loc);
     if (App.renderChatLocation) App.renderChatLocation();
   }
 
+  /* 虚拟定位：不申请真实定位权限，直接在默认城市附近模拟一个坐标 */
+  function virtualPosition() {
+    const jitter = function () { return (Math.random() - 0.5) * 0.03; };
+    return { lat: 31.2304 + jitter(), lng: 121.4737 + jitter() };
+  }
+
   function enableLocation() {
     const loc = locationState();
-    const finish = function (lat, lng) {
-      if (typeof lat === 'number' && typeof lng === 'number') {
-        const home = { lat: lat, lng: lng };
-        const work = { lat: lat + 0.0048, lng: lng + 0.0042 };
-        loc.me = home;
-        loc.ta = { lat: work.lat + 0.0007, lng: work.lng + 0.0008 };
-        loc.zones = [
-          { id: 'home', name: '家', lat: home.lat, lng: home.lng, r: 320 },
-          { id: 'work', name: '公司', lat: work.lat, lng: work.lng, r: 320 },
-        ];
-        loc.inside = { me: 'home', ta: 'work' };
-      }
-      loc.enabled = true;
-      loc.paused = false;
-      locView = null;
-      App.save();
-      renderLocation();
-      App.toast('位置共享已开启');
-    };
-    if (navigator.geolocation) {
-      App.toast('正在获取定位…');
-      navigator.geolocation.getCurrentPosition(
-        function (pos) { finish(pos.coords.latitude, pos.coords.longitude); },
-        function () { finish(); App.toast('定位不可用，先用模拟位置'); },
-        { timeout: 6000, maximumAge: 60000 }
-      );
-    } else {
-      finish();
-      App.toast('浏览器不支持定位，先用模拟位置');
-    }
+    const home = virtualPosition();
+    const work = { lat: home.lat + 0.0048, lng: home.lng + 0.0042 };
+    loc.me = home;
+    loc.ta = { lat: work.lat + 0.0007, lng: work.lng + 0.0008 };
+    loc.zones = [
+      { id: 'home', name: '家', lat: home.lat, lng: home.lng, r: 320 },
+      { id: 'work', name: '公司', lat: work.lat, lng: work.lng, r: 320 },
+    ];
+    loc.inside = { me: 'home', ta: 'work' };
+    loc.enabled = true;
+    loc.paused = false;
+    locView = null;
+    App.save();
+    renderLocation();
+    App.toast('已开启虚拟位置共享');
   }
 
   function zoneMessage(who, nextZone, prevZone, customText) {
@@ -1865,11 +1875,8 @@
     App.toast('已恢复默认快捷消息');
   }
 
-  let locPinDrag = null;
-  let locMapIgnoreClick = false;
-
-  function mapPointFromEvent(evt) {
-    const svg = el('#loc-map');
+  function mapPointFromEvent(evt, svg) {
+    svg = svg || el('#loc-map');
     if (!svg || !locView) return null;
     const ctm = svg.getScreenCTM();
     if (!ctm) return null;
@@ -1890,112 +1897,12 @@
     };
   }
 
-  function updateMapLinkPreview(who, x, y) {
-    if (!locView) return;
-    const loc = locationState();
-    const other = who === 'me' ? 'ta' : 'me';
-    const otherPt = projectPoint(locView, loc[other]);
-    const line = el('#loc-link');
-    if (line) {
-      if (who === 'me') {
-        line.setAttribute('x1', x);
-        line.setAttribute('y1', y);
-      } else {
-        line.setAttribute('x2', x);
-        line.setAttribute('y2', y);
-      }
-    }
-    const pos = latLngFromMapPoint({ x: x, y: y });
-    const from = who === 'me' ? pos : loc.me;
-    const to = who === 'me' ? loc.ta : pos;
-    const text = distanceText(distanceMeters(from, to));
-    const label = el('#loc-link-text');
-    if (label) {
-      label.setAttribute('x', (x + otherPt.x) / 2);
-      label.setAttribute('y', (y + otherPt.y) / 2 - 8);
-      label.textContent = text;
-    }
-    const pill = el('#loc-distance');
-    if (pill) pill.textContent = text;
-  }
-
-  function startPinDrag(evt) {
-    if (locPinDrag) return;
-    const pin = evt.target.closest ? evt.target.closest('#loc-map .loc-pin') : null;
-    if (!pin) return;
-    const loc = locationState();
-    if (!loc.enabled || loc.paused || !locView) return;
-    const who = pin.dataset.locPin === 'ta' ? 'ta' : 'me';
-    const pt = mapPointFromEvent(evt);
-    if (!pt) return;
-    const origin = projectPoint(locView, loc[who]);
-    locPickWho = who;
-    renderLocationPlaces(loc);
-    locPinDrag = {
-      who: who,
-      pointerId: evt.pointerId,
-      node: pin,
-      offX: pt.x - origin.x,
-      offY: pt.y - origin.y,
-      originX: origin.x,
-      originY: origin.y,
-      lastX: origin.x,
-      lastY: origin.y,
-      moved: false,
-    };
-    pin.classList.add('is-dragging');
-    const map = el('#loc-map');
-    if (map) map.classList.add('is-pin-dragging');
-    evt.preventDefault();
-  }
-
-  function movePinDrag(evt) {
-    const drag = locPinDrag;
-    if (!drag || evt.pointerId !== drag.pointerId) return;
-    const pt = mapPointFromEvent(evt);
-    if (!pt) return;
-    evt.preventDefault();
-    const x = clamp(pt.x - drag.offX, 24, 376);
-    const y = clamp(pt.y - drag.offY, 30, 300);
-    if (Math.abs(x - drag.lastX) > 2 || Math.abs(y - drag.lastY) > 2) drag.moved = true;
-    drag.lastX = x;
-    drag.lastY = y;
-    drag.node.setAttribute('transform', 'translate(' + x + ',' + y + ')');
-    updateMapLinkPreview(drag.who, x, y);
-  }
-
-  function endPinDrag(evt) {
-    const drag = locPinDrag;
-    if (!drag || (evt && evt.pointerId !== drag.pointerId)) return;
-    locPinDrag = null;
-    drag.node.classList.remove('is-dragging');
-    const map = el('#loc-map');
-    if (map) map.classList.remove('is-pin-dragging');
-    locMapIgnoreClick = true;
-    setTimeout(function () { locMapIgnoreClick = false; }, 320);
-    if (!drag.moved) {
-      drag.node.setAttribute('transform', 'translate(' + drag.originX + ',' + drag.originY + ')');
-      updateMapLinkPreview(drag.who, drag.originX, drag.originY);
-      return;
-    }
-    const loc = locationState();
-    const pos = latLngFromMapPoint({ x: drag.lastX, y: drag.lastY });
-    loc[drag.who].lat = pos.lat;
-    loc[drag.who].lng = pos.lng;
-    /* 选过地点卡时，把这张卡的坐标一起更新，相当于在地图上改地点 */
-    const card = placeCardById(loc.placeId[drag.who]);
-    if (card) card.place = { lat: pos.lat, lng: pos.lng };
-    applyZone(loc, drag.who, zoneOf(loc, loc[drag.who]));
-    App.save();
-    renderLocation();
-  }
-
   function moveMeByTap(evt) {
-    if (locMapIgnoreClick) return;
+    const svg = evt.currentTarget;
     if (evt.target && evt.target.closest && evt.target.closest('.loc-pin')) return;
     const loc = locationState();
     if (!loc.enabled || loc.paused || !locView) return;
-    const pt = mapPointFromEvent(evt);
+    const pt = mapPointFromEvent(evt, svg);
     if (!pt) return;
     const pos = latLngFromMapPoint(pt);
     const who = locPickWho;
@@ -2821,13 +2728,19 @@
       App.toast(loc.paused ? '已暂停共享，TA 看不到你了' : '已继续共享');
     });
     const locMap = el('#loc-map');
-    if (locMap) {
-      locMap.addEventListener('click', moveMeByTap);
-      locMap.addEventListener('pointerdown', startPinDrag, { passive: false });
-    }
-    document.addEventListener('pointermove', movePinDrag, { passive: false });
-    document.addEventListener('pointerup', endPinDrag);
-    document.addEventListener('pointercancel', endPinDrag);
+    if (locMap) locMap.addEventListener('click', moveMeByTap);
+    const locMapBig = el('#loc-map-big');
+    if (locMapBig) locMapBig.addEventListener('click', moveMeByTap);
+    const zoomOpen = el('#loc-zoom-open');
+    if (zoomOpen) zoomOpen.addEventListener('click', function () {
+      const loc = locationState();
+      if (!loc.enabled || loc.paused) { App.toast('先开启共享'); return; }
+      showPanel('#loc-zoom-layer');
+      drawLocationMap(loc, el('#loc-map-big'), 'loc-big');
+      const body = el('#loc-zoom-body');
+      const svg = el('#loc-map-big');
+      if (body && svg) body.scrollLeft = Math.max(0, (svg.offsetWidth - body.clientWidth) / 2);
+    });
     const locShareChip = el('#loc-share-chip');
     if (locShareChip) locShareChip.addEventListener('change', function () {
       const loc = locationState();

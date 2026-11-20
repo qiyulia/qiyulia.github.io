@@ -4905,15 +4905,39 @@ select option {
 .loc-map .loc-pin.is-ta .loc-pin-pulse { fill: rgba(217, 155, 114, .22); }
 .loc-map .loc-pin-dot { fill: #5b8fc9; stroke: #fff; stroke-width: 2.5; }
 .loc-map .loc-pin.is-ta .loc-pin-dot { fill: #d99b72; }
-.loc-map .loc-pin { cursor: grab; user-select: none; touch-action: none; }
-.loc-map .loc-pin-hit { fill: transparent; stroke: none; pointer-events: all; touch-action: none; }
+.loc-map .loc-pin { cursor: pointer; user-select: none; }
+.loc-map .loc-pin-hit { fill: transparent; stroke: none; pointer-events: all; }
 .loc-map .loc-pin-avatar { fill: #5b8fc9; stroke: #fff; stroke-width: 2.5; }
 .loc-map .loc-pin.is-ta .loc-pin-avatar { fill: #d99b72; }
 .loc-map .loc-pin-flag text { font-size: 9px; fill: #fff; stroke: none; font-weight: 600; text-anchor: middle; pointer-events: none; }
-.loc-map .loc-pin.is-dragging { cursor: grabbing; }
-.loc-map .loc-pin.is-dragging .loc-pin-avatar { filter: drop-shadow(0 5px 8px rgba(56, 93, 130, .3)); }
-.loc-map.is-pin-dragging { cursor: grabbing; }
 .loc-map .loc-pin-bubble text { pointer-events: none; }
+.loc-map .loc-place circle { fill: #9bc0dc; stroke: #fff; stroke-width: 1.6; }
+.loc-map .loc-place text { font-size: 9px; fill: #4f7b9c; text-anchor: middle; stroke: none; font-weight: 600; }
+.loc-zoom-btn {
+  position: absolute;
+  top: 44px;
+  right: 10px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 4px 12px rgba(56, 93, 130, .12);
+  cursor: pointer;
+}
+.loc-zoom-btn:disabled { opacity: .45; cursor: default; }
+.loc-zoom-card { width: min(560px, calc(100% - 20px)); max-width: none; }
+.loc-zoom-body {
+  overflow: auto;
+  max-height: 60vh;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.loc-map-big { width: 760px; max-width: none; height: auto; }
 @keyframes loc-pulse {
   0%, 100% { transform: scale(1); opacity: .6; }
   50% { transform: scale(1.5); opacity: .12; }
