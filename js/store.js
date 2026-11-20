@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-hotfix4';
+window.__SHIYI_B_store='20261120-hotfix5';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -100,8 +100,42 @@ window.__SHIYI_B_store='20261120-hotfix4';
     return true;
   }
 
-  /* 把整份状态序列化后写进 IndexedDB 的 kv 库，排队执行避免写入乱序 */
+  /* state 里还留着聊天图片的 base64，整份 JSON.stringify 在手机上常要
+     几百毫秒到几秒。它原来是同步的：只要恰好在用户点「从本地相册添加」
+     的瞬间执行，就会卡住 WebKit 主线程，系统相册要隔好久才弹得出来，
+     刷新时同样会卡在开屏。把序列化让出一次事件循环即可根治。 */
+  function stringifyStateAsync() {
+    return new Promise(function (resolve, reject) {
+      var run = function () {
+        try { resolve(JSON.stringify(App.state)); }
+        catch (e) { reject(e); }
+      };
+      /* 优先在浏览器空闲时做；不支持或超时就退化为下一个事件循环 */
+      if (window.requestIdleCallback) {
+        try { requestIdleCallback(run, { timeout: 1500 }); }
+        catch (e) { setTimeout(run, 0); }
+      } else {
+        setTimeout(run, 0);
+      }
+    });
+  }
+
+  /* 常规保存：序列化异步化，点击/弹相册永远优先 */
   function persistState() {
+    const job = saveChain.catch(function () {}).then(function () {
+      return stringifyStateAsync().then(function (json) {
+        return withMediaStore('kv', 'readwrite', function (store) {
+          return store.put({ data: json, savedAt: Date.now() }, 'state');
+        });
+      });
+    });
+    saveChain = job.catch(function () {});
+    return job;
+  }
+
+  /* 页面隐藏/关闭时的紧急落盘：必须同步，否则 idle 回调可能不再执行导致丢数据。
+     此时用户已经切走，不会挡住系统相册弹出。 */
+  function persistStateNow() {
     const json = JSON.stringify(App.state);
     const job = saveChain.catch(function () {}).then(function () {
       return withMediaStore('kv', 'readwrite', function (store) {
@@ -126,7 +160,7 @@ window.__SHIYI_B_store='20261120-hotfix4';
     });
   }
 
-  function writeState() {
+  function writeState(urgent) {
     /* 数据尚未从 IndexedDB 读回时界面是种子态占位，
        任何一次落盘都会把空数据覆盖掉真实存档。整体挂起，等 dataReady 再补写。 */
     if (App.dataReady === false) return;
@@ -137,7 +171,8 @@ window.__SHIYI_B_store='20261120-hotfix4';
       saveToLocal();
       return;
     }
-    persistState().catch(function () {
+    const job = urgent ? persistStateNow() : persistState();
+    job.catch(function () {
       storageMode = 'local';
       saveToLocal();
     });
@@ -207,7 +242,8 @@ window.__SHIYI_B_store='20261120-hotfix4';
     if (!saveTimer) return;
     clearTimeout(saveTimer);
     saveTimer = 0;
-    writeState();
+    /* 切后台/关页 = 紧急落盘，走同步路径，保证不丢数据 */
+    writeState(true);
   };
 
   document.addEventListener('visibilitychange', function () {

@@ -3129,23 +3129,24 @@ dialog.more-sheet::backdrop {
   pointer-events: none;
 }
 
-/* 直接用 <label for> 原生关联唤起系统文件选择：点击按钮任意位置由浏览器
-   自己转发给 input，不需要 JS、不需要透明覆盖层（部分国产内核会忽略
-   opacity:0 的覆盖 input，表现就是点了完全没反应）。
-   input 保持极小但「存在且非 display:none」，兼容性最好。 */
+/* 两条原生路径双保险：① <label for> 由浏览器转发点击给 input；
+   ② 透明 input 覆盖按钮，直接点中也是原生响应。
+   全程不经过 JS .click()、不读剪贴板、不弹任何权限框。 */
 .sticker-add,
 .sticker-image-pick { position: relative; display: block; cursor: pointer; }
-.file-input-native {
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  width: 1px;
-  height: 1px;
+.sticker-add { overflow: hidden; }
+.file-input-direct {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
   border: 0;
-  opacity: .01;
-  pointer-events: none;
+  opacity: 0;
+  cursor: pointer;
 }
 .sticker-add > span,
 .sticker-image-pick > span { pointer-events: none; }
