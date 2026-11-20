@@ -11,23 +11,62 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
-/* 清理旧版站点遗留的 Service Worker 与离线缓存。 */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function (registrations) {
-    return Promise.all(registrations.map(function (registration) { return registration.unregister(); }));
-  }).catch(function () {});
-}
-if ('caches' in window) {
-  caches.keys().then(function (keys) {
-    return Promise.all(keys.map(function (key) { return caches.delete(key); }));
-  }).catch(function () {});
-}
+/* 版本自愈：手机浏览器 / APP 内置 WebView 常把旧的 index.html、js、css 缓存住，
+   甚至直接从 bfcache / 页面快照恢复整个旧页面，于是出现「刚修好能用、过一会又变回旧版」。
+   我上一版加的 <meta no-store> 管不住它：服务端 HTTP 缓存头优先级更高，
+   而 GitHub Pages 不允许自定义响应头，只能让页面自己兜底。
+   这段脚本不依赖任何外部资源，加载即自检：
+     ① 只要还存在 Service Worker 或 Cache Storage，全部清掉并强制重载一次；
+     ② 脚本加载完若发现混进了旧版 js，强制重载；
+     ③ 从 bfcache 恢复的旧页面也强制重载。
+   sessionStorage 保证只自愈一次，不会死循环。 */
+(function () {
+  var EXPECT = '20261120-hotfix3';
+  window.__SHIYI_BUILD = EXPECT;
+  var KEY = 'shiyi.selfheal.' + EXPECT;
+  function once() {
+    try {
+      if (sessionStorage.getItem(KEY)) return false;
+      sessionStorage.setItem(KEY, '1');
+    } catch (e) {}
+    return true;
+  }
+  function reload() {
+    if (!once()) return;
+    var sep = location.search ? '&' : '?';
+    var u = location.pathname + '?v=hotfix3' + sep + '_f=' + Date.now() + (location.hash || '');
+    try { location.replace(u); } catch (e) { location.reload(); }
+  }
+  /* 旧版 Service Worker 会拦截请求返回缓存的旧 HTML，必须注销 */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (rs) {
+      return Promise.all((rs || []).map(function (r) { return r.unregister(); }));
+    }).catch(function () {});
+  }
+  /* 清离线缓存，但「缓存非空」本身不触发重载，避免误伤正常浏览器 */
+  if ('caches' in window) {
+    caches.keys().then(function (keys) {
+      return Promise.all((keys || []).map(function (k) { return caches.delete(k); }));
+    }).catch(function () {});
+  }
+  /* 真正的判据：三个关键脚本的构建标记是否齐且匹配。
+     缺一个就说明混进了旧版 JS —— 此时才强制回源重载一次。 */
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.__SHIYI_B_store !== EXPECT ||
+        window.__SHIYI_B_chat  !== EXPECT ||
+        window.__SHIYI_B_app   !== EXPECT) reload();
+  });
+  /* 从 bfcache / 页面快照恢复的旧页面同样强制重载 */
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted && window.__SHIYI_B_app !== EXPECT) reload();
+  });
+})();
 /* 开屏动画：动画播放的这段时间正好用来加载站内内容（数据 + 界面初始化）。
    两个条件都满足才淡出：① 动画至少放满最短时长 ② 数据/界面已就绪（boot 完成）。
    这样进去就是「已经改好的样子」，不会先闪没用过的初始态，也不会加载到一半被点到。
    放在最前面执行，不依赖任何后续脚本。 */
 (function () {
-  window.__SHIYI_BUILD = '20261120-hotfix2';
+  window.__SHIYI_BUILD = '20261120-hotfix3';
   var MIN_SHOW = 1500;
   var ready = false, elapsed = false, done = false;
   function hideSplash() {
@@ -61,8 +100,8 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261120-hotfix2">
-<link rel="stylesheet" href="css/steps.css?v=20261120-hotfix2">
+<link rel="stylesheet" href="css/style.css?v=20261120-hotfix3">
+<link rel="stylesheet" href="css/steps.css?v=20261120-hotfix3">
 </head>
 <body>
 <div class="stage">
@@ -3028,23 +3067,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261120-hotfix2"></script>
-<script src="js/seed.js?v=20261120-hotfix2"></script>
-<script src="js/store.js?v=20261120-hotfix2"></script>
-<script src="js/desktop.js?v=20261120-hotfix2"></script>
-<script src="js/chat.js?v=20261120-hotfix2"></script>
-<script src="js/cards.js?v=20261120-hotfix2"></script>
-<script src="js/settings.js?v=20261120-hotfix2"></script>
-<script src="js/moments.js?v=20261120-hotfix2"></script>
-<script src="js/calendar.js?v=20261120-hotfix2"></script>
-<script src="js/music.js?v=20261120-hotfix2"></script>
-<script src="js/market.js?v=20261120-hotfix2"></script>
-<script src="js/mail.js?v=20261120-hotfix2"></script>
-<script src="js/extras.js?v=20261120-hotfix2"></script>
-<script src="js/companion.js?v=20261120-hotfix2"></script>
-<script src="js/memoir.js?v=20261120-hotfix2"></script>
-<script src="js/group.js?v=20261120-hotfix2"></script>
-<script src="js/steps.js?v=20261120-hotfix2"></script>
-<script src="js/app.js?v=20261120-hotfix2"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261120-hotfix3"></script>
+<script src="js/seed.js?v=20261120-hotfix3"></script>
+<script src="js/store.js?v=20261120-hotfix3"></script>
+<script src="js/desktop.js?v=20261120-hotfix3"></script>
+<script src="js/chat.js?v=20261120-hotfix3"></script>
+<script src="js/cards.js?v=20261120-hotfix3"></script>
+<script src="js/settings.js?v=20261120-hotfix3"></script>
+<script src="js/moments.js?v=20261120-hotfix3"></script>
+<script src="js/calendar.js?v=20261120-hotfix3"></script>
+<script src="js/music.js?v=20261120-hotfix3"></script>
+<script src="js/market.js?v=20261120-hotfix3"></script>
+<script src="js/mail.js?v=20261120-hotfix3"></script>
+<script src="js/extras.js?v=20261120-hotfix3"></script>
+<script src="js/companion.js?v=20261120-hotfix3"></script>
+<script src="js/memoir.js?v=20261120-hotfix3"></script>
+<script src="js/group.js?v=20261120-hotfix3"></script>
+<script src="js/steps.js?v=20261120-hotfix3"></script>
+<script src="js/app.js?v=20261120-hotfix3"></script>
 </body>
 </html>
