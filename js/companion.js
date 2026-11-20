@@ -1176,9 +1176,38 @@
     return placeCards().find(function (c) { return c.id === id; }) || null;
   }
 
+  /* 名称一律按「人现在的位置」反推，地图上的点在哪，卡片就显示哪 */
+  function placeAtPosition(loc, pos) {
+    if (!pos) return null;
+    let best = null;
+    let bestDist = Infinity;
+    placeCards().forEach(function (card, index) {
+      const coords = ensurePlaceCoords(card, loc, index);
+      const dist = distanceMeters(pos, coords);
+      if (dist < bestDist) { bestDist = dist; best = card; }
+    });
+    return best && bestDist <= 120 ? best : null;
+  }
+
   function placeNameOf(loc, who) {
-    const card = placeCardById(loc.placeId && loc.placeId[who]);
+    const card = placeAtPosition(loc, loc[who]);
     return card ? card.text : '';
+  }
+
+  function locationNameOf(loc, who) {
+    const zone = zoneOf(loc, loc[who]);
+    return placeNameOf(loc, who) || (zone ? zone.name : '外面');
+  }
+
+  /* 状态气泡里的「在哪儿」也跟随地图位置，避免标着学校、人却在别处 */
+  function syncStatusPlace(loc, who) {
+    const text = String(loc.status[who] || '');
+    const match = text.match(/^在([^-]*)-(.+)$/);
+    if (!match) return false;
+    const next = '在' + locationNameOf(loc, who) + '-' + match[2];
+    if (next === text) return false;
+    loc.status[who] = next;
+    return true;
   }
 
   function ensurePlaceCoords(card, loc, index) {
@@ -1414,9 +1443,7 @@
     const detail = el('#chat-loc-detail');
     if (dist) dist.textContent = distanceText(distanceMeters(loc.me, loc.ta));
     if (detail) {
-      const me = placeNameOf(loc, 'me') || loc.status.me;
-      const ta = placeNameOf(loc, 'ta') || loc.status.ta;
-      detail.textContent = '我 · ' + me + ' ／ TA · ' + ta;
+      detail.textContent = '我 · ' + locationNameOf(loc, 'me') + ' ／ TA · ' + locationNameOf(loc, 'ta');
     }
   }
   App.renderChatLocation = renderChatLocation;
@@ -1534,10 +1561,9 @@
     '</g>';
   }
 
-  function drawLocationMap(loc, svg, uid) {
-    svg = svg || el('#loc-map');
+  function drawLocationMap(loc) {
+    const svg = el('#loc-map');
     if (!svg) return;
-    uid = uid || 'loc';
     const view = (locView && locView.latMax > locView.latMin && locView.lngMax > locView.lngMin)
       ? locView
       : mapProject(loc);
@@ -1557,11 +1583,11 @@
 
     svg.innerHTML =
       '<defs>' +
-        '<linearGradient id="' + uid + '-bg" x1="0" y1="0" x2="1" y2="1">' +
+        '<linearGradient id="loc-bg" x1="0" y1="0" x2="1" y2="1">' +
           '<stop offset="0" stop-color="#eef7ff"></stop><stop offset="1" stop-color="#dcecf9"></stop>' +
         '</linearGradient>' +
       '</defs>' +
-      '<rect width="400" height="340" fill="url(#' + uid + '-bg)"></rect>' +
+      '<rect width="400" height="340" fill="url(#loc-bg)"></rect>' +
       '<path class="loc-river" d="M-20 250 C 80 220, 120 290, 210 260 S 340 210, 430 240 L 430 340 L -20 340 Z"></path>' +
       '<rect x="26" y="26" width="76" height="52" rx="8" class="loc-block"></rect>' +
       '<rect x="196" y="24" width="88" height="46" rx="8" class="loc-block"></rect>' +
@@ -1581,10 +1607,8 @@
     const meBox = el('#loc-card-me');
     const taBox = el('#loc-card-ta');
     if (!meBox || !taBox) return;
-    const meZone = loc.zones.find(function (z) { return z.id === loc.inside.me; });
-    const taZone = loc.zones.find(function (z) { return z.id === loc.inside.ta; });
-    const mePlace = placeNameOf(loc, 'me');
-    const taPlace = placeNameOf(loc, 'ta');
+    const mePlace = locationNameOf(loc, 'me');
+    const taPlace = locationNameOf(loc, 'ta');
     const statusButton = function (side) {
       return '<button type="button" class="loc-status-select loc-status-open" data-loc-status-open="' + side + '" aria-haspopup="dialog">' +
         '<span>' + App.esc(loc.status[side]) + '</span>' +
@@ -1593,12 +1617,12 @@
     };
     meBox.innerHTML =
       '<div class="loc-card-head"><span class="loc-who is-me">我</span>' +
-        '<span class="loc-zone-name">' + (loc.paused ? '已暂停共享' : App.esc(mePlace || (meZone ? meZone.name : '外面'))) + '</span></div>' +
+        '<span class="loc-zone-name">' + (loc.paused ? '已暂停共享' : App.esc(mePlace)) + '</span></div>' +
       '<div class="loc-bubble">' + App.esc(loc.status.me) + '</div>' +
       (loc.paused ? '<p class="field-hint">暂停期间，TA 看不到你的位置。</p>' : statusButton('me'));
     taBox.innerHTML =
       '<div class="loc-card-head"><span class="loc-who is-ta">TA</span>' +
-        '<span class="loc-zone-name">' + (loc.paused ? '看不到你' : App.esc(taPlace || (taZone ? taZone.name : '外面'))) + '</span></div>' +
+        '<span class="loc-zone-name">' + (loc.paused ? '看不到你' : App.esc(taPlace)) + '</span></div>' +
       '<div class="loc-bubble is-ta">' + App.esc(loc.status.ta) + '</div>' +
       statusButton('ta');
   }
@@ -1639,6 +1663,9 @@
 
   function renderLocation() {
     const loc = locationState();
+    let statusChanged = syncStatusPlace(loc, 'me');
+    if (syncStatusPlace(loc, 'ta')) statusChanged = true;
+    if (statusChanged) App.save();
     const state = el('#loc-state');
     const hint = el('#loc-hint');
     const enable = el('#loc-enable');
@@ -1670,16 +1697,11 @@
     const shareChip = el('#loc-share-chip');
     if (shareChip) shareChip.checked = !!loc.shareChip;
 
-    const zoomBtn = el('#loc-zoom-open');
-    if (zoomBtn) zoomBtn.disabled = !(loc.enabled && !loc.paused);
-
     if (loc.enabled && !loc.paused) drawLocationMap(loc);
     else {
       const svg = el('#loc-map');
       if (svg) svg.innerHTML = '<rect width="400" height="340" fill="#e9f2fa"></rect>';
     }
-    const zoomLayer = el('#loc-zoom-layer');
-    if (zoomLayer && !zoomLayer.hidden) drawLocationMap(loc, el('#loc-map-big'), 'loc-big');
     renderLocationCards(loc);
     renderLocationZones(loc);
     renderLocationPlaces(loc);
@@ -2729,18 +2751,6 @@
     });
     const locMap = el('#loc-map');
     if (locMap) locMap.addEventListener('click', moveMeByTap);
-    const locMapBig = el('#loc-map-big');
-    if (locMapBig) locMapBig.addEventListener('click', moveMeByTap);
-    const zoomOpen = el('#loc-zoom-open');
-    if (zoomOpen) zoomOpen.addEventListener('click', function () {
-      const loc = locationState();
-      if (!loc.enabled || loc.paused) { App.toast('先开启共享'); return; }
-      showPanel('#loc-zoom-layer');
-      drawLocationMap(loc, el('#loc-map-big'), 'loc-big');
-      const body = el('#loc-zoom-body');
-      const svg = el('#loc-map-big');
-      if (body && svg) body.scrollLeft = Math.max(0, (svg.offsetWidth - body.clientWidth) / 2);
-    });
     const locShareChip = el('#loc-share-chip');
     if (locShareChip) locShareChip.addEventListener('change', function () {
       const loc = locationState();
@@ -2849,7 +2859,18 @@
       const statusOption = e.target.closest('[data-loc-status-pick]');
       if (statusOption) {
         const loc = locationState();
-        loc.status[locStatusWho] = statusOption.dataset.locStatusPick;
+        const picked = statusOption.dataset.locStatusPick;
+        /* 选「在家 / 在公司」时，人也一起移过去，文字和地图上的点保持一致 */
+        const atMatch = picked.match(/^在([^-]*)-/);
+        if (atMatch) {
+          const zone = loc.zones.find(function (z) { return z.name === atMatch[1]; });
+          if (zone) {
+            loc[locStatusWho].lat = zone.lat;
+            loc[locStatusWho].lng = zone.lng;
+            loc.inside[locStatusWho] = zone.id;
+          }
+        }
+        loc.status[locStatusWho] = picked;
         App.save();
         const dialog = el('#loc-status-dialog');
         if (dialog) dialog.hidden = true;

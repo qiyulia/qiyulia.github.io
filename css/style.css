@@ -4913,31 +4913,6 @@ select option {
 .loc-map .loc-pin-bubble text { pointer-events: none; }
 .loc-map .loc-place circle { fill: #9bc0dc; stroke: #fff; stroke-width: 1.6; }
 .loc-map .loc-place text { font-size: 9px; fill: #4f7b9c; text-anchor: middle; stroke: none; font-weight: 600; }
-.loc-zoom-btn {
-  position: absolute;
-  top: 44px;
-  right: 10px;
-  padding: 5px 12px;
-  border: 0;
-  border-radius: 999px;
-  font-size: 11px;
-  color: var(--accent);
-  background: rgba(255, 255, 255, .9);
-  box-shadow: 0 4px 12px rgba(56, 93, 130, .12);
-  cursor: pointer;
-}
-.loc-zoom-btn:disabled { opacity: .45; cursor: default; }
-.loc-zoom-card { width: min(560px, calc(100% - 20px)); max-width: none; }
-.loc-zoom-body {
-  overflow: auto;
-  max-height: 60vh;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-.loc-map-big { width: 760px; max-width: none; height: auto; }
 @keyframes loc-pulse {
   0%, 100% { transform: scale(1); opacity: .6; }
   50% { transform: scale(1.5); opacity: .12; }
