@@ -1231,9 +1231,15 @@
     };
   }
 
+  /* 名字和安全区域同名的地点（家 / 公司）直接落在区域中心，其余按圆周排开 */
+  function placeZoneMatch(loc, card) {
+    return loc.zones.find(function (z) { return z.name === card.text; }) || null;
+  }
+
   function ensurePlaceCoords(card, loc, index) {
     if (card.place && Number.isFinite(card.place.lat) && Number.isFinite(card.place.lng)) return card.place;
-    card.place = placeRingCoords(loc, index);
+    const zone = placeZoneMatch(loc, card);
+    card.place = zone ? { lat: zone.lat, lng: zone.lng } : placeRingCoords(loc, index);
     return card.place;
   }
 
@@ -1242,7 +1248,8 @@
     if (loc.placeSpread) return;
     loc.placeSpread = true;
     placeCards().forEach(function (card, index) {
-      card.place = placeRingCoords(loc, index);
+      const zone = placeZoneMatch(loc, card);
+      card.place = zone ? { lat: zone.lat, lng: zone.lng } : placeRingCoords(loc, index);
     });
     App.save();
   }
