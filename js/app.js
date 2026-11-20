@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261120-lazy6';
+window.__SHIYI_B_app='20261120-lazy7';
 /* 入口与路由 */
 (function () {
   const App = window.App;

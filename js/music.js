@@ -712,19 +712,58 @@
       });
     });
   }
+  /* 短链识别成功过的结果缓存起来，同一个链接再次导入就不用再等第三方接口 */
+  const LINK_CACHE_KEY = 'shiyi.netease.links';
+  function readLinkCache(url) {
+    try {
+      const all = JSON.parse(localStorage.getItem(LINK_CACHE_KEY) || '{}');
+      const hit = all[url];
+      if (hit && hit.id && Date.now() - (Number(hit.at) || 0) < 30 * 864e5) return hit;
+    } catch (e) {}
+    return null;
+  }
+  function writeLinkCache(url, info) {
+    try {
+      const all = JSON.parse(localStorage.getItem(LINK_CACHE_KEY) || '{}');
+      all[url] = { id: info.id, pageUrl: info.pageUrl || '', title: info.title || '', artist: info.artist || '', at: Date.now() };
+      const keys = Object.keys(all);
+      if (keys.length > 80) {
+        keys.sort(function (a, b) { return (all[a].at || 0) - (all[b].at || 0); });
+        keys.slice(0, keys.length - 80).forEach(function (key) { delete all[key]; });
+      }
+      localStorage.setItem(LINK_CACHE_KEY, JSON.stringify(all));
+    } catch (e) {}
+  }
   function resolveNetease(url) {
     const directId = neteaseId(url);
     const pageUrl = directId ? 'https://music.163.com/song?id=' + directId : url;
     /* 链接本身已经带了歌曲 id（非短链），直接拿到，不必再走可能限流/超时的第三方代理，
        歌名歌手在加入列表后由 fillNeteaseMeta 在后台补上，不拖慢导入。 */
     if (directId) return Promise.resolve({ id: directId, pageUrl: pageUrl, title: '', artist: '' });
+    const cached = readLinkCache(url);
+    if (cached) return Promise.resolve(cached);
     /* 短链必须联网识别：microlink 与多个代理同时跑，谁先拿到 id 用谁 */
-    const fromMicrolink = fetchMicrolink(url, 7000).then(function (info) { return info || {}; });
-    const fromPage = fetchTextViaProxy(url, 5000).then(function (html) {
-      const meta = parseNeteaseHtml(html);
-      return { id: meta.id || '', pageUrl: meta.pageUrl || url, title: meta.title || '', artist: meta.artist || '' };
+    const round = function (microlinkMs, proxyMs) {
+      const fromMicrolink = fetchMicrolink(url, microlinkMs).then(function (info) { return info || {}; });
+      const fromPage = fetchTextViaProxy(url, proxyMs).then(function (html) {
+        const meta = parseNeteaseHtml(html);
+        return { id: meta.id || '', pageUrl: meta.pageUrl || url, title: meta.title || '', artist: meta.artist || '' };
+      });
+      return firstResolved([fromMicrolink, fromPage]);
+    };
+    return round(9000, 6000).then(function (info) {
+      if (info && info.id) {
+        writeLinkCache(url, info);
+        return info;
+      }
+      /* 第三方接口第一次经常冷启动超时，隔一轮再试，成功率高很多 */
+      const status = el('#music-link-status');
+      if (status) status.textContent = '识别较慢，正在重试…';
+      return round(14000, 8000).then(function (again) {
+        if (again && again.id) writeLinkCache(url, again);
+        return again || {};
+      });
     });
-    return firstResolved([fromMicrolink, fromPage]);
   }
   /* 只补歌名和歌手：拿到歌曲 id 就先入列表，元信息慢慢查，查不到也不影响播放 */
   function fetchMetingMeta(id) {
@@ -806,7 +845,7 @@
       const userArtist = artistInput.value.trim();
       /* 短链要联网识别，给一个总超时，避免一直卡在“正在识别” */
       const overall = new Promise(function (_, reject) {
-        setTimeout(function () { reject(new Error('NETEASE_TIMEOUT')); }, 9000);
+        setTimeout(function () { reject(new Error('NETEASE_TIMEOUT')); }, 25000);
       });
       Promise.race([resolveNetease(url), overall]).then(function (info) {
         if (!info.id) throw new Error('未识别到网易云歌曲，请粘贴带 song?id=… 的歌曲页面链接。');

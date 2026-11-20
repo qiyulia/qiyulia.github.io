@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-lazy6';
+window.__SHIYI_B_store='20261120-lazy7';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
