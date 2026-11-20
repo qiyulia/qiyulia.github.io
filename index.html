@@ -41,7 +41,7 @@ if ('caches' in window) {
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css?v=20261120-offload">
-<link rel="stylesheet" href="css/steps.css?v=20261120-fix">
+<link rel="stylesheet" href="css/steps.css?v=20261120-steps2">
 </head>
 <body>
 <div class="stage">
@@ -848,7 +848,7 @@ if ('caches' in window) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
         <h2>今日步数</h2>
-        <button type="button" class="icon-btn" data-go="settings" aria-label="步数设置" title="设置">
+        <button type="button" class="icon-btn" id="steps-settings-btn" aria-label="步数设置" title="设置">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
         </button>
       </header>
@@ -917,6 +917,54 @@ if ('caches' in window) {
             <button type="submit" class="btn primary">同步</button>
           </div>
         </form>
+      </dialog>
+
+      <dialog id="steps-settings-dialog" class="sheet">
+        <div class="sheet-head">
+          <h3>步数设置</h3>
+          <button type="button" class="icon-btn" data-close aria-label="关闭">✕</button>
+        </div>
+        <div class="sheet-body">
+          <div class="setting-switch-row">
+            <div class="setting-switch-copy">
+              <strong>TA 的步数记录</strong>
+              <span class="field-hint">总开关。关闭后 TA 步数强制归零，下面的选项也会暂时停用。</span>
+            </div>
+            <label class="switch" title="TA 的步数记录">
+              <input autocomplete="off" type="checkbox" id="set-steps-enabled" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="steps-settings-fields" id="steps-settings-fields">
+            <label class="field"><span>TA 步数更新频率（分钟）</span>
+              <input autocomplete="off" id="set-steps-interval" type="number" min="1" max="30" step="1" inputmode="numeric" placeholder="3" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+            </label>
+            <p class="field-hint">每隔这么久判定一次是否增加 TA 的步数；范围 1~30 分钟，填太小或太大、留空都会被自动修正。</p>
+            <label class="field"><span>TA 步数增加概率（%）</span>
+              <div class="steps-range-row">
+                <input autocomplete="off" id="set-steps-probability" type="range" min="1" max="100" step="1" value="50">
+                <span class="steps-range-val" id="set-steps-probability-val">50%</span>
+              </div>
+            </label>
+            <label class="field"><span>同步后 TA 发反馈消息的概率（%）</span>
+              <div class="steps-range-row">
+                <input autocomplete="off" id="set-steps-feedback-prob" type="range" min="1" max="100" step="1" value="70">
+                <span class="steps-range-val" id="set-steps-feedback-prob-val">70%</span>
+              </div>
+            </label>
+            <p class="field-hint">每次同步步数后，先在「数字限制反馈」和「我俩步数差反馈」之间各 50% 选一种，再按上面这个概率决定 TA 要不要真的发一句话；没掷中就什么都不发。</p>
+            <label class="field"><span>同步冷却</span>
+              <select id="set-steps-cooldown" autocomplete="off">
+                <option value="无">无冷却</option>
+                <option value="30分钟">30分钟</option>
+                <option value="1小时">1小时</option>
+                <option value="3小时">3小时</option>
+                <option value="6小时">6小时</option>
+              </select>
+            </label>
+            <p class="field-hint">同步步数或兑换同心币后，按钮会进入倒计时变灰；冷却期间再点，TA 会吐槽你。</p>
+          </div>
+        </div>
       </dialog>
     </section>
 
@@ -1840,45 +1888,6 @@ if ('caches' in window) {
           <p class="field-hint">你在集市许愿后，TA 看到时有概率直接答应并送你（已接受），也可能拒绝（已被拒绝）；剩下的概率不作处理，保持等待。</p>
           <button type="button" class="btn ghost" id="btn-clear-market-cards">清理已结束的集市卡片</button>
           <p class="field-hint">把已经收下/退回/买下、以及放了超过 24 小时过期的集市卡片（含集市订单）从聊天里清掉；还没处理的礼物和心愿会保留。聊天记录里的其它消息不受影响。</p>
-        </div>
-
-        <div class="panel">
-          <div class="section-title-row">
-            <h3>步数</h3>
-            <button type="button" class="tool-btn" id="set-steps-go">去看看</button>
-          </div>
-          <div class="setting-switch-row">
-            <div class="setting-switch-copy">
-              <strong>TA 的步数记录</strong>
-              <span class="field-hint">总开关。关闭后 TA 步数强制归零，下面的选项也会暂时停用。</span>
-            </div>
-            <label class="switch" title="TA 的步数记录">
-              <input autocomplete="off" type="checkbox" id="set-steps-enabled" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="steps-settings-fields" id="steps-settings-fields">
-            <label class="field"><span>TA 步数更新频率（分钟）</span>
-              <input autocomplete="off" id="set-steps-interval" type="number" min="1" max="30" step="1" inputmode="numeric" placeholder="3" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
-            </label>
-            <p class="field-hint">每隔这么久判定一次是否增加 TA 的步数；范围 1~30 分钟，填太小或太大、留空都会被自动修正。</p>
-            <label class="field"><span>TA 步数增加概率（%）</span>
-              <div class="steps-range-row">
-                <input autocomplete="off" id="set-steps-probability" type="range" min="1" max="100" step="1" value="50">
-                <span class="steps-range-val" id="set-steps-probability-val">50%</span>
-              </div>
-            </label>
-            <label class="field"><span>同步冷却</span>
-              <select id="set-steps-cooldown" autocomplete="off">
-                <option value="无">无冷却</option>
-                <option value="30分钟">30分钟</option>
-                <option value="1小时">1小时</option>
-                <option value="3小时">3小时</option>
-                <option value="6小时">6小时</option>
-              </select>
-            </label>
-            <p class="field-hint">同步步数或兑换同心币后，按钮会进入倒计时变灰；冷却期间再点，TA 会吐槽你。</p>
-          </div>
         </div>
 
         <div class="panel">
@@ -3014,7 +3023,7 @@ if ('caches' in window) {
 <script src="js/companion.js?v=20261120-fix"></script>
 <script src="js/memoir.js?v=20261118-223"></script>
 <script src="js/group.js?v=20261118-223"></script>
-<script src="js/steps.js?v=20261119-steps"></script>
+<script src="js/steps.js?v=20261120-steps2"></script>
 <script src="js/app.js?v=20261120-offload"></script>
 </body>
 </html>

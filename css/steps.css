@@ -339,3 +339,17 @@
   text-align: center;
   letter-spacing: 1px;
 }
+
+/* 步数应用顶栏：设置按钮固定到最右侧 */
+#steps-settings-btn { margin-left: auto; }
+
+/* 步数设置底部弹窗：内容区（dialog.sheet 本身 padding:0，这里补回） */
+#steps-settings-dialog .sheet-head { padding: 16px 16px 8px; }
+#steps-settings-dialog .sheet-body {
+  padding: 0 16px calc(16px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  max-height: 72vh;
+  overflow-y: auto;
+}

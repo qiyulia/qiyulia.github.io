@@ -89,6 +89,8 @@
     if (typeof s.enabled !== 'boolean') s.enabled = true;
     s.interval = clampInterval(s.interval);
     s.probability = clampProb(s.probability);
+    if (typeof s.feedbackProb !== 'number') s.feedbackProb = 70;
+    s.feedbackProb = clampProb(s.feedbackProb);
     if (typeof s.cooldown !== 'string' || !cooldownMinutes(s.cooldown) && s.cooldown !== '无') {
       /* 不在选项里就归为无冷却；但 '无' 是合法值 */
     }
@@ -408,10 +410,14 @@
     saveMy(my);
     stampAction();
     App.renderSteps();
-    /* 聊天反馈：单方 + 双人 */
-    pushTaText(singleFeedback(my.count));
-    const d = doubleFeedback(my.count, getSettings().enabled ? getTa().count : 0);
-    if (d) setTimeout(function () { pushTaText(d); }, 900);
+    /* 聊天反馈：先 50/50 选「数字限制」或「步数差」，再按反馈概率掷骰子决定是否真发 */
+    const s = getSettings();
+    const taCount = s.enabled ? getTa().count : 0;
+    const useSingle = Math.random() < 0.5;
+    const text = useSingle ? singleFeedback(my.count) : doubleFeedback(my.count, taCount);
+    if (text && Math.random() * 100 < s.feedbackProb) {
+      pushTaText(text);
+    }
   }
 
   function doClaim() {
@@ -450,13 +456,17 @@
     if (pb) pb.value = s.probability;
     const pbv = el('#set-steps-probability-val');
     if (pbv) pbv.textContent = s.probability + '%';
+    const fpb = el('#set-steps-feedback-prob');
+    if (fpb) fpb.value = s.feedbackProb;
+    const fpbv = el('#set-steps-feedback-prob-val');
+    if (fpbv) fpbv.textContent = s.feedbackProb + '%';
     const cd = el('#set-steps-cooldown');
     if (cd) cd.value = s.cooldown;
     applySettingsDisabled(!!s.enabled);
   };
 
   function applySettingsDisabled(enabled) {
-    ['#set-steps-interval', '#set-steps-probability', '#set-steps-cooldown'].forEach(function (sel) {
+    ['#set-steps-interval', '#set-steps-probability', '#set-steps-feedback-prob', '#set-steps-cooldown'].forEach(function (sel) {
       const node = el(sel);
       if (node) node.disabled = !enabled;
     });
@@ -503,6 +513,16 @@
         const s = getSettings(); s.probability = v; saveSettings(s);
       });
     }
+    const fpb = el('#set-steps-feedback-prob');
+    const fpbv = el('#set-steps-feedback-prob-val');
+    if (fpb) {
+      fpb.addEventListener('input', function () {
+        const v = clampProb(fpb.value);
+        fpb.value = v;
+        if (fpbv) fpbv.textContent = v + '%';
+        const s = getSettings(); s.feedbackProb = v; saveSettings(s);
+      });
+    }
     const cd = el('#set-steps-cooldown');
     if (cd) {
       cd.addEventListener('change', function () {
@@ -534,9 +554,13 @@
         if (dlg && dlg.open) dlg.close();
       });
     }
-    /* 设置页里的「去看看」快捷入口 */
-    const goSteps = el('#set-steps-go');
-    if (goSteps) goSteps.addEventListener('click', function () { App.go('steps'); });
+    /* 应用内设置入口：打开步数设置底部弹窗 */
+    const settingsBtn = el('#steps-settings-btn');
+    if (settingsBtn) settingsBtn.addEventListener('click', function () {
+      if (App.renderStepSettings) App.renderStepSettings();
+      const dlg = el('#steps-settings-dialog');
+      if (dlg) { try { dlg.showModal(); } catch (e) {} }
+    });
 
     /* 前端定时器：定期推进 TA 步数 + 刷新冷却倒计时 */
     setInterval(function () {
