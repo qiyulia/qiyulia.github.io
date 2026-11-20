@@ -165,6 +165,12 @@
       }
     });
 
+    /* 导入进来的模块已有完整数据，允许随后保存；未导入的懒加载模块仍保持保护 */
+    if (App.markLazyFields) {
+      const importedFields = [];
+      scopes.forEach(function (scope) { scope.fields.forEach(function (field) { importedFields.push(field); }); });
+      App.markLazyFields(importedFields);
+    }
     App.normalizeCards(st);
     if (App.normalizeMusic) App.normalizeMusic(st);
     if (App.resetMusicMedia) App.resetMusicMedia();
@@ -1145,29 +1151,33 @@
         App.toast('先勾选要备份的内容');
         return;
       }
-      const data = { version: 1 };
-      scopes.forEach(function (scope) {
-        scope.fields.forEach(function (field) {
-          if (App.state[field] !== undefined) data[field] = App.state[field];
+      App.toast('正在整理完整备份…');
+      /* 按需加载下先补齐全部模块，否则没点过的模块不会被导出 */
+      App.loadAllLazy().then(function () {
+        const data = { version: 1 };
+        scopes.forEach(function (scope) {
+          scope.fields.forEach(function (field) {
+            if (App.state[field] !== undefined) data[field] = App.state[field];
+          });
         });
-      });
-      /* 复制一份再内联语音/图片，避免改动当前状态；换设备导入也能看到 */
-      const payload = JSON.parse(JSON.stringify(data));
-      App.inlineVoice(payload).catch(function () { return payload; })
-        .then(function (filled) {
-          return App.inlineImages ? App.inlineImages(filled).catch(function () { return filled; }) : filled;
-        })
-        .then(function (filled) {
-          App.downloadJSON({
-            app: 'xuyu',
-            type: 'backup',
-            version: 1,
-            exportedAt: new Date().toISOString(),
-            scopes: scopes.map(function (scope) { return scope.key; }),
-            data: filled,
-          }, 'xuyu-backup-' + App.stamp() + '.json');
-          App.toast('已导出 ' + scopes.length + ' 项内容');
-        });
+        /* 复制一份再内联语音/图片，避免改动当前状态；换设备导入也能看到 */
+        const payload = JSON.parse(JSON.stringify(data));
+        return App.inlineVoice(payload).catch(function () { return payload; })
+          .then(function (filled) {
+            return App.inlineImages ? App.inlineImages(filled).catch(function () { return filled; }) : filled;
+          })
+          .then(function (filled) {
+            App.downloadJSON({
+              app: 'xuyu',
+              type: 'backup',
+              version: 1,
+              exportedAt: new Date().toISOString(),
+              scopes: scopes.map(function (scope) { return scope.key; }),
+              data: filled,
+            }, 'xuyu-backup-' + App.stamp() + '.json');
+            App.toast('已导出 ' + scopes.length + ' 项内容');
+          });
+      }).catch(function () { App.toast('整理备份失败，请再试一次'); });
     });
 
     const selectAllBtn = el('#backup-select-all');

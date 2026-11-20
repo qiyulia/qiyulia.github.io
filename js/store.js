@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-fast2';
+window.__SHIYI_B_store='20261120-lazy1';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -41,7 +41,7 @@ window.__SHIYI_B_store='20261120-fast2';
 
   function saveToLocal() {
     try {
-      localStorage.setItem(KEY, JSON.stringify(App.state));
+      localStorage.setItem(KEY, JSON.stringify(coreStateForSave()));
       return true;
     } catch (e) {
       warnSaveFailed();
@@ -100,6 +100,168 @@ window.__SHIYI_B_store='20261120-fast2';
     return true;
   }
 
+  /* ---------- 分模块存储 / 按需加载 ----------
+     核心 state 只保留联系人、设置、外观和聊天摘要；大字段各自一条 kv 记录，
+     聊天按联系人一条。没加载的模块绝不写回，避免空数据覆盖真实存档。 */
+  const LAZY_VERSION = 1;
+  const LAZY_MODULES = {
+    cards: ['cards', 'builtinRemoved'],
+    moments: ['moments'],
+    music: ['music'],
+    calendar: ['calendar'],
+    mail: ['mail'],
+    groups: ['groupChats'],
+    anniversaries: ['anniversaries', 'reminders'],
+    extras: ['memory', 'mood', 'sleep', 'location'],
+  };
+  const lazyLoaded = {};
+  const lazyPromises = {};
+  const chatLoaded = {};
+  const chatPromises = {};
+  let lazyEnabled = false;
+  App.chatSummaries = {};
+
+  function emptyLazyField(field) {
+    if (field === 'cards' || field === 'moments' || field === 'mail' || field === 'anniversaries' || field === 'reminders') return [];
+    if (field === 'music') return { tracks: [], currentId: '', mode: 'sequence', chatFloat: true };
+    if (field === 'memory') return { photos: [] };
+    if (field === 'mood') return { entries: {} };
+    return {};
+  }
+
+  function detachLazyFields(target) {
+    Object.keys(LAZY_MODULES).forEach(function (name) {
+      LAZY_MODULES[name].forEach(function (field) { target[field] = emptyLazyField(field); });
+    });
+    target.chats = {};
+    return target;
+  }
+
+  function modulePayload(name, source) {
+    const data = {};
+    LAZY_MODULES[name].forEach(function (field) {
+      if (source[field] !== undefined) data[field] = source[field];
+    });
+    return data;
+  }
+
+  function summarizeChats() {
+    const summaries = App.chatSummaries || (App.chatSummaries = {});
+    Object.keys(App.state.chats || {}).forEach(function (id) {
+      const list = App.state.chats[id] || [];
+      if (list.length) summaries[id] = { last: list[list.length - 1] };
+      else if (chatLoaded[id]) delete summaries[id];
+    });
+    return summaries;
+  }
+
+  function coreStateForSave() {
+    if (!lazyEnabled) return App.state;
+    const core = Object.assign({}, App.state);
+    detachLazyFields(core);
+    core.lazyVersion = LAZY_VERSION;
+    core.chatMeta = summarizeChats();
+    return core;
+  }
+
+  function putJsonRecord(key, value) {
+    return withMediaStore('kv', 'readwrite', function (store) {
+      return store.put({ data: JSON.stringify(value), savedAt: Date.now() }, key);
+    });
+  }
+
+  function getJsonRecord(key) {
+    return withMediaStore('kv', 'readonly', function (store) {
+      return store.get(key);
+    }).then(function (record) {
+      if (!record || typeof record.data !== 'string') return null;
+      try { return JSON.parse(record.data); } catch (e) { return null; }
+    });
+  }
+
+  const lazySignatures = {};
+  const chatSignatures = {};
+  function listSignature(list) {
+    if (!Array.isArray(list)) return 'x';
+    const first = list[0];
+    const last = list[list.length - 1];
+    return list.length + ':' + (first && first.id || '') + ':' + (last && last.id || '');
+  }
+  function moduleSignature(name) {
+    return LAZY_MODULES[name].map(function (field) {
+      const value = App.state[field];
+      if (Array.isArray(value)) return listSignature(value);
+      if (!value || typeof value !== 'object') return String(value);
+      if (field === 'groupChats') {
+        return Object.keys(value).map(function (id) { return id + listSignature(value[id]); }).join('|');
+      }
+      return Object.keys(value).length + ':' + (value.currentId || '') + ':' + listSignature(value.tracks) + ':' + listSignature(value.photos);
+    }).join('|');
+  }
+  function chatSignature(id) {
+    const list = App.state.chats[id] || [];
+    let flags = 0;
+    for (let i = 0; i < list.length; i++) {
+      const m = list[i] || {};
+      flags += (m.read ? 1 : 0) + (m.fav ? 1 : 0) + (m.recalled ? 1 : 0) + (m.noReply ? 1 : 0);
+    }
+    return listSignature(list) + ':' + flags;
+  }
+  function moduleIsActive(name) {
+    const view = document.getElementById('app').dataset.view;
+    const map = {
+      cards: 'cards', moments: 'moments', music: 'music', calendar: 'calendar', mail: 'mail',
+      groups: 'groups', anniversaries: 'anniversary', extras: 'memorywall'
+    };
+    if (map[name] === view) return true;
+    if (name === 'groups' && (view === 'group-chat' || view === 'group-settings')) return true;
+    if (name === 'anniversaries' && view === 'notes') return true;
+    if (name === 'extras' && (view === 'mood' || view === 'location')) return true;
+    return false;
+  }
+
+  function persistLazyParts() {
+    if (!lazyEnabled) return Promise.resolve();
+    let chain = Promise.resolve();
+    Object.keys(LAZY_MODULES).forEach(function (name) {
+      if (!lazyLoaded[name] && !moduleHasPending(name)) return;
+      chain = chain.then(function () {
+        /* 后台任务可能先给未加载模块写了新内容：先读旧记录合并，绝不能直接写空壳 */
+        const ready = lazyLoaded[name] ? Promise.resolve() : App.loadModule(name);
+        return ready.then(function () {
+          if (!lazyLoaded[name]) return;
+          const signature = moduleSignature(name);
+          if (!moduleIsActive(name) && lazySignatures[name] === signature) return;
+          return putJsonRecord('lazy:' + name, modulePayload(name, App.state)).then(function () {
+            lazySignatures[name] = signature;
+          });
+        });
+      });
+    });
+    const view = document.getElementById('app').dataset.view;
+    const ids = {};
+    Object.keys(chatLoaded).forEach(function (id) { ids[id] = true; });
+    Object.keys(App.state.chats || {}).forEach(function (id) { ids[id] = true; });
+    Object.keys(ids).forEach(function (id) {
+      const pending = (App.state.chats[id] || []).length > 0;
+      if (!chatLoaded[id] && !pending) return;
+      chain = chain.then(function () {
+        /* 新消息先于聊天加载到达时，也先合并完整历史再落盘，关页不会只剩摘要 */
+        const ready = chatLoaded[id] ? Promise.resolve() : App.loadChat(id, false);
+        return ready.then(function () {
+          if (!chatLoaded[id]) return;
+          const signature = chatSignature(id);
+          const active = (view === 'chat' && App.state.currentContactId === id) || view === 'favorites';
+          if (!active && chatSignatures[id] === signature) return;
+          return putJsonRecord('chat:' + id, App.state.chats[id] || []).then(function () {
+            chatSignatures[id] = signature;
+          });
+        });
+      });
+    });
+    return chain;
+  }
+
   /* state 里还留着聊天图片的 base64，整份 JSON.stringify 在手机上常要
      几百毫秒到几秒。它原来是同步的：只要恰好在用户点「从本地相册添加」
      的瞬间执行，就会卡住 WebKit 主线程，系统相册要隔好久才弹得出来，
@@ -107,7 +269,7 @@ window.__SHIYI_B_store='20261120-fast2';
   function stringifyStateAsync() {
     return new Promise(function (resolve, reject) {
       var run = function () {
-        try { resolve(JSON.stringify(App.state)); }
+        try { resolve(JSON.stringify(coreStateForSave())); }
         catch (e) { reject(e); }
       };
       /* 优先在浏览器空闲时做；不支持或超时就退化为下一个事件循环 */
@@ -127,7 +289,7 @@ window.__SHIYI_B_store='20261120-fast2';
         return withMediaStore('kv', 'readwrite', function (store) {
           return store.put({ data: json, savedAt: Date.now() }, 'state');
         });
-      });
+      }).then(function () { return persistLazyParts(); });
     });
     saveChain = job.catch(function () {});
     return job;
@@ -136,12 +298,12 @@ window.__SHIYI_B_store='20261120-fast2';
   /* 页面隐藏/关闭时的紧急落盘：必须同步，否则 idle 回调可能不再执行导致丢数据。
      此时用户已经切走，不会挡住系统相册弹出。 */
   function persistStateNow() {
-    const json = JSON.stringify(App.state);
+    const json = JSON.stringify(coreStateForSave());
     const job = saveChain.catch(function () {}).then(function () {
       return withMediaStore('kv', 'readwrite', function (store) {
         return store.put({ data: json, savedAt: Date.now() }, 'state');
       });
-    });
+    }).then(function () { return persistLazyParts(); });
     saveChain = job.catch(function () {});
     return job;
   }
@@ -717,7 +879,7 @@ window.__SHIYI_B_store='20261120-fast2';
   }
 
   /* 清理孤儿媒体：没有字卡/消息引用的语音，以及歌单里已不存在的本地音乐 */
-  App.cleanOrphanMedia = function () {
+  function cleanOrphanMediaLoaded() {
     const usedVoice = {};
     (App.state.cards || []).forEach(function (card) {
       if (card.audio) usedVoice[card.audio] = true;
@@ -768,6 +930,18 @@ window.__SHIYI_B_store='20261120-fast2';
           };
         });
       });
+    });
+  }
+
+  App.cleanOrphanMedia = function () {
+    /* 未加载的聊天/字卡/歌单也有媒体引用，必须全部读回后才能判断谁是孤儿 */
+    return App.loadAllLazy().then(function () {
+      const incomplete = lazyEnabled && (
+        Object.keys(LAZY_MODULES).some(function (name) { return !lazyLoaded[name]; }) ||
+        (App.state.contacts || []).some(function (c) { return !chatLoaded[c.id]; })
+      );
+      if (incomplete) throw new Error('本地数据还没完整读回，已取消清理');
+      return cleanOrphanMediaLoaded();
     });
   };
 
@@ -919,14 +1093,19 @@ window.__SHIYI_B_store='20261120-fast2';
       try { return new Blob([text]).size; }
       catch (e) { return String(text || '').length; }
     }
+    const result = { bytes: 0 };
     return withMediaStore('kv', 'readonly', function (store) {
-      return store.get('state');
-    }).then(function (record) {
-      if (record && typeof record.data === 'string') return blobSize(record.data);
-      if (record) {
-        try { return blobSize(JSON.stringify(record.state || record)); }
-        catch (e) { return 0; }
-      }
+      const request = store.openCursor();
+      request.onsuccess = function () {
+        const cursor = request.result;
+        if (!cursor) return;
+        const record = cursor.value;
+        if (record && typeof record.data === 'string') result.bytes += blobSize(record.data);
+        cursor.continue();
+      };
+      return null;
+    }).then(function () {
+      if (result.bytes) return result.bytes;
       try { return blobSize(localStorage.getItem(KEY) || ''); }
       catch (e) { return 0; }
     }).catch(function () {
@@ -1292,26 +1471,273 @@ window.__SHIYI_B_store='20261120-fast2';
       if (voiceKeys && !voiceKeys[c.audio.slice(6)]) { c.audio = ''; cleaned++; }
     });
 
+    /* 已是分模块核心记录时，规范化空字段会补入内置字卡、空聊天等占位；
+       返回前再次摘掉，避免它们被误认为未加载期间的新数据。 */
+    if (s.lazyVersion === LAZY_VERSION) detachLazyFields(s);
     App.state = s;
     return { state: s, fromDb: fromDb, snapshotUsed: snapshotUsed, cleaned: cleaned };
   }
+
+  /* 合并「尚未加载时后台任务新写入」的内容，老记录为主，新消息按 id 补进来 */
+  function mergeById(stored, current) {
+    const oldList = Array.isArray(stored) ? stored : [];
+    const newList = Array.isArray(current) ? current : [];
+    if (!newList.length) return oldList;
+    const seen = {};
+    oldList.forEach(function (item, i) { if (item && item.id) seen[item.id] = i; });
+    const extra = newList.filter(function (item) { return !item || !item.id || seen[item.id] === undefined; });
+    return extra.length ? oldList.concat(extra) : oldList;
+  }
+
+  function sameJson(a, b) {
+    try { return JSON.stringify(a) === JSON.stringify(b); }
+    catch (e) { return a === b; }
+  }
+
+  function moduleHasPending(name) {
+    return LAZY_MODULES[name].some(function (field) {
+      const empty = emptyLazyField(field);
+      const value = App.state[field];
+      if (Array.isArray(empty)) return Array.isArray(value) && value.length > 0;
+      return !sameJson(value, empty);
+    });
+  }
+
+  /* 未加载时只能出现“相对空壳新增/修改”的内容。按空壳做差异合并，
+     旧记录里的其他字段、历史和设置全部保留，新内容也不会被读取覆盖。 */
+  function mergeLazyValue(stored, current, empty) {
+    if (Array.isArray(current)) {
+      if (!current.length) return Array.isArray(stored) ? stored : [];
+      const objects = current.some(function (item) { return item && typeof item === 'object'; });
+      if (objects) return mergeById(stored, current);
+      const result = Array.isArray(stored) ? stored.slice() : [];
+      current.forEach(function (item) { if (result.indexOf(item) === -1) result.push(item); });
+      return result;
+    }
+    if (current && typeof current === 'object') {
+      const result = stored && typeof stored === 'object' && !Array.isArray(stored)
+        ? Object.assign({}, stored)
+        : {};
+      const base = empty && typeof empty === 'object' && !Array.isArray(empty) ? empty : {};
+      Object.keys(current).forEach(function (key) {
+        const value = current[key];
+        if (Object.prototype.hasOwnProperty.call(base, key) && sameJson(value, base[key])) return;
+        if (value && typeof value === 'object') {
+          const childBase = base[key] !== undefined ? base[key] : (Array.isArray(value) ? [] : {});
+          result[key] = mergeLazyValue(result[key], value, childBase);
+        } else {
+          result[key] = value;
+        }
+      });
+      return result;
+    }
+    return current;
+  }
+
+  function mergeModulePayload(name, stored) {
+    const result = {};
+    LAZY_MODULES[name].forEach(function (field) {
+      result[field] = mergeLazyValue(stored && stored[field], App.state[field], emptyLazyField(field));
+    });
+    return result;
+  }
+
+  App.isModuleLoaded = function (name) { return !lazyEnabled || !!lazyLoaded[name]; };
+  App.isChatLoaded = function (id) { return !lazyEnabled || !!chatLoaded[id]; };
+
+  App.loadModule = function (name) {
+    if (!lazyEnabled || !LAZY_MODULES[name] || lazyLoaded[name]) return Promise.resolve(App.state);
+    if (lazyPromises[name]) return lazyPromises[name];
+    lazyPromises[name] = getJsonRecord('lazy:' + name).then(function (data) {
+      const hadPending = moduleHasPending(name);
+      const merged = mergeModulePayload(name, data);
+      LAZY_MODULES[name].forEach(function (field) { App.state[field] = merged[field]; });
+      lazyLoaded[name] = true;
+      /* 纯读回的内容无需立刻重写；有合并新内容时保持脏标记，下次保存落盘 */
+      if (hadPending) delete lazySignatures[name];
+      else lazySignatures[name] = moduleSignature(name);
+      return App.state;
+    }).catch(function () {
+      /* 读取失败不标记已加载，保存仍不会碰这份数据；下次进入允许重试 */
+      delete lazyPromises[name];
+      return App.state;
+    });
+    return lazyPromises[name];
+  };
+
+  function preloadChatVoices(list) {
+    const refs = {};
+    (list || []).forEach(function (m) {
+      if (m && typeof m.src === 'string' && m.src.indexOf('voice:') === 0) refs[m.src] = true;
+    });
+    Object.keys(refs).forEach(function (ref) { App.voiceSrc(ref).catch(function () {}); });
+  }
+
+  App.loadChat = function (id, withVoices) {
+    if (withVoices === undefined) withVoices = true;
+    if (!id || !lazyEnabled || chatLoaded[id]) {
+      if (withVoices && id && App.state.chats[id]) preloadChatVoices(App.state.chats[id]);
+      return Promise.resolve(App.state.chats[id] || []);
+    }
+    if (chatPromises[id]) {
+      return chatPromises[id].then(function (list) {
+        if (withVoices) preloadChatVoices(list);
+        return list;
+      });
+    }
+    chatPromises[id] = getJsonRecord('chat:' + id).then(function (stored) {
+      const hadPending = (App.state.chats[id] || []).length > 0;
+      const merged = mergeById(stored || [], App.state.chats[id]);
+      App.state.chats[id] = merged;
+      chatLoaded[id] = true;
+      if (hadPending) delete chatSignatures[id];
+      else chatSignatures[id] = chatSignature(id);
+      if (merged.length) App.chatSummaries[id] = { last: merged[merged.length - 1] };
+      if (withVoices) preloadChatVoices(merged);
+      return merged;
+    }).catch(function () {
+      delete chatPromises[id];
+      return App.state.chats[id] || [];
+    });
+    return chatPromises[id];
+  };
+
+  function loadAllChats() {
+    let chain = Promise.resolve();
+    (App.state.contacts || []).forEach(function (c) {
+      /* 收藏/导出/后台只读消息记录；语音在进入对应聊天时才预取 */
+      chain = chain.then(function () { return App.loadChat(c.id, false); });
+    });
+    return chain;
+  }
+
+  App.loadAllLazy = function () {
+    let chain = Promise.resolve();
+    Object.keys(LAZY_MODULES).forEach(function (name) {
+      chain = chain.then(function () { return App.loadModule(name); });
+    });
+    return chain.then(loadAllChats);
+  };
+
+  const VIEW_MODULES = {
+    cards: ['cards'], moments: ['moments', 'cards'], music: ['music'],
+    calendar: ['calendar'], mail: ['mail'], anniversary: ['anniversaries'],
+    notes: ['anniversaries'], groups: ['groups', 'cards'],
+    'group-chat': ['groups', 'cards'], 'group-settings': ['groups'],
+    memorywall: ['extras'], mood: ['extras'], location: ['extras'],
+  };
+  App.loadViewData = function (view) {
+    if (!lazyEnabled) return null;
+    const jobs = [];
+    (VIEW_MODULES[view] || []).forEach(function (name) {
+      if (!lazyLoaded[name]) jobs.push(App.loadModule(name));
+    });
+    if (view === 'chat') {
+      const id = App.state.currentContactId;
+      if (id && !chatLoaded[id]) jobs.push(App.loadChat(id, true));
+      else if (id) preloadChatVoices(App.state.chats[id]);
+      if (!lazyLoaded.cards) jobs.push(App.loadModule('cards'));
+    }
+    if (view === 'favorites' && (App.state.contacts || []).some(function (c) { return !chatLoaded[c.id]; })) {
+      jobs.push(loadAllChats());
+    }
+    if (!jobs.length) return null;
+    return Promise.all(jobs);
+  };
+
+  /* 用户不操作时，空闲逐个补齐；任何点击都会让对应模块插队先读 */
+  let lazyBackgroundStarted = false;
+  App.lazyLoadRemaining = function () {
+    if (!lazyEnabled || lazyBackgroundStarted) return;
+    lazyBackgroundStarted = true;
+    const queue = Object.keys(LAZY_MODULES).map(function (name) {
+      return function () { return App.loadModule(name); };
+    });
+    (App.state.contacts || []).forEach(function (c) {
+      queue.push(function () { return App.loadChat(c.id, false); });
+    });
+    function next() {
+      if (!queue.length || document.hidden) {
+        if (queue.length) setTimeout(next, 5000);
+        return;
+      }
+      const job = queue.shift();
+      job().then(function () { setTimeout(next, 800); });
+    }
+    setTimeout(next, 1500);
+  };
+
+  /* 旧整包存档一次性拆分；拆分成功后才启用懒加载，失败则完整保留旧模式 */
+  function migrateLazyState(full) {
+    const summaries = {};
+    Object.keys(full.chats || {}).forEach(function (id) {
+      const list = full.chats[id] || [];
+      if (list.length) summaries[id] = { last: list[list.length - 1] };
+    });
+    const core = Object.assign({}, full);
+    detachLazyFields(core);
+    core.lazyVersion = LAZY_VERSION;
+    core.chatMeta = summaries;
+    /* 同一事务拆分全部记录：任何一条失败都不会留下“核心已拆分、模块却缺失”的半迁移状态 */
+    return withMediaStore('kv', 'readwrite', function (store) {
+      const savedAt = Date.now();
+      function put(key, value) {
+        store.put({ data: JSON.stringify(value), savedAt: savedAt }, key);
+      }
+      Object.keys(LAZY_MODULES).forEach(function (name) {
+        put('lazy:' + name, modulePayload(name, full));
+      });
+      Object.keys(full.chats || {}).forEach(function (id) {
+        put('chat:' + id, full.chats[id] || []);
+      });
+      put('state', core);
+      return null;
+    }).then(function () {
+      lazyEnabled = true;
+      App.chatSummaries = summaries;
+      detachLazyFields(full);
+      full.lazyVersion = LAZY_VERSION;
+      full.chatMeta = summaries;
+      return full;
+    });
+  }
+
+  App.markLazyFields = function (fields) {
+    if (!lazyEnabled) return;
+    Object.keys(LAZY_MODULES).forEach(function (name) {
+      if (LAZY_MODULES[name].some(function (field) { return fields.indexOf(field) !== -1; })) lazyLoaded[name] = true;
+    });
+    if (fields.indexOf('chats') !== -1) {
+      Object.keys(App.state.chats || {}).forEach(function (id) { chatLoaded[id] = true; });
+    }
+  };
 
   App.load = function () {
     return readVoiceKeys().then(function (voiceKeys) {
       return readSavedState().then(function (saved) {
         const result = finishLoad(saved, voiceKeys);
         storageMode = 'db';
-        /* 首次迁移、补回设置镜像、或自愈清掉了坏记录：都写回一次，
-           否则下次刷新又要重复清理。 */
-        if (!result.fromDb || result.snapshotUsed || result.cleaned) {
-          persistState().then(function () {
-            try { localStorage.removeItem(KEY); } catch (e) {}
-          }).catch(function () {
-            storageMode = 'local';
-            saveToLocal();
-          });
-        }
-        return result.state;
+        const state = result.state;
+        const prepare = state.lazyVersion === LAZY_VERSION
+          ? Promise.resolve().then(function () {
+              lazyEnabled = true;
+              App.chatSummaries = state.chatMeta || {};
+              return state;
+            })
+          : migrateLazyState(state).catch(function () { return state; });
+        return prepare.then(function (readyState) {
+          /* 首次迁移、补回设置镜像、或自愈清掉了坏记录：都写回一次，
+             否则下次刷新又要重复清理。 */
+          if (!result.fromDb || result.snapshotUsed || result.cleaned) {
+            persistState().then(function () {
+              try { localStorage.removeItem(KEY); } catch (e) {}
+            }).catch(function () {
+              storageMode = 'local';
+              saveToLocal();
+            });
+          }
+          return readyState;
+        });
       });
     }).catch(function () {
       const result = finishLoad(null, null);
@@ -1582,7 +2008,9 @@ window.__SHIYI_B_store='20261120-fast2';
 
   App.lastMessage = function (contactId) {
     const chat = App.state.chats[contactId] || [];
-    return chat.length ? chat[chat.length - 1] : null;
+    if (chat.length) return chat[chat.length - 1];
+    const meta = App.chatSummaries && App.chatSummaries[contactId];
+    return meta && meta.last ? meta.last : null;
   };
 
   App.messagePreview = function (m) {

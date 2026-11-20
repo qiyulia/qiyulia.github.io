@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261120-fast2';
+window.__SHIYI_B_app='20261120-lazy1';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -20,7 +20,17 @@ window.__SHIYI_B_app='20261120-fast2';
     if (e.ctrlKey) e.preventDefault();
   }, { passive: false });
 
-  App.go = function (view) {
+  App.go = function (view, skipDataLoad) {
+    /* 点击哪个模块就先读哪个；读完后只在仍停留该页时重渲一次 */
+    if (!skipDataLoad && App.loadViewData) {
+      const pendingData = App.loadViewData(view);
+      if (pendingData) {
+        pendingData.then(function () {
+          /* 只补一次渲染，不再触发同一路由的加载，读取失败也不会递归重试 */
+          if (app.dataset.view === view) App.go(view, true);
+        }).catch(function () {});
+      }
+    }
     /* 切页面前关掉所有弹窗，避免弹窗留在主界面挡住操作 */
     document.querySelectorAll('dialog[open]').forEach(function (d) {
       try { d.close(); } catch (err) {}
@@ -273,6 +283,11 @@ window.__SHIYI_B_app='20261120-fast2';
       const chat = chats[id] || [];
       const last = chat[chat.length - 1];
       const lastId = last ? last.id : '';
+      /* 懒加载首次读回的历史消息不是新消息，只登记位置，不弹横幅 */
+      if (!Object.prototype.hasOwnProperty.call(lastSeen, id)) {
+        lastSeen[id] = lastId;
+        return;
+      }
       if (lastSeen[id] === lastId) return;
       lastSeen[id] = lastId;
       if (!last || last.role !== 'ta') return;
@@ -410,6 +425,9 @@ window.__SHIYI_B_app='20261120-fast2';
     }).catch(function () {});
   }
 
+  /* 用户不点任何东西时，后台按模块慢慢补齐，不一次性读整包 */
+  if (App.lazyLoadRemaining) App.lazyLoadRemaining();
+
   }
 
   /* 界面按用户自己的数据渲染完成后，通知开屏动画「内容已就绪」。
@@ -451,6 +469,7 @@ window.__SHIYI_B_app='20261120-fast2';
       if (realState) App.state = realState;
       try { App.renderAll(); } catch (e) {}
       try { App.go(app.dataset.view || 'desktop'); } catch (e) {}
+      try { if (App.lazyLoadRemaining) App.lazyLoadRemaining(); } catch (e) {}
       try { App.save(); } catch (e) {}
     } else {
       runBoot(false);

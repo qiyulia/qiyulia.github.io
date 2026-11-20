@@ -228,7 +228,10 @@
 
   App.initMemoir = function () {
     const genBtn = el('#btn-memoir-generate');
-    if (genBtn) genBtn.addEventListener('click', generate);
+    if (genBtn) genBtn.addEventListener('click', function () {
+      /* 回忆录汇总聊天、动态、字卡等，先把尚未点开的模块补齐 */
+      App.loadAllLazy().then(generate);
+    });
     const downloadBtn = el('#btn-memoir-download');
     if (downloadBtn) downloadBtn.addEventListener('click', downloadPng);
 
