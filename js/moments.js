@@ -59,9 +59,11 @@
     '(๑´ㅂ`๑)', '(*/ω＼*)', '(·•᷄ࡇ•᷅ )', 'ヽ(✿ﾟ▽ﾟ)ノ', '(っ˘ω˘ς )',
   ];
 
-  function pickMomentSticker() {
-    const st = App.state.stickers || {};
-    const pool = (st.ta || []).concat(st.public || []);
+  function pickMomentSticker(contact) {
+    /* 表情包已外置到 IndexedDB，主 state 的 stickers 是空的，从内存缓存取 */
+    const cache = App.stickerCache || {};
+    const own = (contact && cache.contacts && cache.contacts[contact.id]) || [];
+    const pool = (Array.isArray(own) ? own : []).concat(cache.public || []);
     if (!pool.length) return '';
     return pool[Math.floor(Math.random() * pool.length)];
   }
@@ -84,8 +86,15 @@
     if (Math.random() < 0.45 || !parts.length) {
       parts.push(EMOTICONS[Math.floor(Math.random() * EMOTICONS.length)]);
     }
-    const sticker = Math.random() < 0.3 ? pickMomentSticker() : '';
+    const sticker = Math.random() < 0.3 ? pickMomentSticker(contact) : '';
     return { text: parts.join('\n'), sticker: sticker };
+  }
+
+  /* 图片可能是 img:<id> 索引（外置在 IndexedDB），渲染完由 App.hydrateImages 补 src */
+  function momentImgAttrs(value) {
+    const src = String(value || '');
+    if (src.indexOf('img:') === 0) return ' data-img-ref="' + App.esc(src) + '"';
+    return ' src="' + App.esc(src) + '"';
   }
 
   App.renderMoments = function () {
@@ -184,8 +193,8 @@
           visibilityTag +
         '</div>' +
         (moment.text ? '<p class="moment-card-text">' + App.esc(moment.text) + '</p>' : '') +
-        (moment.image ? '<div class="moment-image"><img loading="lazy" decoding="async" src="' + App.esc(moment.image) + '" alt="配图"></div>' : '') +
-        (moment.sticker ? '<div class="moment-sticker"><img loading="lazy" decoding="async" src="' + App.esc(moment.sticker) + '" alt="表情包"></div>' : '') +
+        (moment.image ? '<div class="moment-image"><img loading="lazy" decoding="async" ' + momentImgAttrs(moment.image) + ' alt="配图"></div>' : '') +
+        (moment.sticker ? '<div class="moment-sticker"><img loading="lazy" decoding="async" ' + momentImgAttrs(moment.sticker) + ' alt="表情包"></div>' : '') +
         likeLine +
         (commentHtml ? '<div class="moment-comments">' + commentHtml + '</div>' : '') +
         commentForm +
@@ -195,6 +204,8 @@
         '</div>' +
       '</article>';
     }).join('');
+    /* 外置图片的 src 在 DOM 建好后再补 */
+    App.hydrateImages(el('#moment-list'));
   };
 
   // 用户发动态后，每个「可见」的联系人都可能点赞 + 评论
@@ -277,18 +288,25 @@
     const content = taMomentContent(contact, cs);
     if (!content.text && !content.sticker) return false;
 
-    App.state.moments.unshift({
-      id: App.uid('m'),
-      role: 'ta',
-      contactId: contact.id,
-      text: content.text,
-      sticker: content.sticker,
-      ts: now,
-      liked: false,
-      likedByTa: false,
-      likedByTaList: [],
-      comments: [],
-    });
+    const stickerValue = content.sticker;
+    function commit(stickerRef) {
+      App.state.moments.unshift({
+        id: App.uid('m'),
+        role: 'ta',
+        contactId: contact.id,
+        text: content.text,
+        sticker: stickerRef,
+        ts: now,
+        liked: false,
+        likedByTa: false,
+        likedByTaList: [],
+        comments: [],
+      });
+      if (App.renderMoments) App.renderMoments();
+    }
+    /* TA 的表情包也外置成索引再存进动态 */
+    if (stickerValue) App.imageRef(stickerValue).then(commit);
+    else commit('');
     return true;
   }
 
@@ -404,18 +422,22 @@
         likedByTa: false,
         comments: [],
       };
-      if (imageDraft) moment.image = imageDraft;
       if (visibleTo.length) moment.visibleTo = visibleTo;
-      App.state.moments.unshift(moment);
-      App.save();
-      form.reset();
-      imageDraft = '';
-      el('#moment-image-preview').hidden = true;
-      el('#moment-count').textContent = '0 / 300';
-      if (dialog && dialog.open) dialog.close();
-      App.renderMoments();
-      App.toast('动态已发布');
-      scheduleTaReact(moment.id);
+      const draft = imageDraft;
+      /* 配图先外置成 img:<id>，state 里不再堆大 base64 */
+      (draft ? App.imageRef(draft) : Promise.resolve('')).then(function (ref) {
+        if (ref) moment.image = ref;
+        App.state.moments.unshift(moment);
+        App.save();
+        form.reset();
+        imageDraft = '';
+        el('#moment-image-preview').hidden = true;
+        el('#moment-count').textContent = '0 / 300';
+        if (dialog && dialog.open) dialog.close();
+        App.renderMoments();
+        App.toast('动态已发布');
+        scheduleTaReact(moment.id);
+      });
     });
 
     /* 顶部封面可以换成相册里的图 */

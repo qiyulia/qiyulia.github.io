@@ -401,6 +401,15 @@ window.__SHIYI_B_app='20261120-hotfix6';
     App.loadStickers().catch(function () {});
   }
 
+  /* 聊天图片 / 已发出的表情包 / 动态配图外置到 IndexedDB。
+     首次运行会把旧版本留在主 state 里的 base64 搬走，之后 serialize 不再卡主线程。 */
+  if (App.migrateImagesToIdb) {
+    App.migrateImagesToIdb().then(function (count) {
+      if (!count) return;
+      if (App.renderChat) App.renderChat();
+    }).catch(function () {});
+  }
+
   }
 
   /* 界面按用户自己的数据渲染完成后，通知开屏动画「内容已就绪」。

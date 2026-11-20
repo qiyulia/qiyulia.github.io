@@ -132,6 +132,8 @@ window.__SHIYI_B_chat='20261120-hotfix6';
     list.innerHTML = chat.length
       ? earlierBtn + shown.map(messageHtml).join('')
       : '<p class="chat-empty">还没有消息，先说一句吧。</p>';
+    /* 外置图片的 src 在 DOM 建好后再补，避免拼 HTML 时反复处理大字符串 */
+    App.hydrateImages(list);
     Array.prototype.forEach.call(list.querySelectorAll('.msg[data-msg-id]'), function (node) {
       if (seen[node.getAttribute('data-msg-id')]) node.classList.add('is-static');
     });
@@ -346,7 +348,7 @@ window.__SHIYI_B_chat='20261120-hotfix6';
   function quoteHtml(q) {
     if (!q || !q.text) return '';
     return '<span class="msg-quote">' +
-      (q.src ? '<img class="msg-quote-thumb" src="' + App.esc(q.src) + '" alt="表情包">' : '') +
+      (q.src ? '<img class="msg-quote-thumb" ' + imgAttrs(q.src) + ' alt="表情包">' : '') +
       '<span class="msg-quote-body"><strong>' + App.esc(q.name || '') + '</strong>' + App.esc(q.text) + '</span>' +
       '</span>';
   }
@@ -691,6 +693,14 @@ window.__SHIYI_B_chat='20261120-hotfix6';
       '</div>';
   }
 
+  /* 图片可能是 img:<id> 索引（外置在 IndexedDB），也可能是旧的 dataURL。
+     索引先不写 src，渲染完由 App.hydrateImages 补上，避免把大 base64 留在 DOM 重建里。 */
+  function imgAttrs(value) {
+    const src = String(value || '');
+    if (src.indexOf('img:') === 0) return ' data-img-ref="' + App.esc(src) + '"';
+    return ' src="' + App.esc(src) + '"';
+  }
+
   function messageHtml(m) {
     const mine = m.role === 'me';
     const contact = currentContact();
@@ -789,7 +799,7 @@ window.__SHIYI_B_chat='20261120-hotfix6';
         : '');
     let body = '';
     if (m.type === 'image') {
-      body = '<div class="bubble sticker"><img class="sticker-img" loading="lazy" decoding="async" src="' + App.esc(m.src) + '" alt="表情包"></div>';
+      body = '<div class="bubble sticker"><img class="sticker-img" loading="lazy" decoding="async" ' + imgAttrs(m.src) + ' alt="表情包"></div>';
     } else if (m.type === 'audio') {
       const showTranscript = m.text && (!App.state.settings || App.state.settings.voiceTranscript !== false);
       const media = String(m.src || '');
@@ -811,7 +821,7 @@ window.__SHIYI_B_chat='20261120-hotfix6';
         ? '<p class="emotion-text">' + App.esc(m.text) + '</p>' + meta
         : '<span class="bubble-text">' + App.esc(m.text) + '</span>' + readChip(m);
       body = '<div class="bubble bubble-combo' + (hasEmotion ? ' bubble-emotion' : '') + '">' +
-        '<img class="bubble-sticker" loading="lazy" decoding="async" src="' + App.esc(m.stickerSrc) + '" alt="表情包">' +
+        '<img class="bubble-sticker" loading="lazy" decoding="async" ' + imgAttrs(m.stickerSrc) + ' alt="表情包">' +
         tail +
         '</div>';
     } else if (hasEmotion) {
@@ -997,11 +1007,17 @@ window.__SHIYI_B_chat='20261120-hotfix6';
 
     if (action === 'sticker') {
       if (message.type !== 'image' || !message.src) return;
-      if (!Array.isArray(App.state.stickers.mine)) App.state.stickers.mine = [];
-      const list = App.state.stickers.mine;
-      if (list.indexOf(message.src) === -1) list.unshift(message.src);
-      App.save();
-      App.toast('已存为表情');
+      /* 表情包已外置：从索引还原成 dataURL 后写进「我」的表情库 */
+      const ready = App.stickerReady ? App.stickerReady() : Promise.resolve();
+      const dataUrl = App.imageDataUrl ? App.imageDataUrl(message.src) : Promise.resolve(message.src);
+      Promise.all([ready, dataUrl]).then(function (results) {
+        const src = results[1];
+        if (!src) return;
+        const list = (App.stickerCache && App.stickerCache.mine ? App.stickerCache.mine : []).slice();
+        if (list.indexOf(src) === -1) list.unshift(src);
+        if (App.saveStickerSet) App.saveStickerSet('mine', list);
+        App.toast('已存为表情');
+      });
       return;
     }
 
@@ -1289,6 +1305,19 @@ window.__SHIYI_B_chat='20261120-hotfix6';
 
   function sendSticker(src) {
     if (!App.chatContactId || !src) return;
+    /* 表情包 base64 先外置成 img:<id>，消息里只存索引，避免撑大 state */
+    App.imageRef(src).then(function (ref) {
+      if (quoteDraft && quoteDraft.src) {
+        App.imageRef(quoteDraft.src).then(function (qref) { quoteDraft.src = qref; })
+          .catch(function () {})
+          .then(function () { sendStickerWithRef(ref); });
+        return;
+      }
+      sendStickerWithRef(ref);
+    });
+  }
+
+  function sendStickerWithRef(src) {
     const role = sendRole();
     const input = el('#msg-input');
     /* 输入框里已经打了字：文字和表情包合成一条消息发出去，表情包在上、文字在下 */
@@ -1419,30 +1448,35 @@ window.__SHIYI_B_chat='20261120-hotfix6';
     const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
     if (!contact) return;
     const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).taStickerProb) || 0));
-    const pool = (Array.isArray(contact.stickers) ? contact.stickers : []).concat(App.state.stickers.public || []);
+    /* 表情包已外置到 IndexedDB，主 state 里的 stickers 是空的，必须从内存缓存取 */
+    const cached = App.stickerCache || {};
+    const own = (cached.contacts && cached.contacts[contactId]) || [];
+    const pool = (Array.isArray(own) ? own : []).concat(cached.public || []);
     if (!pool.length || Math.random() * 100 >= prob) return;
     const src = pool[Math.floor(Math.random() * pool.length)];
 
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
-      const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      const message = { id: App.uid('m'), role: 'ta', type: 'image', src: src, sticker: true, ts: Date.now() };
-      /* TA 也可能引用我的消息回一张表情包：引用在上，表情包在下方 */
-      const cs = App.contactSettings(contact);
-      const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
-      if (chat.length && Math.random() * 100 < quoteProb) {
-        const quote = taQuoteFromPool(chat, contact);
-        if (quote) message.quote = quote;
-      }
-      chat.push(message);
-      App.save();
-      if (App.chatOpen(contactId)) {
-        App.renderChat();
-      } else {
-        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
-        App.updateBadges();
-        App.renderContacts();
-      }
+      App.imageRef(src).then(function (ref) {
+        const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+        const message = { id: App.uid('m'), role: 'ta', type: 'image', src: ref, sticker: true, ts: Date.now() };
+        /* TA 也可能引用我的消息回一张表情包：引用在上，表情包在下方 */
+        const cs = App.contactSettings(contact);
+        const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
+        if (chat.length && Math.random() * 100 < quoteProb) {
+          const quote = taQuoteFromPool(chat, contact);
+          if (quote) message.quote = quote;
+        }
+        chat.push(message);
+        App.save();
+        if (App.chatOpen(contactId)) {
+          App.renderChat();
+        } else {
+          App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+          App.updateBadges();
+          App.renderContacts();
+        }
+      });
     }, 1600 + Math.random() * 1800);
   }
 
@@ -1719,11 +1753,17 @@ window.__SHIYI_B_chat='20261120-hotfix6';
          引用消息时只打字就不配表情包，保持纯文字 */
       if (message.type === 'text' && group.length === 1 && !message.quote) {
         const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerComboProb) || 0));
-        const stickerPool = (Array.isArray(contact.stickers) ? contact.stickers : []).concat(App.state.stickers.public || []);
+        /* 表情包已外置到 IndexedDB，从内存缓存取 */
+        const cachedSt = App.stickerCache || {};
+        const ownSt = (cachedSt.contacts && cachedSt.contacts[contact.id]) || [];
+        const stickerPool = (Array.isArray(ownSt) ? ownSt : []).concat(cachedSt.public || []);
         if (stickerPool.length && Math.random() * 100 < stickerProb) {
           message.stickerSrc = stickerPool[Math.floor(Math.random() * stickerPool.length)];
         }
       }
+
+      /* 配图外置成索引再入库，避免 base64 撑大 state */
+      if (message.stickerSrc) message.stickerSrc = await App.imageRef(message.stickerSrc);
 
       chat.push(message);
       App.save();
@@ -2291,11 +2331,16 @@ window.__SHIYI_B_chat='20261120-hotfix6';
       return;
     }
     if (!App.chatContactId) return;
-    pushMessage({ id: App.uid('m'), role: 'me', type: 'image', src: chatImageDraft, ts: Date.now() });
+    const src = chatImageDraft;
+    const contactId = App.chatContactId;
     chatImageDraft = '';
-    closeStickerPanel();
-    cancelNoReply(App.chatContactId);
-    scheduleReply(App.chatContactId, '');
+    /* 图片外置成 img:<id> 再入消息，state 里不再堆大 base64 */
+    App.imageRef(src).then(function (ref) {
+      pushMessage({ id: App.uid('m'), role: 'me', type: 'image', src: ref, ts: Date.now() });
+      closeStickerPanel();
+      cancelNoReply(contactId);
+      scheduleReply(contactId, '');
+    });
   }
 
   App.stickerNotice = function (text, isError) { setStickerStatus(text, isError); };

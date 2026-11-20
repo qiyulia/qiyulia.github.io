@@ -254,7 +254,7 @@ window.__SHIYI_B_store='20261120-hotfix6';
   /* ---------- 本地媒体库（IndexedDB，和音乐共用 xuyu-media） ----------
      语音不再塞进 localStorage，改存 Blob，state 里只留 voice:<id> 索引。 */
   const MEDIA_DB = 'xuyu-media';
-  const MEDIA_VERSION = 3;
+  const MEDIA_VERSION = 4;
   let mediaDbPromise = null;
   const voiceUrls = {};
 
@@ -273,6 +273,8 @@ window.__SHIYI_B_store='20261120-hotfix6';
         if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
         /* 表情包 base64 体积大，独立存储，不再塞进 App.state 导致序列化阻塞 */
         if (!db.objectStoreNames.contains('stickers')) db.createObjectStore('stickers', { keyPath: 'key' });
+        /* 聊天图片 / 已发送的表情包 / 动态配图同理，state 里只留 img:<id> 索引 */
+        if (!db.objectStoreNames.contains('images')) db.createObjectStore('images', { keyPath: 'id' });
       };
       request.onsuccess = function () { resolve(request.result); };
       request.onerror = function () { reject(request.error || new Error('本地媒体库打开失败')); };
@@ -497,6 +499,165 @@ window.__SHIYI_B_store='20261120-hotfix6';
     });
   };
 
+  /* ---------- 图片外置存储 ----------
+     聊天图片、已发送的表情包、动态配图以前都是 base64 直接存在 App.state 里。
+     聊天记录一多，每次 App.save() 都要把几十上百 MB 的照片整份 JSON.stringify，
+     同步阻塞主线程数秒 → 界面卡住，点「导入」等按钮要排队很久才弹出文件选择器。
+     现在统一写进 IndexedDB 的 images store，state 里只留 img:<id> 索引。 */
+  const IMAGE_STORE = 'images';
+  const imageUrls = {};
+
+  function blobToDataUrl(blob) {
+    if (!blob) return Promise.resolve('');
+    return new Promise(function (resolve) {
+      const reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = function () { resolve(''); };
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  /* base64 图片写进 IndexedDB，返回 img:<id>；不可用时原样返回 */
+  App.imageRef = function (dataUrl) {
+    const value = String(dataUrl || '');
+    if (value.indexOf('data:image') !== 0 || !window.indexedDB) return Promise.resolve(value);
+    const id = App.uid('img');
+    return withMediaStore(IMAGE_STORE, 'readwrite', function (store) {
+      return store.put({ id: id, blob: dataUrlToBlob(value), createdAt: Date.now() });
+    }).then(function () { return 'img:' + id; }).catch(function () { return value; });
+  };
+
+  /* 把 img:<id> 解析成可直接给 <img> 用的 objectURL（带缓存） */
+  App.imageSrc = function (ref) {
+    const value = String(ref || '');
+    if (value.indexOf('img:') !== 0) return Promise.resolve(value);
+    const id = value.slice(4);
+    if (!id) return Promise.resolve('');
+    if (imageUrls[id]) return Promise.resolve(imageUrls[id]);
+    return withMediaStore(IMAGE_STORE, 'readonly', function (store) {
+      return store.get(id);
+    }).then(function (record) {
+      if (!record || !record.blob) return '';
+      const url = URL.createObjectURL(record.blob);
+      imageUrls[id] = url;
+      return url;
+    }).catch(function () { return ''; });
+  };
+
+  App.imageDataUrl = function (ref) {
+    const value = String(ref || '');
+    if (value.indexOf('img:') !== 0) return Promise.resolve(value);
+    return withMediaStore(IMAGE_STORE, 'readonly', function (store) {
+      return store.get(value.slice(4));
+    }).then(function (record) { return blobToDataUrl(record && record.blob); })
+      .catch(function () { return ''; });
+  };
+
+  /* 渲染后给 [data-img-ref] 的图片补上真实 src */
+  App.hydrateImages = function (root) {
+    const scope = root || document;
+    const nodes = scope.querySelectorAll('[data-img-ref]');
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const ref = node.getAttribute('data-img-ref');
+      if (!ref || node.getAttribute('data-img-loaded') === ref) continue;
+      node.setAttribute('data-img-loaded', ref);
+      App.imageSrc(ref).then(function (src) {
+        if (src) { node.src = src; return; }
+        node.removeAttribute('data-img-loaded');
+        node.removeAttribute('data-img-ref');
+      }).catch(function () {});
+    }
+  };
+
+  /* 旧数据迁移：聊天图片 / 表情包消息 / 引用缩略图 / 动态配图全部搬进 IndexedDB */
+  App.migrateImagesToIdb = function () {
+    if (!window.indexedDB || !App.state) return Promise.resolve(0);
+    const jobs = [];
+    const refs = {};
+    function convert(obj, key) {
+      const value = obj && obj[key];
+      if (typeof value !== 'string' || value.indexOf('data:image') !== 0) return;
+      /* 同一张表情包被多条消息复制过，迁移时只写一份 */
+      if (!refs[value]) refs[value] = App.imageRef(value);
+      jobs.push(refs[value].then(function (ref) {
+        if (ref && ref.indexOf('img:') === 0) obj[key] = ref;
+      }).catch(function () {}));
+    }
+    Object.keys(App.state.chats || {}).forEach(function (contactId) {
+      (App.state.chats[contactId] || []).forEach(function (message) {
+        if (!message || typeof message !== 'object') return;
+        convert(message, 'src');
+        convert(message, 'stickerSrc');
+        if (message.quote && typeof message.quote === 'object') convert(message.quote, 'src');
+      });
+    });
+    Object.keys(App.state.groupChats || {}).forEach(function (groupId) {
+      (App.state.groupChats[groupId] || []).forEach(function (message) {
+        if (message && typeof message === 'object') convert(message, 'src');
+      });
+    });
+    (App.state.moments || []).forEach(function (moment) {
+      if (!moment || typeof moment !== 'object') return;
+      convert(moment, 'image');
+      convert(moment, 'sticker');
+    });
+    if (!jobs.length) return Promise.resolve(0);
+    return Promise.all(jobs).then(function () {
+      /* 替换成索引后的轻量 state 落盘一次，之后序列化就很快了 */
+      App.save();
+      App.flushSave();
+      return jobs.length;
+    });
+  };
+
+  /* 只在备份导出/导入时遍历这些图片字段 */
+  function walkImageFields(root, fn) {
+    if (!root || typeof root !== 'object') return Promise.resolve(root);
+    const jobs = [];
+    function conv(obj, key) {
+      if (!obj || typeof obj[key] !== 'string') return;
+      const job = fn(obj[key]);
+      if (!job) return;
+      jobs.push(job.then(function (out) { if (out) obj[key] = out; }).catch(function () {}));
+    }
+    Object.keys(root.chats || {}).forEach(function (contactId) {
+      (root.chats[contactId] || []).forEach(function (message) {
+        if (!message || typeof message !== 'object') return;
+        conv(message, 'src');
+        conv(message, 'stickerSrc');
+        if (message.quote && typeof message.quote === 'object') conv(message.quote, 'src');
+      });
+    });
+    Object.keys(root.groupChats || {}).forEach(function (groupId) {
+      (root.groupChats[groupId] || []).forEach(function (message) {
+        if (message && typeof message === 'object') conv(message, 'src');
+      });
+    });
+    (root.moments || []).forEach(function (moment) {
+      if (!moment || typeof moment !== 'object') return;
+      conv(moment, 'image');
+      conv(moment, 'sticker');
+    });
+    return Promise.all(jobs).then(function () { return root; });
+  }
+
+  /* 导出时把图片还原成 dataURL，换设备导入也能看到 */
+  App.inlineImages = function (root) {
+    return walkImageFields(root, function (value) {
+      if (value.indexOf('img:') !== 0) return null;
+      return App.imageDataUrl(value);
+    });
+  };
+
+  /* 导入时把 dataURL 图片写回 IndexedDB，state 里只留索引 */
+  App.adoptImageDataUrls = function (root) {
+    return walkImageFields(root, function (value) {
+      if (value.indexOf('data:image') !== 0) return null;
+      return App.imageRef(value);
+    });
+  };
+
   /* 统计某个 Blob 库里所有记录的总字节数（用游标，避免一次加载全部音频） */
   App.storeBytes = function (name) {
     const stats = { bytes: 0, count: 0 };
@@ -518,14 +679,16 @@ window.__SHIYI_B_store='20261120-hotfix6';
   App.memoryUsage = function () {
     let local = 0;
     try { local = new Blob([JSON.stringify(App.state)]).size; } catch (e) { local = 0; }
-    return Promise.all([App.storeBytes('voice'), App.storeBytes('audio')]).then(function (stats) {
+    return Promise.all([App.storeBytes('voice'), App.storeBytes('audio'), App.storeBytes('images')]).then(function (stats) {
       return {
         local: local,
         voice: stats[0].bytes,
         voiceCount: stats[0].count,
         music: stats[1].bytes,
         musicCount: stats[1].count,
-        total: local + stats[0].bytes + stats[1].bytes,
+        image: stats[2].bytes,
+        imageCount: stats[2].count,
+        total: local + stats[0].bytes + stats[1].bytes + stats[2].bytes,
       };
     });
   };

@@ -159,7 +159,10 @@
       : '';
     let body;
     if (m.type === 'sticker' && m.src) {
-      body = '<img class="grp-sticker-img" loading="lazy" decoding="async" src="' + App.esc(m.src) + '" alt="表情包">';
+      const src = String(m.src);
+      body = '<img class="grp-sticker-img" loading="lazy" decoding="async" ' +
+        (src.indexOf('img:') === 0 ? 'data-img-ref="' + App.esc(src) + '"' : 'src="' + App.esc(src) + '"') +
+        ' alt="表情包">';
     } else if (m.type === 'redpacket') {
       body = '<div class="grp-card grp-card-redpacket" data-grp-redpacket="' + App.esc(m.id) + '">' +
         '<span class="grp-card-emoji">包</span>' +
@@ -237,6 +240,8 @@
     const list = el('#grp-list');
     if (list) {
       list.innerHTML = chatOf(g.id).map(groupMessageHtml).join('');
+      /* 外置图片的 src 在 DOM 建好后再补 */
+      App.hydrateImages(list);
     }
     syncTypingRows(g.id);
     requestAnimationFrame(scrollGrpBottom);
@@ -625,12 +630,13 @@
   }
 
   function grpStickerList() {
-    const all = (App.state && App.state.stickers) || {};
-    if (grpStickerSide === 'me') return Array.isArray(all.mine) ? all.mine : [];
-    if (grpStickerSide === 'public') return Array.isArray(all.public) ? all.public : [];
+    /* 表情包已外置到 IndexedDB，主 state 里的 stickers 是空的，从内存缓存取 */
+    const cache = App.stickerCache || {};
+    if (grpStickerSide === 'me') return Array.isArray(cache.mine) ? cache.mine : [];
+    if (grpStickerSide === 'public') return Array.isArray(cache.public) ? cache.public : [];
     const cid = grpStickerMemberId();
-    const c = cid ? contactById(cid) : null;
-    return c && Array.isArray(c.stickers) ? c.stickers : [];
+    const list = cid && cache.contacts ? cache.contacts[cid] : null;
+    return Array.isArray(list) ? list : [];
   }
 
   function renderGrpStickerPanel() {
@@ -684,6 +690,7 @@
     if (!src || !currentGroupId) return;
     /* 成员的表情包：直接以那位成员的名义发到群里 */
     const memberId = grpStickerMemberId();
+    const groupId = currentGroupId;
     const message = {
       id: App.uid('gm'),
       role: memberId ? 'ta' : 'me',
@@ -693,9 +700,13 @@
       ts: Date.now(),
     };
     if (memberId) message.senderId = memberId;
-    pushGroupMessage(currentGroupId, message);
     const panel = el('#grp-sticker-panel');
     if (panel) panel.hidden = true;
+    /* 表情包外置成索引再入群聊，避免 base64 撑大 state */
+    App.imageRef(src).then(function (ref) {
+      message.src = ref;
+      pushGroupMessage(groupId, message);
+    });
   }
 
   function insertGrpEmoji(s) {

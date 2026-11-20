@@ -114,11 +114,18 @@
           break;
         case 'stickers':
           if (data.stickers && typeof data.stickers === 'object') {
-            st.stickers = {
-              mine: Array.isArray(data.stickers.mine) ? data.stickers.mine : [],
-              ta: Array.isArray(data.stickers.ta) ? data.stickers.ta : [],
-              public: Array.isArray(data.stickers.public) ? data.stickers.public : [],
-            };
+            /* 表情包外置在 IndexedDB：直接写进独立存储，主 state 只留空壳 */
+            if (App.saveStickerSet) {
+              App.saveStickerSet('mine', Array.isArray(data.stickers.mine) ? data.stickers.mine : []);
+              App.saveStickerSet('public', Array.isArray(data.stickers.public) ? data.stickers.public : []);
+              st.stickers = { mine: [], ta: [], public: [] };
+            } else {
+              st.stickers = {
+                mine: Array.isArray(data.stickers.mine) ? data.stickers.mine : [],
+                ta: Array.isArray(data.stickers.ta) ? data.stickers.ta : [],
+                public: Array.isArray(data.stickers.public) ? data.stickers.public : [],
+              };
+            }
           }
           break;
         case 'look':
@@ -1144,19 +1151,23 @@
           if (App.state[field] !== undefined) data[field] = App.state[field];
         });
       });
-      /* 复制一份再内联语音，避免改动当前状态；换设备导入也能播放 */
+      /* 复制一份再内联语音/图片，避免改动当前状态；换设备导入也能看到 */
       const payload = JSON.parse(JSON.stringify(data));
-      App.inlineVoice(payload).catch(function () { return payload; }).then(function (filled) {
-        App.downloadJSON({
-          app: 'xuyu',
-          type: 'backup',
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          scopes: scopes.map(function (scope) { return scope.key; }),
-          data: filled,
-        }, 'xuyu-backup-' + App.stamp() + '.json');
-        App.toast('已导出 ' + scopes.length + ' 项内容');
-      });
+      App.inlineVoice(payload).catch(function () { return payload; })
+        .then(function (filled) {
+          return App.inlineImages ? App.inlineImages(filled).catch(function () { return filled; }) : filled;
+        })
+        .then(function (filled) {
+          App.downloadJSON({
+            app: 'xuyu',
+            type: 'backup',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            scopes: scopes.map(function (scope) { return scope.key; }),
+            data: filled,
+          }, 'xuyu-backup-' + App.stamp() + '.json');
+          App.toast('已导出 ' + scopes.length + ' 项内容');
+        });
     });
 
     const selectAllBtn = el('#backup-select-all');
@@ -1196,11 +1207,13 @@
         const names = scopes.map(function (scope) { return scope.label; }).join('、');
         return App.confirmDialog('将用备份里的「' + names + '」覆盖本机对应内容，其他分类保持不动，继续？', { title: '导入备份', okText: '导入' }).then(function (ok) {
           if (!ok) return;
-          /* 备份里的语音是 dataURL，先写回 IndexedDB 再把索引交给状态 */
-          return App.adoptVoiceDataUrls(data).then(function () {
-            applyBackupData(data, scopes);
-            App.toast('已导入：' + names);
-          });
+          /* 备份里的语音/图片是 dataURL，先写回 IndexedDB 再把索引交给状态 */
+          return App.adoptVoiceDataUrls(data)
+            .then(function () { return App.adoptImageDataUrls ? App.adoptImageDataUrls(data) : null; })
+            .then(function () {
+              applyBackupData(data, scopes);
+              App.toast('已导入：' + names);
+            });
         });
       }).catch(function (err) {
         App.toast(err.message || '导入失败');
