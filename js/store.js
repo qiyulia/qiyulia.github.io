@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-lazy1';
+window.__SHIYI_B_store='20261120-lazy2';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -187,14 +187,51 @@ window.__SHIYI_B_store='20261120-lazy1';
     const last = list[list.length - 1];
     return list.length + ':' + (first && first.id || '') + ':' + (last && last.id || '');
   }
+  /* 集合里已存在条目的字段变化（收藏、已读、点赞等）不会改变首尾 id，
+     这里补一份轻量指纹，避免在别的页面改过之后保存被判定为“没变化”而漏存 */
+  function itemFingerprint(field, list) {
+    if (!Array.isArray(list)) return '';
+    return list.map(function (item) {
+      if (!item || typeof item !== 'object') return String(item);
+      if (field === 'moments') {
+        return (item.id || '') + ':' + (item.fav ? 1 : 0) + (item.favTa ? 1 : 0) + ':' +
+          ((item.likes && item.likes.length) || 0) + ':' + ((item.comments && item.comments.length) || 0) +
+          ':' + String(item.text || '').length;
+      }
+      if (field === 'mail') return (item.id || '') + ':' + (item.fav ? 1 : 0) + (item.read ? 1 : 0);
+      if (field === 'cards') return (item.id || '') + ':' + (item.enabled === false ? 0 : 1) + ':' + (item.owner || '');
+      if (field === 'anniversaries') return (item.id || '') + ':' + (item.date || '') + ':' + (item.name || '');
+      if (field === 'reminders') return (item.id || '') + ':' + (item.done ? 1 : 0) + ':' + (item.date || '') + (item.time || '');
+      return String(item.id || '');
+    }).join(',');
+  }
+  function musicFingerprint(music) {
+    const fav = music.favorites || {};
+    return (music.mode || '') + ':' + (music.chatFloat === false ? 0 : 1) + ':' + (music.currentId || '') + ':' +
+      (Array.isArray(fav.mine) ? fav.mine.join('+') : '') + ':' + (Array.isArray(fav.ta) ? fav.ta.join('+') : '') + ':' +
+      (Array.isArray(music.tracks) ? music.tracks.map(function (t) { return (t && t.id) || ''; }).join(',') : '');
+  }
+  /* 照片的 base64 太大，指纹只取说明、日期、绑定关系这些会变的字段 */
+  function memoryFingerprint(memory) {
+    const photos = (memory && memory.photos) || [];
+    return photos.length + ':' + photos.map(function (p) {
+      p = p || {};
+      const likes = p.likes ? ((p.likes.me ? 1 : 0) + (p.likes.ta ? 1 : 0)) : 0;
+      return (p.id || '') + ':' + (p.date || '') + ':' + (p.caption || '') + ':' +
+        (p.secret ? 1 : 0) + ':' + (p.annivId || '') + ':' + likes;
+    }).join(',');
+  }
   function moduleSignature(name) {
     return LAZY_MODULES[name].map(function (field) {
       const value = App.state[field];
-      if (Array.isArray(value)) return listSignature(value);
+      if (Array.isArray(value)) return listSignature(value) + '|' + itemFingerprint(field, value);
       if (!value || typeof value !== 'object') return String(value);
       if (field === 'groupChats') {
         return Object.keys(value).map(function (id) { return id + listSignature(value[id]); }).join('|');
       }
+      if (field === 'music') return musicFingerprint(value);
+      if (field === 'memory') return memoryFingerprint(value);
+      if (field === 'calendar' || field === 'mood' || field === 'sleep' || field === 'location') return JSON.stringify(value);
       return Object.keys(value).length + ':' + (value.currentId || '') + ':' + listSignature(value.tracks) + ':' + listSignature(value.photos);
     }).join('|');
   }
@@ -1545,6 +1582,18 @@ window.__SHIYI_B_store='20261120-lazy1';
   App.isModuleLoaded = function (name) { return !lazyEnabled || !!lazyLoaded[name]; };
   App.isChatLoaded = function (id) { return !lazyEnabled || !!chatLoaded[id]; };
 
+  /* 后台补齐模块后，给当前页补一次轻量刷新：
+     桌面刷新角标，聊天页刷新音乐小窗，避免一直显示成空数据 */
+  function refreshCurrentView() {
+    const app = document.getElementById('app');
+    const view = app && app.dataset.view;
+    if (view === 'desktop') {
+      if (App.updateBadges) App.updateBadges();
+    } else if (view === 'chat' && App.renderMusic) {
+      App.renderMusic();
+    }
+  }
+
   App.loadModule = function (name) {
     if (!lazyEnabled || !LAZY_MODULES[name] || lazyLoaded[name]) return Promise.resolve(App.state);
     if (lazyPromises[name]) return lazyPromises[name];
@@ -1556,6 +1605,7 @@ window.__SHIYI_B_store='20261120-lazy1';
       /* 纯读回的内容无需立刻重写；有合并新内容时保持脏标记，下次保存落盘 */
       if (hadPending) delete lazySignatures[name];
       else lazySignatures[name] = moduleSignature(name);
+      refreshCurrentView();
       return App.state;
     }).catch(function () {
       /* 读取失败不标记已加载，保存仍不会碰这份数据；下次进入允许重试 */
@@ -1620,11 +1670,14 @@ window.__SHIYI_B_store='20261120-lazy1';
   };
 
   const VIEW_MODULES = {
+    /* 桌面小组件直接展示字卡、音乐、回忆、日历和纪念日，进入桌面就要读这几块 */
+    desktop: ['cards', 'music', 'extras', 'calendar', 'anniversaries'],
     cards: ['cards'], moments: ['moments', 'cards'], music: ['music'],
-    calendar: ['calendar'], mail: ['mail'], anniversary: ['anniversaries'],
+    calendar: ['calendar'], mail: ['mail', 'cards'], anniversary: ['anniversaries'],
     notes: ['anniversaries'], groups: ['groups', 'cards'],
     'group-chat': ['groups', 'cards'], 'group-settings': ['groups'],
-    memorywall: ['extras'], mood: ['extras'], location: ['extras'],
+    /* 回忆墙要绑定纪念日；位置页用的是「地点」字卡 */
+    memorywall: ['extras', 'anniversaries'], mood: ['extras'], location: ['extras', 'cards'],
   };
   App.loadViewData = function (view) {
     if (!lazyEnabled) return null;
@@ -1637,9 +1690,17 @@ window.__SHIYI_B_store='20261120-lazy1';
       if (id && !chatLoaded[id]) jobs.push(App.loadChat(id, true));
       else if (id) preloadChatVoices(App.state.chats[id]);
       if (!lazyLoaded.cards) jobs.push(App.loadModule('cards'));
+      /* 聊天里的音乐小窗和「一起听」邀请都取音乐模块 */
+      if (!lazyLoaded.music) jobs.push(App.loadModule('music'));
     }
-    if (view === 'favorites' && (App.state.contacts || []).some(function (c) { return !chatLoaded[c.id]; })) {
-      jobs.push(loadAllChats());
+    if (view === 'favorites') {
+      /* 收藏页同时汇总聊天、朋友圈和信件 */
+      ['moments', 'mail'].forEach(function (name) {
+        if (!lazyLoaded[name]) jobs.push(App.loadModule(name));
+      });
+      if ((App.state.contacts || []).some(function (c) { return !chatLoaded[c.id]; })) {
+        jobs.push(loadAllChats());
+      }
     }
     if (!jobs.length) return null;
     return Promise.all(jobs);
