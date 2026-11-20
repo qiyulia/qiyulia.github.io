@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261120-lazy9';
+window.__SHIYI_B_chat='20261120-lazy10';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -1072,12 +1072,23 @@ window.__SHIYI_B_chat='20261120-lazy9';
     box.style.scrollBehavior = prev;
   }
 
-  /* 是否已经停在最底部（容差很小：往上翻一点点就算离开了底部，
-     TA 再来消息就绝不把画面拽下去） */
+  /* 停在最新两条消息的高度范围内，就算「在底部」：来新消息时画面跟着往上滚；
+     再往上翻看更早的消息，就钉住现在的位置不动 */
+  function followDistance() {
+    const list = el('#chat-list');
+    if (!list) return 64;
+    const nodes = list.querySelectorAll('[data-msg-id]');
+    let height = 0;
+    for (let i = Math.max(0, nodes.length - 2); i < nodes.length; i++) {
+      height += nodes[i].getBoundingClientRect().height;
+    }
+    return Math.max(64, height);
+  }
+
   function atScrollBottom() {
     const box = el('#chat-scroll');
     if (!box) return true;
-    return box.scrollHeight - box.scrollTop - box.clientHeight <= 4;
+    return box.scrollHeight - box.scrollTop - box.clientHeight <= followDistance();
   }
 
   /* 记住此刻视口顶部那一条消息，以及它离容器顶边的距离。
