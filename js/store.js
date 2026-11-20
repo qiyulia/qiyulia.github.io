@@ -126,6 +126,9 @@
   }
 
   function writeState() {
+    /* 数据尚未从 IndexedDB 读回时界面是种子态占位，
+       任何一次落盘都会把空数据覆盖掉真实存档。整体挂起，等 dataReady 再补写。 */
+    if (App.dataReady === false) return;
     trimChats();
     /* 先同步写设置镜像，即使下面的异步写入被刷新打断，设置也不会丢 */
     saveSettingsSnapshot();
@@ -665,6 +668,19 @@
     return s;
   };
 
+  /* 读回语音库里真实存在的 blob 键，用来识别「指向已丢失音频」的残缺引用。
+     读不到就返回 null：此时只清空的，不动 voice: 引用，避免误删。 */
+  function readVoiceKeys() {
+    if (!window.indexedDB) return Promise.resolve(null);
+    return withMediaStore('voice', 'readonly', function (store) {
+      return store.getAllKeys();
+    }).then(function (keys) {
+      var map = {};
+      (keys || []).forEach(function (k) { map[String(k)] = true; });
+      return map;
+    }).catch(function () { return null; });
+  }
+
   /* 从 IndexedDB 读回上次保存的整份状态 */
   function readSavedState() {
     return withMediaStore('kv', 'readonly', function (store) {
@@ -681,7 +697,7 @@
     }).catch(function () { return null; });
   }
 
-  function finishLoad(saved) {
+  function finishLoad(saved, voiceKeys) {
     let raw = saved;
     const fromDb = !!saved;
     /* 旧版本把数据放在 localStorage，第一次打开时自动搬过来 */
@@ -1015,26 +1031,52 @@
     /* 设置镜像比本地库更新时（例如刚改完就刷新，异步写入没赶上），用镜像补齐 */
     const snapshotUsed = applySettingsSnapshot(s);
 
+    /* ---- 启动自愈：清掉会让渲染中断、刷新后卡开屏的残缺记录 ----
+       ① 空 src 的图片/语音消息；② 指向已不存在音频 blob 的 voice: 引用；
+       ③ 同样失效的字卡语音。以前只能靠手动跑控制台脚本，现在每次加载自动完成。 */
+    var cleaned = 0;
+    Object.keys(s.chats || {}).forEach(function (id) {
+      const list = Array.isArray(s.chats[id]) ? s.chats[id] : [];
+      const out = [];
+      list.forEach(function (m) {
+        if (!m || typeof m !== 'object') { cleaned++; return; }
+        const src = typeof m.src === 'string' ? m.src : '';
+        if ((m.type === 'image' || m.type === 'audio') && !src) { cleaned++; return; }
+        if (m.type === 'audio' && src.indexOf('voice:') === 0 && voiceKeys && !voiceKeys[src.slice(6)]) {
+          cleaned++; return;
+        }
+        out.push(m);
+      });
+      s.chats[id] = out;
+    });
+    (s.cards || []).forEach(function (c) {
+      if (!c || typeof c.audio !== 'string' || c.audio.indexOf('voice:') !== 0) return;
+      if (voiceKeys && !voiceKeys[c.audio.slice(6)]) { c.audio = ''; cleaned++; }
+    });
+
     App.state = s;
-    return { state: s, fromDb: fromDb, snapshotUsed: snapshotUsed };
+    return { state: s, fromDb: fromDb, snapshotUsed: snapshotUsed, cleaned: cleaned };
   }
 
   App.load = function () {
-    return readSavedState().then(function (saved) {
-      const result = finishLoad(saved);
-      storageMode = 'db';
-      /* 首次迁移或补回了更新的设置镜像：写进 IndexedDB 成功后再删掉 localStorage 里的旧副本 */
-      if (!result.fromDb || result.snapshotUsed) {
-        persistState().then(function () {
-          try { localStorage.removeItem(KEY); } catch (e) {}
-        }).catch(function () {
-          storageMode = 'local';
-          saveToLocal();
-        });
-      }
-      return result.state;
+    return readVoiceKeys().then(function (voiceKeys) {
+      return readSavedState().then(function (saved) {
+        const result = finishLoad(saved, voiceKeys);
+        storageMode = 'db';
+        /* 首次迁移、补回设置镜像、或自愈清掉了坏记录：都写回一次，
+           否则下次刷新又要重复清理。 */
+        if (!result.fromDb || result.snapshotUsed || result.cleaned) {
+          persistState().then(function () {
+            try { localStorage.removeItem(KEY); } catch (e) {}
+          }).catch(function () {
+            storageMode = 'local';
+            saveToLocal();
+          });
+        }
+        return result.state;
+      });
     }).catch(function () {
-      const result = finishLoad(null);
+      const result = finishLoad(null, null);
       storageMode = 'local';
       return result.state;
     });

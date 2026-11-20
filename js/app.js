@@ -419,21 +419,34 @@
   /* 无论 boot 正常完成还是中途某个模块异常，都通知开屏（幂等）。
      这样偶发的脚本加载问题也不会把人一直挡在开屏页。 */
   var booted = false;
-  function runBoot() {
-    if (booted) return;          /* load 超时兜底与正常完成只能跑一次，避免重复绑定事件 */
+  /* seedMode=true 表示「真实数据还没读回来，先用空数据把界面撑起来」。
+     此时 App.dataReady=false，store.js 的 writeState() 会整体挂起，
+     绝不会把种子数据写进 IndexedDB 覆盖掉真实存档。 */
+  function runBoot(seedMode) {
+    if (booted) return;          /* 超时兜底与正常完成只能跑一次，避免重复绑定事件 */
     booted = true;
     if (!App.state) App.state = App.seedState();
+    App.dataReady = !seedMode;
     try { boot(); } finally { notifyBootReady(); }
   }
-  /* 兜底：IndexedDB 偶发被阻塞或读取卡死时，load 会一直 pending；
-     不兜底的话开屏淡出后就是一个没有数据、也没有事件绑定的死界面。
-     6 秒还没读完就先用种子数据把界面跑起来，保证至少能点、能操作。 */
-  var loadGuard = setTimeout(runBoot, 3000);
-  /* IndexedDB 被另一个标签页占用时 open() 可能永远 pending，
-     加一道 3 秒超时竞速，保证界面和事件绑定一定能起来。 */
-  var loadRace = Promise.race([
-    App.load().catch(function () { return null; }),
-    new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 3000); })
-  ]);
-  loadRace.then(function () { clearTimeout(loadGuard); runBoot(); });
+  /* 3 秒还没读完：先让界面和事件绑定起来（开屏也会消失），但只是占位。 */
+  var loadGuard = setTimeout(function () { runBoot(true); }, 3000);
+  App.load().then(function (realState) {
+    clearTimeout(loadGuard);
+    if (booted && App.dataReady === false) {
+      /* 真实数据晚到了：换回来、整体重渲，之前那屏种子界面作废。
+         hotfix1 缺的正是这一步 —— 只起界面不换数据，
+         于是「刚进去能用，过一会数据全空 / 又点不动」。 */
+      App.dataReady = true;
+      if (realState) App.state = realState;
+      try { App.renderAll(); } catch (e) {}
+      try { App.go(app.dataset.view || 'desktop'); } catch (e) {}
+      try { App.save(); } catch (e) {}
+    } else {
+      runBoot(false);
+    }
+  }, function () {
+    clearTimeout(loadGuard);
+    runBoot(false);
+  });
 })();

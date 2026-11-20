@@ -6,6 +6,10 @@
 <title>拾忆 · 字卡传讯</title>
 <meta name="description" content="拾忆是一个纯本地运行的字卡传讯小工具：写一句话，存成字卡，让 TA 随机说给你听。">
 <meta name="theme-color" content="#edf5fc">
+<!-- 主文档本身不缓存：否则手机会拿回旧版 index.html，出现「刚修好又能用、过一会又坏」 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <script>
 /* 清理旧版站点遗留的 Service Worker 与离线缓存。 */
 if ('serviceWorker' in navigator) {
@@ -23,6 +27,7 @@ if ('caches' in window) {
    这样进去就是「已经改好的样子」，不会先闪没用过的初始态，也不会加载到一半被点到。
    放在最前面执行，不依赖任何后续脚本。 */
 (function () {
+  window.__SHIYI_BUILD = '20261120-hotfix2';
   var MIN_SHOW = 1500;
   var ready = false, elapsed = false, done = false;
   function hideSplash() {
@@ -56,8 +61,8 @@ if ('caches' in window) {
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261120-hotfix1">
-<link rel="stylesheet" href="css/steps.css?v=20261120-hotfix1">
+<link rel="stylesheet" href="css/style.css?v=20261120-hotfix2">
+<link rel="stylesheet" href="css/steps.css?v=20261120-hotfix2">
 </head>
 <body>
 <div class="stage">
@@ -3023,23 +3028,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261120-hotfix1"></script>
-<script src="js/seed.js?v=20261120-hotfix1"></script>
-<script src="js/store.js?v=20261120-hotfix1"></script>
-<script src="js/desktop.js?v=20261120-hotfix1"></script>
-<script src="js/chat.js?v=20261120-hotfix1"></script>
-<script src="js/cards.js?v=20261120-hotfix1"></script>
-<script src="js/settings.js?v=20261120-hotfix1"></script>
-<script src="js/moments.js?v=20261120-hotfix1"></script>
-<script src="js/calendar.js?v=20261120-hotfix1"></script>
-<script src="js/music.js?v=20261120-hotfix1"></script>
-<script src="js/market.js?v=20261120-hotfix1"></script>
-<script src="js/mail.js?v=20261120-hotfix1"></script>
-<script src="js/extras.js?v=20261120-hotfix1"></script>
-<script src="js/companion.js?v=20261120-hotfix1"></script>
-<script src="js/memoir.js?v=20261120-hotfix1"></script>
-<script src="js/group.js?v=20261120-hotfix1"></script>
-<script src="js/steps.js?v=20261120-hotfix1"></script>
-<script src="js/app.js?v=20261120-hotfix1"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261120-hotfix2"></script>
+<script src="js/seed.js?v=20261120-hotfix2"></script>
+<script src="js/store.js?v=20261120-hotfix2"></script>
+<script src="js/desktop.js?v=20261120-hotfix2"></script>
+<script src="js/chat.js?v=20261120-hotfix2"></script>
+<script src="js/cards.js?v=20261120-hotfix2"></script>
+<script src="js/settings.js?v=20261120-hotfix2"></script>
+<script src="js/moments.js?v=20261120-hotfix2"></script>
+<script src="js/calendar.js?v=20261120-hotfix2"></script>
+<script src="js/music.js?v=20261120-hotfix2"></script>
+<script src="js/market.js?v=20261120-hotfix2"></script>
+<script src="js/mail.js?v=20261120-hotfix2"></script>
+<script src="js/extras.js?v=20261120-hotfix2"></script>
+<script src="js/companion.js?v=20261120-hotfix2"></script>
+<script src="js/memoir.js?v=20261120-hotfix2"></script>
+<script src="js/group.js?v=20261120-hotfix2"></script>
+<script src="js/steps.js?v=20261120-hotfix2"></script>
+<script src="js/app.js?v=20261120-hotfix2"></script>
 </body>
 </html>
