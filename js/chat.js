@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261120-fast1';
+window.__SHIYI_B_chat='20261120-voice';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;

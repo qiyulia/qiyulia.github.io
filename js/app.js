@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261120-fast1';
+window.__SHIYI_B_app='20261120-voice';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -444,9 +444,8 @@ window.__SHIYI_B_app='20261120-fast1';
     App.dataReady = !seedMode;
     try { boot(); } finally { notifyBootReady(); }
   }
-  /* 读取兜底：只有真的读不出来/卡死才用占位数据，时间必须和开屏兜底一致（15 秒）。
-     正常情况下开屏会一直等到真实存档渲染完成再消失，用户不会在占位界面上误删数据。 */
-  var loadGuard = setTimeout(function () { runBoot(true); }, 15000);
+  /* 3 秒还没读完：先让界面和事件绑定起来（开屏也会消失），但只是占位。 */
+  var loadGuard = setTimeout(function () { runBoot(true); }, 3000);
   App.load().then(function (realState) {
     clearTimeout(loadGuard);
     if (booted && App.dataReady === false) {

@@ -21,7 +21,7 @@
      ③ 从 bfcache 恢复的旧页面也强制重载。
    sessionStorage 保证只自愈一次，不会死循环。 */
 (function () {
-  var EXPECT = '20261120-fast1';
+  var EXPECT = '20261120-voice';
   window.__SHIYI_BUILD = EXPECT;
   var KEY = 'shiyi.selfheal.' + EXPECT;
   function once() {
@@ -34,7 +34,7 @@
   function reload() {
     if (!once()) return;
     var sep = location.search ? '&' : '?';
-    var u = location.pathname + '?v=fast1' + sep + '_f=' + Date.now() + (location.hash || '');
+    var u = location.pathname + '?v=voice' + sep + '_f=' + Date.now() + (location.hash || '');
     try { location.replace(u); } catch (e) { location.reload(); }
   }
   /* 旧版 Service Worker 会拦截请求返回缓存的旧 HTML，必须注销 */
@@ -89,23 +89,18 @@
   window.__bootReady = function () { ready = true; maybeFinish(); };
   setTimeout(function () { elapsed = true; maybeFinish(); }, MIN_SHOW);
   /* 兜底：万一数据读取卡死或某个脚本加载失败，也别把人一直挡在开屏页。
-     内联兜底不依赖任何外部脚本或样式。时间必须和 app.js 的加载兜底一致，
-     不能提前放行——否则用户会在「真实存档还没读回来」的占位界面上操作，
-     删掉的东西会在真数据到达时又被盖回来。 */
-  setTimeout(function () { ready = true; elapsed = true; maybeFinish(); }, 15000);
-  /* 再兜一层：加载异常久时允许用户点一下放行，但 8 秒内不响应，
-     避免刚进来随手一点就把开屏戳破、落进占位界面。 */
-  setTimeout(function () {
-    document.addEventListener('pointerdown', function () {
-      ready = true; elapsed = true; maybeFinish();
-    }, { capture: true, once: true });
-  }, 8000);
+     内联兜底不依赖任何外部脚本或样式。 */
+  setTimeout(function () { ready = true; elapsed = true; maybeFinish(); }, 4000);
+  /* 再兜一层：用户主动点/轻触开屏时立刻放行，避免极端情况下永久假死 */
+  document.addEventListener('pointerdown', function () {
+    setTimeout(function () { ready = true; elapsed = true; maybeFinish(); }, 0);
+  }, true);
 })();
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261120-fast1">
-<link rel="stylesheet" href="css/steps.css?v=20261120-fast1">
+<link rel="stylesheet" href="css/style.css?v=20261120-voice">
+<link rel="stylesheet" href="css/steps.css?v=20261120-voice">
 </head>
 <body>
 <div class="stage">
@@ -3071,23 +3066,23 @@
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261120-fast1"></script>
-<script src="js/seed.js?v=20261120-fast1"></script>
-<script src="js/store.js?v=20261120-fast1"></script>
-<script src="js/desktop.js?v=20261120-fast1"></script>
-<script src="js/chat.js?v=20261120-fast1"></script>
-<script src="js/cards.js?v=20261120-fast1"></script>
-<script src="js/settings.js?v=20261120-fast1"></script>
-<script src="js/moments.js?v=20261120-fast1"></script>
-<script src="js/calendar.js?v=20261120-fast1"></script>
-<script src="js/music.js?v=20261120-fast1"></script>
-<script src="js/market.js?v=20261120-fast1"></script>
-<script src="js/mail.js?v=20261120-fast1"></script>
-<script src="js/extras.js?v=20261120-fast1"></script>
-<script src="js/companion.js?v=20261120-fast1"></script>
-<script src="js/memoir.js?v=20261120-fast1"></script>
-<script src="js/group.js?v=20261120-fast1"></script>
-<script src="js/steps.js?v=20261120-fast1"></script>
-<script src="js/app.js?v=20261120-fast1"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261120-voice"></script>
+<script src="js/seed.js?v=20261120-voice"></script>
+<script src="js/store.js?v=20261120-voice"></script>
+<script src="js/desktop.js?v=20261120-voice"></script>
+<script src="js/chat.js?v=20261120-voice"></script>
+<script src="js/cards.js?v=20261120-voice"></script>
+<script src="js/settings.js?v=20261120-voice"></script>
+<script src="js/moments.js?v=20261120-voice"></script>
+<script src="js/calendar.js?v=20261120-voice"></script>
+<script src="js/music.js?v=20261120-voice"></script>
+<script src="js/market.js?v=20261120-voice"></script>
+<script src="js/mail.js?v=20261120-voice"></script>
+<script src="js/extras.js?v=20261120-voice"></script>
+<script src="js/companion.js?v=20261120-voice"></script>
+<script src="js/memoir.js?v=20261120-voice"></script>
+<script src="js/group.js?v=20261120-voice"></script>
+<script src="js/steps.js?v=20261120-voice"></script>
+<script src="js/app.js?v=20261120-voice"></script>
 </body>
 </html>

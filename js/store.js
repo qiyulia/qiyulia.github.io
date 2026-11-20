@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-fast1';
+window.__SHIYI_B_store='20261120-voice';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -1267,23 +1267,22 @@ window.__SHIYI_B_store='20261120-fast1';
   }
 
   App.load = function () {
-    /* 语音键和主存档是两个独立的 store，并行读取，少一次往返 */
-    return Promise.all([readVoiceKeys(), readSavedState()]).then(function (res) {
-      const voiceKeys = res[0];
-      const saved = res[1];
-      const result = finishLoad(saved, voiceKeys);
-      storageMode = 'db';
-      /* 首次迁移、补回设置镜像、或自愈清掉了坏记录：都写回一次，
-         否则下次刷新又要重复清理。 */
-      if (!result.fromDb || result.snapshotUsed || result.cleaned) {
-        persistState().then(function () {
-          try { localStorage.removeItem(KEY); } catch (e) {}
-        }).catch(function () {
-          storageMode = 'local';
-          saveToLocal();
-        });
-      }
-      return result.state;
+    return readVoiceKeys().then(function (voiceKeys) {
+      return readSavedState().then(function (saved) {
+        const result = finishLoad(saved, voiceKeys);
+        storageMode = 'db';
+        /* 首次迁移、补回设置镜像、或自愈清掉了坏记录：都写回一次，
+           否则下次刷新又要重复清理。 */
+        if (!result.fromDb || result.snapshotUsed || result.cleaned) {
+          persistState().then(function () {
+            try { localStorage.removeItem(KEY); } catch (e) {}
+          }).catch(function () {
+            storageMode = 'local';
+            saveToLocal();
+          });
+        }
+        return result.state;
+      });
     }).catch(function () {
       const result = finishLoad(null, null);
       storageMode = 'local';
