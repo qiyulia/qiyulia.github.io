@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261120-lazy4';
+window.__SHIYI_B_chat='20261120-lazy5';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -2294,10 +2294,8 @@ window.__SHIYI_B_chat='20261120-lazy4';
   }
 
   function compressImage(file) {
-    /* 表情包在聊天里最大只显示 96px（2x 屏 192px），256px 已经够清晰。
-       旧参数 400px/q0.9/约195KB，几百张就能把 state 撑到几十 MB，
-       保存/加载时同步序列化会卡住主线程，连系统相册都要等好久才弹。 */
-    return App.compressImage(file, 256, { quality: 0.78, maxLength: 90000 });
+    /* 表情包画质优先：400px、JPEG 0.9，按体积上限渐进压缩 */
+    return App.compressImage(file, 400, { quality: 0.9, maxLength: 260000 });
   }
 
   /* 图片分类：只作为发送工具，选好图后确定就发到聊天，不存进表情库 */
