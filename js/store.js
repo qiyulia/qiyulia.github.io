@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-hotfix6';
+window.__SHIYI_B_store='20261120-steps3';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});

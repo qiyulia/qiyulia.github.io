@@ -477,7 +477,7 @@
   function bindStepSettings() {
     const en = el('#set-steps-enabled');
     if (en) {
-      en.addEventListener('change', function () {
+      bindOnce(en, 'change', function () {
         const s = getSettings();
         s.enabled = !!en.checked;
         saveSettings(s);
@@ -493,7 +493,7 @@
     const iv = el('#set-steps-interval');
     if (iv) {
       /* 强制边界：<1 或空/非数字 -> 1；>30 -> 30 */
-      iv.addEventListener('change', function () {
+      bindOnce(iv, 'change', function () {
         const raw = String(iv.value || '').trim();
         const n = Number(raw);
         let v;
@@ -506,7 +506,7 @@
     const pb = el('#set-steps-probability');
     const pbv = el('#set-steps-probability-val');
     if (pb) {
-      pb.addEventListener('input', function () {
+      bindOnce(pb, 'input', function () {
         const v = clampProb(pb.value);
         pb.value = v;
         if (pbv) pbv.textContent = v + '%';
@@ -516,7 +516,7 @@
     const fpb = el('#set-steps-feedback-prob');
     const fpbv = el('#set-steps-feedback-prob-val');
     if (fpb) {
-      fpb.addEventListener('input', function () {
+      bindOnce(fpb, 'input', function () {
         const v = clampProb(fpb.value);
         fpb.value = v;
         if (fpbv) fpbv.textContent = v + '%';
@@ -525,45 +525,55 @@
     }
     const cd = el('#set-steps-cooldown');
     if (cd) {
-      cd.addEventListener('change', function () {
+      bindOnce(cd, 'change', function () {
         const s = getSettings(); s.cooldown = cd.value || '无'; saveSettings(s);
       });
     }
   }
 
   /* ---------- 初始化 ---------- */
+  let stepsInited = false;
+  let stepsTimer = 0;
+  const stepsBound = new WeakSet();
+  /* 同一个节点只绑一次：boot 里失败后进入步数页会重试，不能重复绑定 */
+  function bindOnce(node, type, fn) {
+    if (!node || stepsBound.has(node)) return;
+    stepsBound.add(node);
+    node.addEventListener(type, fn);
+  }
   App.initSteps = function () {
+    /* 启动时初始化过一次就够了；但若 boot 里这一步抛错（安装版 WebView 环境更常见），
+       进入步数页时 App.go 会再调一次，重试补上没绑成功的按钮 */
+    if (stepsInited) return;
     /* 主页图标与设置页控件的事件在静态 HTML 里，直接绑定 */
     bindStepSettings();
 
     const syncBtn = el('#steps-sync-btn');
-    if (syncBtn) syncBtn.addEventListener('click', function () {
+    bindOnce(syncBtn, 'click', function () {
       onActionClick(openSyncDialog);
     });
     const claimBtn = el('#steps-claim-btn');
-    if (claimBtn) claimBtn.addEventListener('click', function () {
+    bindOnce(claimBtn, 'click', function () {
       onActionClick(doClaim);
     });
     const syncForm = el('#steps-sync-form');
-    if (syncForm) {
-      syncForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const input = el('#steps-sync-input');
-        const dlg = el('#steps-sync-dialog');
-        doSync(input ? input.value : 0);
-        if (dlg && dlg.open) dlg.close();
-      });
-    }
+    bindOnce(syncForm, 'submit', function (e) {
+      e.preventDefault();
+      const input = el('#steps-sync-input');
+      const dlg = el('#steps-sync-dialog');
+      doSync(input ? input.value : 0);
+      if (dlg && dlg.open) dlg.close();
+    });
     /* 应用内设置入口：打开步数设置底部弹窗 */
     const settingsBtn = el('#steps-settings-btn');
-    if (settingsBtn) settingsBtn.addEventListener('click', function () {
+    bindOnce(settingsBtn, 'click', function () {
       if (App.renderStepSettings) App.renderStepSettings();
       const dlg = el('#steps-settings-dialog');
       if (dlg) { try { dlg.showModal(); } catch (e) {} }
     });
 
     /* 前端定时器：定期推进 TA 步数 + 刷新冷却倒计时 */
-    setInterval(function () {
+    if (!stepsTimer) stepsTimer = setInterval(function () {
       taTick();
       if (el('#view-steps') && el('#view-steps').classList.contains('is-active')) {
         App.renderSteps();
@@ -571,5 +581,6 @@
         renderCooldownButtons();
       }
     }, 15000);
+    stepsInited = true;
   };
 })();

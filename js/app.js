@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261120-hotfix6';
+window.__SHIYI_B_app='20261120-steps3';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -70,7 +70,12 @@ window.__SHIYI_B_app='20261120-hotfix6';
     else if (view === 'groups' && App.renderGroups) App.renderGroups();
     else if (view === 'group-chat' && App.renderGroupChat) App.renderGroupChat();
     else if (view === 'group-settings' && App.renderGroupSettings) App.renderGroupSettings();
-    else if (view === 'steps' && App.renderSteps) App.renderSteps();
+    else if (view === 'steps') {
+      /* 安装成 App 后启动时模块初始化偶发失败，按钮会全部没监听。
+         进入步数页时补一次初始化（幂等，不会重复绑定）。 */
+      if (App.initSteps) { try { App.initSteps(); } catch (err) {} }
+      if (App.renderSteps) App.renderSteps();
+    }
     if (App.applyLook && (view === 'chat-settings' || view === 'desktop' || view === 'chat' || view === 'group-chat')) App.applyLook();
   };
 
