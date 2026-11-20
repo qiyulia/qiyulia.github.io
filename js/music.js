@@ -600,7 +600,8 @@
   function isAudioFileUrl(url) {
     return /\.(mp3|m4a|aac|ogg|wav|flac)(\?|#|$)/i.test(url || '');
   }
-  function fetchTextViaProxy(url) {
+  /* 多个公共代理并行跑，谁先返回完整网页用谁；不再一个个排队等 12 秒超时 */
+  function fetchTextViaProxy(url, timeoutMs) {
     const enc = encodeURIComponent;
     const proxies = [
       function (u, signal) { return fetch('https://api.allorigins.win/raw?url=' + enc(u), { signal: signal }).then(function (res) { return res.ok ? res.text() : Promise.reject(new Error('raw ' + res.status)); }); },
@@ -608,17 +609,26 @@
       function (u, signal) { return fetch('https://corsproxy.io/?url=' + enc(u), { signal: signal }).then(function (res) { return res.ok ? res.text() : Promise.reject(new Error('corsproxy ' + res.status)); }); },
       function (u, signal) { return fetch('https://api.codetabs.com/v1/proxy/?quest=' + enc(u), { signal: signal }).then(function (res) { return res.ok ? res.text() : Promise.reject(new Error('codetabs ' + res.status)); }); }
     ];
-    const run = function (fetchOne) {
-      const controller = window.AbortController ? new AbortController() : null;
-      const timer = controller ? setTimeout(function () { controller.abort(); }, 12000) : null;
-      return fetchOne(url, controller ? controller.signal : undefined).then(function (text) {
-        if (!text) throw new Error('empty');
-        return text;
-      }).finally(function () { if (timer) clearTimeout(timer); });
-    };
-    return proxies.reduce(function (chain, fetchOne) {
-      return chain.catch(function () { return run(fetchOne); });
-    }, Promise.reject(new Error('start'))).catch(function () { return ''; });
+    const budget = timeoutMs || 7000;
+    return new Promise(function (resolve) {
+      let pending = proxies.length;
+      let done = false;
+      const finish = function (text) {
+        if (done) return;
+        done = true;
+        resolve(text || '');
+      };
+      proxies.forEach(function (fetchOne) {
+        const controller = window.AbortController ? new AbortController() : null;
+        const timer = controller ? setTimeout(function () { controller.abort(); }, budget) : null;
+        fetchOne(url, controller ? controller.signal : undefined).then(function (text) {
+          if (text) finish(text);
+          else if (--pending === 0) finish('');
+        }).catch(function () {
+          if (--pending === 0) finish('');
+        }).finally(function () { if (timer) clearTimeout(timer); });
+      });
+    });
   }
   function decodeHtml(value) {
     const span = document.createElement('span');
@@ -640,6 +650,14 @@
     if (!html) return {};
     const ogUrl = parseMeta(html, 'og:url');
     const result = { id: ogUrl ? neteaseId(ogUrl) : '', title: parseMeta(html, 'og:title'), artist: parseMeta(html, 'og:music:artist'), pageUrl: ogUrl || '' };
+    /* 有些代理返回的是移动版页面，没有 og:url，但正文里仍然带着歌曲 id */
+    if (!result.id) {
+      const any = html.match(/(?:music\.163\.com\/(?:#\/)?song\?id=|song\?id=|\/song\/)(\d{3,})/);
+      if (any) {
+        result.id = any[1];
+        if (!result.pageUrl) result.pageUrl = 'https://music.163.com/song?id=' + any[1];
+      }
+    }
     if (!result.title || !result.artist) {
       const titleTag = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
       if (titleTag) {
@@ -657,9 +675,9 @@
     return { title: clean(parts[0] || ''), artist: clean(parts[1] || '') };
   }
   /* Microlink 支持跨域并会跟随短链跳转，可直接拿到最终歌曲页和标题。 */
-  function fetchMicrolink(url) {
+  function fetchMicrolink(url, timeoutMs) {
     const controller = window.AbortController ? new AbortController() : null;
-    const timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
+    const timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 8000) : null;
     return fetch('https://api.microlink.io/?url=' + encodeURIComponent(url), { signal: controller ? controller.signal : undefined })
       .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('microlink ' + res.status)); })
       .then(function (data) {
@@ -671,24 +689,36 @@
       })
       .catch(function () { if (timer) clearTimeout(timer); return {}; });
   }
+  /* 谁先识别出歌曲 id 就用谁；两条都失败才返回空，避免串行等待 */
+  function firstResolved(tasks) {
+    return new Promise(function (resolve) {
+      let pending = tasks.length;
+      let done = false;
+      if (!pending) { resolve({}); return; }
+      tasks.forEach(function (task) {
+        task.then(function (info) {
+          if (done) return;
+          if (info && info.id) { done = true; resolve(info); return; }
+          if (--pending === 0) resolve({});
+        }).catch(function () {
+          if (!done && --pending === 0) resolve({});
+        });
+      });
+    });
+  }
   function resolveNetease(url) {
     const directId = neteaseId(url);
     const pageUrl = directId ? 'https://music.163.com/song?id=' + directId : url;
     /* 链接本身已经带了歌曲 id（非短链），直接拿到，不必再走可能限流/超时的第三方代理，
        歌名歌手留空由导入时的默认值兜底，用户也可以自己填。 */
     if (directId) return Promise.resolve({ id: directId, pageUrl: pageUrl, title: '', artist: '' });
-    return fetchMicrolink(url).then(function (info) {
-      if (info.id) return info;
-      return fetchTextViaProxy(pageUrl).then(function (html) {
-        const meta = parseNeteaseHtml(html);
-        return {
-          id: meta.id || directId || '',
-          pageUrl: meta.pageUrl || pageUrl,
-          title: meta.title || '',
-          artist: meta.artist || ''
-        };
-      });
+    /* 短链必须联网识别：microlink 与多个代理同时跑，通常几秒内就有结果 */
+    const fromMicrolink = fetchMicrolink(url, 8000).then(function (info) { return info || {}; });
+    const fromPage = fetchTextViaProxy(url, 7000).then(function (html) {
+      const meta = parseNeteaseHtml(html);
+      return { id: meta.id || '', pageUrl: meta.pageUrl || url, title: meta.title || '', artist: meta.artist || '' };
     });
+    return firstResolved([fromMicrolink, fromPage]);
   }
 
   function importLink(e) {
@@ -697,7 +727,10 @@
     const titleInput = el('#music-track-title');
     const artistInput = el('#music-track-artist');
     const status = el('#music-link-status');
-    const url = safeUrl(input.value.trim());
+    /* 从网易云复制过来的分享文案常带歌名和“（来自@网易云音乐）”，先从中取链接 */
+    const raw = input.value.trim();
+    const matched = raw.match(/https?:\/\/[^\s"'<>）)】]+/);
+    const url = safeUrl(matched ? matched[0] : raw);
     if (!url) {
       status.textContent = '请输入有效的 http 或 https 音频链接。';
       input.focus();
@@ -706,15 +739,16 @@
     if (isNeteaseUrl(url)) {
       status.textContent = '正在识别网易云歌曲信息…';
       const directId = neteaseId(url);
-      /* microlink + 多个代理逐个尝试，最坏要等很久；给一个总超时，避免一直“正在识别”。 */
+      const shareTitle = (raw.match(/《([^》]{1,40})》/) || [])[1] || '';
+      /* 短链要联网识别，给一个总超时，避免一直卡在“正在识别” */
       const overall = new Promise(function (_, reject) {
-        setTimeout(function () { reject(new Error('NETEASE_TIMEOUT')); }, 20000);
+        setTimeout(function () { reject(new Error('NETEASE_TIMEOUT')); }, 12000);
       });
       Promise.race([resolveNetease(url), overall]).then(function (info) {
-        if (!info.id) throw new Error('未识别到网易云歌曲，请粘贴歌曲页面链接。');
+        if (!info.id) throw new Error('未识别到网易云歌曲，请粘贴带 song?id=… 的歌曲页面链接。');
         tracks().push({
           id: App.uid('track'),
-          title: titleInput.value.trim() || info.title || '网易云音乐',
+          title: titleInput.value.trim() || info.title || shareTitle || '网易云音乐',
           artist: artistInput.value.trim() || info.artist || '未知歌手',
           source: 'netease',
           url: url,
@@ -732,7 +766,7 @@
           /* 识别超时但链接本身带了歌曲 id，先用直链加入，至少能尝试播放 */
           tracks().push({
             id: App.uid('track'),
-            title: titleInput.value.trim() || '网易云音乐',
+            title: titleInput.value.trim() || shareTitle || '网易云音乐',
             artist: artistInput.value.trim() || '未知歌手',
             source: 'netease',
             url: url,
@@ -748,7 +782,7 @@
           return;
         }
         status.textContent = err && err.message === 'NETEASE_TIMEOUT'
-          ? '识别超时，请稍后重试，或直接选择本地音频文件导入。'
+          ? '识别超时：可以打开歌曲页，复制 music.163.com/song?id=… 这样的链接再试，或直接导入本地音频。'
           : (err && err.message ? err.message : '网易云链接识别失败，请粘贴歌曲页面链接或导入本地音频。');
       });
       return;
