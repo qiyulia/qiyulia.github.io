@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-lazy2';
+window.__SHIYI_B_store='20261120-lazy3';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -1650,6 +1650,38 @@ window.__SHIYI_B_store='20261120-lazy2';
       return App.state.chats[id] || [];
     });
     return chatPromises[id];
+  };
+
+  /* 删除联系人时连带删掉磁盘上的聊天记录，否则没加载过的聊天会一直留在本地 */
+  App.deleteChatData = function (id) {
+    if (!id) return Promise.resolve();
+    delete App.state.chats[id];
+    delete chatLoaded[id];
+    delete chatSignatures[id];
+    if (App.chatSummaries) delete App.chatSummaries[id];
+    if (!lazyEnabled) return Promise.resolve();
+    return withMediaStore('kv', 'readwrite', function (store) {
+      return store.delete('chat:' + id);
+    }).catch(function () {});
+  };
+
+  /* 导入聊天记录时整份替换：导入里没有的旧聊天要连同磁盘记录一起清掉，避免刷新后复活 */
+  App.replaceChats = function (next) {
+    const map = {};
+    Object.keys(next || {}).forEach(function (id) {
+      map[id] = Array.isArray(next[id]) ? next[id] : [];
+    });
+    const stale = {};
+    Object.keys(App.state.chats || {}).forEach(function (id) { stale[id] = true; });
+    (App.state.contacts || []).forEach(function (c) { stale[c.id] = true; });
+    Object.keys(App.chatSummaries || {}).forEach(function (id) { stale[id] = true; });
+    App.state.chats = map;
+    Object.keys(map).forEach(function (id) {
+      chatLoaded[id] = true;
+      delete chatSignatures[id];
+      if (map[id].length) App.chatSummaries[id] = { last: map[id][map[id].length - 1] };
+    });
+    Object.keys(stale).forEach(function (id) { if (!map[id]) App.deleteChatData(id); });
   };
 
   function loadAllChats() {

@@ -106,7 +106,8 @@
           break;
         case 'chats':
           if (data.chats && typeof data.chats === 'object' && !Array.isArray(data.chats)) {
-            st.chats = data.chats;
+            if (App.replaceChats) App.replaceChats(data.chats);
+            else st.chats = data.chats;
           }
           break;
         case 'cards':

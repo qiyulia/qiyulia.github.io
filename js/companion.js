@@ -683,7 +683,11 @@
       img.removeAttribute('src');
       img.style.display = 'none';
       if (empty) empty.hidden = false;
-      if (caption) caption.textContent = '把喜欢的瞬间放进来';
+      if (caption) {
+        caption.textContent = (App.isModuleLoaded && !App.isModuleLoaded('extras'))
+          ? '正在读取回忆…'
+          : '把喜欢的瞬间放进来';
+      }
       return;
     }
     const key = todayKey();

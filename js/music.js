@@ -71,13 +71,14 @@
 
   function renderMusicEmpty() {
     const icon = '<path d="M8 5l11 7-11 7V5z"/>';
-    ['#w-track', '#music-title', '#chat-music-title'].forEach(function (sel) { el(sel).textContent = '暂无歌曲'; });
-    ['#w-artist', '#music-artist', '#chat-music-artist'].forEach(function (sel) { el(sel).textContent = '导入音乐后在这里播放'; });
+    const loading = App.isModuleLoaded && !App.isModuleLoaded('music');
+    ['#w-track', '#music-title', '#chat-music-title'].forEach(function (sel) { el(sel).textContent = loading ? '读取中…' : '暂无歌曲'; });
+    ['#w-artist', '#music-artist', '#chat-music-artist'].forEach(function (sel) { el(sel).textContent = loading ? '正在读取歌单…' : '导入音乐后在这里播放'; });
     ['#w-play-icon', '#music-play-icon', '#chat-music-play-icon'].forEach(function (sel) { el(sel).innerHTML = icon; });
     ['#w-play', '#music-play', '#chat-music-play'].forEach(function (sel) { el(sel).setAttribute('aria-label', '播放音乐'); });
     ['#w-disc', '#music-disc', '#chat-music-disc'].forEach(function (sel) { el(sel).classList.remove('is-playing'); });
-    ['#w-music-status', '#music-status', '#chat-music-status'].forEach(function (sel) { el(sel).textContent = '播放列表是空的，先导入一首歌'; });
-    el('#music-source-label').textContent = '未导入';
+    ['#w-music-status', '#music-status', '#chat-music-status'].forEach(function (sel) { el(sel).textContent = loading ? '正在读取歌单…' : '播放列表是空的，先导入一首歌'; });
+    el('#music-source-label').textContent = loading ? '读取中' : '未导入';
     el('#music-mode').textContent = MODE_LABELS[App.state.music.mode];
     el('#music-favorite').classList.remove('is-active');
     el('#music-ta-favorite').textContent = '♡ TA';

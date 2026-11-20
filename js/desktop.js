@@ -34,7 +34,9 @@
     el('#d-since').textContent = st.profile.since ? '自 ' + st.profile.since.replace(/-/g, '.') : '';
 
     const daily = pickDailyCard();
-    el('#d-today-card').textContent = daily ? daily.text : '字卡库空空的，去添几张吧。';
+    el('#d-today-card').textContent = daily
+      ? daily.text
+      : (App.isModuleLoaded && !App.isModuleLoaded('cards') ? '正在读取今日字卡…' : '字卡库空空的，去添几张吧。');
 
     renderWidgets(now);
     if (App.renderRadioHome) App.renderRadioHome();
@@ -85,10 +87,13 @@
 
     if (el('#w-days')) el('#w-days').textContent = App.daysSince(st.profile.since);
     if (el('#w-anniv')) {
+      const loading = App.isModuleLoaded && !App.isModuleLoaded('anniversaries');
       const anniversary = (App.nearestAnniversary && App.nearestAnniversary()) || nextAnniversary(st.profile.since);
-      el('#w-anniv').textContent = anniversary
-        ? (anniversary.days === 0 ? '就是今天，' + anniversary.label + '快乐。' : '距 ' + anniversary.label + ' 还有 ' + anniversary.days + ' 天')
-        : '在设置里写下你们的纪念日。';
+      el('#w-anniv').textContent = loading
+        ? '正在读取纪念日…'
+        : (anniversary
+          ? (anniversary.days === 0 ? '就是今天，' + anniversary.label + '快乐。' : '距 ' + anniversary.label + ' 还有 ' + anniversary.days + ' 天')
+          : '在设置里写下你们的纪念日。');
     }
     if (el('#w-since')) el('#w-since').textContent = st.profile.since ? '始于 ' + st.profile.since.replace(/-/g, '.') : '';
 
@@ -253,7 +258,8 @@
     App.confirmDialog('删除「' + contact.name + '」和这段对话？此操作不可撤销。', { title: '删除联系人', okText: '删除' }).then(function (ok) {
       if (!ok) return;
       App.state.contacts = App.state.contacts.filter(function (c) { return c.id !== id; });
-      delete App.state.chats[id];
+      if (App.deleteChatData) App.deleteChatData(id);
+      else delete App.state.chats[id];
       delete App.unread[id];
       if (App.chatContactId === id) App.chatContactId = null;
       if (App.state.currentContactId === id) {
