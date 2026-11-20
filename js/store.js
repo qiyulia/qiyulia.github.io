@@ -214,7 +214,7 @@
   /* ---------- 本地媒体库（IndexedDB，和音乐共用 xuyu-media） ----------
      语音不再塞进 localStorage，改存 Blob，state 里只留 voice:<id> 索引。 */
   const MEDIA_DB = 'xuyu-media';
-  const MEDIA_VERSION = 2;
+  const MEDIA_VERSION = 3;
   let mediaDbPromise = null;
   const voiceUrls = {};
 
@@ -231,6 +231,8 @@
         if (!db.objectStoreNames.contains('audio')) db.createObjectStore('audio', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('voice')) db.createObjectStore('voice', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+        /* 表情包 base64 体积大，独立存储，不再塞进 App.state 导致序列化阻塞 */
+        if (!db.objectStoreNames.contains('stickers')) db.createObjectStore('stickers', { keyPath: 'key' });
       };
       request.onsuccess = function () { resolve(request.result); };
       request.onerror = function () { reject(request.error || new Error('本地媒体库打开失败')); };
@@ -254,6 +256,90 @@
       });
     });
   }
+
+  /* ---------- 表情包外置存储 ----------
+     表情包是 base64，单张可达数百 KB，几百张就是几十上百 MB。
+     以前全塞在 App.state 里，每次 App.save() 都要 JSON.stringify 整份，
+     数据多时同步阻塞主线程数百 ms 到数秒 → 界面卡死、所有按钮（含导入、刷新）点不动。
+     现在表情包独立存 IndexedDB，主 state 只留空壳，运行时用内存缓存。 */
+  const STICKER_STORE = 'stickers';
+  App.stickerCache = { public: null, mine: null, contacts: {} };
+  let stickerCachePromise = null;
+
+  function readAllStickers() {
+    if (!window.indexedDB) return Promise.resolve([]);
+    return withMediaStore(STICKER_STORE, 'readonly', function (store) {
+      return store.getAll();
+    }).catch(function () { return []; });
+  }
+
+  /* 加载所有表情包到内存缓存；同时把旧版本残留在 App.state 里的搬到 IDB 并清空 */
+  App.loadStickers = function () {
+    if (stickerCachePromise) return stickerCachePromise;
+    stickerCachePromise = readAllStickers().then(function (all) {
+      const map = {};
+      (all || []).forEach(function (rec) { if (rec && rec.key) map[rec.key] = Array.isArray(rec.value) ? rec.value : []; });
+      App.stickerCache.public = map['public'] || [];
+      App.stickerCache.mine = map['mine'] || [];
+      const cs = {};
+      (App.state.contacts || []).forEach(function (c) { cs[c.id] = map['contact:' + c.id] || []; });
+      App.stickerCache.contacts = cs;
+
+      /* 迁移旧数据：state 里还残留的表情搬到 IDB，成功后清空主 state 里的大字段。
+         不用 skipCache：saveStickerSet 默认会同步刷新内存缓存，这样本次会话面板立刻就能显示，
+         不必等下一次 reload 才从 IDB 读出来。 */
+      const jobs = [];
+      if (App.state.stickers) {
+        ['public', 'mine'].forEach(function (side) {
+          const old = App.state.stickers[side];
+          if (Array.isArray(old) && old.length) {
+            const snapshot = old.slice();
+            jobs.push(App.saveStickerSet(side, snapshot).then(function () {
+              App.state.stickers[side] = [];
+            }));
+          }
+        });
+      }
+      (App.state.contacts || []).forEach(function (c) {
+        if (Array.isArray(c.stickers) && c.stickers.length) {
+          const snapshot = c.stickers.slice();
+          jobs.push(App.saveStickerSet('contact:' + c.id, snapshot).then(function () {
+            c.stickers = [];
+          }));
+        }
+      });
+      return Promise.all(jobs).then(function () {
+        if (jobs.length) {
+          /* 清空大字段后的轻量 state 落盘一次，之后序列化就很快了 */
+          try { App.save(); } catch (e) {}
+        }
+      });
+    }).catch(function () {
+      /* IDB 不可用：回退到读 state 里的旧数据，至少能显示 */
+      App.stickerCache.public = (App.state.stickers && App.state.stickers.public) || [];
+      App.stickerCache.mine = (App.state.stickers && App.state.stickers.mine) || [];
+      (App.state.contacts || []).forEach(function (c) { App.stickerCache.contacts[c.id] = c.stickers || []; });
+    });
+    return stickerCachePromise;
+  };
+
+  /* key: 'public' | 'mine' | 'contact:<id>'。skipCache 用于迁移时只写 IDB 不刷缓存 */
+  App.saveStickerSet = function (key, arr, skipCache) {
+    const list = Array.isArray(arr) ? arr.slice() : [];
+    if (!skipCache) {
+      if (key === 'public') App.stickerCache.public = list;
+      else if (key === 'mine') App.stickerCache.mine = list;
+      else if (key.indexOf('contact:') === 0) App.stickerCache.contacts[key.slice(8)] = list;
+    }
+    if (!window.indexedDB) return Promise.resolve();
+    /* stickers store 用 keyPath:'key'（inline key），put 时不能再传第二个 key 参数，
+       否则部分浏览器会抛 DataError 导致写入静默失败、reload 后数据丢失。 */
+    return withMediaStore(STICKER_STORE, 'readwrite', function (store) {
+      return store.put({ key: key, value: list });
+    }).catch(function () {});
+  };
+
+  App.stickerReady = function () { return App.loadStickers(); };
 
   function dataUrlToBlob(dataUrl) {
     const parts = String(dataUrl).split(',');

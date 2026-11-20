@@ -1992,17 +1992,82 @@
     return App.stickerTab === 'ta' ? 'ta' : 'mine';
   }
 
+  /* 表情包已外置到 IndexedDB，运行时读内存缓存；还没加载完返回空数组，
+     面板会显示「加载中」，避免在大数据下用空状态误导用户。 */
   function stickerList() {
+    if (!App.stickerCache) App.stickerCache = { public: null, mine: null, contacts: {} };
     const key = stickerKey();
-    /* 「TA」的表情包存在当前联系人自己身上，每个联系人各一套 */
     if (key === 'ta') {
       const contact = currentContact();
       if (!contact) return [];
-      if (!Array.isArray(contact.stickers)) contact.stickers = [];
-      return contact.stickers;
+      const cached = App.stickerCache.contacts[contact.id];
+      return Array.isArray(cached) ? cached : [];
     }
-    if (!Array.isArray(App.state.stickers[key])) App.state.stickers[key] = [];
-    return App.state.stickers[key];
+    const cached = App.stickerCache[key];
+    return Array.isArray(cached) ? cached : [];
+  }
+
+  /* 外置存储的 key：public / mine / contact:<id> */
+  function stickerStoreKey() {
+    const key = stickerKey();
+    if (key === 'ta') {
+      const contact = currentContact();
+      return contact ? 'contact:' + contact.id : '';
+    }
+    return key;
+  }
+
+  function stickerCacheReady() {
+    return !!(App.stickerCache && (App.stickerCache.public !== null || App.stickerCache.mine !== null));
+  }
+
+  /* 表情网格分页渲染：一次只画一页，上滑再加载下一批。
+     几百张表情时避免一次性拼接/解析大量 base64 节点把主线程锁死，
+     这样打开面板后导入按钮立刻就能点。 */
+  const STICKER_PAGE = 24;
+  const stickerShown = { public: 0, mine: 0, ta: 0 };
+  let stickerScrollBound = false;
+
+  function stickerCellHtml(src, index) {
+    return '<div class="sticker-cell">' +
+      '<button type="button" class="sticker-item" data-send-sticker="' + index + '" aria-label="发送表情包">' +
+        '<img loading="lazy" decoding="async" src="' + App.esc(src) + '" alt="表情包">' +
+      '</button>' +
+      '<button type="button" class="sticker-delete" data-del-sticker="' + index + '" aria-label="删除表情包">×</button>' +
+    '</div>';
+  }
+
+  function setStickerMoreHint(grid, show) {
+    const old = grid.querySelector('[data-sticker-more]');
+    if (old) old.remove();
+    if (show) grid.insertAdjacentHTML('beforeend', '<div class="sticker-more-hint" data-sticker-more>上滑加载更多</div>');
+  }
+
+  function expandStickerPage() {
+    const stickers = stickerList();
+    const key = stickerKey();
+    const shown = stickerShown[key] || 0;
+    if (shown >= stickers.length) return;
+    const next = Math.min(shown + STICKER_PAGE, stickers.length);
+    const grid = el('#sticker-grid');
+    if (!grid) return;
+    const frag = document.createElement('div');
+    frag.innerHTML = stickers.slice(shown, next).map(function (src, i) {
+      return stickerCellHtml(src, shown + i);
+    }).join('');
+    while (frag.firstChild) grid.appendChild(frag.firstChild);
+    stickerShown[key] = next;
+    setStickerMoreHint(grid, next < stickers.length);
+  }
+
+  function bindStickerScroll() {
+    if (stickerScrollBound) return;
+    const grid = el('#sticker-grid');
+    if (!grid) return;
+    stickerScrollBound = true;
+    grid.addEventListener('scroll', function () {
+      if (grid.scrollHeight - (grid.scrollTop + grid.clientHeight) < 60) expandStickerPage();
+    });
   }
 
   function updateSideButtons() {
@@ -2019,7 +2084,7 @@
     }
   }
 
-  function renderStickerPanel() {
+  function renderStickerPanel(reset) {
     /* 红包已经并到「工具」里，表情面板只剩表情 / 图片两种 */
     const kind = App.panelKind === 'image' ? 'image' : 'sticker';
     document.querySelectorAll('[data-panel-kind]').forEach(function (btn) {
@@ -2040,17 +2105,30 @@
       return;
     }
 
+    const grid = el('#sticker-grid');
+    if (!grid) return;
+    /* 表情包还没从 IndexedDB 加载完：先显示加载中，加载完自动重渲（reset 回第一页） */
+    if (!stickerCacheReady()) {
+      grid.innerHTML = '<p class="sticker-empty">正在加载表情包…</p>';
+      if (App.stickerReady) App.stickerReady().then(function () { renderStickerPanel(true); }).catch(function () {});
+      return;
+    }
+
     const stickers = stickerList();
-    el('#sticker-grid').innerHTML = stickers.length
-      ? stickers.map(function (src, index) {
-          return '<div class="sticker-cell">' +
-            '<button type="button" class="sticker-item" data-send-sticker="' + index + '" aria-label="发送表情包">' +
-              '<img loading="lazy" decoding="async" src="' + App.esc(src) + '" alt="表情包">' +
-            '</button>' +
-            '<button type="button" class="sticker-delete" data-del-sticker="' + index + '" aria-label="删除表情包">×</button>' +
-          '</div>';
-        }).join('')
+    const key = stickerKey();
+    if (reset) stickerShown[key] = 0;
+    let shown = stickerShown[key] || 0;
+    if (!shown) shown = Math.min(STICKER_PAGE, stickers.length);
+    else if (shown > stickers.length) shown = stickers.length; /* 删除后收缩，别跳回第一页 */
+    grid.innerHTML = stickers.length
+      ? stickers.slice(0, shown).map(function (src, i) { return stickerCellHtml(src, i); }).join('')
       : '<p class="sticker-empty">还没有表情包，点下方按钮从本地相册添加。</p>';
+    stickerShown[key] = shown;
+    setStickerMoreHint(grid, shown < stickers.length);
+    bindStickerScroll();
+    /* 切分类 / 打开面板回第一页时，把滚动归零，否则残留的 scrollTop 会触发
+       scroll 事件又加载一页，导致新分类一上来就显示在第二页 */
+    if (reset) grid.scrollTop = 0;
   }
 
   function renderPatGrid() {
@@ -2111,7 +2189,7 @@
       App.stickerTab = 'public';
       App.panelKind = 'sticker';
     }
-    renderStickerPanel();
+    renderStickerPanel(!keepTab);
   };
 
   function toggleStickerPanel() {
@@ -2122,7 +2200,7 @@
       /* 每次打开表情包面板都从「公共」分类开始 */
       App.stickerTab = 'public';
       App.panelKind = 'sticker';
-      renderStickerPanel();
+      renderStickerPanel(true);
     }
   }
 
@@ -2193,6 +2271,8 @@
   async function addStickers(files) {
     const images = Array.from(files || []).slice(0, 12);
     if (!images.length) return;
+    /* 表情包外置在 IndexedDB，先确保缓存加载好，push 才会落到正确的数组 */
+    if (App.stickerReady) await App.stickerReady();
 
     setStickerStatus('正在压缩图片…');
     App.toast('正在处理图片…');
@@ -2217,8 +2297,13 @@
       App.toast(failed ? '图片处理失败' : '没有添加新表情');
       return;
     }
-    App.save();
-    renderStickerPanel();
+    /* 表情包存独立 IDB，不再进主 state，避免每次 save 序列化大对象把主线程卡死 */
+    const storeKey = stickerStoreKey();
+    if (storeKey) App.saveStickerSet(storeKey, list);
+    /* 展开到末尾，让刚添加的表情立即可见，再滚到底 */
+    const key = stickerKey();
+    stickerShown[key] = list.length;
+    renderStickerPanel(false);
     const grid = el('#sticker-grid');
     if (grid) grid.scrollTop = grid.scrollHeight;
     setStickerStatus('已添加 ' + added + ' 张表情包');
@@ -2794,7 +2879,7 @@
       if (stickerTab) {
         App.stickerTab = stickerTab.dataset.stickerSide;
         updateSideButtons();
-        renderStickerPanel();
+        renderStickerPanel(true);
         return;
       }
 
@@ -2811,8 +2896,9 @@
         const list = stickerList();
         const index = Number(stickerDel.dataset.delSticker);
         list.splice(index, 1);
-        App.save();
-        renderStickerPanel();
+        const storeKey = stickerStoreKey();
+        if (storeKey) App.saveStickerSet(storeKey, list);
+        renderStickerPanel(false);
         return;
       }
 
