@@ -1089,6 +1089,8 @@
     'ta-work': { label: 'TA 到公司了', text: '我到公司了，开始忙啦。' },
   };
   const LOC_QUICK_KEYS = ['me-home', 'me-work', 'ta-home', 'ta-work'];
+  /* 地图上最多画 8 个地点，再多只留在下面的地点列表里 */
+  const PLACE_MAP_LIMIT = 8;
 
   function quickConfig() {
     const loc = locationState();
@@ -1210,14 +1212,39 @@
     return true;
   }
 
+  function placeMapCards() {
+    return placeCards().slice(0, PLACE_MAP_LIMIT);
+  }
+
+  /* 自动点位固定在圆周的 8 个位置，按顺序一人一格，互相错开不再挤在一起 */
+  function placeRingCoords(loc, index) {
+    const slot = ((index % PLACE_MAP_LIMIT) + PLACE_MAP_LIMIT) % PLACE_MAP_LIMIT;
+    const angle = (slot / PLACE_MAP_LIMIT) * Math.PI * 2 - Math.PI / 2;
+    const wobble = slot % 2 ? 0.72 : 1;
+    const center = {
+      lat: (loc.me.lat + loc.ta.lat) / 2,
+      lng: (loc.me.lng + loc.ta.lng) / 2,
+    };
+    return {
+      lat: center.lat - Math.sin(angle) * 0.0062 * wobble,
+      lng: center.lng + Math.cos(angle) * 0.0086 * wobble,
+    };
+  }
+
   function ensurePlaceCoords(card, loc, index) {
     if (card.place && Number.isFinite(card.place.lat) && Number.isFinite(card.place.lng)) return card.place;
-    const step = index % 5 - 2;
-    card.place = {
-      lat: loc.me.lat + step * 0.0022 + 0.0016,
-      lng: loc.me.lng + step * 0.0026,
-    };
+    card.place = placeRingCoords(loc, index);
     return card.place;
+  }
+
+  /* 旧版本的自动点位都挤在一条线上，升级后重排一次；之后用户自己选的点不再动 */
+  function spreadPlaceCoords(loc) {
+    if (loc.placeSpread) return;
+    loc.placeSpread = true;
+    placeCards().forEach(function (card, index) {
+      card.place = placeRingCoords(loc, index);
+    });
+    App.save();
   }
 
   function setPlaceFor(who, id) {
@@ -1248,8 +1275,12 @@
     if (!name) { if (input) input.focus(); return; }
     const exists = placeCards().find(function (c) { return c.text === name; });
     if (exists) {
-      setPlaceFor(locPickWho, exists.id);
+      locPlaceTarget = exists.id;
       if (input) input.value = '';
+      renderLocation();
+      App.toast(locationState().enabled
+        ? '点地图给「' + exists.text + '」选个位置'
+        : '已选中「' + exists.text + '」，开启共享后可在图上选点');
       return;
     }
     const loc = locationState();
@@ -1264,8 +1295,13 @@
     App.state.cards.push(card);
     ensurePlaceCoords(card, loc, placeCards().length - 1);
     if (input) input.value = '';
+    /* 新地点先选中，直接点地图就能定它的点 */
+    locPlaceTarget = card.id;
+    App.save();
     renderLocation();
-    setPlaceFor(locPickWho, card.id);
+    App.toast(loc.enabled
+      ? '点地图给「' + card.text + '」选个位置'
+      : '已添加「' + card.text + '」，开启共享后可在图上选点');
   }
 
   function renderLocationPlaces(loc) {
@@ -1279,12 +1315,43 @@
       btn.classList.toggle('is-set', !!card);
     });
     document.querySelectorAll('[data-loc-pick]').forEach(function (btn) {
-      btn.classList.toggle('is-active', btn.dataset.locPick === locPickWho);
+      btn.classList.toggle('is-active', btn.dataset.locPick === locPickWho && !locPlaceTarget);
     });
     const tip = el('#loc-map-tip');
-    if (tip) tip.textContent = locPickWho === 'ta'
-      ? '点地图设置 TA 的位置'
-      : '点地图设置我的位置';
+    const target = placeCardById(locPlaceTarget);
+    if (tip) {
+      if (target) {
+        tip.textContent = loc.enabled
+          ? '点地图给「' + target.text + '」选个位置'
+          : '开启共享后点地图给「' + target.text + '」选位置';
+      } else {
+        tip.textContent = locPickWho === 'ta' ? '点地图设置 TA 的位置' : '点地图设置我的位置';
+      }
+    }
+    renderPlaceList();
+  }
+
+  /* 地点列表：每个地点都能点「选点」，再去地图上点一下定它的位置 */
+  function renderPlaceList() {
+    const box = el('#loc-place-list');
+    if (!box) return;
+    const cards = placeCards();
+    if (!cards.length) {
+      box.innerHTML = '<p class="field-hint">还没有地点，先在上面添加一个。</p>';
+      return;
+    }
+    box.innerHTML = cards.map(function (card, index) {
+      const onMap = index < PLACE_MAP_LIMIT;
+      const active = locPlaceTarget === card.id;
+      return '<div class="loc-place-row' + (active ? ' is-active' : '') + '">' +
+        '<span class="loc-place-row-dot' + (onMap ? '' : ' is-off') + '" aria-hidden="true"></span>' +
+        '<span class="loc-place-row-name">' + App.esc(card.text) + '</span>' +
+        (onMap ? '' : '<span class="loc-place-row-note">不显示在地图</span>') +
+        '<button type="button" class="loc-place-row-btn' + (active ? ' is-active' : '') + '" data-loc-place-target="' + App.esc(card.id) + '">' +
+          (active ? '点地图选点' : '选点') +
+        '</button>' +
+      '</div>';
+    }).join('');
   }
 
   let locPlaceWho = 'me';
@@ -1493,9 +1560,14 @@
 
   let locView = null;
   let locPickWho = 'me';
+  let locPlaceTarget = '';
 
   function mapProject(loc) {
-    const pts = [loc.me, loc.ta].concat(loc.zones.map(function (z) { return { lat: z.lat, lng: z.lng }; }));
+    const pts = [loc.me, loc.ta]
+      .concat(loc.zones.map(function (z) { return { lat: z.lat, lng: z.lng }; }))
+      .concat(placeMapCards().map(function (card, index) {
+        return ensurePlaceCoords(card, loc, index);
+      }));
     let latMin = Infinity, latMax = -Infinity, lngMin = Infinity, lngMax = -Infinity;
     pts.forEach(function (p) {
       latMin = Math.min(latMin, p.lat);
@@ -1528,9 +1600,9 @@
     }).join('');
   }
 
-  /* 自己添加的地点也画在地图上，方便一眼看到都放了哪些地方 */
+  /* 自己添加的地点也画在地图上，方便一眼看到都放了哪些地方；最多画 8 个 */
   function renderPlaceMarkers(loc, view) {
-    return placeCards().map(function (card, index) {
+    return placeMapCards().map(function (card, index) {
       const coords = ensurePlaceCoords(card, loc, index);
       const p = projectPoint(view, coords);
       return '<g class="loc-place" data-place-id="' + App.esc(card.id) + '" transform="translate(' + p.x + ',' + p.y + ')">' +
@@ -1663,6 +1735,8 @@
 
   function renderLocation() {
     const loc = locationState();
+    /* 旧存档里的地点点位挤成一条线，第一次打开位置页时把它们铺开 */
+    spreadPlaceCoords(loc);
     let statusChanged = syncStatusPlace(loc, 'me');
     if (syncStatusPlace(loc, 'ta')) statusChanged = true;
     if (statusChanged) App.save();
@@ -1927,6 +2001,18 @@
     const pt = mapPointFromEvent(evt, svg);
     if (!pt) return;
     const pos = latLngFromMapPoint(pt);
+    /* 正在给某个地点选点时，这一下点的是地点，不动人 */
+    const target = placeCardById(locPlaceTarget);
+    if (target) {
+      target.place = { lat: pos.lat, lng: pos.lng };
+      if (loc.placeId.me === target.id) loc.me = { lat: pos.lat, lng: pos.lng };
+      if (loc.placeId.ta === target.id) loc.ta = { lat: pos.lat, lng: pos.lng };
+      locPlaceTarget = '';
+      App.save();
+      renderLocation();
+      App.toast('「' + target.text + '」已放到这里');
+      return;
+    }
     const who = locPickWho;
     loc[who].lat = pos.lat;
     loc[who].lng = pos.lng;
@@ -2824,8 +2910,9 @@
     document.querySelectorAll('[data-loc-pick]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         locPickWho = btn.dataset.locPick;
+        locPlaceTarget = '';
         renderLocation();
-        App.toast(locPickWho === 'ta' ? '拖动 TA 的图标，或点地图设置位置' : '拖动我的图标，或点地图移动位置');
+        App.toast(locPickWho === 'ta' ? '点地图设置 TA 的位置' : '点地图设置我的位置');
       });
     });
     document.addEventListener('change', function (e) {
@@ -2849,6 +2936,15 @@
         setPlaceFor(locPlaceWho, placeOption.dataset.locPlaceOption || '');
         const dialog = el('#loc-place-dialog');
         if (dialog) dialog.hidden = true;
+        return;
+      }
+      const placeTarget = e.target.closest('[data-loc-place-target]');
+      if (placeTarget) {
+        const id = placeTarget.dataset.locPlaceTarget;
+        locPlaceTarget = locPlaceTarget === id ? '' : id;
+        renderLocation();
+        const targetCard = placeCardById(locPlaceTarget);
+        App.toast(targetCard ? '点地图给「' + targetCard.text + '」选个位置' : '已取消选点');
         return;
       }
       const statusTrigger = e.target.closest('[data-loc-status-open]');

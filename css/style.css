@@ -6089,6 +6089,42 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 .loc-pick-row .btn.is-active,
 .loc-quick .btn.is-active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 
+.loc-place-list { display: flex; flex-direction: column; gap: 6px; }
+.loc-place-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.loc-place-row.is-active { border-color: var(--accent); background: var(--accent-soft); }
+.loc-place-row-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: #9bc0dc; }
+.loc-place-row-dot.is-off { background: var(--line); }
+.loc-place-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.loc-place-row-note { flex: 0 0 auto; font-size: 9.5px; color: var(--muted); }
+.loc-place-row-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 10.5px;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+.loc-place-row-btn.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
 .chat-loc-chip {
   position: absolute;
   bottom: 78px;
