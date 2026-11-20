@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261120-hotfix3';
+window.__SHIYI_B_chat='20261120-hotfix4';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -3014,23 +3014,13 @@ window.__SHIYI_B_chat='20261120-hotfix3';
       scrollBottom();
     });
     window.addEventListener('resize', closeMsgActions);
-    /* 本地相册入口：原生文件框优先，静默失败时自动降级到剪贴板导入。
-       上一版这里写了 `if (e.target === input) return`，而透明 input 覆盖整个按钮，
-       点击几乎必然命中它 —— 于是 WebView 里原生没弹框、兜底又被这句挡掉，
-       表现就是「点本地添加完全没反应、像没改过一样」。 */
+    /* 本地相册入口：只做一件事 —— 唤起系统文件选择。
+       由 <label for> 原生完成，不读剪贴板、不弹任何权限框或替代面板。 */
     const stickerFileEl = el('#sticker-file');
-    const chatImageFileEl = el('#chat-image-file');
-    let pickerToken = 0;
-    let pageLeft = false;
-    window.addEventListener('blur', function () { pageLeft = true; });
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) pageLeft = true;
-    });
 
     stickerFileEl.addEventListener('change', function (e) {
       const input = e.target;
       const files = Array.from(input.files || []);
-      pickerToken++;                 /* 选到文件了，取消降级 */
       if (!files.length) return;
       try {
         addStickers(files).catch(function (err) {
@@ -3110,67 +3100,6 @@ window.__SHIYI_B_chat='20261120-hotfix3';
       });
     }
 
-    /* ---- 本地添加按钮：静默失败自动接管 ----
-       纯前端没有第二条路能弹系统相册（APP 内置 WebView 常不实现文件选择回调），
-       所以这里让「+ 从本地相册添加到当前分类」这个同一个入口自己完成降级：
-       ① 先照常触发 input；
-       ② 若 ~1 秒内既没选到文件、页面也没失焦（说明系统相册根本没弹出来），
-          自动打开剪贴板导入面板并给出明确提示，不再静默无反应；
-       ③ 若剪贴板里已有图片且浏览器允许读取，直接导入，点一下就完成。 */
-    function openPasteFallback() {
-      if (!pasteDialog || !pasteZone || pasteDialog.open) return;
-      try {
-        pasteZone.innerHTML = '';
-        setPasteStatus('这台设备打不开相册，请在相册里长按图片选「复制」，回来点此处粘贴', false);
-        pasteDialog.showModal();
-        setTimeout(function () { pasteZone.focus(); }, 80);
-      } catch (e) {}
-    }
-    function tryClipboardRead() {
-      try {
-        if (!navigator.clipboard || !navigator.clipboard.read) return Promise.resolve(false);
-        return navigator.clipboard.read().then(function (items) {
-          const jobs = [];
-          (items || []).forEach(function (item) {
-            (item.types || []).forEach(function (t) {
-              if (!/^image\//.test(t)) return;
-              jobs.push(item.getType(t).then(function (blob) {
-                return new File([blob], 'pasted.' + t.split('/')[1], { type: t });
-              }).catch(function () { return null; }));
-            });
-          });
-          return Promise.all(jobs).then(function (files) {
-            const imgs = files.filter(Boolean);
-            if (!imgs.length) return false;
-            addStickers(imgs);
-            return true;
-          });
-        }).catch(function () { return false; });
-      } catch (e) { return Promise.resolve(false); }
-    }
-    function bindPicker(container, input) {
-      if (!container || !input) return;
-      let guard = false;
-      container.addEventListener('click', function (e) {
-        if (guard) return;
-        guard = true;
-        setTimeout(function () { guard = false; }, 500);
-        const token = ++pickerToken;
-        pageLeft = false;
-        if (e.target !== input) {
-          try { input.click(); } catch (err) {}
-        }
-        /* 剪贴板里已有图片就静默直接导入，用户不必再粘贴 */
-        tryClipboardRead().then(function (ok) { if (ok) pickerToken++; });
-        setTimeout(function () {
-          if (token !== pickerToken) return;      /* 已导入成功 */
-          if (pageLeft) return;                  /* 系统相册确实弹出来了，别打扰 */
-          openPasteFallback();                   /* 静默失败 → 自动接管 */
-        }, 1000);
-      });
-    }
-    bindPicker(el('#btn-add-sticker'), stickerFileEl);
-    bindPicker(el('#btn-pick-chat-image'), chatImageFileEl);
     el('#btn-clear-chat').addEventListener('click', async function () {
       const id = App.chatContactId;
       if (!id) return;
