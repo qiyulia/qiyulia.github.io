@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-voice';
+window.__SHIYI_B_store='20261120-fast2';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -675,11 +675,18 @@ window.__SHIYI_B_store='20261120-voice';
     }).then(function () { return stats; });
   };
 
-  /* 内存统计：会话数据 + 语音 + 音乐，全部在 IndexedDB 里 */
+  /* 内存统计：会话数据 + 语音 + 音乐，全部在 IndexedDB 里。
+     会话大小直接读已落盘的那条 JSON 记录，绝不再 JSON.stringify(App.state)：
+     存档几十 MB 时那句同步序列化会占住主线程好几秒，统计页和整个界面一起卡死。 */
   App.memoryUsage = function () {
-    let local = 0;
-    try { local = new Blob([JSON.stringify(App.state)]).size; } catch (e) { local = 0; }
-    return Promise.all([App.storeBytes('voice'), App.storeBytes('audio'), App.storeBytes('images')]).then(function (stats) {
+    return Promise.all([
+      App.savedStateBytes(),
+      App.storeBytes('voice'),
+      App.storeBytes('audio'),
+      App.storeBytes('images')
+    ]).then(function (results) {
+      const local = results[0];
+      const stats = results.slice(1);
       return {
         local: local,
         voice: stats[0].bytes,
@@ -904,6 +911,29 @@ window.__SHIYI_B_store='20261120-voice';
       return null;
     }).catch(function () { return null; });
   }
+
+  /* 已保存会话数据的字节数：只读 IndexedDB 里现成的字符串，
+     用 Blob 量 UTF-8 大小；不解析、不重新序列化，主线程零负担。 */
+  App.savedStateBytes = function () {
+    function blobSize(text) {
+      try { return new Blob([text]).size; }
+      catch (e) { return String(text || '').length; }
+    }
+    return withMediaStore('kv', 'readonly', function (store) {
+      return store.get('state');
+    }).then(function (record) {
+      if (record && typeof record.data === 'string') return blobSize(record.data);
+      if (record) {
+        try { return blobSize(JSON.stringify(record.state || record)); }
+        catch (e) { return 0; }
+      }
+      try { return blobSize(localStorage.getItem(KEY) || ''); }
+      catch (e) { return 0; }
+    }).catch(function () {
+      try { return blobSize(localStorage.getItem(KEY) || ''); }
+      catch (e) { return 0; }
+    });
+  };
 
   function finishLoad(saved, voiceKeys) {
     let raw = saved;

@@ -4,12 +4,12 @@
   const el = function (sel) { return document.querySelector(sel); };
 
   function storageSize() {
-    try {
-      const bytes = new Blob([JSON.stringify(App.state)]).size;
-      el('#storage-size').textContent = '数据约 ' + (bytes / 1024).toFixed(1) + ' KB';
-    } catch (e) {
-      el('#storage-size').textContent = '';
-    }
+    const node = el('#storage-size');
+    if (!node) return;
+    /* 读已落盘记录的大小，不再同步序列化整份 state（数据大时会卡死设置页） */
+    App.savedStateBytes().then(function (bytes) {
+      node.textContent = '数据约 ' + (bytes / 1024).toFixed(1) + ' KB';
+    }).catch(function () { node.textContent = ''; });
   }
 
   function formatBytes(bytes) {

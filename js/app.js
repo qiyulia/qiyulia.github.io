@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261120-voice';
+window.__SHIYI_B_app='20261120-fast2';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -398,13 +398,8 @@ window.__SHIYI_B_app='20261120-voice';
     }).catch(function () {});
   }
 
-  /* 表情包外置在 IndexedDB，启动后异步加载到内存缓存。
-     不阻塞首屏；表情面板打开时若还没加载完会显示「加载中」并自动重渲。
-     首次加载还会把旧版本残留在主 state 里的大体积表情搬到独立存储，
-     之后主 state 不再含 base64，每次保存的序列化就不会再卡死主线程。 */
-  if (App.loadStickers) {
-    App.loadStickers().catch(function () {});
-  }
+  /* 表情包不在启动时预读：几百张 base64 全读进内存会让手机一开站就卡。
+     改为打开表情面板时按需加载（面板自己会显示「正在加载」并重渲）。 */
 
   /* 聊天图片 / 已发出的表情包 / 动态配图外置到 IndexedDB。
      首次运行会把旧版本留在主 state 里的 base64 搬走，之后 serialize 不再卡主线程。 */

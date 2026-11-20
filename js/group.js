@@ -682,6 +682,10 @@
       renderGrpStickerPanel();
       panel.hidden = false;
       grpPanelOpenedAt = Date.now();
+      /* 启动时不再预读全部表情包，群聊面板第一次打开时再取 */
+      if (App.stickerReady) {
+        App.stickerReady().then(function () { renderGrpStickerPanel(); }).catch(function () {});
+      }
     }
   }
 
