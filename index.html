@@ -25,23 +25,39 @@ if ('caches' in window) {
 (function () {
   var MIN_SHOW = 1500;
   var ready = false, elapsed = false, done = false;
+  function hideSplash() {
+    var s = document.getElementById('boot-splash');
+    if (!s) return;
+    /* 不能只依赖 style.css 里的 .is-hidden：样式表加载失败时，
+       加上 class 并不会让遮罩消失，z-index:9999 会吃掉全部点击，
+       表现就是「刷新后一直卡在加载条、点都点不动」。 */
+    s.classList.add('is-hidden');
+    try { s.style.setProperty('display', 'none', 'important'); } catch (e) {}
+    s.setAttribute('aria-hidden', 'true');
+    /* 直接移出 DOM，彻底释放点击层 */
+    if (s.parentNode) s.parentNode.removeChild(s);
+  }
   function maybeFinish() {
     if (done || !ready || !elapsed) return;
     done = true;
-    var s = document.getElementById('boot-splash');
-    if (s) s.classList.add('is-hidden');
+    hideSplash();
   }
   /* boot() 渲染完成后调用，代表站内内容与交互都已就绪 */
   window.__bootReady = function () { ready = true; maybeFinish(); };
   setTimeout(function () { elapsed = true; maybeFinish(); }, MIN_SHOW);
-  /* 兜底：万一数据读取卡死，也别把人一直挡在开屏页 */
-  setTimeout(function () { ready = true; elapsed = true; maybeFinish(); }, 8000);
+  /* 兜底：万一数据读取卡死或某个脚本加载失败，也别把人一直挡在开屏页。
+     内联兜底不依赖任何外部脚本或样式。 */
+  setTimeout(function () { ready = true; elapsed = true; maybeFinish(); }, 4000);
+  /* 再兜一层：用户主动点/轻触开屏时立刻放行，避免极端情况下永久假死 */
+  document.addEventListener('pointerdown', function () {
+    setTimeout(function () { ready = true; elapsed = true; maybeFinish(); }, 0);
+  }, true);
 })();
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261120-offload">
-<link rel="stylesheet" href="css/steps.css?v=20261120-steps2">
+<link rel="stylesheet" href="css/style.css?v=20261120-hotfix1">
+<link rel="stylesheet" href="css/steps.css?v=20261120-hotfix1">
 </head>
 <body>
 <div class="stage">
@@ -1077,13 +1093,13 @@ if ('caches' in window) {
         <div id="sticker-grid" class="sticker-grid"></div>
         <div class="btn sticker-add" id="btn-add-sticker">
           <span aria-hidden="true">+ 从本地相册添加到当前分类</span>
-          <input type="file" id="sticker-file" accept="image/*" multiple class="file-input-direct" aria-label="从本地相册添加图片到当前表情分类">
+          <input type="file" id="sticker-file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.heic" multiple class="file-input-direct" aria-label="从本地相册添加图片到当前表情分类">
         </div>
         <button type="button" class="sticker-paste-link" id="btn-paste-sticker">相册选不了？从剪贴板粘贴图片</button>
         <div id="sticker-image-view" class="sticker-image-view" hidden>
           <div class="sticker-image-pick" id="btn-pick-chat-image">
             <span class="sticker-image-preview" id="sticker-image-preview">点这里从相册选择一张图片</span>
-            <input type="file" id="chat-image-file" accept="image/*" class="file-input-direct" aria-label="从本地相册选择一张聊天图片">
+            <input type="file" id="chat-image-file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.heic" class="file-input-direct" aria-label="从本地相册选择一张聊天图片">
           </div>
           <div class="sticker-image-actions">
             <button type="button" class="btn ghost" id="sticker-image-cancel">取消</button>
@@ -3007,23 +3023,23 @@ if ('caches' in window) {
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261118-223"></script>
-<script src="js/seed.js?v=20261118-223"></script>
-<script src="js/store.js?v=20261120-offload3"></script>
-<script src="js/desktop.js?v=20261118-223"></script>
-<script src="js/chat.js?v=20261120-voicefix"></script>
-<script src="js/cards.js?v=20261118-223"></script>
-<script src="js/settings.js?v=20261118-223"></script>
-<script src="js/moments.js?v=20261118-223"></script>
-<script src="js/calendar.js?v=20261118-223"></script>
-<script src="js/music.js?v=20261120-fix"></script>
-<script src="js/market.js?v=20261118-223"></script>
-<script src="js/mail.js?v=20261118-223"></script>
-<script src="js/extras.js?v=20261118-223"></script>
-<script src="js/companion.js?v=20261120-fix"></script>
-<script src="js/memoir.js?v=20261118-223"></script>
-<script src="js/group.js?v=20261118-223"></script>
-<script src="js/steps.js?v=20261120-steps2"></script>
-<script src="js/app.js?v=20261120-offload"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261120-hotfix1"></script>
+<script src="js/seed.js?v=20261120-hotfix1"></script>
+<script src="js/store.js?v=20261120-hotfix1"></script>
+<script src="js/desktop.js?v=20261120-hotfix1"></script>
+<script src="js/chat.js?v=20261120-hotfix1"></script>
+<script src="js/cards.js?v=20261120-hotfix1"></script>
+<script src="js/settings.js?v=20261120-hotfix1"></script>
+<script src="js/moments.js?v=20261120-hotfix1"></script>
+<script src="js/calendar.js?v=20261120-hotfix1"></script>
+<script src="js/music.js?v=20261120-hotfix1"></script>
+<script src="js/market.js?v=20261120-hotfix1"></script>
+<script src="js/mail.js?v=20261120-hotfix1"></script>
+<script src="js/extras.js?v=20261120-hotfix1"></script>
+<script src="js/companion.js?v=20261120-hotfix1"></script>
+<script src="js/memoir.js?v=20261120-hotfix1"></script>
+<script src="js/group.js?v=20261120-hotfix1"></script>
+<script src="js/steps.js?v=20261120-hotfix1"></script>
+<script src="js/app.js?v=20261120-hotfix1"></script>
 </body>
 </html>

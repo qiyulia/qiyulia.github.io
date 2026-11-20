@@ -15,7 +15,8 @@ html, body {
   height: 100%;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  touch-action: pan-x pan-y;
+  /* manipulation = 允许平移、禁止双击缩放，替代原来有害的全局 touchend 拦截 */
+  touch-action: manipulation;
 }
 
 body {

@@ -240,6 +240,46 @@
     paintVoiceBubbles();
   });
 
+  /* 移动端自动播放限制：play() 必须在真实用户手势的同步调用栈里。
+     原实现把 play() 放在 resolveVoiceUrl(...).then() 里，手势早已丢失，
+     浏览器静默拒绝，.catch() 又把错误吞掉，于是「点语音没有任何声音」。
+     修法：① 渲染气泡时就把 objectURL 预解析进 voiceUrls 缓存；
+            ② 首次真实手势用同一个 <audio> 播一段静音，解锁媒体播放；
+            ③ click 里同步取缓存并同步调用 play()。 */
+  const SILENT_UNLOCK = 'data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YUAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+  let voiceUnlocked = false;
+  function unlockVoice() {
+    if (voiceUnlocked) return;
+    voiceUnlocked = true;
+    try {
+      const keepSrc = voicePlayer.getAttribute('src') || '';
+      voicePlayer.src = SILENT_UNLOCK;
+      const p = voicePlayer.play();
+      if (p && p.then) p.then(function () {
+        try { voicePlayer.pause(); } catch (e) {}
+        if (keepSrc) voicePlayer.src = keepSrc;
+      }).catch(function () { voiceUnlocked = false; });
+    } catch (e) { voiceUnlocked = false; }
+  }
+  document.addEventListener('pointerdown', unlockVoice, true);
+  document.addEventListener('touchend', unlockVoice, true);
+
+  function playVoiceNow(url, id) {
+    if (!url) { App.toast('这段语音暂时无法播放'); return; }
+    voicePlayingId = id;
+    try {
+      if (voicePlayer.src !== url) voicePlayer.src = url;
+      voicePlayer.currentTime = 0;
+    } catch (e) {}
+    const p = voicePlayer.play();
+    if (p && p.catch) p.catch(function () {
+      voicePlayingId = '';
+      paintVoiceBubbles();
+      App.toast('播放被浏览器拦截，请再点一次');
+    });
+    paintVoiceBubbles();
+  }
+
   function bindVoiceBubbles(root) {
     root.querySelectorAll('.bubble-audio').forEach(function (bubble) {
       const btn = bubble.querySelector('.voice-bubble');
@@ -247,10 +287,14 @@
       paintVoiceBubble(bubble);
       const ref = bubble.dataset.voiceRef || '';
       const key = voiceRefKey(ref);
+      /* 预解析：把 URL 写进 voiceUrls，点击时就能同步取到，不必等 Promise */
       if (!bubble.dataset.voiceReady) {
         bubble.dataset.voiceReady = '1';
+        if (ref && ref.indexOf('data:') === 0) voiceUrls[key] = ref;
         resolveVoiceUrl(ref).then(function (url) {
-          if (!url || voiceDurations[key]) return;
+          if (!url) return;
+          voiceUrls[key] = url;
+          if (voiceDurations[key]) return;
           const probe = new Audio();
           probe.preload = 'metadata';
           probe.addEventListener('loadedmetadata', function () {
@@ -259,30 +303,23 @@
             paintVoiceBubbles();
           });
           probe.src = url;
-        });
+        }).catch(function () {});
       }
+      /* 手指按下时就开始解析，尽量让 click 时缓存已命中 */
+      btn.addEventListener('pointerdown', function () { resolveVoiceUrl(ref); }, true);
       btn.addEventListener('click', function () {
         const wrap = btn.closest('[data-msg-id]');
         const id = wrap ? wrap.dataset.msgId : '';
         if (!id) return;
-        if (voicePlayingId === id) {
-          stopVoice();
-          return;
-        }
+        if (voicePlayingId === id) { stopVoice(); return; }
+        unlockVoice();
+        const cached = voiceUrls[key] || (ref && ref.indexOf('data:') === 0 ? ref : '');
+        if (cached) { playVoiceNow(cached, id); return; }
+        /* 缓存未命中（首次）：解析完成后再播一次，并给出可见反馈 */
         resolveVoiceUrl(ref).then(function (url) {
-          if (!url) {
-            App.toast('这段语音暂时无法播放');
-            return;
-          }
-          voicePlayingId = id;
-          if (voicePlayer.src !== url) voicePlayer.src = url;
-          try { voicePlayer.currentTime = 0; } catch (e) {}
-          voicePlayer.play().catch(function () {
-            voicePlayingId = '';
-            paintVoiceBubbles();
-          });
-          paintVoiceBubbles();
-        });
+          if (url) { voiceUrls[key] = url; playVoiceNow(url, id); }
+          else App.toast('这段语音文件已丢失，请重新导入');
+        }).catch(function () { App.toast('语音读取失败，请重新导入'); });
       });
     });
   }
@@ -2819,8 +2856,6 @@
       if (bubbleHit) {
         if (e.target.closest('audio')) return;
         if (e.target.closest('.rem-actions')) return;
-        /* 点语音播放键只播放，不弹消息操作菜单（否则点哪都先冒出「引用/收藏/删除」） */
-        if (e.target.closest('.voice-bubble')) return;
         closeStickerPanel();
         openMsgActions(bubbleHit);
         return;
@@ -2978,15 +3013,37 @@
       scrollBottom();
     });
     window.addEventListener('resize', closeMsgActions);
-    /* 文件输入框直接覆盖在按钮上，由浏览器原生响应点击；不再用 JS 代点。 */
-    el('#sticker-file').addEventListener('change', function (e) {
+    /* 原生覆盖点击为主，JS 同步兜底为辅：某些 WebView 对 opacity:0 的
+       input 不派发原生点击，此时由父容器的真实 click 直接代点一次。 */
+    const stickerFileEl = el('#sticker-file');
+    const chatImageFileEl = el('#chat-image-file');
+    function relayFileClick(container, input) {
+      if (!container || !input) return;
+      container.addEventListener('click', function (e) {
+        if (e.target === input) return;           /* 原生已处理，别重复触发 */
+        try { input.click(); } catch (err) {}
+      });
+    }
+    relayFileClick(el('#btn-add-sticker'), stickerFileEl);
+    relayFileClick(el('#btn-pick-chat-image'), chatImageFileEl);
+
+    stickerFileEl.addEventListener('change', function (e) {
       const input = e.target;
       const files = Array.from(input.files || []);
       if (!files.length) return;
-      addStickers(files).finally(function () {
-        /* 压缩完成后再清空，避免 iOS 提前让选中的文件失效 */
-        try { input.value = ''; } catch (err) {}
-      });
+      try {
+        addStickers(files).catch(function (err) {
+          setStickerStatus('图片读取失败，请换一张试试', true);
+          try { console.error('[sticker]', err); } catch (_) {}
+        }).finally(function () {
+          /* 压缩完成后再清空，避免 iOS 提前让选中的文件失效 */
+          try { input.value = ''; } catch (err) {}
+        });
+      } catch (err) {
+        /* 同步异常也必须清掉 input，否则下次选同一张图不会再触发 change */
+        try { input.value = ''; } catch (_) {}
+        setStickerStatus('图片读取失败，请换一张试试', true);
+      }
     });
 
     /* 相册选择不可用时，可以从剪贴板粘贴图片 */

@@ -10,17 +10,11 @@
   document.addEventListener('touchmove', function (e) {
     if (e.touches && e.touches.length > 1) e.preventDefault();
   }, { passive: false });
-  /* 防双击缩放：连续两下才拦。但点在可交互控件上时绝不能拦——
-     拦掉 touchend 等于取消后续 click，按钮和文件选择会表现为「点了没反应」。 */
-  let lastTapAt = 0;
-  document.addEventListener('touchend', function (e) {
-    const t = e.target;
-    const interactive = t && t.closest &&
-      t.closest('button, a, input, label, select, textarea, summary, [role="button"], [contenteditable="true"]');
-    const now = Date.now();
-    if (!interactive && now - lastTapAt < 300) e.preventDefault();
-    lastTapAt = now;
-  }, { passive: false });
+  /* 防双击缩放改由 CSS 的 touch-action: manipulation 处理。
+     原来这段全局 touchend 拦截有致命副作用：自定义按钮（div.btn、span、
+     覆盖层里的空白区）不在白名单里，用户第一次点没反应后再点一次就会命中
+     300ms 判定，e.preventDefault() 直接取消后续 click，
+     于是「点导入不弹文件框」且换任何浏览器都一样。此处整段移除。 */
   document.addEventListener('wheel', function (e) {
     if (e.ctrlKey) e.preventDefault();
   }, { passive: false });
@@ -411,13 +405,13 @@
   /* 界面按用户自己的数据渲染完成后，通知开屏动画「内容已就绪」。
      双 rAF 确保这一帧真正画出来；开屏会在「动画放满 + 就绪」都满足后淡出。 */
   function notifyBootReady() {
+    /* 必须同步先调一次：页面在后台或标签页被节流时 rAF 可能不触发，
+       只靠双 rAF 会让开屏一直挂着并吃掉所有点击。 */
+    if (window.__bootReady) window.__bootReady();
+    else if (window.hideBootSplash) window.hideBootSplash();
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         if (window.__bootReady) window.__bootReady();
-        else {
-          var s = document.getElementById('boot-splash');
-          if (s) s.classList.add('is-hidden');
-        }
       });
     });
   }
@@ -434,7 +428,12 @@
   /* 兜底：IndexedDB 偶发被阻塞或读取卡死时，load 会一直 pending；
      不兜底的话开屏淡出后就是一个没有数据、也没有事件绑定的死界面。
      6 秒还没读完就先用种子数据把界面跑起来，保证至少能点、能操作。 */
-  var loadGuard = setTimeout(runBoot, 6000);
-  App.load().then(function () { clearTimeout(loadGuard); runBoot(); },
-                 function () { clearTimeout(loadGuard); runBoot(); });
+  var loadGuard = setTimeout(runBoot, 3000);
+  /* IndexedDB 被另一个标签页占用时 open() 可能永远 pending，
+     加一道 3 秒超时竞速，保证界面和事件绑定一定能起来。 */
+  var loadRace = Promise.race([
+    App.load().catch(function () { return null; }),
+    new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 3000); })
+  ]);
+  loadRace.then(function () { clearTimeout(loadGuard); runBoot(); });
 })();
