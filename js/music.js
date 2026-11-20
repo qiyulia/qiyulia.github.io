@@ -29,7 +29,14 @@
     return tracks().find(function (track) { return track.id === App.state.music.currentId; }) || tracks()[0];
   }
   function sourceLabel(track) { return SOURCE_LABELS[track.source] || '导入音乐'; }
-  function isFavorite(id, side) { return App.state.music.favorites[side].indexOf(id) !== -1; }
+  function favorites() {
+    const music = App.state.music;
+    if (!music.favorites || typeof music.favorites !== 'object') music.favorites = { mine: [], ta: [] };
+    if (!Array.isArray(music.favorites.mine)) music.favorites.mine = [];
+    if (!Array.isArray(music.favorites.ta)) music.favorites.ta = [];
+    return music.favorites;
+  }
+  function isFavorite(id, side) { return favorites()[side].indexOf(id) !== -1; }
   function safeUrl(value) {
     try {
       const url = new URL(value);
@@ -162,8 +169,7 @@
     el('#chat-music-favorite').classList.toggle('is-active', mine);
     el('#chat-music-favorite').setAttribute('aria-label', mine ? '取消收藏当前歌曲' : '收藏当前歌曲');
 
-    const music = App.state.music;
-    el('#music-count').textContent = tracks().length + ' 首 · 我 ' + music.favorites.mine.length + ' · TA ' + music.favorites.ta.length;
+    el('#music-count').textContent = tracks().length + ' 首 · 我 ' + favorites().mine.length + ' · TA ' + favorites().ta.length;
     el('#music-list').innerHTML = tracks().map(function (item, itemIndex) {
       const id = App.esc(item.id);
       const current = item.id === track.id;
@@ -519,7 +525,7 @@
 
   function toggleFavorite(id, side) {
     if (!id) return;
-    const list = App.state.music.favorites[side];
+    const list = favorites()[side];
     const index = list.indexOf(id);
     if (index === -1) list.push(id);
     else list.splice(index, 1);
@@ -685,7 +691,7 @@
         if (!data || data.status !== 'success' || !data.data) return {};
         const names = parseNeteaseTitle(data.data.title);
         const finalUrl = data.data.url || '';
-        return { id: neteaseId(finalUrl), pageUrl: finalUrl, title: names.title, artist: names.artist };
+        return { id: neteaseId(finalUrl), pageUrl: finalUrl, title: names.title, artist: names.artist, description: data.data.description || '' };
       })
       .catch(function () { if (timer) clearTimeout(timer); return {}; });
   }
@@ -710,15 +716,71 @@
     const directId = neteaseId(url);
     const pageUrl = directId ? 'https://music.163.com/song?id=' + directId : url;
     /* 链接本身已经带了歌曲 id（非短链），直接拿到，不必再走可能限流/超时的第三方代理，
-       歌名歌手留空由导入时的默认值兜底，用户也可以自己填。 */
+       歌名歌手在加入列表后由 fillNeteaseMeta 在后台补上，不拖慢导入。 */
     if (directId) return Promise.resolve({ id: directId, pageUrl: pageUrl, title: '', artist: '' });
-    /* 短链必须联网识别：microlink 与多个代理同时跑，通常几秒内就有结果 */
-    const fromMicrolink = fetchMicrolink(url, 8000).then(function (info) { return info || {}; });
-    const fromPage = fetchTextViaProxy(url, 7000).then(function (html) {
+    /* 短链必须联网识别：microlink 与多个代理同时跑，谁先拿到 id 用谁 */
+    const fromMicrolink = fetchMicrolink(url, 7000).then(function (info) { return info || {}; });
+    const fromPage = fetchTextViaProxy(url, 5000).then(function (html) {
       const meta = parseNeteaseHtml(html);
       return { id: meta.id || '', pageUrl: meta.pageUrl || url, title: meta.title || '', artist: meta.artist || '' };
     });
     return firstResolved([fromMicrolink, fromPage]);
+  }
+  /* 只补歌名和歌手：拿到歌曲 id 就先入列表，元信息慢慢查，查不到也不影响播放 */
+  function fetchMetingMeta(id) {
+    const controller = window.AbortController ? new AbortController() : null;
+    const timer = controller ? setTimeout(function () { controller.abort(); }, 4000) : null;
+    return fetch('https://api.injahow.cn/meting/?type=song&id=' + id, { signal: controller ? controller.signal : undefined })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('meting ' + res.status)); })
+      .then(function (data) {
+        if (timer) clearTimeout(timer);
+        const item = Array.isArray(data) ? data[0] : data;
+        if (!item) return {};
+        return { title: item.name || '', artist: item.artist || '' };
+      })
+      .catch(function () { if (timer) clearTimeout(timer); return {}; });
+  }
+  function fetchNeteaseMeta(id) {
+    const pageUrl = 'https://music.163.com/song?id=' + id;
+    /* 先走带跨域头的网易云信息接口，通常一秒内就有歌名和歌手 */
+    return fetchMetingMeta(id).then(function (info) {
+      if (info && info.title) return info;
+      return fetchMicrolink(pageUrl, 12000).then(function (meta) {
+        if (meta && meta.title) return meta;
+        return fetchTextViaProxy(pageUrl, 6000).then(function (html) {
+          const parsed = parseNeteaseHtml(html);
+          return { title: parsed.title || '', artist: parsed.artist || '' };
+        });
+      }).catch(function () { return {}; });
+    });
+  }
+  /* 详情页有时只有歌名、没有独立歌手字段，从简介“由 A、B 演唱”里再取一次 */
+  function artistFromDescription(text) {
+    const match = String(text || '').match(/由\s*([^，,。]+?)\s*(?:演唱|演唱。)/);
+    return match ? match[1].trim() : '';
+  }
+  function fillNeteaseMeta(track, id, userTitle, userArtist) {
+    const trackId = track.id;
+    fetchNeteaseMeta(id).then(function (info) {
+      if (!info) return;
+      if (!info.artist && info.description) info.artist = artistFromDescription(info.description);
+      /* 元信息回来时播放列表可能已被后台加载整体替换，按 id 重新定位真实对象 */
+      const list = (App.state.music && App.state.music.tracks) || [];
+      const target = list.find(function (item) { return item && item.id === trackId; }) || track;
+      let changed = false;
+      if (!userTitle && info.title && (!target.title || target.title === '网易云音乐')) {
+        target.title = info.title;
+        changed = true;
+      }
+      if (!userArtist && info.artist && (!target.artist || target.artist === '未知歌手')) {
+        target.artist = info.artist;
+        changed = true;
+      }
+      if (!changed) return;
+      App.save();
+      if (App.renderMusic) App.renderMusic();
+      if (App.renderWidgets) App.renderWidgets();
+    });
   }
 
   function importLink(e) {
@@ -740,45 +802,51 @@
       status.textContent = '正在识别网易云歌曲信息…';
       const directId = neteaseId(url);
       const shareTitle = (raw.match(/《([^》]{1,40})》/) || [])[1] || '';
+      const userTitle = titleInput.value.trim();
+      const userArtist = artistInput.value.trim();
       /* 短链要联网识别，给一个总超时，避免一直卡在“正在识别” */
       const overall = new Promise(function (_, reject) {
-        setTimeout(function () { reject(new Error('NETEASE_TIMEOUT')); }, 12000);
+        setTimeout(function () { reject(new Error('NETEASE_TIMEOUT')); }, 9000);
       });
       Promise.race([resolveNetease(url), overall]).then(function (info) {
         if (!info.id) throw new Error('未识别到网易云歌曲，请粘贴带 song?id=… 的歌曲页面链接。');
-        tracks().push({
+        const track = {
           id: App.uid('track'),
-          title: titleInput.value.trim() || info.title || shareTitle || '网易云音乐',
-          artist: artistInput.value.trim() || info.artist || '未知歌手',
+          title: userTitle || info.title || shareTitle || '网易云音乐',
+          artist: userArtist || info.artist || '未知歌手',
           source: 'netease',
           url: url,
           pageUrl: info.pageUrl,
           audioUrl: neteaseAudioUrl(info.id),
           createdAt: Date.now(),
-        });
+        };
+        tracks().push(track);
         App.save();
         App.renderMusic();
         el('#music-link-form').reset();
         status.textContent = '已识别网易云歌曲并加入播放列表；受版权或会员限制的歌曲可能无法站外播放。';
         App.toast('网易云歌曲已加入播放列表');
+        if (!info.title || !info.artist) fillNeteaseMeta(track, info.id, userTitle, userArtist);
       }).catch(function (err) {
         if (err && err.message === 'NETEASE_TIMEOUT' && directId) {
           /* 识别超时但链接本身带了歌曲 id，先用直链加入，至少能尝试播放 */
-          tracks().push({
+          const track = {
             id: App.uid('track'),
-            title: titleInput.value.trim() || shareTitle || '网易云音乐',
-            artist: artistInput.value.trim() || '未知歌手',
+            title: userTitle || shareTitle || '网易云音乐',
+            artist: userArtist || '未知歌手',
             source: 'netease',
             url: url,
             pageUrl: 'https://music.163.com/song?id=' + directId,
             audioUrl: neteaseAudioUrl(directId),
             createdAt: Date.now(),
-          });
+          };
+          tracks().push(track);
           App.save();
           App.renderMusic();
           el('#music-link-form').reset();
           status.textContent = '识别超时，已按歌曲链接加入列表；若播放不了，请导入本地音频。';
           App.toast('网易云歌曲已加入播放列表');
+          fillNeteaseMeta(track, directId, userTitle, userArtist);
           return;
         }
         status.textContent = err && err.message === 'NETEASE_TIMEOUT'
@@ -844,8 +912,8 @@
         synth.trackId = '';
       }
       App.state.music.tracks = tracks().filter(function (item) { return item.id !== id; });
-      App.state.music.favorites.mine = App.state.music.favorites.mine.filter(function (item) { return item !== id; });
-      App.state.music.favorites.ta = App.state.music.favorites.ta.filter(function (item) { return item !== id; });
+      favorites().mine = favorites().mine.filter(function (item) { return item !== id; });
+      favorites().ta = favorites().ta.filter(function (item) { return item !== id; });
       if (track.source === 'local') deleteAudio(id).catch(function () {});
       App.save();
       App.renderMusic();
