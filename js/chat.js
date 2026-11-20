@@ -2819,6 +2819,8 @@
       if (bubbleHit) {
         if (e.target.closest('audio')) return;
         if (e.target.closest('.rem-actions')) return;
+        /* 点语音播放键只播放，不弹消息操作菜单（否则点哪都先冒出「引用/收藏/删除」） */
+        if (e.target.closest('.voice-bubble')) return;
         closeStickerPanel();
         openMsgActions(bubbleHit);
         return;
