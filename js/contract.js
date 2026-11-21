@@ -41,7 +41,11 @@
 
   function data() {
     var st = App.state;
-    if (!st) return { signed: false, date: today(), bg: 'default', bgRef: '', dark: false, vow: 0, rewarded: false };
+    var empty = {
+      signed: false, date: today(), bg: 'default', bgRef: '', dark: false,
+      vow: 0, rewarded: false, contactId: '', avatars: { ta: {}, me: {} }
+    };
+    if (!st) return empty;
     if (!st.contract || typeof st.contract !== 'object') {
       st.contract = {
         signed: false,
@@ -50,14 +54,46 @@
         bgRef: '',
         dark: false,
         vow: Math.floor(Math.random() * VOWS.length),
-        rewarded: false
+        rewarded: false,
+        contactId: '',                 /* 空 = 跟随当前聊天对象 */
+        /* 婚帖专属头像，按联系人分别记：换联系人时 TA 和「我」一起刷新，
+           互不串；不动资料页/聊天页里的原头像。 */
+        avatars: { ta: {}, me: {} }
       };
     }
     var d = st.contract;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(d.date || ''))) d.date = today();
     if (['default', 'red', 'custom'].indexOf(d.bg) < 0) d.bg = 'default';
     if (typeof d.vow !== 'number' || d.vow < 0 || d.vow >= VOWS.length) d.vow = 0;
+    /* 兼容旧数据：补齐新字段，不破坏已签好的契约 */
+    if (!d.avatars || typeof d.avatars !== 'object') d.avatars = { ta: {}, me: {} };
+    if (!d.avatars.ta || typeof d.avatars.ta !== 'object') d.avatars.ta = {};
+    /* 早期版本 me 是单个字符串，转成按联系人存 */
+    if (typeof d.avatars.me === 'string') {
+      var legacyMe = d.avatars.me;
+      d.avatars.me = {};
+      if (legacyMe) {
+        var legacyId = d.contactId || (App.activeContactId ? App.activeContactId() : '') || (st.currentContactId || '');
+        if (legacyId) d.avatars.me[legacyId] = legacyMe;
+      }
+    }
+    if (!d.avatars.me || typeof d.avatars.me !== 'object') d.avatars.me = {};
+    var contacts = (st.contacts || []).filter(function (c) { return c && c.id; });
+    if (d.contactId && !contacts.some(function (c) { return c.id === d.contactId; })) {
+      d.contactId = '';               /* 联系人被删了就回落到当前对象 */
+    }
     return d;
+  }
+
+  function activeId() {
+    return App.activeContactId ? App.activeContactId() : (App.state && App.state.currentContactId) || '';
+  }
+
+  function currentContact() {
+    var st = App.state || {};
+    var list = st.contacts || [];
+    var want = data().contactId || activeId();
+    return list.find(function (c) { return c && c.id === want; }) || list[0] || null;
   }
 
   function fmtDate(s) {
@@ -68,14 +104,19 @@
 
   function parties() {
     var st = App.state || {};
-    var contacts = st.contacts || [];
-    var id = App.activeContactId ? App.activeContactId() : st.currentContactId;
-    var c = contacts.find(function (x) { return x && x.id === id; }) || contacts[0] || {};
+    var d = data();
+    var c = currentContact() || {};
     var profile = st.profile || {};
+    /* 关键：两侧都按「当前选中的联系人 id」取，换人时整张契约书一起刷新 */
+    var cid = c.id || '';
+    var taCustom = d.avatars.ta[cid] || '';
+    var meCustom = d.avatars.me[cid] || '';
     return {
-      ta: { name: String(c.name || 'TA'), avatar: c.avatar || '' },
-      me: { name: String(profile.userName || '我'), avatar: profile.userAvatar || '' },
-      contactId: c.id || null
+      ta: { name: String(c.name || 'TA'), avatar: taCustom || c.avatar || '' },
+      me: { name: String(profile.userName || '我'), avatar: meCustom || profile.userAvatar || '' },
+      contactId: c.id || null,
+      taCustom: !!taCustom,
+      meCustom: !!meCustom
     };
   }
 
@@ -187,6 +228,127 @@
     }
   }
 
+  /* ---------- 契约对象：可切换联系人，只影响这张婚帖 ---------- */
+  function contactAvatarHtml(src) {
+    var v = String(src || '');
+    if (v.indexOf('img:') === 0) {
+      return '<img data-img-ref="' + esc(v) + '" src="' + esc(fallbackAvatar()) + '" alt="">';
+    }
+    if (App.avatarHtml) return App.avatarHtml(v);
+    return '<img src="' + esc(fallbackAvatar()) + '" alt="">';
+  }
+
+  function openDialog(sel) {
+    var dlg = el(sel);
+    if (dlg) { try { dlg.showModal(); } catch (e) { dlg.setAttribute('open', ''); } }
+  }
+  function closeDialog(sel) {
+    var dlg = el(sel);
+    if (dlg) { try { dlg.close(); } catch (e) { dlg.removeAttribute('open'); } }
+  }
+
+  function renderContactList() {
+    var box = el('#contract-contact-list');
+    if (!box) return;
+    var d = data();
+    var chosen = d.contactId || activeId();
+    var list = (App.state && App.state.contacts) || [];
+    box.innerHTML = list.length ? list.map(function (c) {
+      return '<button type="button" class="contract-contact' +
+        (c.id === chosen ? ' is-current' : '') + '" data-contract-contact="' + esc(c.id) + '">' +
+        '<span class="contract-contact-av">' + contactAvatarHtml(c.avatar) + '</span>' +
+        '<span class="contract-contact-name">' + esc(c.name || 'TA') + '</span>' +
+        (c.id === chosen ? '<span class="contract-contact-tag">当前</span>' : '') +
+        '</button>';
+    }).join('') : '<p class="contract-empty">还没有联系人，先去聊天里添加一个吧。</p>';
+    if (App.hydrateImages) App.hydrateImages(box);
+  }
+
+  function openContactDialog() {
+    renderContactList();
+    openDialog('#contract-contact-dialog');
+  }
+
+  function pickContact(id) {
+    var d = data();
+    var c = ((App.state && App.state.contacts) || []).find(function (x) { return x && x.id === id; });
+    if (!c) return;
+    d.contactId = id;
+    save();
+    closeDialog('#contract-contact-dialog');
+    render().then(function () { toast('契约对象已换成 ' + (c.name || 'TA')); });
+  }
+
+  /* ---------- 双方头像：婚帖专属，存 IndexedDB，state 只留 img:<id> ---------- */
+  var avatarSide = 'ta';
+
+  function poolFor(side) {
+    var pool = (App.state && App.state.avatarPool) || {};
+    var arr = side === 'ta' ? pool.ta : pool.mine;
+    return Array.isArray(arr) ? arr : [];
+  }
+
+  function renderAvatarGrid() {
+    var box = el('#contract-avatar-grid');
+    if (!box) return;
+    var list = poolFor(avatarSide);
+    box.innerHTML = list.length ? list.map(function (src, i) {
+      var v = String(src || '');
+      return '<button type="button" class="contract-pool-item" data-contract-pool="' + i + '">' +
+        (v.indexOf('img:') === 0
+          ? '<img data-img-ref="' + esc(v) + '" src="' + esc(fallbackAvatar()) + '" alt="">'
+          : '<img src="' + esc(v) + '" alt="">') +
+        '</button>';
+    }).join('') : '<p class="contract-empty">这一侧的头像池还是空的。<br>可以先在「头像工具」里导入几张，或直接从相册选。</p>';
+    if (App.hydrateImages) App.hydrateImages(box);
+  }
+
+  function openAvatarDialog(side) {
+    avatarSide = side === 'me' ? 'me' : 'ta';
+    var title = el('#contract-avatar-title');
+    if (title) title.textContent = avatarSide === 'ta' ? '更换 TA 的头像' : '更换我的头像';
+    renderAvatarGrid();
+    openDialog('#contract-avatar-dialog');
+  }
+
+  function storeAvatarSrc(side, src) {
+    if (!src) return Promise.resolve();
+    var promise = App.imageRef ? App.imageRef(src) : Promise.resolve(src);
+    return promise.then(function (ref) {
+      var d = data();
+      var c = currentContact();
+      if (!c || !c.id) { toast('先选一个契约对象'); return; }
+      if (side === 'ta') d.avatars.ta[c.id] = ref;
+      else d.avatars.me[c.id] = ref;
+      save();
+      return render();
+    }).then(function () {
+      closeDialog('#contract-avatar-dialog');
+      toast('头像已更换');
+    }).catch(function () {
+      toast('这张图片存不进去，换一张试试');
+    });
+  }
+
+  function useAvatarFile(file) {
+    if (!file || !/^image\//.test(file.type)) { toast('请选择一张图片'); return; }
+    if (!App.compressImage) { toast('图片组件还没加载好'); return; }
+    App.compressImage(file, 256).then(function (src) {
+      return storeAvatarSrc(avatarSide, src);
+    }).catch(function () { toast('这张图片读不出来，换一张试试'); });
+  }
+
+  function resetAvatar() {
+    var d = data();
+    var c = currentContact();
+    if (!c || !c.id) return;
+    if (avatarSide === 'ta') delete d.avatars.ta[c.id];
+    else delete d.avatars.me[c.id];
+    save();
+    closeDialog('#contract-avatar-dialog');
+    render().then(function () { toast('已恢复为资料里的头像'); });
+  }
+
   /* ---------- 渲染 ---------- */
   function render() {
     var d = data();
@@ -214,7 +376,15 @@
       var unsigned = el('#contract-unsigned');
       if (unsigned) unsigned.hidden = !!d.signed;
       var actions = el('#contract-actions');
-      if (actions) actions.hidden = !d.signed;
+      /* 未签订时也能先挑好契约对象、换好双方头像；签完才放开背景/导出/换誓词 */
+      if (actions) {
+        actions.hidden = false;
+        actions.classList.toggle('is-unsigned', !d.signed);
+      }
+      var obj = el('#contract-object-name');
+      if (obj) obj.textContent = p.ta.name;
+      var objHint = el('#contract-object-hint');
+      if (objHint) objHint.textContent = d.contactId ? '已指定契约对象' : '跟随当前聊天对象';
       renderBgPills();
     });
   }
@@ -500,7 +670,53 @@
     var exportBtn = el('#contract-export');
     if (exportBtn) exportBtn.addEventListener('click', exportPng);
 
-    /* 手机 WebView 不弹文件框时的兜底：从剪贴板粘贴图片 */
+    /* 契约对象 */
+    var contactBtn = el('#contract-btn-contact');
+    if (contactBtn) contactBtn.addEventListener('click', openContactDialog);
+    var contactList = el('#contract-contact-list');
+    if (contactList) contactList.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-contract-contact]');
+      if (b) pickContact(b.dataset.contractContact);
+    });
+    document.querySelectorAll('#contract-contact-dialog [data-close]').forEach(function (b) {
+      b.addEventListener('click', function () { closeDialog('#contract-contact-dialog'); });
+    });
+
+    /* 双方头像：卡片上的圆头像 + 操作区里的两个按钮，都进同一个弹窗 */
+    var card = el('#contract-card');
+    if (card) card.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-contract-avatar]');
+      if (b) openAvatarDialog(b.dataset.contractAvatar);
+    });
+    [['#contract-btn-avatar-ta', 'ta'], ['#contract-btn-avatar-me', 'me']].forEach(function (pair) {
+      var btn = el(pair[0]);
+      if (btn) btn.addEventListener('click', function () { openAvatarDialog(pair[1]); });
+    });
+    var grid = el('#contract-avatar-grid');
+    if (grid) grid.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-contract-pool]');
+      if (!b) return;
+      var src = poolFor(avatarSide)[Number(b.dataset.contractPool)];
+      if (src) storeAvatarSrc(avatarSide, src);
+    });
+    var avReset = el('#contract-avatar-reset');
+    if (avReset) avReset.addEventListener('click', resetAvatar);
+    var avPick = el('#contract-avatar-pick');
+    if (avPick) avPick.addEventListener('click', function () {
+      var f = el('#contract-avatar-file');
+      if (f) f.click();
+    });
+    var avFile = el('#contract-avatar-file');
+    if (avFile) avFile.addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) useAvatarFile(f);
+      e.target.value = '';
+    });
+    document.querySelectorAll('#contract-avatar-dialog [data-close]').forEach(function (b) {
+      b.addEventListener('click', function () { closeDialog('#contract-avatar-dialog'); });
+    });
+
+    /* 粘贴图片：头像弹窗开着就当头像，否则当背景。全程不弹任何权限框。 */
     document.addEventListener('paste', function (e) {
       var app = el('#app');
       if (!app || app.dataset.view !== 'contract') return;
@@ -508,7 +724,11 @@
       for (var i = 0; i < items.length; i++) {
         if (items[i].type && items[i].type.indexOf('image/') === 0) {
           var f = items[i].getAsFile();
-          if (f) { useUploadedImage(f); e.preventDefault(); }
+          if (!f) break;
+          var dlg = el('#contract-avatar-dialog');
+          if (dlg && dlg.open) useAvatarFile(f);
+          else useUploadedImage(f);
+          e.preventDefault();
           break;
         }
       }

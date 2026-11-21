@@ -357,6 +357,102 @@
 .contract-card.is-exporting .contract-heart,
 .contract-card.is-exporting .contract-unsigned-mark svg { filter: none; animation: none; }
 
+
+/* ---------- 契约对象 / 双方头像 ---------- */
+/* 未签订：只放开「挑人 + 换头像」，背景与导出先收着，签完再出现 */
+.contract-actions.is-unsigned .contract-signed-only,
+.contract-actions.is-unsigned .contract-reward { display: none; }
+
+.contract-avatar[data-contract-avatar] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.contract-avatar[data-contract-avatar]:active { transform: scale(.95); }
+.contract-avatar[data-contract-avatar]::after {
+  content: '';
+  position: absolute;
+  right: -2px; bottom: -2px;
+  width: 21px; height: 21px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .92) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234b76ad' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 20h4l10-10-4-4L4 16v4zM13.5 6.5l4 4'/%3E%3C/svg%3E") center / 13px no-repeat;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .16);
+  pointer-events: none;
+}
+.contract-card.is-unsigned .contract-avatar[data-contract-avatar]::after { display: none; }
+.contract-avatar[data-contract-avatar] { position: relative; }
+
+.contract-object-btn {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 155, 195, .3);
+  background: rgba(255, 255, 255, .72);
+  color: #365778;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.contract-object-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.contract-object-text span { font-size: 13px; }
+.contract-object-text strong { font-weight: 700; color: #2b4a6b; }
+.contract-object-text small { font-size: 10.5px; color: #7e94ab; }
+.contract-object-btn svg { width: 17px; height: 17px; flex: none; fill: none; stroke: #6b8bab; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.contract-people-hint {
+  margin: 10px 2px 0;
+  font-size: 10.5px; line-height: 1.75;
+  color: #7c92ab;
+}
+
+/* 联系人列表 */
+.contract-contact-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 46vh; overflow-y: auto;
+  margin: 12px 0 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.contract-contact {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; padding: 10px 12px;
+  border-radius: 13px;
+  border: 1px solid var(--line);
+  background: var(--field, rgba(255,255,255,.72));
+  color: var(--ink);
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.contract-contact.is-current { border-color: #6d9ac9; background: rgba(109, 154, 201, .13); }
+.contract-contact-av {
+  width: 42px; height: 42px; flex: none;
+  border-radius: 50%; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: #e8eaee;
+  border: 1px solid rgba(120, 155, 195, .3);
+  font-size: 20px;
+}
+.contract-contact-av img { width: 100%; height: 100%; object-fit: cover; }
+.contract-contact-name { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contract-contact-tag { flex: none; font-size: 10.5px; color: #5b83ad; }
+
+/* 头像池网格 */
+.contract-avatar-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px;
+  max-height: 40vh; overflow-y: auto;
+  margin: 12px 0 4px;
+  min-height: 74px;
+  -webkit-overflow-scrolling: touch;
+}
+.contract-pool-item {
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #eef2f7;
+  overflow: hidden; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.contract-pool-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.contract-pool-item:active { transform: scale(.94); }
+.contract-empty { grid-column: 1 / -1; margin: 0; padding: 16px 10px;
+  font-size: 11.5px; line-height: 1.8; color: var(--muted, #8b7c6a); text-align: center; }
+
 @media (max-width: 360px) {
   .contract-card { padding: 22px 16px 18px; }
   .contract-avatar { width: 64px; height: 64px; }

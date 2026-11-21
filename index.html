@@ -21,7 +21,7 @@
      ③ 从 bfcache 恢复的旧页面也强制重载。
    sessionStorage 保证只自愈一次，不会死循环。 */
 (function () {
-  var EXPECT = '20261121-contract2';
+  var EXPECT = '20261121-contract3';
   window.__SHIYI_BUILD = EXPECT;
   var KEY = 'shiyi.selfheal.' + EXPECT;
   function once() {
@@ -99,10 +99,10 @@
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261121-contract2">
-<link rel="stylesheet" href="css/steps.css?v=20261121-contract2">
-<link rel="stylesheet" href="css/clock.css?v=20261121-contract2">
-<link rel="stylesheet" href="css/contract.css?v=20261121-contract2">
+<link rel="stylesheet" href="css/style.css?v=20261121-contract3">
+<link rel="stylesheet" href="css/steps.css?v=20261121-contract3">
+<link rel="stylesheet" href="css/clock.css?v=20261121-contract3">
+<link rel="stylesheet" href="css/contract.css?v=20261121-contract3">
 </head>
 <body>
 <div class="stage">
@@ -1824,7 +1824,7 @@
 
               <div class="contract-parties">
                 <div class="contract-party">
-                  <div class="contract-avatar" id="contract-avatar-ta"></div>
+                  <div class="contract-avatar" id="contract-avatar-ta" data-contract-avatar="ta" role="button" tabindex="0" aria-label="更换 TA 的头像" title="更换 TA 的头像"></div>
                   <span class="contract-party-name" id="contract-name-ta">TA</span>
                   <span class="contract-party-role">梦角</span>
                 </div>
@@ -1832,7 +1832,7 @@
                   <svg class="contract-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-5.1-8-11a4.6 4.6 0 0 1 8-3.1A4.6 4.6 0 0 1 20 10c0 5.9-8 11-8 11z"/></svg>
                 </div>
                 <div class="contract-party">
-                  <div class="contract-avatar" id="contract-avatar-me"></div>
+                  <div class="contract-avatar" id="contract-avatar-me" data-contract-avatar="me" role="button" tabindex="0" aria-label="更换我的头像" title="更换我的头像"></div>
                   <span class="contract-party-name" id="contract-name-me">我</span>
                   <span class="contract-party-role">本人</span>
                 </div>
@@ -1872,8 +1872,25 @@
             </div>
           </div>
 
-          <div class="contract-actions" id="contract-actions" hidden>
+          <div class="contract-actions" id="contract-actions">
+            <!-- 未签订也能先把人和头像挑好 -->
             <div class="contract-panel">
+              <span class="contract-panel-label">契约对象与双方头像</span>
+              <button type="button" class="contract-object-btn" id="contract-btn-contact">
+                <span class="contract-object-text">
+                  <span>契约对象：<strong id="contract-object-name">…</strong></span>
+                  <small id="contract-object-hint">跟随当前聊天对象</small>
+                </span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <div class="contract-btn-row">
+                <button type="button" class="btn ghost" id="contract-btn-avatar-ta">更换 TA 头像</button>
+                <button type="button" class="btn ghost" id="contract-btn-avatar-me">更换我的头像</button>
+              </div>
+              <p class="contract-people-hint">换联系人时，两边头像会跟着一起刷新；每个联系人各存各的，不改聊天页和资料里的原头像。</p>
+            </div>
+
+            <div class="contract-panel contract-signed-only">
               <span class="contract-panel-label">契约书背景（只改卡片内部）</span>
               <div class="contract-bg-pills" id="contract-bg-pills">
                 <button type="button" class="contract-bg-pill is-active" data-contract-bg="default">网站默认</button>
@@ -1883,7 +1900,7 @@
               <input type="file" id="contract-bg-file" accept="image/*" hidden autocomplete="off" data-form-type="other">
               <p class="contract-bg-hint" id="contract-bg-hint">网站默认：卡片保持淡色，文字为深色。改背景只影响卡片内部。</p>
             </div>
-            <div class="contract-btn-row">
+            <div class="contract-btn-row contract-signed-only">
               <button type="button" class="btn primary" id="contract-export">保存为图片</button>
               <button type="button" class="btn ghost" id="contract-vow-btn">换一句誓词</button>
             </div>
@@ -3199,6 +3216,36 @@
   </form>
 </dialog>
 
+<!-- ============ 婚帖：选择契约对象 ============ -->
+<dialog id="contract-contact-dialog" class="sheet">
+  <form onsubmit="return false">
+    <div class="sheet-head">
+      <h3>选择契约对象</h3>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    </div>
+    <span class="field-label">选谁，婚帖就用谁的名字和头像；「我」这边的头像也按该联系人单独记</span>
+    <div id="contract-contact-list" class="contract-contact-list"></div>
+    <div class="btn-row"><button type="button" class="btn ghost" data-close>取消</button></div>
+  </form>
+</dialog>
+
+<!-- ============ 婚帖：更换双方头像 ============ -->
+<dialog id="contract-avatar-dialog" class="sheet">
+  <form onsubmit="return false">
+    <div class="sheet-head">
+      <h3 id="contract-avatar-title">更换头像</h3>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    </div>
+    <span class="field-label">从头像池挑一张，或从相册选一张（自动压缩后存进 IndexedDB）</span>
+    <div id="contract-avatar-grid" class="contract-avatar-grid"></div>
+    <input type="file" id="contract-avatar-file" accept="image/*" hidden autocomplete="off" data-form-type="other">
+    <div class="btn-row">
+      <button type="button" class="btn ghost" id="contract-avatar-reset">恢复默认</button>
+      <button type="button" class="btn primary" id="contract-avatar-pick">从相册选</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- ============ 站内确认弹窗 ============ -->
 <dialog id="confirm-dialog">
   <div class="confirm-head">
@@ -3296,25 +3343,25 @@
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261121-contract2"></script>
-<script src="js/seed.js?v=20261121-contract2"></script>
-<script src="js/store.js?v=20261121-contract2"></script>
-<script src="js/desktop.js?v=20261121-contract2"></script>
-<script src="js/chat.js?v=20261121-contract2"></script>
-<script src="js/cards.js?v=20261121-contract2"></script>
-<script src="js/settings.js?v=20261121-contract2"></script>
-<script src="js/moments.js?v=20261121-contract2"></script>
-<script src="js/calendar.js?v=20261121-contract2"></script>
-<script src="js/music.js?v=20261121-contract2"></script>
-<script src="js/market.js?v=20261121-contract2"></script>
-<script src="js/mail.js?v=20261121-contract2"></script>
-<script src="js/extras.js?v=20261121-contract2"></script>
-<script src="js/companion.js?v=20261121-contract2"></script>
-<script src="js/memoir.js?v=20261121-contract2"></script>
-<script src="js/group.js?v=20261121-contract2"></script>
-<script src="js/steps.js?v=20261121-contract2"></script>
-<script src="js/clock.js?v=20261121-contract2"></script>
-<script src="js/contract.js?v=20261121-contract2"></script>
-<script src="js/app.js?v=20261121-contract2"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261121-contract3"></script>
+<script src="js/seed.js?v=20261121-contract3"></script>
+<script src="js/store.js?v=20261121-contract3"></script>
+<script src="js/desktop.js?v=20261121-contract3"></script>
+<script src="js/chat.js?v=20261121-contract3"></script>
+<script src="js/cards.js?v=20261121-contract3"></script>
+<script src="js/settings.js?v=20261121-contract3"></script>
+<script src="js/moments.js?v=20261121-contract3"></script>
+<script src="js/calendar.js?v=20261121-contract3"></script>
+<script src="js/music.js?v=20261121-contract3"></script>
+<script src="js/market.js?v=20261121-contract3"></script>
+<script src="js/mail.js?v=20261121-contract3"></script>
+<script src="js/extras.js?v=20261121-contract3"></script>
+<script src="js/companion.js?v=20261121-contract3"></script>
+<script src="js/memoir.js?v=20261121-contract3"></script>
+<script src="js/group.js?v=20261121-contract3"></script>
+<script src="js/steps.js?v=20261121-contract3"></script>
+<script src="js/clock.js?v=20261121-contract3"></script>
+<script src="js/contract.js?v=20261121-contract3"></script>
+<script src="js/app.js?v=20261121-contract3"></script>
 </body>
 </html>
