@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261120-lazy17';
+window.__SHIYI_B_store='20261120-lazy18';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -1873,6 +1873,7 @@ window.__SHIYI_B_store='20261120-lazy17';
       taMomentDailyMax: pick('taMomentDailyMax', 3),
       taMomentGapMin: pick('taMomentGapMin', 10),
       taMomentGapMax: pick('taMomentGapMax', 60),
+      taMomentCooldownMin: pick('taMomentCooldownMin', 10),
       taMomentCardMin: pick('taMomentCardMin', 1),
       taMomentCardMax: pick('taMomentCardMax', 3),
       taPatProb: pick('taPatProb', 10),

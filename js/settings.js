@@ -3,6 +3,25 @@
   const App = window.App;
   const el = function (sel) { return document.querySelector(sel); };
 
+  /* TA 主动发朋友圈这一组的节奏（概率、每日上限、最短/最长间隔、冷却、字卡数）
+     只属于当前打开设置的这个联系人：存进 contact.settings，
+     改他的不会连带改到别的联系人。运行时 moments.js 也是按联系人的这份设置走的。 */
+  function momentContact() {
+    const id = App.chatContactId;
+    if (!id) return null;
+    return (App.state.contacts || []).find(function (c) { return c.id === id; }) || null;
+  }
+  function momentLimit(key, fallback) {
+    const value = Number(App.contactSettings(momentContact())[key]);
+    return isNaN(value) ? fallback : value;
+  }
+  function setMomentLimit(key, value) {
+    const contact = momentContact();
+    if (!contact) { App.state.settings[key] = value; return; }
+    if (!contact.settings) contact.settings = {};
+    contact.settings[key] = value;
+  }
+
   function storageSize() {
     const node = el('#storage-size');
     if (!node) return;
@@ -313,13 +332,13 @@
     el('#set-loc-prompt-prob').value = st.settings.locPromptProb == null ? 20 : st.settings.locPromptProb;
     el('#set-ta-like').value = st.settings.taLikeProb == null ? 60 : st.settings.taLikeProb;
     el('#set-ta-comment').value = st.settings.taCommentProb == null ? 40 : st.settings.taCommentProb;
-    el('#set-ta-moment-prob').value = st.settings.taMomentProb == null ? 25 : st.settings.taMomentProb;
-    el('#set-ta-moment-daily').value = st.settings.taMomentDailyMax == null ? 3 : st.settings.taMomentDailyMax;
-    el('#set-ta-moment-gap-min').value = st.settings.taMomentGapMin == null ? 10 : st.settings.taMomentGapMin;
-    el('#set-ta-moment-gap-max').value = st.settings.taMomentGapMax == null ? 60 : st.settings.taMomentGapMax;
-    el('#set-ta-moment-card-min').value = st.settings.taMomentCardMin == null ? 1 : st.settings.taMomentCardMin;
-    el('#set-ta-moment-card-max').value = st.settings.taMomentCardMax == null ? 3 : st.settings.taMomentCardMax;
-    el('#set-ta-moment-cooldown').value = st.settings.taMomentCooldownMin == null ? 10 : st.settings.taMomentCooldownMin;
+    el('#set-ta-moment-prob').value = momentLimit('taMomentProb', 25);
+    el('#set-ta-moment-daily').value = momentLimit('taMomentDailyMax', 3);
+    el('#set-ta-moment-gap-min').value = momentLimit('taMomentGapMin', 10);
+    el('#set-ta-moment-gap-max').value = momentLimit('taMomentGapMax', 60);
+    el('#set-ta-moment-card-min').value = momentLimit('taMomentCardMin', 1);
+    el('#set-ta-moment-card-max').value = momentLimit('taMomentCardMax', 3);
+    el('#set-ta-moment-cooldown').value = momentLimit('taMomentCooldownMin', 10);
     el('#set-pat-back').value = st.settings.taPatProb == null ? 10 : st.settings.taPatProb;
     el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
     el('#set-ta-sticker-combo').value = st.settings.taStickerComboProb == null ? 25 : st.settings.taStickerComboProb;
@@ -806,7 +825,15 @@
         markDirty();
       });
     });
-    bindMinutes('#set-ta-moment-cooldown', 'taMomentCooldownMin', 1440);
+    const momentCooldown = el('#set-ta-moment-cooldown');
+    if (momentCooldown) {
+      momentCooldown.addEventListener('change', function () {
+        const v = Math.max(0, Math.min(1440, Math.round(Number(momentCooldown.value) || 0)));
+        momentCooldown.value = v;
+        setMomentLimit('taMomentCooldownMin', v);
+        markDirty();
+      });
+    }
 
     el('#btn-edit-partner').addEventListener('click', function () {
       const partner = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
@@ -953,12 +980,12 @@
     });
 
     App.bindStepper('#set-ta-moment-prob', function (v) {
-      App.state.settings.taMomentProb = v;
+      setMomentLimit('taMomentProb', v);
       markDirty();
     });
 
     App.bindStepper('#set-ta-moment-daily', function (v) {
-      App.state.settings.taMomentDailyMax = v;
+      setMomentLimit('taMomentDailyMax', v);
       markDirty();
     }, { min: 1, max: 20, step: 1 });
 
@@ -974,20 +1001,20 @@
         if (key === 'taMomentGapMax') v = Math.max(1, v);
         if (key === 'taMomentCardMin') v = Math.max(1, Math.min(9, v));
         if (key === 'taMomentCardMax') v = Math.max(1, Math.min(9, v));
-        if (key === 'taMomentGapMin' && v > Number(App.state.settings.taMomentGapMax)) {
-          v = Number(App.state.settings.taMomentGapMax);
+        if (key === 'taMomentGapMin' && v > momentLimit('taMomentGapMax', 60)) {
+          v = momentLimit('taMomentGapMax', 60);
         }
-        if (key === 'taMomentGapMax' && v < Number(App.state.settings.taMomentGapMin)) {
-          v = Number(App.state.settings.taMomentGapMin);
+        if (key === 'taMomentGapMax' && v < momentLimit('taMomentGapMin', 10)) {
+          v = momentLimit('taMomentGapMin', 10);
         }
-        if (key === 'taMomentCardMin' && v > Number(App.state.settings.taMomentCardMax)) {
-          v = Number(App.state.settings.taMomentCardMax);
+        if (key === 'taMomentCardMin' && v > momentLimit('taMomentCardMax', 3)) {
+          v = momentLimit('taMomentCardMax', 3);
         }
-        if (key === 'taMomentCardMax' && v < Number(App.state.settings.taMomentCardMin)) {
-          v = Number(App.state.settings.taMomentCardMin);
+        if (key === 'taMomentCardMax' && v < momentLimit('taMomentCardMin', 1)) {
+          v = momentLimit('taMomentCardMin', 1);
         }
         e.target.value = v;
-        App.state.settings[key] = v;
+        setMomentLimit(key, v);
         markDirty();
       });
     });

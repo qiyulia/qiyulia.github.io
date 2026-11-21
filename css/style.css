@@ -1255,11 +1255,16 @@ dialog.moment-sheet {
   padding: 7px;
   border-radius: 50%;
   color: var(--muted);
+  /* 居中交给 flex：按钮里的 svg 是行内元素，默认会带上基线下的空隙，
+     播放/暂停三角和收起箭头看起来就会偏下 1px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .music-float-btn:hover { background: var(--accent-soft); color: var(--accent); }
 .music-float-play { width: 34px; height: 34px; padding: 9px; background: var(--accent); color: var(--accent-ink); }
 .music-float-play:hover { background: var(--accent); color: var(--accent-ink); }
-.music-float-toggle { grid-column: 4; grid-row: 2; width: 28px; height: 30px; padding: 7px; border-radius: 9px; color: var(--muted); }
+.music-float-toggle { grid-column: 4; grid-row: 2; width: 28px; height: 30px; padding: 7px; border-radius: 9px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
 .music-float-toggle:hover { background: var(--accent-soft); color: var(--accent); }
 .music-float-progress { grid-column: 1 / -1; height: 3px; overflow: hidden; border-radius: 99px; background: var(--surface-2); }
 .music-float-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .15s linear; }
