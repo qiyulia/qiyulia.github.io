@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261120-lazy12';
+window.__SHIYI_B_chat='20261120-lazy13';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -24,6 +24,10 @@ window.__SHIYI_B_chat='20261120-lazy12';
   let chatVisibleCount = CHAT_PAGE_SIZE;
   /* 「加载更早」自己会补高度差，这一次重绘就不要再走锚点补偿，免得补两次跳过头 */
   let suppressAnchor = false;
+  /* 刚进入聊天的一小段时间里，图片从 IndexedDB 补上来会把列表撑高；
+     这期间继续贴住底部，避免停在旧消息上，用户自己滚动则立即取消 */
+  let pinBottomUntil = 0;
+  let pinObserver = null;
 
   function sendRole() {
     return App.stickerTab === 'ta' ? 'ta' : 'me';
@@ -146,6 +150,8 @@ window.__SHIYI_B_chat='20261120-lazy12';
       scrollBottom(true);
       requestAnimationFrame(function () { scrollBottom(true); });
       toggleNewMsg(false);
+      /* 图片 / 语音从 IndexedDB 补上来后列表会变高，这一小段时间继续贴底 */
+      keepChatPinned(1800);
     } else {
       /* 「加载更早」会自己把锚点消息钉回原位，这次重绘谁都别碰滚动，
          否则两处补偿会互相打架，画面反而跳过头 */
@@ -1072,6 +1078,41 @@ window.__SHIYI_B_chat='20261120-lazy12';
     box.scrollTop = top;
     box.style.scrollBehavior = prev;
   }
+
+  function cancelChatPin() {
+    pinBottomUntil = 0;
+  }
+
+  /* 列表高度变化时继续贴底（图片 / 语音补上来会撑高列表） */
+  function keepChatPinned(ms) {
+    pinBottomUntil = Date.now() + (ms || 2000);
+    if (typeof ResizeObserver !== 'function') return;
+    const list = el('#chat-list');
+    if (!list) return;
+    if (!pinObserver) {
+      pinObserver = new ResizeObserver(function () {
+        if (Date.now() > pinBottomUntil) { pinObserver.disconnect(); return; }
+        scrollBottom(true);
+      });
+    }
+    pinObserver.disconnect();
+    pinObserver.observe(list);
+    setTimeout(function () {
+      if (pinObserver && Date.now() > pinBottomUntil) pinObserver.disconnect();
+    }, (ms || 2000) + 60);
+  }
+
+  /* 从通知 / 后台回来时强制落在最新一条，而不是浏览器恢复的旧位置 */
+  function scrollChatToLatest() {
+    if (!App.chatContactId) return;
+    pinBottom = true;
+    scrollBottom(true);
+    requestAnimationFrame(function () { scrollBottom(true); });
+    setTimeout(function () { scrollBottom(true); }, 160);
+    toggleNewMsg(false);
+    keepChatPinned(2200);
+  }
+  App.scrollChatToLatest = scrollChatToLatest;
 
   /* 停在最新两条消息的高度范围内，就算「在底部」：来新消息时画面跟着往上滚；
      再往上翻看更早的消息，就钉住现在的位置不动 */
@@ -3013,6 +3054,27 @@ window.__SHIYI_B_chat='20261120-lazy12';
       renderComposerQuote();
     });
     el('#chat-scroll').addEventListener('wheel', closeMsgActions, { passive: true });
+    /* 用户自己滚动就取消「进入时贴底」，之后看旧消息不再被拉回去 */
+    const chatScrollBox = el('#chat-scroll');
+    if (chatScrollBox) {
+      chatScrollBox.addEventListener('touchmove', cancelChatPin, { passive: true });
+      chatScrollBox.addEventListener('wheel', cancelChatPin, { passive: true });
+    }
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      if (App.chatOpen && App.chatContactId && App.chatOpen(App.chatContactId)) scrollChatToLatest();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden || !App.pendingNotifyScroll) return;
+      App.pendingNotifyScroll = false;
+      if (App.chatOpen && App.chatContactId && App.chatOpen(App.chatContactId)) scrollChatToLatest();
+    });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', function (e) {
+        if (!e.data || e.data.type !== 'shiyi:notification-open') return;
+        if (App.chatOpen && App.chatContactId && App.chatOpen(App.chatContactId)) scrollChatToLatest();
+      });
+    }
     const chatNewMsg = el('#chat-new-msg');
     if (chatNewMsg) chatNewMsg.addEventListener('click', function () {
       toggleNewMsg(false);

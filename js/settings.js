@@ -492,6 +492,8 @@
   App.notifyMessage = function (contactId, message) {
     if (!App.state.settings.notifyEnabled) return;
     if (!document.hidden) return;
+    /* 记一笔：用户从通知回到页面时，聊天要直接落在最新一条 */
+    App.pendingNotifyScroll = true;
     const contact = (App.state.contacts || []).find(function (c) { return c.id === contactId; });
     sendNotification(contact ? contact.name : 'TA', notifyBody(message), 'shiyi-' + contactId);
   };

@@ -32,6 +32,10 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || './';
   event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    /* 已经开着的页面：先告诉它「是从通知点进来的」，聊天回到最新一条再聚焦 */
+    for (let i = 0; i < list.length; i++) {
+      try { list[i].postMessage({ type: 'shiyi:notification-open' }); } catch (e) {}
+    }
     for (let i = 0; i < list.length; i++) {
       const client = list[i];
       if ('focus' in client) return client.focus();
