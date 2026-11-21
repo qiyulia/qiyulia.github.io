@@ -6319,7 +6319,9 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 .memoir-diary p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.7; color: #5c4741; }
 .memoir-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .memoir-grid figure { margin: 0; }
-.memoir-grid img { width: 100%; height: 140px; object-fit: cover; border-radius: 12px; display: block; }
+/* 回忆墙照片按原比例铺满格子：固定高度 + cover 会把竖图截短 /
+   横向压扁，长图里看起来就是「被压短了」 */
+.memoir-grid img { width: 100%; height: auto; border-radius: 12px; display: block; }
 .memoir-grid figcaption { font-size: 10.5px; color: #a08d87; margin-top: 4px; text-align: center; }
 .memoir-stats { display: flex; justify-content: space-around; margin-top: 30px; padding: 16px 0; border-top: 1px dashed #e5c9c2; }
 .memoir-stats span { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11.5px; color: #a08d87; }
