@@ -88,6 +88,7 @@
     { key: 'calendar', label: '日历', fields: ['calendar'] },
     { key: 'music', label: '音乐列表', fields: ['music'] },
     { key: 'market', label: '集市与钱包', fields: ['wallet', 'market'] },
+    { key: 'clock', label: '时钟与闹钟', fields: ['clock'] },
   ];
 
   function backupScopeInputs() {

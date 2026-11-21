@@ -21,7 +21,7 @@
      ③ 从 bfcache 恢复的旧页面也强制重载。
    sessionStorage 保证只自愈一次，不会死循环。 */
 (function () {
-  var EXPECT = '20261120-lazy19';
+  var EXPECT = '20261121-clock1';
   window.__SHIYI_BUILD = EXPECT;
   var KEY = 'shiyi.selfheal.' + EXPECT;
   function once() {
@@ -99,8 +99,9 @@
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261120-lazy19">
-<link rel="stylesheet" href="css/steps.css?v=20261120-lazy19">
+<link rel="stylesheet" href="css/style.css?v=20261121-clock1">
+<link rel="stylesheet" href="css/steps.css?v=20261121-clock1">
+<link rel="stylesheet" href="css/clock.css?v=20261121-clock1">
 </head>
 <body>
 <div class="stage">
@@ -321,6 +322,12 @@
                     <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="7" r="2.4"/><path d="M15.7 9.6 15.3 17"/><path d="M15.2 12.8 11 15.8M16.4 12.6 20 10.4"/><path d="M15.3 17 12 24.5M15.5 17 19.4 24"/></svg>
                   </span>
                   <span class="app-entry-label">步数</span>
+                </button>
+                <button type="button" class="app-entry" data-go="clock" data-app-key="clock" aria-label="打开时钟">
+                  <span class="software-icon clock-app-icon">
+                    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11.5"/><path d="M16 9v7.4l4.6 2.8"/><path d="M16 4.5v1.6M27.5 16h-1.6M16 27.5v-1.6M4.5 16h1.6"/></svg>
+                  </span>
+                  <span class="app-entry-label">时钟</span>
                 </button>
               </div>
             </div>
@@ -1712,6 +1719,81 @@
     </section>
 
     <!-- ============ 集市 ============ -->
+    <section id="view-clock" class="view">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>时钟</h2>
+        <span class="topbar-spacer"></span>
+      </header>
+      <div class="page-body">
+
+        <div class="clock-tabs" role="tablist">
+          <button type="button" class="clock-tab is-active" data-clock-tab="alarm" role="tab">闹钟</button>
+          <button type="button" class="clock-tab" data-clock-tab="world" role="tab">世界时间</button>
+          <button type="button" class="clock-tab" data-clock-tab="focus" role="tab">专注计时</button>
+        </div>
+
+        <!-- 闹钟 -->
+        <div class="clock-pane" data-clock-pane="alarm">
+          <div id="clock-alarm-list" class="clock-alarm-list"></div>
+          <button type="button" class="clock-add-btn" id="clock-add-btn">+ 添加闹钟</button>
+          <div id="clock-tone-row" class="clock-tone-row"></div>
+          <p class="clock-hint">页面保持打开时每秒检测一次，到点会弹出全屏毛玻璃弹窗，从 TA 的字卡库里随机抽一句话叫你。闹铃是站内合成的轻柔音色，不用刺耳的系统提示音；选「静音」就只弹窗、一点声音都没有。</p>
+        </div>
+
+        <!-- 世界时间（次元时钟） -->
+        <div class="clock-pane" data-clock-pane="world" hidden>
+          <div class="clock-world-card is-mine">
+            <div class="clock-world-head"><span class="clock-world-title">我的世界 · 此刻真实时间</span><span class="clock-world-zone">你在这里</span></div>
+            <div class="clock-world-time"><span id="clock-my-time">--:--</span><small id="clock-my-sec">--</small></div>
+            <div class="clock-world-date" id="clock-my-date">…</div>
+          </div>
+
+          <div class="clock-gap">
+            <span class="clock-gap-text"><strong id="clock-gap-main">…</strong><span class="clock-gap-poem" id="clock-gap-poem">…</span></span>
+          </div>
+
+          <div class="clock-world-card is-ta">
+            <div class="clock-world-head"><span class="clock-world-title">TA 的时间</span><span class="clock-world-zone" id="clock-ta-zone">…</span></div>
+            <div class="clock-world-time"><span id="clock-ta-time">--:--</span><small id="clock-ta-sec">--</small></div>
+            <div class="clock-world-date" id="clock-ta-date">…</div>
+          </div>
+
+          <button type="button" class="clock-reroll" id="clock-reroll">↻ 重新拨动时差</button>
+          <p class="clock-hint">时差是随机生成的一段零头时间，会一直留在这里；想换一个，点上面的按钮重新拨。</p>
+        </div>
+
+        <!-- 专注计时 -->
+        <div class="clock-pane" data-clock-pane="focus" hidden>
+          <div class="clock-focus-wrap">
+            <div class="clock-ring">
+              <svg viewBox="0 0 220 220" aria-hidden="true">
+                <circle class="clock-ring-bg" cx="110" cy="110" r="96"></circle>
+                <circle class="clock-ring-fg" id="clock-ring-fg" cx="110" cy="110" r="96"></circle>
+              </svg>
+              <div class="clock-ring-center">
+                <span class="clock-focus-num" id="clock-focus-num">25:00</span>
+                <span class="clock-focus-state" id="clock-focus-state">准备好了就开始</span>
+              </div>
+            </div>
+            <div class="clock-presets" id="clock-preset-row">
+              <button type="button" class="clock-preset is-active" data-clock-preset="25">25 分钟</button>
+              <button type="button" class="clock-preset" data-clock-preset="15">15 分钟</button>
+              <button type="button" class="clock-preset" data-clock-preset="5">5 分钟</button>
+            </div>
+            <div class="clock-focus-actions">
+              <button type="button" class="btn primary" id="clock-focus-main">开始专注</button>
+              <button type="button" class="btn ghost" id="clock-focus-reset">重置</button>
+            </div>
+          </div>
+          <p class="clock-hint">结束时会和闹钟一样，抽一张 TA 的字卡送给你。</p>
+        </div>
+
+      </div>
+    </section>
+
     <section id="view-market" class="view">
       <header class="topbar">
         <button type="button" class="icon-btn" data-back="desktop" aria-label="返回">
@@ -2122,6 +2204,7 @@
               <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="calendar" checked><span>日历</span></label>
               <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="music" checked><span>音乐列表</span></label>
               <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="market" checked><span>集市与钱包</span></label>
+              <label class="backup-scope"><input autocomplete="off" type="checkbox" data-backup-scope="clock" checked><span>时钟与闹钟</span></label>
             </div>
             <div class="btn-row">
               <button type="button" class="btn ghost" id="backup-select-all">全选</button>
@@ -2961,6 +3044,44 @@
   </form>
 </dialog>
 
+<!-- ============ 时钟：添加闹钟 / 全屏闹铃 ============ -->
+<dialog id="clock-add-dialog" class="sheet">
+  <form onsubmit="return false">
+    <div class="sheet-head">
+      <h3>添加闹钟</h3>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+    </div>
+    <span class="field-label">时间（每天）</span>
+    <input type="time" id="clock-add-time" autocomplete="off" data-form-type="other" aria-label="闹钟时间">
+    <span class="field-label">标签</span>
+    <input type="text" id="clock-add-label" maxlength="20" placeholder="比如 喝水、睡觉" autocomplete="off" data-form-type="other" aria-label="闹钟标签">
+    <div class="btn-row">
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="button" class="btn primary" id="clock-add-save">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="clock-ringing-dialog" class="clock-ringing">
+  <div class="clock-ringing-glow" aria-hidden="true"></div>
+  <div class="clock-ringing-inner">
+    <span class="clock-ringing-tag" id="clock-ring-tag">闹钟</span>
+    <div class="clock-ringing-time" id="clock-ring-time">08:00</div>
+    <div class="clock-ringing-label" id="clock-ring-label">起床</div>
+    <div class="clock-ringing-from" id="clock-ring-from">来自 TA 的字卡</div>
+    <div class="clock-ringing-card">
+      <div class="clock-ringing-card-text" id="clock-ring-text">…</div>
+      <div class="clock-ringing-card-cat" id="clock-ring-cat">…</div>
+    </div>
+    <div class="clock-ringing-actions">
+      <button type="button" class="clock-ringing-primary" id="clock-ring-close">好，我起来了</button>
+      <button type="button" class="clock-ringing-ghost" id="clock-ring-snooze">再睡 5 分钟</button>
+      <button type="button" class="clock-ringing-ghost" id="clock-ring-play">播放铃声</button>
+      <button type="button" class="clock-ringing-quiet" id="clock-ring-stop">停止铃声</button>
+    </div>
+  </div>
+</dialog>
+
 <!-- ============ 站内确认弹窗 ============ -->
 <dialog id="confirm-dialog">
   <div class="confirm-head">
@@ -3058,23 +3179,24 @@
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261120-lazy19"></script>
-<script src="js/seed.js?v=20261120-lazy19"></script>
-<script src="js/store.js?v=20261120-lazy19"></script>
-<script src="js/desktop.js?v=20261120-lazy19"></script>
-<script src="js/chat.js?v=20261120-lazy19"></script>
-<script src="js/cards.js?v=20261120-lazy19"></script>
-<script src="js/settings.js?v=20261120-lazy19"></script>
-<script src="js/moments.js?v=20261120-lazy19"></script>
-<script src="js/calendar.js?v=20261120-lazy19"></script>
-<script src="js/music.js?v=20261120-lazy19"></script>
-<script src="js/market.js?v=20261120-lazy19"></script>
-<script src="js/mail.js?v=20261120-lazy19"></script>
-<script src="js/extras.js?v=20261120-lazy19"></script>
-<script src="js/companion.js?v=20261120-lazy19"></script>
-<script src="js/memoir.js?v=20261120-lazy19"></script>
-<script src="js/group.js?v=20261120-lazy19"></script>
-<script src="js/steps.js?v=20261120-lazy19"></script>
-<script src="js/app.js?v=20261120-lazy19"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261121-clock1"></script>
+<script src="js/seed.js?v=20261121-clock1"></script>
+<script src="js/store.js?v=20261121-clock1"></script>
+<script src="js/desktop.js?v=20261121-clock1"></script>
+<script src="js/chat.js?v=20261121-clock1"></script>
+<script src="js/cards.js?v=20261121-clock1"></script>
+<script src="js/settings.js?v=20261121-clock1"></script>
+<script src="js/moments.js?v=20261121-clock1"></script>
+<script src="js/calendar.js?v=20261121-clock1"></script>
+<script src="js/music.js?v=20261121-clock1"></script>
+<script src="js/market.js?v=20261121-clock1"></script>
+<script src="js/mail.js?v=20261121-clock1"></script>
+<script src="js/extras.js?v=20261121-clock1"></script>
+<script src="js/companion.js?v=20261121-clock1"></script>
+<script src="js/memoir.js?v=20261121-clock1"></script>
+<script src="js/group.js?v=20261121-clock1"></script>
+<script src="js/steps.js?v=20261121-clock1"></script>
+<script src="js/clock.js?v=20261121-clock1"></script>
+<script src="js/app.js?v=20261121-clock1"></script>
 </body>
 </html>
