@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261120-lazy11';
+window.__SHIYI_B_chat='20261120-lazy12';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -7,7 +7,6 @@ window.__SHIYI_B_chat='20261120-lazy11';
 
   if (App.sendAs == null) App.sendAs = 'me';
   if (App.stickerTab == null) App.stickerTab = 'public';
-  if (App.panelKind == null) App.panelKind = 'sticker';
 
   let quoteDraft = null;
   let actionMsgId = null;
@@ -16,7 +15,6 @@ window.__SHIYI_B_chat='20261120-lazy11';
   let suppressCallClick = false;
   const readTimers = {};
   const decisionTimers = {};
-  let chatImageDraft = '';
   /* 下一次重绘是否强制贴到底部（进入聊天、自己发消息时） */
   let pinBottom = false;
   /* 上一次重绘时最后一条消息的标识，用来判断是不是来了新消息 */
@@ -810,7 +808,10 @@ window.__SHIYI_B_chat='20261120-lazy11';
         : '');
     let body = '';
     if (m.type === 'image') {
-      body = '<div class="bubble sticker"><img class="sticker-img" loading="lazy" decoding="async" ' + imgAttrs(m.src) + ' alt="表情包"></div>';
+      /* 表情包保持小图；相册发来的图片按原比例展示，不裁剪也不拉成方图 */
+      body = m.sticker
+        ? '<div class="bubble sticker"><img class="sticker-img" loading="lazy" decoding="async" ' + imgAttrs(m.src) + ' alt="表情包"></div>'
+        : '<div class="bubble chat-photo"><img class="chat-photo-img" loading="lazy" decoding="async" ' + imgAttrs(m.src) + ' alt="图片"></div>';
     } else if (m.type === 'audio') {
       const showTranscript = m.text && (!App.state.settings || App.state.settings.voiceTranscript !== false);
       const media = String(m.src || '');
@@ -2185,25 +2186,7 @@ window.__SHIYI_B_chat='20261120-lazy11';
   }
 
   function renderStickerPanel(reset) {
-    /* 红包已经并到「工具」里，表情面板只剩表情 / 图片两种 */
-    const kind = App.panelKind === 'image' ? 'image' : 'sticker';
-    document.querySelectorAll('[data-panel-kind]').forEach(function (btn) {
-      btn.classList.toggle('is-on', btn.dataset.panelKind === kind);
-    });
-
-    const imageMode = kind === 'image';
-    ['#sticker-side-head', '#sticker-grid', '#btn-add-sticker', '#btn-paste-sticker'].forEach(function (sel) {
-      const node = el(sel);
-      if (node) node.hidden = imageMode;
-    });
-    const imageView = el('#sticker-image-view');
-    if (imageView) imageView.hidden = !imageMode;
-
     setStickerStatus('');
-    if (imageMode) {
-      paintChatImageDraft();
-      return;
-    }
 
     const grid = el('#sticker-grid');
     if (!grid) return;
@@ -2277,7 +2260,6 @@ window.__SHIYI_B_chat='20261120-lazy11';
   function closeStickerPanel() {
     const panel = el('#sticker-panel');
     if (panel) panel.hidden = true;
-    resetChatImageDraft();
   }
 
   App.openStickerPanel = function (keepTab) {
@@ -2287,7 +2269,6 @@ window.__SHIYI_B_chat='20261120-lazy11';
     if (!keepTab) {
       /* 正常打开都从「公共」开始，只有恢复选图时保留原分类 */
       App.stickerTab = 'public';
-      App.panelKind = 'sticker';
     }
     renderStickerPanel(!keepTab);
   };
@@ -2299,7 +2280,6 @@ window.__SHIYI_B_chat='20261120-lazy11';
     if (opening) {
       /* 每次打开表情包面板都从「公共」分类开始 */
       App.stickerTab = 'public';
-      App.panelKind = 'sticker';
       renderStickerPanel(true);
     }
   }
@@ -2309,57 +2289,28 @@ window.__SHIYI_B_chat='20261120-lazy11';
     return App.compressImage(file, 400, { quality: 0.9, maxLength: 260000 });
   }
 
-  /* 图片分类：只作为发送工具，选好图后确定就发到聊天，不存进表情库 */
-  function paintChatImageDraft() {
-    const preview = el('#sticker-image-preview');
-    if (!preview) return;
-    preview.innerHTML = chatImageDraft
-      ? '<img src="' + App.esc(chatImageDraft) + '" alt="待发送的图片">'
-      : '点这里从相册选择一张图片';
-  }
-
-  function resetChatImageDraft() {
-    chatImageDraft = '';
-    const input = el('#chat-image-file');
-    if (input) input.value = '';
-    paintChatImageDraft();
-  }
-
-  function pickChatImage(file) {
+  /* 图片按钮：选完文件立即发出，不做预览、不存表情库 */
+  function sendPickedImage(file) {
     if (!file) return;
     if (!/^image\//.test(file.type || '')) {
       App.toast('只能选择图片');
       return;
     }
-    setStickerStatus('正在读取图片…');
-    App.compressImage(file, 640, { quality: 0.8, maxLength: 240000 }).then(function (src) {
-      if (!src) {
-        setStickerStatus('这张图片读取失败，换一张试试', true);
-        return;
-      }
-      chatImageDraft = src;
-      setStickerStatus('');
-      paintChatImageDraft();
-    }).catch(function () {
-      setStickerStatus('这张图片读取失败，换一张试试', true);
-    });
-  }
-
-  function sendChatImageDraft() {
-    if (!chatImageDraft) {
-      setStickerStatus('先从相册选一张图片', true);
-      return;
-    }
-    if (!App.chatContactId) return;
-    const src = chatImageDraft;
     const contactId = App.chatContactId;
-    chatImageDraft = '';
-    /* 图片外置成 img:<id> 再入消息，state 里不再堆大 base64 */
-    App.imageRef(src).then(function (ref) {
-      pushMessage({ id: App.uid('m'), role: 'me', type: 'image', src: ref, ts: Date.now() });
-      closeStickerPanel();
-      cancelNoReply(contactId);
-      scheduleReply(contactId, '');
+    if (!contactId) return;
+    closeStickerPanel();
+    App.toast('正在发送图片…');
+    App.compressImage(file, 640, { quality: 0.8, maxLength: 240000 }).then(function (src) {
+      if (!src) throw new Error('empty');
+      return App.imageRef(src).then(function (ref) {
+        /* 选图期间换了聊天对象，就别把图片发到别的对话里 */
+        if (App.chatContactId !== contactId) return;
+        pushMessage({ id: App.uid('m'), role: 'me', type: 'image', src: ref, ts: Date.now() });
+        cancelNoReply(contactId);
+        scheduleReply(contactId, '');
+      });
+    }).catch(function () {
+      App.toast('这张图片发送失败，换一张试试');
     });
   }
 
@@ -2959,17 +2910,6 @@ window.__SHIYI_B_chat='20261120-lazy11';
         return;
       }
 
-      const kindBtn = e.target.closest('[data-panel-kind]');
-      if (kindBtn) {
-        if (kindBtn.dataset.panelKind === 'redpacket') {
-          openRedPacketDialog();
-          return;
-        }
-        App.panelKind = kindBtn.dataset.panelKind;
-        renderStickerPanel();
-        return;
-      }
-
       const patItem = e.target.closest('[data-send-pat]');
       if (patItem) {
         const card = (App.state.cards || []).find(function (c) {
@@ -3051,17 +2991,15 @@ window.__SHIYI_B_chat='20261120-lazy11';
     });
     el('#btn-sticker').addEventListener('click', toggleStickerPanel);
 
-    const chatImageFile = el('#chat-image-file');
-    if (chatImageFile) {
-      chatImageFile.addEventListener('change', function (e) {
+    const chatImageQuick = el('#chat-image-quick');
+    if (chatImageQuick) {
+      chatImageQuick.addEventListener('change', function (e) {
         const file = (e.target.files || [])[0];
-        pickChatImage(file);
+        /* 清空 input，连续选同一张图也能再次触发 change */
+        e.target.value = '';
+        sendPickedImage(file);
       });
     }
-    const chatImageSend = el('#sticker-image-send');
-    if (chatImageSend) chatImageSend.addEventListener('click', sendChatImageDraft);
-    const chatImageCancel = el('#sticker-image-cancel');
-    if (chatImageCancel) chatImageCancel.addEventListener('click', function () { closeStickerPanel(); });
     el('#redpacket-form').addEventListener('submit', function (e) {
       e.preventDefault();
       const amount = Math.round(Number(el('#redpacket-amount').value));

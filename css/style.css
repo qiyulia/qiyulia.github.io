@@ -1419,6 +1419,16 @@ dialog.moment-sheet {
 }
 .composer-icon-btn:active { transform: scale(.93); }
 .composer-icon-btn svg { width: 22px; height: 22px; }
+/* 图片入口本身是 <label>，让透明文件选择框正好盖住整个圆按钮 */
+.composer-image-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+.composer-image-btn svg { pointer-events: none; }
 
 .sticker-panel {
   position: absolute;
@@ -1554,6 +1564,23 @@ dialog.moment-sheet {
   width: 96px;
   max-width: 44vw;
   height: auto;
+  border-radius: 12px;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, .1);
+}
+
+/* 相册发来的图片：按原比例展示，宽高都不拉伸，只限制最大尺寸 */
+.bubble.chat-photo {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.chat-photo-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(58vw, 240px);
+  max-height: 300px;
   border-radius: 12px;
   box-shadow: 0 5px 14px rgba(0, 0, 0, .1);
 }
@@ -3132,9 +3159,7 @@ dialog.more-sheet::backdrop {
 /* 两条原生路径双保险：① <label for> 由浏览器转发点击给 input；
    ② 透明 input 覆盖按钮，直接点中也是原生响应。
    全程不经过 JS .click()、不读剪贴板、不弹任何权限框。 */
-.sticker-add,
-.sticker-image-pick { position: relative; display: block; cursor: pointer; }
-.sticker-add { overflow: hidden; }
+.sticker-add { position: relative; display: block; cursor: pointer; overflow: hidden; }
 .file-input-direct {
   position: absolute;
   inset: 0;
@@ -3148,8 +3173,7 @@ dialog.more-sheet::backdrop {
   opacity: 0;
   cursor: pointer;
 }
-.sticker-add > span,
-.sticker-image-pick > span { pointer-events: none; }
+.sticker-add > span { pointer-events: none; }
 .sticker-paste-link {
   align-self: center;
   margin-top: -4px;
@@ -3160,55 +3184,6 @@ dialog.more-sheet::backdrop {
   font-size: 12px;
   text-decoration: underline;
   cursor: pointer;
-}
-
-.sticker-image-view {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 2px 2px 6px;
-}
-.sticker-image-view[hidden] { display: none; }
-#sticker-side-head[hidden],
-#sticker-grid[hidden],
-#btn-add-sticker[hidden],
-#btn-paste-sticker[hidden] { display: none !important; }
-.sticker-image-pick {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 138px;
-  padding: 8px;
-  border: 1px dashed var(--line);
-  border-radius: 14px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 12.5px;
-  text-align: center;
-  overflow: hidden;
-  cursor: pointer;
-}
-.sticker-image-preview {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-.sticker-image-preview img {
-  display: block;
-  max-width: 100%;
-  max-height: 170px;
-  border-radius: 10px;
-}
-.sticker-image-actions {
-  display: flex;
-  gap: 8px;
-}
-.sticker-image-actions .btn {
-  flex: 1 1 0;
-  padding: 10px 0;
-  border-radius: 999px;
-  font-size: 13px;
 }
 
 .paste-zone {
