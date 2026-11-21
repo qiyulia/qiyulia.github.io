@@ -1607,14 +1607,50 @@
     }).join('');
   }
 
+  /* 地点名不再固定写在地点上方：被自己/TA 的气泡、头像或别的地点名挡住时，
+     先试下方，再不行就只留圆点，避免文字互相压住。 */
+  function labelOverlap(a, b) {
+    return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  }
+
+  function placeLabelBox(p, text, above) {
+    const w = Math.max(20, String(text).length * 9.4 + 4);
+    return { x: p.x - w / 2, y: above ? p.y - 20 : p.y + 7, w: w, h: 12 };
+  }
+
+  function pinLabelBoxes(loc, view) {
+    const boxes = [];
+    ['me', 'ta'].forEach(function (who) {
+      const p = projectPoint(view, loc[who]);
+      const status = loc.status[who] || '';
+      const bubbleW = Math.max(46, status.length * 9 + 14);
+      const bubbleX = p.x > 250 ? -bubbleW - 12 : 12;
+      boxes.push({ x: p.x - 11, y: p.y - 11, w: 22, h: 22 });
+      boxes.push({ x: p.x + 1, y: p.y - 31, w: 32, h: 32 });
+      boxes.push({ x: p.x + bubbleX, y: p.y - 60, w: bubbleW, h: 20 });
+    });
+    return boxes;
+  }
+
   /* 自己添加的地点也画在地图上，方便一眼看到都放了哪些地方；最多画 8 个 */
   function renderPlaceMarkers(loc, view) {
+    const blocked = pinLabelBoxes(loc, view);
+    const taken = [];
     return placeMapCards().map(function (card, index) {
       const coords = ensurePlaceCoords(card, loc, index);
       const p = projectPoint(view, coords);
+      const fits = function (box) {
+        if (box.x < 2 || box.x + box.w > 398) return false;
+        return !blocked.concat(taken).some(function (r) { return labelOverlap(box, r); });
+      };
+      const above = placeLabelBox(p, card.text, true);
+      const below = placeLabelBox(p, card.text, false);
+      let y = null;
+      if (fits(above)) { y = -11; taken.push(above); }
+      else if (fits(below)) { y = 17; taken.push(below); }
       return '<g class="loc-place" data-place-id="' + App.esc(card.id) + '" transform="translate(' + p.x + ',' + p.y + ')">' +
         '<circle r="5"></circle>' +
-        '<text y="-9">' + App.esc(card.text) + '</text>' +
+        (y === null ? '' : '<text y="' + y + '">' + App.esc(card.text) + '</text>') +
       '</g>';
     }).join('');
   }

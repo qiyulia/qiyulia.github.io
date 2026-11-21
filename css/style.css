@@ -1379,11 +1379,11 @@ dialog.moment-sheet {
   border: none;
   background: var(--field);
   border-radius: 18px;
-  padding: 10px 14px;
+  padding: 9px 14px;
   min-height: 40px;
   max-height: 118px;
   font-size: 13.5px;
-  line-height: 1.5;
+  line-height: 20px;
   color: var(--ink);
   border: 1px solid var(--line);
 }
@@ -1394,9 +1394,12 @@ dialog.moment-sheet {
 
 .send-btn {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
-  padding: 10px;
+  padding: 0;
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-ink);
@@ -1408,9 +1411,12 @@ dialog.moment-sheet {
 
 .composer-icon-btn {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
-  padding: 9px;
+  padding: 0;
   border-radius: 50%;
   background: var(--field);
   color: var(--on-wall);
@@ -1837,7 +1843,8 @@ dialog.moment-sheet {
   color: var(--accent-ink);
 }
 
-.card-tools { display: flex; gap: 8px; }
+/* 五个工具按钮排成等宽网格，标签不再折成两行 */
+.card-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .tool-btn {
   flex: 1;
   padding: 8px 10px;
@@ -1846,6 +1853,7 @@ dialog.moment-sheet {
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line);
+  white-space: nowrap;
 }
 .tool-btn:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 
