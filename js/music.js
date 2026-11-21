@@ -254,7 +254,20 @@
     const actionProb = pickPause ? taProb('musicPauseProb', 15) : taProb('musicSwitchProb', 30);
     if (Math.random() * 100 >= actionProb) return;
     if (pickPause) pauseByTa();
-    else changeTrack(Math.random() < 0.5 ? -1 : 1, true, Math.random() < 0.5);
+    else switchByTa();
+  }
+
+  /* TA 切歌：换到新歌后直接开始播放，并在聊天里留一条提示 */
+  function switchByTa() {
+    const contact = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
+    clearTimeout(taTimer);
+    taTimer = null;
+    changeTrack(Math.random() < 0.5 ? -1 : 1, true, Math.random() < 0.5);
+    const track = currentTrack();
+    if (contact && App.addChatSystemMessage) {
+      App.addChatSystemMessage(contact.id, contact.name + '切换了音乐'
+        + (track && track.title ? '《' + track.title + '》' : '') + '，已经开始播放');
+    }
   }
 
   function pauseByTa() {
