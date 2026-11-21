@@ -2,11 +2,21 @@
 /* 外围固定淡蓝毛玻璃；只有 .contract-card 内部会随背景选择变化。
    文字/边框/印章全部走 --contract-text-color 等变量，便于反色与导出。 */
 
-.contract-page { padding-bottom: calc(28px + var(--safe-bottom, 0px)); }
+.contract-page {
+  padding-bottom: calc(28px + var(--safe-bottom, 0px));
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
 
 /* ---------- 外围（永远淡蓝，不受卡片背景影响） ---------- */
+/* 关键：page-body 是 flex column 且可滚动。stage 若用默认的 flex:0 1 auto
+   会被压缩到一屏高，自己的 overflow:hidden 又把底部操作区裁掉，
+   外层就没有溢出、永远滚不动。改成 flex:0 0 auto 后按内容撑开，
+   overflow:hidden 只负责裁圆角光斑，不再裁正文。 */
 .contract-stage {
   position: relative;
+  flex: 0 0 auto;
   padding: 18px 14px 22px;
   border-radius: 26px;
   background: linear-gradient(155deg, rgba(226, 239, 253, .92), rgba(205, 226, 248, .88));
