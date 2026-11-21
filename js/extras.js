@@ -710,16 +710,100 @@
       TAROT_DECK.push(suit + rank);
     });
   });
-  const LENORMAND_DECK = [
-    '骑士', '四叶草', '船', '房子', '树', '云', '蛇', '棺材', '花束', '镰刀', '鞭子', '鸟',
-    '小孩', '狐狸', '熊', '星星', '鹳', '狗', '高塔', '花园', '山', '十字路口', '老鼠', '心',
-    '戒指', '书', '信', '男人', '女人', '百合', '太阳', '月亮', '钥匙', '鱼', '锚', '十字架',
-  ];
+  /* 韦特塔罗 78 张通用牌意（正位 / 逆位关键词）。
+     参考多个公开牌义库的常见口径整理，仅作陪伴与自省，不做预测。 */
+  const TAROT_MEANINGS = {
+    '愚者': { up: '新的开始、天真、冒险、勇敢一跃', rev: '鲁莽、幼稚、犹豫不决、准备不足' },
+    '魔术师': { up: '显化、意志力、足智多谋、技能', rev: '操控、浪费潜能、精力分散、自我怀疑' },
+    '女祭司': { up: '直觉、神秘、内在智慧、潜意识', rev: '忽视直觉、与内心失联、秘密、隐藏的意图' },
+    '皇后': { up: '丰盛、创造力、滋养、生育', rev: '创意枯竭、倦怠、付出过度、过度保护' },
+    '皇帝': { up: '权威、结构、稳定、领导力', rev: '控制、僵化、滥用权力、缺乏自律' },
+    '教皇': { up: '传统、灵性智慧、导师指引、共同信念', rev: '叛逆、非传统的道路、教条、质疑权威' },
+    '恋人': { up: '爱与结合、重要的选择、和谐、价值观一致', rev: '不和谐、步调不一、诱惑、逃避抉择' },
+    '战车': { up: '决心、意志力、胜利、自我控制', rev: '迷失方向、精力分散、自我怀疑、咄咄逼人' },
+    '力量': { up: '内在力量、勇气、慈悲、自制', rev: '自我怀疑、恐惧、情绪崩溃、冲动' },
+    '隐者': { up: '独处、内省、内在智慧、探寻内心', rev: '孤立、孤独、逃避、迷失' },
+    '命运之轮': { up: '变化、循环、好运、转折点', rev: '时机不对、挫折、抗拒改变、重复的模式' },
+    '正义': { up: '公平、真相、承担责任、因果', rev: '不公、不诚实、逃避责任、偏见' },
+    '倒吊人': { up: '臣服、暂停、新的视角、放手', rev: '拖延、抗拒、急躁、优柔寡断' },
+    '死神': { up: '转变、结束、放手、了结', rev: '抗拒改变、害怕结束、停滞、执着于过去' },
+    '节制': { up: '平衡、适度、耐心、和谐', rev: '失衡、过度、急躁、倦怠' },
+    '恶魔': { up: '诱惑、不健康的依附、控制、束缚', rev: '挣脱束缚、释放、夺回力量、直面阴影' },
+    '高塔': { up: '突变、动荡、真相揭露、崩塌', rev: '逃避改变、延迟的动荡、缓慢瓦解、内在转变' },
+    '星星': { up: '希望、疗愈、更新、灵感', rev: '灰心、失去信念、疏离、倦怠' },
+    '月亮': { up: '幻象、直觉、不确定、梦境', rev: '重现清晰、真相揭露、放下恐惧、困惑' },
+    '太阳': { up: '喜悦、成功、清晰、活力', rev: '延迟的成功、自我怀疑、蒙上阴影的快乐、过度自信' },
+    '审判': { up: '觉醒、新生、内在召唤、清算', rev: '自我怀疑、严苛的自我评判、无视召唤、悔恨' },
+    '世界': { up: '圆满、满足、成就、完整', rev: '未了之事、延迟、缺少了结、功亏一篑' },
+    '权杖一': { up: '灵感、新的能量、创造的火花', rev: '延误、缺乏动力、虎头蛇尾' },
+    '权杖二': { up: '规划、未来愿景、做出决定', rev: '害怕未知、规划不周、畏惧冒险' },
+    '权杖三': { up: '拓展、远见、进展、初步成果', rev: '阻碍、延误、挫败感、目光短浅' },
+    '权杖四': { up: '庆祝、家庭、和谐、里程碑', rev: '家庭不稳、庆祝延期、根基不稳' },
+    '权杖五': { up: '竞争、冲突、意见分歧、磨炼', rev: '回避冲突、紧张缓解、内在矛盾' },
+    '权杖六': { up: '认可、成功、公众赞誉、胜利', rev: '自我怀疑、名誉扫地、自负、认可延迟' },
+    '权杖七': { up: '坚守立场、坚持不懈、防御', rev: '不堪重负、放弃、筋疲力尽' },
+    '权杖八': { up: '迅速行动、变动、消息、畅通', rev: '延误、混乱、方向不明、仓促' },
+    '权杖九': { up: '韧性、警觉、坚持、防御', rev: '疲累、防线松动、固执、多疑' },
+    '权杖十': { up: '重担、责任、过劳、扛着走', rev: '卸下负荷、分担、耗竭、压力崩塌' },
+    '权杖侍从': { up: '探索、热情、新消息、创意萌芽', rev: '冲动、方向不明、热度短暂、消息不实' },
+    '权杖骑士': { up: '冒险、热情、行动、追求自由', rev: '鲁莽、方向错置、虎头蛇尾、半途而废' },
+    '权杖王后': { up: '自信、独立、创造、魅力', rev: '嫉妒、控制、自信不足、情绪化' },
+    '权杖国王': { up: '远见、领导、魄力、创造力', rev: '独裁、冲动、远见不足、刚愎自用' },
+    '圣杯一': { up: '新的情感、情感满足、喜悦、心灵满足', rev: '情感空虚、难以投入、机会流失、冷漠' },
+    '圣杯二': { up: '伴侣关系、联系、吸引力、平等', rev: '关系失衡、暂时不合、冷战、合作破裂' },
+    '圣杯三': { up: '庆祝、友谊、社群、情感交流', rev: '过度放纵、不愉快、聚会生变' },
+    '圣杯四': { up: '冥想、思考、内省、等待', rev: '错过机会、打破沉闷、自我封闭' },
+    '圣杯五': { up: '失去、悲伤、失望、遗憾', rev: '走出阴霾、接受现实、看到希望' },
+    '圣杯六': { up: '怀旧、天真、慷慨、重逢', rev: '沉溺回忆、盲目怀旧、关系停滞' },
+    '圣杯七': { up: '幻想、选择、欲望、不切实际', rev: '认清现实、坚定选择、幻想破灭' },
+    '圣杯八': { up: '过渡、放弃、继续前进、追寻更高目标', rev: '不愿离开、犹豫、逃避' },
+    '圣杯九': { up: '满足、满意、感激、成就感', rev: '骄傲、自满、拆穿真相、缺乏目标' },
+    '圣杯十': { up: '和谐、幸福、爱、家庭圆满', rev: '矛盾、遗憾、家庭不和、小摩擦' },
+    '圣杯侍从': { up: '创造力、直觉、新的开始、敏感温柔', rev: '多愁善感、情绪化、幼稚' },
+    '圣杯骑士': { up: '浪漫、魅力、想象力、体贴', rev: '花心、逃避、不切实际' },
+    '圣杯王后': { up: '同情心、情感稳定、直觉、善解人意', rev: '过度情绪化、依赖、牺牲自我' },
+    '圣杯国王': { up: '情感平衡、慷慨、成熟稳重、同理心', rev: '冷漠、情绪化、控制欲强' },
+    '宝剑一': { up: '清晰、突破、思维力量、真相', rev: '思维混乱、消息不实、不够理性' },
+    '宝剑二': { up: '困难的选择、犹豫不决、僵局', rev: '后悔的选择、看清真相、被迫选择' },
+    '宝剑三': { up: '心碎、损失、悲伤、言语伤害', rev: '疗愈、走出悲伤、释怀、怨念' },
+    '宝剑四': { up: '休息、康复、思考、暂停', rev: '被迫休息、停滞、焦虑、内心不平静' },
+    '宝剑五': { up: '冲突、失败、背叛、空虚的胜利', rev: '和解、避免无谓竞争、及时止损' },
+    '宝剑六': { up: '过渡、继续前进、疗愈、慢慢恢复', rev: '疗愈受阻、旧伤复发、无法释怀' },
+    '宝剑七': { up: '策略、机智、隐秘行动', rev: '欺骗被识破、得不偿失、坦白' },
+    '宝剑八': { up: '限制、束缚、焦虑、自我设限', rev: '觉醒、打破束缚、寻找出口' },
+    '宝剑九': { up: '焦虑、恐惧、噩梦、失眠', rev: '走出恐惧、释怀、重获平静' },
+    '宝剑十': { up: '痛苦的结束、背叛、损失、触底', rev: '触底反弹、结束痛苦、重新开始' },
+    '宝剑侍从': { up: '好奇心、新思维、热情、敏锐', rev: '八卦、谣言、思维混乱' },
+    '宝剑骑士': { up: '行动、雄心、决心、果断', rev: '鲁莽、言语伤人、思维跳跃' },
+    '宝剑王后': { up: '清晰、独立、客观、洞察力强', rev: '刻薄、挑剔、冷漠、情绪化' },
+    '宝剑国王': { up: '权威、领导力、理性、公正', rev: '专制、冷酷、言语伤人、偏见' },
+    '星币一': { up: '新的开始、繁荣、潜力、物质基础', rev: '财务损失、机会流失、基础不稳' },
+    '星币二': { up: '平衡、适应性、兼顾、理财', rev: '失衡、财务危机、顾此失彼' },
+    '星币三': { up: '团队合作、协作、技能、学习', rev: '合作破裂、技能不足、沟通不畅' },
+    '星币四': { up: '稳定、安全、财产、守成', rev: '吝啬、失去财富、缺乏安全感、被迫改变' },
+    '星币五': { up: '财务困难、贫困、孤立、困境', rev: '走出困境、得到帮助、自力更生' },
+    '星币六': { up: '慷慨、慈善、资源共享、公平交易', rev: '不公、贪婪、债务、依赖' },
+    '星币七': { up: '评估、耐心、投资、等待回报', rev: '焦虑、评估失误、急于求成、失去耐心' },
+    '星币八': { up: '奉献、技能发展、精通、专注', rev: '低效、重复劳动、放弃、敷衍' },
+    '星币九': { up: '丰裕、自给自足、独立、成就感', rev: '孤独、缺乏满足感、财务隐患' },
+    '星币十': { up: '财富、家庭、遗产、基业长青', rev: '财务纠纷、家庭不和、传承受阻' },
+    '星币侍从': { up: '抱负、学习、务实、理财萌芽', rev: '懒惰、浪费、目光短浅' },
+    '星币骑士': { up: '责任、努力、可靠性、按部就班', rev: '固执、缓慢、缺乏变通' },
+    '星币王后': { up: '培育、丰富、实用主义、擅长理财', rev: '贪婪、物质主义、缺乏情感' },
+    '星币国王': { up: '繁荣、安全、领导力、掌控资源', rev: '唯利是图、固执、财务失控' }
+  };
 
-  let divine = { type: '', count: 0, phase: 'idle', deck: [], picks: [], cards: {} };
+  function divineMeaning(name, reversed) {
+    const row = TAROT_MEANINGS[String(name || '')];
+    if (!row) return '这张牌暂时没有收录牌意。';
+    return reversed ? row.rev : row.up;
+  }
 
-  function divineTypeLabel(type) {
-    return type === 'lenormand' ? '雷诺曼' : '塔罗牌';
+  let divine = { type: 'tarot', count: 0, phase: 'idle', deck: [], picks: [], cards: {}, question: '' };
+
+  /* 只保留塔罗牌：历史已发出的牌阵消息仍按 m.system 原样显示，不受影响 */
+  function divineTypeLabel() {
+    return '塔罗牌';
   }
 
   function shuffleDeck(list) {
@@ -749,7 +833,7 @@
     if (divine.cards[index]) return divine.cards[index];
     const card = {
       name: divine.deck[index],
-      reversed: divine.type === 'tarot' && Math.random() < 0.5,
+      reversed: Math.random() < 0.5,
     };
     divine.cards[index] = card;
     return card;
@@ -824,6 +908,15 @@
     });
     divine.phase = 'revealed';
     updateDivineControls();
+    /* 牌意框在牌堆下面，翻完牌自动带一眼过去，别让它藏在按钮栏底下 */
+    setTimeout(function () {
+      const body = document.querySelector('#divine-dialog .tool-sheet-body');
+      const reading = el('#divine-reading');
+      if (!body || !reading || reading.hidden) return;
+      const top = body.scrollHeight - body.clientHeight;
+      try { body.scrollTo({ top: top, behavior: 'smooth' }); }
+      catch (e) { body.scrollTop = top; }
+    }, 260);
   }
 
   function clearDivinePicks() {
@@ -846,6 +939,38 @@
     else clearDivinePicks();
   }
 
+  /* 翻牌后：把「所问」和每张牌的正/逆位牌意一起摊在下面 */
+  function renderDivineReading() {
+    const box = el('#divine-reading');
+    if (!box) return;
+    if (divine.phase !== 'revealed' || divine.picks.length < divine.count) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    const q = String(divine.question || '').trim();
+    const qEl = el('#divine-reading-question');
+    if (qEl) {
+      qEl.hidden = !q;
+      qEl.textContent = q ? '所问 · ' + q : '';
+    }
+    const list = el('#divine-reading-list');
+    if (list) {
+      list.innerHTML = divine.picks.map(function (index, i) {
+        const card = divine.cards[index];
+        if (!card) return '';
+        return '<div class="divine-reading-item">' +
+          '<span class="divine-reading-no">' + (i + 1) + '</span>' +
+          '<div class="divine-reading-copy">' +
+            '<div class="divine-reading-name"><strong>' + App.esc(card.name) + '</strong>' +
+              '<em class="' + (card.reversed ? 'is-reversed' : '') + '">' + (card.reversed ? '逆位' : '正位') + '</em></div>' +
+            '<p>' + App.esc(divineMeaning(card.name, card.reversed)) + '</p>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+  }
+
   function updateDivineControls() {
     const draw = el('#divine-draw');
     const reset = el('#divine-reset');
@@ -854,7 +979,7 @@
     if (draw) {
       if (divine.phase === 'idle') {
         draw.textContent = '摊开牌堆';
-        draw.disabled = !divine.type || !divine.count;
+        draw.disabled = !divine.count;
       } else if (divine.phase === 'pick') {
         draw.textContent = '翻牌（' + divine.picks.length + '/' + divine.count + '）';
         draw.disabled = divine.picks.length < divine.count;
@@ -863,7 +988,7 @@
         draw.disabled = false;
       }
     }
-    if (reset) reset.disabled = divine.phase === 'idle' && !divine.type && !divine.count;
+    if (reset) reset.disabled = divine.phase === 'idle' && !divine.count;
     if (send) send.disabled = !(divine.phase === 'revealed' && divine.picks.length === divine.count);
     document.querySelectorAll('[data-divine-type]').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.dataset.divineType === divine.type);
@@ -873,16 +998,17 @@
       btn.classList.toggle('is-active', Number(btn.dataset.divineCount) === divine.count);
       btn.disabled = divine.phase !== 'idle';
     });
+    renderDivineReading();
     if (hint) {
-      if (!divine.type || !divine.count) {
-        hint.textContent = '先选牌种和抽牌数量，再摊开牌堆。';
+      if (!divine.count) {
+        hint.textContent = '先选抽牌数量，再摊开牌堆。';
       } else if (divine.phase === 'idle') {
         hint.textContent = '已选' + divineTypeLabel(divine.type) + ' ' + divine.count + ' 张，点「摊开牌堆」。';
       } else if (divine.phase === 'pick') {
         hint.textContent = '左右滑动看牌，点选 ' + divine.count + ' 张（已选 ' + divine.picks.length + ' 张）' +
           (divine.picks.length >= divine.count ? '，可以翻牌了。' : '，选满后翻牌。');
       } else {
-        hint.textContent = '点已选的牌可以取消重选，也可以直接发给 TA。';
+        hint.textContent = '下方是这次的牌意解读；点已选的牌可重选，也可以直接发给 TA。';
       }
     }
   }
@@ -893,8 +1019,11 @@
     divine.picks = [];
     divine.cards = {};
     if (clearChoice) {
-      divine.type = '';
+      divine.type = 'tarot';
       divine.count = 0;
+      divine.question = '';
+      const qi = el('#divine-question');
+      if (qi) qi.value = '';
     }
     const picked = el('#divine-picked');
     if (picked) {
@@ -909,8 +1038,8 @@
   }
 
   function startDivine() {
-    if (!divine.type || !divine.count || divine.phase !== 'idle') return;
-    const source = divine.type === 'tarot' ? TAROT_DECK : LENORMAND_DECK;
+    if (!divine.count || divine.phase !== 'idle') return;
+    const source = TAROT_DECK;
     divine.deck = shuffleDeck(source);
     divine.picks = [];
     divine.cards = {};
@@ -955,15 +1084,20 @@
     if (divine.phase !== 'revealed' || divine.picks.length < divine.count) return;
     const cards = divine.picks.map(function (index) {
       const card = divine.cards[index];
-      return card ? { name: card.name, reversed: !!card.reversed } : null;
+      return card ? {
+        name: card.name,
+        reversed: !!card.reversed,
+        meaning: divineMeaning(card.name, card.reversed)
+      } : null;
     }).filter(function (card) { return !!card; });
     if (cards.length < divine.count) return;
     const message = {
       id: App.uid('m'),
       role: 'me',
       type: 'divine',
-      text: '发了一个' + divineTypeLabel(divine.type) + '牌阵',
-      system: divineTypeLabel(divine.type),
+      text: '发了一个' + divineTypeLabel() + '牌阵',
+      system: divineTypeLabel(),
+      question: String(divine.question || '').trim(),
       cards: cards,
       ts: Date.now(),
     };
@@ -2713,7 +2847,11 @@
     if (answerSubmit) answerSubmit.addEventListener('click', submitSurveyAnswer);
     resumePendingSurveys();
 
-    /* 占卜：选牌种 / 张数、翻牌、重新开始、发送 */
+    /* 占卜：问题 / 张数、翻牌、重新开始、发送 */
+    const divineQuestion = el('#divine-question');
+    if (divineQuestion) divineQuestion.addEventListener('input', function () {
+      divine.question = divineQuestion.value.slice(0, 60);
+    });
     document.querySelectorAll('[data-divine-type]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         if (divine.phase !== 'idle') return;

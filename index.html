@@ -21,7 +21,7 @@
      ③ 从 bfcache 恢复的旧页面也强制重载。
    sessionStorage 保证只自愈一次，不会死循环。 */
 (function () {
-  var EXPECT = '20261121-contract3';
+  var EXPECT = '20261121-contract4';
   window.__SHIYI_BUILD = EXPECT;
   var KEY = 'shiyi.selfheal.' + EXPECT;
   function once() {
@@ -99,10 +99,10 @@
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261121-contract3">
-<link rel="stylesheet" href="css/steps.css?v=20261121-contract3">
-<link rel="stylesheet" href="css/clock.css?v=20261121-contract3">
-<link rel="stylesheet" href="css/contract.css?v=20261121-contract3">
+<link rel="stylesheet" href="css/style.css?v=20261121-contract4">
+<link rel="stylesheet" href="css/steps.css?v=20261121-contract4">
+<link rel="stylesheet" href="css/clock.css?v=20261121-contract4">
+<link rel="stylesheet" href="css/contract.css?v=20261121-contract4">
 </head>
 <body>
 <div class="stage">
@@ -2573,7 +2573,7 @@
   <div id="more-apps" class="more-apps">
     <button type="button" class="more-app" data-tool="redpacket" data-cat="tool" title="发一个同心币红包"><span class="more-app-icon is-tool">包</span><span>红包</span></button>
     <button type="button" class="more-app" data-tool="survey" data-cat="tool" title="写一份小问卷"><span class="more-app-icon is-tool">问</span><span>问卷</span></button>
-    <button type="button" class="more-app" data-tool="divine" data-cat="tool" title="塔罗牌 / 雷诺曼占卜"><span class="more-app-icon is-divine">签</span><span>占卜</span></button>
+    <button type="button" class="more-app" data-tool="divine" data-cat="tool" title="塔罗牌占卜"><span class="more-app-icon is-divine">签</span><span>占卜</span></button>
     <button type="button" class="more-app" data-tool="avatar" data-cat="tool" title="互换头像"><span class="more-app-icon is-avatar">换</span><span>头像与名字</span></button>
     <button type="button" class="more-app" data-tool="sleep" data-cat="tool" title="白噪音与混音，睡前放松"><span class="more-app-icon is-sleep">眠</span><span>助眠</span></button>
     <button type="button" class="more-app" data-tool="sendloc" data-cat="tool" title="让 TA 发一条地图里的位置"><span class="more-app-icon is-tool">地</span><span>TA 的位置</span></button>
@@ -2707,8 +2707,12 @@
       <span class="tool-label">牌种</span>
       <div class="segmented divine-types" id="divine-types" role="group" aria-label="选择牌种">
         <button type="button" data-divine-type="tarot">塔罗牌</button>
-        <button type="button" data-divine-type="lenormand">雷诺曼</button>
       </div>
+    </div>
+    <div class="divine-block">
+      <span class="tool-label">想问的事</span>
+      <label class="field"><input autocomplete="off" id="divine-question" maxlength="60" placeholder="例如：最近这件事该怎么选？" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" inputmode="text"></label>
+      <p class="field-hint">写下问题再抽牌，翻牌后会连着牌意一起解读；不写也能抽。</p>
     </div>
     <div class="divine-block">
       <span class="tool-label">抽牌数量</span>
@@ -2718,10 +2722,19 @@
         <button type="button" data-divine-count="5">5 张</button>
       </div>
     </div>
-    <p class="field-hint" id="divine-hint">先选牌种和抽牌数量，再摊开牌堆。</p>
+    <p class="field-hint" id="divine-hint">先选抽牌数量，再摊开牌堆。</p>
     <div id="divine-board" class="divine-board" aria-live="polite">
       <div id="divine-picked" class="divine-row divine-picked"></div>
       <div id="divine-deck" class="divine-row divine-deck"></div>
+    </div>
+    <div class="divine-reading" id="divine-reading" hidden>
+      <div class="divine-reading-head">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3.1-5.4 3.1 1.2-6L3.3 9.3l6.1-.7L12 3z"/></svg>
+        <span>牌意解读</span>
+      </div>
+      <p class="divine-reading-question" id="divine-reading-question" hidden></p>
+      <div class="divine-reading-list" id="divine-reading-list"></div>
+      <p class="divine-reading-foot">牌意参考韦特塔罗通用释义，仅供陪伴与自省，不做预测。</p>
     </div>
   </div>
   <div class="sheet-actions tool-sheet-actions">
@@ -3343,25 +3356,25 @@
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261121-contract3"></script>
-<script src="js/seed.js?v=20261121-contract3"></script>
-<script src="js/store.js?v=20261121-contract3"></script>
-<script src="js/desktop.js?v=20261121-contract3"></script>
-<script src="js/chat.js?v=20261121-contract3"></script>
-<script src="js/cards.js?v=20261121-contract3"></script>
-<script src="js/settings.js?v=20261121-contract3"></script>
-<script src="js/moments.js?v=20261121-contract3"></script>
-<script src="js/calendar.js?v=20261121-contract3"></script>
-<script src="js/music.js?v=20261121-contract3"></script>
-<script src="js/market.js?v=20261121-contract3"></script>
-<script src="js/mail.js?v=20261121-contract3"></script>
-<script src="js/extras.js?v=20261121-contract3"></script>
-<script src="js/companion.js?v=20261121-contract3"></script>
-<script src="js/memoir.js?v=20261121-contract3"></script>
-<script src="js/group.js?v=20261121-contract3"></script>
-<script src="js/steps.js?v=20261121-contract3"></script>
-<script src="js/clock.js?v=20261121-contract3"></script>
-<script src="js/contract.js?v=20261121-contract3"></script>
-<script src="js/app.js?v=20261121-contract3"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261121-contract4"></script>
+<script src="js/seed.js?v=20261121-contract4"></script>
+<script src="js/store.js?v=20261121-contract4"></script>
+<script src="js/desktop.js?v=20261121-contract4"></script>
+<script src="js/chat.js?v=20261121-contract4"></script>
+<script src="js/cards.js?v=20261121-contract4"></script>
+<script src="js/settings.js?v=20261121-contract4"></script>
+<script src="js/moments.js?v=20261121-contract4"></script>
+<script src="js/calendar.js?v=20261121-contract4"></script>
+<script src="js/music.js?v=20261121-contract4"></script>
+<script src="js/market.js?v=20261121-contract4"></script>
+<script src="js/mail.js?v=20261121-contract4"></script>
+<script src="js/extras.js?v=20261121-contract4"></script>
+<script src="js/companion.js?v=20261121-contract4"></script>
+<script src="js/memoir.js?v=20261121-contract4"></script>
+<script src="js/group.js?v=20261121-contract4"></script>
+<script src="js/steps.js?v=20261121-contract4"></script>
+<script src="js/clock.js?v=20261121-contract4"></script>
+<script src="js/contract.js?v=20261121-contract4"></script>
+<script src="js/app.js?v=20261121-contract4"></script>
 </body>
 </html>

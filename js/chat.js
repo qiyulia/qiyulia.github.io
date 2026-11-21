@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract3';
+window.__SHIYI_B_chat='20261121-contract4';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -673,17 +673,25 @@ window.__SHIYI_B_chat='20261121-contract3';
   }
 
   function divineCardHtml(m) {
+    const question = String(m.question || '').trim();
+    const questionHtml = question
+      ? '<div class="divine-chat-question"><span>所问</span><p>' + App.esc(question) + '</p></div>'
+      : '';
     const cards = (m.cards || []).map(function (card) {
+      const meaning = String(card.meaning || '').trim();
       return '<span class="divine-chat-card">' +
         '<strong>' + App.esc(card.name) + '</strong>' +
         '<em class="' + (card.reversed ? 'is-reversed' : '') + '">' + (card.reversed ? '逆位' : '正位') + '</em>' +
+        (meaning ? '<span class="divine-chat-meaning">' + App.esc(meaning) + '</span>' : '') +
         '</span>';
     }).join('');
+    const hasMeanings = (m.cards || []).some(function (c) { return c && c.meaning; });
     const reply = m.reply
       ? '<div class="divine-chat-reply"><span>TA 的回复</span><p>' + App.esc(m.reply.text) + '</p></div>'
       : '<div class="divine-chat-reply is-waiting">TA 正在看牌…</div>';
-    return '<div class="bubble bubble-divine">' +
+    return '<div class="bubble bubble-divine' + (hasMeanings ? ' has-meanings' : '') + '">' +
       '<div class="survey-card-head"><span class="survey-card-tag">' + App.esc(m.system || '占卜') + '牌阵</span><em>占卜</em></div>' +
+      questionHtml +
       '<div class="divine-chat-cards">' + cards + '</div>' +
       reply +
       '</div>';
