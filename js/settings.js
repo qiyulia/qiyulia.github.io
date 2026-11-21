@@ -89,6 +89,7 @@
     { key: 'music', label: '音乐列表', fields: ['music'] },
     { key: 'market', label: '集市与钱包', fields: ['wallet', 'market'] },
     { key: 'clock', label: '时钟与闹钟', fields: ['clock'] },
+    { key: 'contract', label: '婚帖契约', fields: ['contract'] },
   ];
 
   function backupScopeInputs() {

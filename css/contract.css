@@ -1,0 +1,356 @@
+/* ============ 婚帖 · 跨次元契约书 ============ */
+/* 外围固定淡蓝毛玻璃；只有 .contract-card 内部会随背景选择变化。
+   文字/边框/印章全部走 --contract-text-color 等变量，便于反色与导出。 */
+
+.contract-page { padding-bottom: calc(28px + var(--safe-bottom, 0px)); }
+
+/* ---------- 外围（永远淡蓝，不受卡片背景影响） ---------- */
+.contract-stage {
+  position: relative;
+  padding: 18px 14px 22px;
+  border-radius: 26px;
+  background: linear-gradient(155deg, rgba(226, 239, 253, .92), rgba(205, 226, 248, .88));
+  border: 1px solid rgba(255, 255, 255, .72);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow: 0 16px 40px rgba(70, 105, 150, .14), inset 0 1px 0 rgba(255, 255, 255, .7);
+  overflow: hidden;
+}
+.contract-stage::before {
+  content: '';
+  position: absolute;
+  width: 260px; height: 260px;
+  right: -90px; top: -110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .55), transparent 70%);
+  pointer-events: none;
+}
+
+/* ---------- 契约书卡片 ---------- */
+.contract-card {
+  --contract-bg: linear-gradient(160deg, rgba(255, 255, 255, .9), rgba(232, 241, 252, .84));
+  --contract-text-color: #2b3a52;
+  --contract-sub-color: rgba(43, 58, 82, .68);
+  --contract-line-color: rgba(43, 58, 82, .22);
+  --contract-accent: #4b76ad;
+  --contract-gold: #b08a45;
+  --contract-bond-color: #e8536f;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 460px;
+  padding: 26px 22px 22px;
+  border-radius: 20px;
+  background: var(--contract-bg);
+  color: var(--contract-text-color);
+  border: 1px solid var(--contract-line-color);
+  box-shadow: 0 12px 34px rgba(40, 65, 100, .16), inset 0 0 0 5px rgba(255, 255, 255, .13);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  transition: background .35s ease, color .35s ease, border-color .35s ease;
+}
+/* 上传的背景图：Base64 dataURL 直接铺进卡片，导出时不会空白 */
+.contract-bg-img {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.contract-card.has-image .contract-bg-img { opacity: 1; }
+/* 图片上加一层柔光，保证文字可读 */
+.contract-card.has-image::before {
+  content: '';
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .12), rgba(0, 0, 0, .28));
+  pointer-events: none;
+}
+.contract-card.has-image.is-dark::before {
+  background: linear-gradient(180deg, rgba(12, 16, 28, .3), rgba(12, 16, 28, .5));
+}
+
+/* 卡片内四角细线装饰 */
+.contract-corner {
+  position: absolute;
+  width: 26px; height: 26px;
+  border: 1px solid var(--contract-line-color);
+  pointer-events: none;
+  opacity: .75;
+}
+.contract-corner.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+.contract-corner.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+.contract-corner.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+.contract-corner.br { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+.contract-inner { position: relative; z-index: 1; }
+.contract-eyebrow {
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 3.2px;
+  color: var(--contract-sub-color);
+  opacity: .9;
+}
+.contract-title {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: 12px;
+  text-indent: 12px;
+  color: var(--contract-text-color);
+}
+.contract-title-rule {
+  width: 74px; height: 1px;
+  margin: 13px auto 20px;
+  background: var(--contract-line-color);
+  position: relative;
+}
+.contract-title-rule::after {
+  content: '';
+  position: absolute; left: 50%; top: -2px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--contract-gold);
+  transform: translateX(-50%);
+}
+
+/* ---------- 人物位 ---------- */
+.contract-parties { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.contract-party { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.contract-avatar {
+  width: 74px; height: 74px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  border: 2px solid var(--contract-line-color);
+  background: rgba(255, 255, 255, .18);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .16), 0 6px 18px rgba(0, 0, 0, .1);
+  color: var(--contract-text-color);
+}
+.contract-avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.contract-party-name {
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 14px; font-weight: 600;
+  color: var(--contract-text-color);
+}
+.contract-party-role { font-size: 10.5px; letter-spacing: 1.5px; color: var(--contract-sub-color); }
+
+/* 中间发光 ∞ */
+.contract-bond {
+  flex: none;
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid var(--contract-line-color);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 0 22px rgba(255, 255, 255, .35), inset 0 0 14px rgba(255, 255, 255, .2);
+}
+/* 红色爱心：白色描边 + 柔光，保证在淡色卡片、经典红底、深色图片上都看得清 */
+.contract-heart {
+  width: 30px; height: 30px;
+  fill: var(--contract-bond-color);
+  stroke: rgba(255, 255, 255, .92);
+  stroke-width: 1.1;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, .95)) drop-shadow(0 0 14px var(--contract-bond-color));
+  animation: contract-breathe 3.4s ease-in-out infinite;
+}
+@keyframes contract-breathe {
+  0%, 100% { transform: scale(1); opacity: .94; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+.contract-card.is-beating .contract-bond { animation: contract-heartbeat 1.5s ease-in-out; }
+.contract-card.is-beating .contract-heart { animation: contract-heartbeat 1.5s ease-in-out; }
+@keyframes contract-heartbeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.28); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.2); }
+  56% { transform: scale(1); }
+  72% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.contract-card.is-beating { animation: contract-flash 1.5s ease-out; }
+@keyframes contract-flash {
+  0% { box-shadow: 0 12px 34px rgba(40,65,100,.16), 0 0 0 0 rgba(255,255,255,.7); }
+  35% { box-shadow: 0 12px 34px rgba(40,65,100,.16), 0 0 0 16px rgba(255,255,255,0); }
+  100% { box-shadow: 0 12px 34px rgba(40,65,100,.16), 0 0 0 0 rgba(255,255,255,0); }
+}
+
+/* ---------- 誓词 ---------- */
+.contract-vow {
+  margin: 22px 2px 0;
+  padding: 18px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--contract-line-color);
+  background: rgba(255, 255, 255, .1);
+  font-size: 14px;
+  line-height: 2.05;
+  letter-spacing: .4px;
+  text-align: justify;
+  color: var(--contract-text-color);
+}
+.contract-vow-label {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 10px;
+  letter-spacing: 2.4px;
+  color: var(--contract-sub-color);
+}
+.contract-vow-text { display: block; }
+
+/* ---------- 落款 / 印章 / 日期 ---------- */
+.contract-sign {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--contract-line-color);
+  color: var(--contract-text-color);
+}
+.contract-seal { width: 46px; height: 46px; flex: none; color: var(--contract-text-color); }
+.contract-seal svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.contract-sign-meta { display: flex; flex-direction: column; gap: 3px; text-align: right; }
+.contract-sign-label { font-size: 10px; letter-spacing: 2px; color: var(--contract-sub-color); }
+.contract-sign-date { font-size: 14px; font-weight: 600; letter-spacing: .6px; color: var(--contract-text-color); }
+.contract-date-btn {
+  width: 34px; height: 34px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--contract-line-color);
+  color: var(--contract-text-color);
+  background: rgba(255, 255, 255, .12);
+  -webkit-tap-highlight-color: transparent;
+}
+.contract-date-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- 未签订：毛玻璃遮罩 ---------- */
+.contract-card.is-unsigned .contract-inner { filter: blur(5px); opacity: .42; pointer-events: none; }
+.contract-unsigned {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(226, 238, 252, .3);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.contract-unsigned[hidden] { display: none; }
+.contract-unsigned-mark {
+  width: 62px; height: 62px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .65);
+  background: rgba(255, 255, 255, .16);
+  box-shadow: 0 0 24px rgba(255, 255, 255, .55);
+}
+.contract-unsigned-mark svg {
+  width: 30px; height: 30px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 9px rgba(255, 255, 255, .95));
+  animation: contract-breathe 3.4s ease-in-out infinite;
+}
+.contract-unsigned-title { font-size: 17px; font-weight: 600; letter-spacing: 3px; color: #31466a; }
+.contract-unsigned-sub { font-size: 12px; line-height: 1.8; color: rgba(49, 70, 106, .75); max-width: 240px; }
+.contract-glass-btn {
+  margin-top: 6px;
+  padding: 13px 30px;
+  border-radius: 999px;
+  font-size: 14px; font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, .2);
+  border: 1px solid rgba(255, 255, 255, .62);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  box-shadow: 0 8px 24px rgba(60, 95, 140, .2), inset 0 1px 0 rgba(255, 255, 255, .5);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .15);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- 已签订后的操作区（仍在淡蓝外围里） ---------- */
+.contract-actions { margin-top: 16px; }
+.contract-actions[hidden] { display: none; }
+.contract-panel {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .58);
+  border: 1px solid rgba(255, 255, 255, .8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.contract-panel + .contract-panel { margin-top: 10px; }
+.contract-panel-label { font-size: 11px; letter-spacing: 1.5px; color: #5b7392; margin-bottom: 10px; display: block; }
+.contract-bg-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.contract-bg-pill {
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #48617f;
+  background: rgba(255, 255, 255, .7);
+  border: 1px solid rgba(120, 155, 195, .28);
+}
+.contract-bg-pill.is-active { background: #547fb6; border-color: #547fb6; color: #fff; font-weight: 600; }
+.contract-bg-hint { margin-top: 9px; font-size: 10.5px; line-height: 1.7; color: #7c92ab; }
+.contract-btn-row { display: flex; gap: 10px; margin-top: 10px; }
+.contract-btn-row .btn { flex: 1 1 0; }
+.contract-reward {
+  margin-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: #5b7392;
+  text-align: center;
+}
+.contract-reward strong { color: #b8863c; }
+
+/* ---------- 日期弹窗 ---------- */
+#contract-date-dialog input[type="date"] {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--field, rgba(255, 255, 255, .72));
+  font-size: 17px;
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+/* ---------- 导出：离屏舞台，去掉 backdrop-filter 以免 html2canvas 丢背景 ---------- */
+.contract-export-stage {
+  position: fixed;
+  left: -12000px; top: 0;
+  width: 420px;
+  z-index: -1;
+  pointer-events: none;
+}
+.contract-card.is-exporting {
+  width: 420px;
+  min-height: 460px;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none;
+}
+.contract-card.is-exporting .contract-bond { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(255,255,255,.2); }
+.contract-card.is-exporting .contract-heart,
+.contract-card.is-exporting .contract-unsigned-mark svg { filter: none; animation: none; }
+
+@media (max-width: 360px) {
+  .contract-card { padding: 22px 16px 18px; }
+  .contract-avatar { width: 64px; height: 64px; }
+  .contract-bond { width: 46px; height: 46px; }
+  .contract-heart { width: 26px; height: 26px; }
+  .contract-title { font-size: 26px; letter-spacing: 9px; text-indent: 9px; }
+}

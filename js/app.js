@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261121-clock1';
+window.__SHIYI_B_app='20261121-contract1';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -78,6 +78,7 @@ window.__SHIYI_B_app='20261121-clock1';
     else if (view === 'memorywall' && App.renderMemoryWall) App.renderMemoryWall();
     else if (view === 'mood' && App.renderMood) App.renderMood();
     else if (view === 'clock' && App.renderClock) App.renderClock();
+    else if (view === 'contract' && App.renderContract) App.renderContract();
     else if (view === 'groups' && App.renderGroups) App.renderGroups();
     else if (view === 'group-chat' && App.renderGroupChat) App.renderGroupChat();
     else if (view === 'group-settings' && App.renderGroupSettings) App.renderGroupSettings();
@@ -391,7 +392,7 @@ window.__SHIYI_B_app='20261121-clock1';
      否则就会出现「界面在、但什么都点不了」的假死状态。 */
   ['initDesktop','initChat','initCards','initSettings','initMoments','initCalendar',
    'initMusic','initMarket','initMail','initExtras','initCompanion','initMemoir',
-   'initGroups','initSteps','initClock'].forEach(function (name) {
+   'initGroups','initSteps','initClock','initContract'].forEach(function (name) {
     const fn = App[name];
     if (typeof fn !== 'function') return;
     try { fn.call(App); } catch (e) {
