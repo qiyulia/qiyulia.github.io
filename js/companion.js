@@ -3239,7 +3239,7 @@
         line.textContent = fest.name + ' · ' + fest.sub;
       }
       if (greeting) greeting.textContent = fest.greeting;
-      const card = el('#d-today-card');
+      const card = el('#d-today-line');
       if (card) card.textContent = fest.line;
       maybeSendFestival(fest);
     } else {

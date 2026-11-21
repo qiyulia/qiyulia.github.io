@@ -95,6 +95,34 @@
     };
   }
 
+  /* 首页经期小窗用：正在经期返回第几天，否则返回下一次经期的开始日期 */
+  App.periodBrief = function () {
+    const cal = calendar();
+    const todayKey = keyOf(new Date());
+    if (cal[todayKey] && cal[todayKey].period) {
+      let day = 1;
+      let key = todayKey;
+      while (day < 15) {
+        key = addDays(key, -1);
+        if (!(cal[key] && cal[key].period)) break;
+        day++;
+      }
+      return { inPeriod: true, day: day };
+    }
+    const periodStarts = groupStarts('period').sort();
+    if (!periodStarts.length) return null;
+    const pred = predictions();
+    let start = pred.periodStart;
+    /* 上次预测的经期已经过去时，按周期往后推到下一次 */
+    let guard = 0;
+    while (start < todayKey && guard < 24) {
+      start = addDays(start, pred.cycle);
+      guard++;
+    }
+    const days = Math.round((fromKey(start) - fromKey(todayKey)) / 86400000);
+    return { inPeriod: false, start: start, days: days };
+  };
+
   App.calendarDayClass = function (key) {
     const d = calendar()[key];
     const predicted = predictions();

@@ -34,10 +34,11 @@
     el('#d-since').textContent = st.profile.since ? '自 ' + st.profile.since.replace(/-/g, '.') : '';
 
     const daily = pickDailyCard();
-    el('#d-today-card').textContent = daily
+    el('#d-today-line').textContent = daily
       ? daily.text
       : (App.isModuleLoaded && !App.isModuleLoaded('cards') ? '正在读取今日字卡…' : '字卡库空空的，去添几张吧。');
 
+    renderPeriodWidget();
     renderWidgets(now);
     if (App.renderRadioHome) App.renderRadioHome();
     if (App.applyFestivalTheme) App.applyFestivalTheme();
@@ -46,6 +47,37 @@
   };
 
   /* ---------- 小组件 ---------- */
+  /* 首页经期小窗：正在经期显示第几天，否则显示下一次经期的日期 */
+  function renderPeriodWidget() {
+    const value = el('#d-period-value');
+    const unit = el('#d-period-unit');
+    const foot = el('#d-period-foot');
+    if (!value || !unit || !foot) return;
+    if (App.isModuleLoaded && !App.isModuleLoaded('calendar')) {
+      value.textContent = '—';
+      unit.textContent = '';
+      foot.textContent = '正在读取经期记录…';
+      return;
+    }
+    const brief = App.periodBrief ? App.periodBrief() : null;
+    if (!brief) {
+      value.textContent = '—';
+      unit.textContent = '';
+      foot.textContent = '去日历记录经期';
+      return;
+    }
+    if (brief.inPeriod) {
+      value.textContent = String(brief.day);
+      unit.textContent = '天';
+      foot.textContent = '经期第 ' + brief.day + ' 天';
+      return;
+    }
+    const parts = brief.start.split('-').map(Number);
+    value.textContent = parts[1] + '.' + String(parts[2]).padStart(2, '0');
+    unit.textContent = '';
+    foot.textContent = brief.days > 0 ? '下次经期 · 还有 ' + brief.days + ' 天' : '下次经期 · 就是今天';
+  }
+
   function nextAnniversary(dateStr) {
     if (!dateStr) return null;
     const parts = String(dateStr).split('-').map(Number);

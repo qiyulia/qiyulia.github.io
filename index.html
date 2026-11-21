@@ -21,7 +21,7 @@
      ③ 从 bfcache 恢复的旧页面也强制重载。
    sessionStorage 保证只自愈一次，不会死循环。 */
 (function () {
-  var EXPECT = '20261120-lazy14';
+  var EXPECT = '20261120-lazy15';
   window.__SHIYI_BUILD = EXPECT;
   var KEY = 'shiyi.selfheal.' + EXPECT;
   function once() {
@@ -99,8 +99,8 @@
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261120-lazy14">
-<link rel="stylesheet" href="css/steps.css?v=20261120-lazy14">
+<link rel="stylesheet" href="css/style.css?v=20261120-lazy15">
+<link rel="stylesheet" href="css/steps.css?v=20261120-lazy15">
 </head>
 <body>
 <div class="stage">
@@ -191,7 +191,7 @@
             <div class="hero">
               <p class="hero-eyebrow">拾 忆</p>
               <h1 class="hero-title" id="d-greeting">你好</h1>
-              <p class="hero-sub">向左滑，看看收藏和小组件。</p>
+              <p class="hero-sub" id="d-today-line">向左滑，看看收藏和小组件。</p>
               <p class="festival-line" id="d-festival-line" hidden></p>
             </div>
 
@@ -201,10 +201,11 @@
                 <p class="days-value"><strong id="d-days">0</strong><span>天</span></p>
                 <span class="widget-foot" id="d-since"></span>
               </button>
-              <div class="widget note-widget">
-                <span class="widget-label">今日字笺</span>
-                <p id="d-today-card">……</p>
-              </div>
+              <button type="button" class="widget days-widget" data-go="calendar" aria-label="打开日历查看经期">
+                <span class="widget-label">经期</span>
+                <p class="days-value"><strong id="d-period-value">—</strong><span id="d-period-unit"></span></p>
+                <span class="widget-foot" id="d-period-foot">去日历记录经期</span>
+              </button>
             </div>
 
             <div class="desk-section app-section">
@@ -3057,23 +3058,23 @@
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261120-lazy14"></script>
-<script src="js/seed.js?v=20261120-lazy14"></script>
-<script src="js/store.js?v=20261120-lazy14"></script>
-<script src="js/desktop.js?v=20261120-lazy14"></script>
-<script src="js/chat.js?v=20261120-lazy14"></script>
-<script src="js/cards.js?v=20261120-lazy14"></script>
-<script src="js/settings.js?v=20261120-lazy14"></script>
-<script src="js/moments.js?v=20261120-lazy14"></script>
-<script src="js/calendar.js?v=20261120-lazy14"></script>
-<script src="js/music.js?v=20261120-lazy14"></script>
-<script src="js/market.js?v=20261120-lazy14"></script>
-<script src="js/mail.js?v=20261120-lazy14"></script>
-<script src="js/extras.js?v=20261120-lazy14"></script>
-<script src="js/companion.js?v=20261120-lazy14"></script>
-<script src="js/memoir.js?v=20261120-lazy14"></script>
-<script src="js/group.js?v=20261120-lazy14"></script>
-<script src="js/steps.js?v=20261120-lazy14"></script>
-<script src="js/app.js?v=20261120-lazy14"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261120-lazy15"></script>
+<script src="js/seed.js?v=20261120-lazy15"></script>
+<script src="js/store.js?v=20261120-lazy15"></script>
+<script src="js/desktop.js?v=20261120-lazy15"></script>
+<script src="js/chat.js?v=20261120-lazy15"></script>
+<script src="js/cards.js?v=20261120-lazy15"></script>
+<script src="js/settings.js?v=20261120-lazy15"></script>
+<script src="js/moments.js?v=20261120-lazy15"></script>
+<script src="js/calendar.js?v=20261120-lazy15"></script>
+<script src="js/music.js?v=20261120-lazy15"></script>
+<script src="js/market.js?v=20261120-lazy15"></script>
+<script src="js/mail.js?v=20261120-lazy15"></script>
+<script src="js/extras.js?v=20261120-lazy15"></script>
+<script src="js/companion.js?v=20261120-lazy15"></script>
+<script src="js/memoir.js?v=20261120-lazy15"></script>
+<script src="js/group.js?v=20261120-lazy15"></script>
+<script src="js/steps.js?v=20261120-lazy15"></script>
+<script src="js/app.js?v=20261120-lazy15"></script>
 </body>
 </html>
