@@ -327,8 +327,6 @@
     if (document.hidden) return;
     const st = App.state;
     if (!st || !st.contacts.length) return;
-    const taMails = mailList().filter(function (m) { return m.from === 'ta'; });
-    const lastTa = taMails.length ? taMails.reduce(function (a, b) { return a.ts > b.ts ? a : b; }) : null;
     const settings = st.settings || {};
     const cooldownMin = settings.taMailCooldownMin == null
       ? 30
@@ -336,12 +334,10 @@
     const prob = settings.taMailProb == null
       ? 12
       : Math.max(0, Math.min(100, Number(settings.taMailProb) || 0));
-    if (lastTa && Date.now() - lastTa.ts < cooldownMin * 60000) return;
-    if (Math.random() * 100 >= prob) return;
-    if (!App.taDisturbHit('mail')) return;
-
     const contact = fallbackContact();
     if (!contact) return;
+    /* 冷却结束才投一次；中不中都重新计冷却 */
+    if (!App.taRollTick('mail', cooldownMin, prob)) return;
     const letter = composeTaMail();
     mailList().unshift({
       id: App.uid('mail'),
@@ -354,7 +350,8 @@
       read: false,
       fav: false,
     });
-    App.save();
+    /* 信已经呈现，冷却从这一刻重新计时（内部会落盘） */
+    App.taRollMark('mail');
     App.updateMailBadge();
     if (el('#view-mail').classList.contains('is-active') && !currentMailId) renderList();
   }

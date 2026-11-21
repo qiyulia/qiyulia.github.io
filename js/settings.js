@@ -321,20 +321,6 @@
     show('profile');
   }
 
-  /* 主动打扰：5 类各自独立的每日次数，分别显示今天已用多少 */
-  function renderDisturbHint() {
-    if (!App.TA_DISTURB_FIELDS) return;
-    Object.keys(App.TA_DISTURB_FIELDS).forEach(function (k) {
-      const hint = el('#disturb-used-' + k);
-      if (!hint) return;
-      const limit = App.taDisturbLimit(k);
-      const used = App.taDisturbUsed(k);
-      hint.textContent = limit <= 0
-        ? '这一类已关闭，TA 不会自己冒出来。'
-        : '今天已用 ' + used + ' / ' + limit + ' 次，第二天零点重置。';
-    });
-  }
-
   function renderMarketIntervalHint() {
     const hint = el('#market-interval-hint');
     if (!hint) return;
@@ -433,14 +419,12 @@
     el('#set-card-offer-prob').value = st.settings.cardOfferProb == null ? 10 : st.settings.cardOfferProb;
     el('#set-ta-survey-prob').value = st.settings.taSurveyProb == null ? 10 : st.settings.taSurveyProb;
     el('#set-ta-survey-cooldown').value = st.settings.taSurveyCooldownMin == null ? 30 : st.settings.taSurveyCooldownMin;
-    Object.keys(App.TA_DISTURB_FIELDS).forEach(function (k) {
-      const input = el('#set-disturb-' + k);
-      if (input) input.value = App.taDisturbLimit(k);
-    });
+    el('#set-music-invite-cooldown').value = st.settings.taMusicInviteCooldownMin == null
+      ? 30
+      : st.settings.taMusicInviteCooldownMin;
     el('#set-ta-daily-allowance').value = st.settings.taDailyAllowance == null ? 30 : st.settings.taDailyAllowance;
     el('#set-ta-market-daily').value = st.settings.taMarketDailyLimit == null ? 8 : st.settings.taMarketDailyLimit;
     renderMarketIntervalHint();
-    renderDisturbHint();
     el('#set-ta-market-gift-prob').value = st.settings.taMarketGiftProb == null ? 6 : st.settings.taMarketGiftProb;
     el('#set-ta-market-buy-prob').value = st.settings.taMarketBuyProb == null ? 6 : st.settings.taMarketBuyProb;
     el('#set-ta-market-wish-prob').value = st.settings.taMarketWishProb == null ? 8 : st.settings.taMarketWishProb;
@@ -776,18 +760,7 @@
         });
       });
     }
-    /* 主动打扰：5 类各自独立的每日次数，改哪一个只影响那一类 */
-    Object.keys(App.TA_DISTURB_FIELDS).forEach(function (k) {
-      const input = el('#set-disturb-' + k);
-      if (!input) return;
-      input.addEventListener('input', function () {
-        const raw = String(input.value || '').trim();
-        if (!raw) return;
-        App.state.settings[App.TA_DISTURB_FIELDS[k].setting] = Math.max(0, Math.min(999, parseInt(raw, 10) || 0));
-        renderDisturbHint();
-        App.save();
-      });
-    });
+    bindMinutes('#set-music-invite-cooldown', 'taMusicInviteCooldownMin', 1440);
     bindMinutes('#set-ta-survey-cooldown', 'taSurveyCooldownMin', 1440);
 
     const notifyToggle = el('#set-notify-enabled');

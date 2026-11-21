@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract6';
+window.__SHIYI_B_chat='20261121-contract8';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -1479,40 +1479,31 @@ window.__SHIYI_B_chat='20261121-contract6';
     App.updateBadges();
   };
 
-  /* TA 偶尔主动拍一拍我，不需要我先拍他 */
-  function maybeTaPat(contactId, contact) {
-    contact = contact || App.state.contacts.find(function (c) { return c.id === contactId; });
-    if (!contact) return;
-    const prob = Math.max(0, Math.min(100, Number(App.contactSettings(contact).taPatProb) || 0));
-    if (Math.random() * 100 >= prob) return;
-    if (!App.taDisturbHit('pat')) return;
-
+  /* 拍一拍不再单独主动冒出来：TA 每次要发字卡时掷一次骰子，
+     命中就把这一条以「拍一拍」形态发出，没命中照常发字卡。
+     概率在联系人设置「发字卡变拍一拍（%）」里自己填，默认 10。
+     主动发消息、回复我、回应我的拍一拍，走的是同一个骰子。 */
+  function rollTaPat(contact) {
+    const cs = App.contactSettings(contact);
+    const prob = Math.max(0, Math.min(100, Number(cs.taPatProb) || 0));
+    if (Math.random() * 100 >= prob) return null;
     const card = App.pickPatCard();
     const raw = card ? card.text : '拍了拍{name}';
     const action = raw.indexOf('{name}') !== -1
       ? raw.split('{name}').join('你')
       : raw;
+    return { text: contact.name + action, cardId: card ? card.id : undefined };
+  }
 
-    setTimeout(function () {
-      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
-      const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      chat.push({
-        id: App.uid('m'),
-        role: 'ta',
-        type: 'pat',
-        text: contact.name + action,
-        ts: Date.now(),
-        cardId: card ? card.id : undefined,
-      });
-      App.save();
-      if (App.chatOpen(contactId)) {
-        App.renderChat();
-      } else {
-        App.unread[contactId] = (App.unread[contactId] || 0) + 1;
-        App.updateBadges();
-        App.renderContacts();
-      }
-    }, 2000 + Math.random() * 3000);
+  function patMessage(contact, pat) {
+    return {
+      id: App.uid('m'),
+      role: 'ta',
+      type: 'pat',
+      text: pat.text,
+      ts: Date.now(),
+      cardId: pat.cardId,
+    };
   }
 
   /* TA 按概率主动发一张表情包（从 TA 的表情库随机抽） */
@@ -1552,8 +1543,9 @@ window.__SHIYI_B_chat='20261121-contract6';
     }, 1600 + Math.random() * 1800);
   }
 
-  /* TA 主动发来消息（不依赖我先开口）：空闲一段时间后，一次发几条 */
-  let lastTaStartAt = 0;
+  /* TA 主动发来消息（不依赖我先开口）：我不发消息的空闲里，每隔 N 分钟投一次骰子 */
+  let lastMsgRollAt = 0;
+  const rollBootAt = Date.now();
 
   function sendTaStartMessage(contactId) {
     const st = App.state;
@@ -1575,7 +1567,8 @@ window.__SHIYI_B_chat='20261121-contract6';
     const isVoice = card.category === '语音' && card.audio;
 
     const chat = st.chats[contactId] || (st.chats[contactId] = []);
-    const message = {
+    const pat = rollTaPat(contact);
+    const message = pat ? patMessage(contact, pat) : {
       id: App.uid('m'),
       role: 'ta',
       type: isVoice ? 'audio' : 'text',
@@ -1583,8 +1576,10 @@ window.__SHIYI_B_chat='20261121-contract6';
       ts: Date.now(),
       cardId: card.id,
     };
-    if (isVoice) message.src = card.audio;
-    if (card.category === '情绪') message.emotion = App.emotionLabel(card);
+    if (!pat) {
+      if (isVoice) message.src = card.audio;
+      if (card.category === '情绪') message.emotion = App.emotionLabel(card);
+    }
     if (App.chatOpen(contactId)) message.read = true;
     chat.push(message);
     App.save();
@@ -1602,21 +1597,25 @@ window.__SHIYI_B_chat='20261121-contract6';
     if (!st || !st.contacts.length) return;
     const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
     const cs = App.contactSettings(contact);
-    /* 聊天里安静够久（分钟）才考虑主动开口 */
+    /* 投放间隔：我不发消息的空闲里，每满 N 分钟投一次 */
     const idle = Math.max(1, Number(cs.taMsgGapMin) || 1) * 60000;
     const chat = st.chats[contact.id] || [];
-    const lastTs = chat.length ? Number(chat[chat.length - 1].ts) || 0 : 0;
+    let meLast = 0;
+    for (let i = chat.length - 1; i >= 0; i--) {
+      if (chat[i].role === 'me') { meLast = Number(chat[i].ts) || 0; break; }
+    }
     const now = Date.now();
-    if (now - Math.max(lastTs, lastTaStartAt) < idle) return;
+    const since = Math.max(meLast, lastMsgRollAt, rollBootAt);
+    if (now - since < idle) return;
+    /* 投过了：中不中都记下时间，等下一个 N 分钟再投 */
+    lastMsgRollAt = now;
     const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
     if (Math.random() * 100 >= prob) return;
-    if (!App.taDisturbHit('msg')) return;
 
     /* 这一次主动发几条：在最少～最多之间随机 */
     const min = Math.max(1, Math.min(10, Math.round(Number(cs.taMsgMin) || 1)));
     const max = Math.max(min, Math.min(10, Math.round(Number(cs.taMsgMax) || min)));
     const count = min + Math.floor(Math.random() * (max - min + 1));
-    lastTaStartAt = now;
     for (let i = 0; i < count; i++) {
       const delay = 1200 + i * (3200 + Math.random() * 2800) + Math.random() * 1200;
       setTimeout(function () { sendTaStartMessage(contact.id); }, delay);
@@ -1632,7 +1631,6 @@ window.__SHIYI_B_chat='20261121-contract6';
     if (!st || !st.contacts.length) return;
     const contact = st.contacts.find(function (c) { return c.id === st.currentContactId; }) || st.contacts[0];
     const cs = App.contactSettings(contact);
-    maybeTaPat(contact.id, contact);
     maybeTaMusicInvite(contact.id, contact, cs);
   }, 60000);
 
@@ -1803,7 +1801,8 @@ window.__SHIYI_B_chat='20261121-contract6';
       if (!stillThere()) return;
 
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      const message = {
+      const pat = rollTaPat(contact);
+      const message = pat ? patMessage(contact, pat) : {
         id: App.uid('m'),
         role: 'ta',
         type: group.length === 1 && card.category === '语音' ? 'audio' : 'text',
@@ -1811,19 +1810,21 @@ window.__SHIYI_B_chat='20261121-contract6';
         ts: Date.now(),
         cardId: card.id,
       };
-      if (group.length > 1) message.cardIds = group.map(function (c) { return c.id; });
-      if (group.length === 1 && card.category === '语音') message.src = card.audio;
-      if (message.type !== 'audio' && Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
+      if (!pat) {
+        if (group.length > 1) message.cardIds = group.map(function (c) { return c.id; });
+        if (group.length === 1 && card.category === '语音') message.src = card.audio;
+        if (message.type !== 'audio' && Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
+      }
 
       const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
-      if (chat.length && Math.random() * 100 < quoteProb) {
+      if (!pat && chat.length && Math.random() * 100 < quoteProb) {
         const quote = taQuoteFromPool(chat, contact);
         if (quote) message.quote = quote;
       }
 
       /* TA 也会把文字和表情包一起发：表情包在上，文字在下；概率在聊天设置 → 回复里调
          引用消息时只打字就不配表情包，保持纯文字 */
-      if (message.type === 'text' && group.length === 1 && !message.quote) {
+      if (!pat && message.type === 'text' && group.length === 1 && !message.quote) {
         const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerComboProb) || 0));
         /* 表情包已外置到 IndexedDB，从内存缓存取 */
         const cachedSt = App.stickerCache || {};
@@ -1839,7 +1840,7 @@ window.__SHIYI_B_chat='20261121-contract6';
 
       chat.push(message);
       App.save();
-      scheduleTaMessageExtras(contactId, contact, message, cs);
+      if (!pat) scheduleTaMessageExtras(contactId, contact, message, cs);
 
       if (App.chatOpen(contactId)) {
         App.renderChat();
@@ -1856,7 +1857,6 @@ window.__SHIYI_B_chat='20261121-contract6';
     }
     maybeTaCall(contactId, contact, cs);
     maybeTaPacket(contactId, contact, cs);
-    maybeTaPat(contactId, contact);
     maybeTaMusicInvite(contactId, contact, cs);
   }
 
@@ -2001,12 +2001,20 @@ window.__SHIYI_B_chat='20261121-contract6';
   function maybeTaMusicInvite(contactId, contact, cs) {
     if (!contact) return;
     cs = cs || App.contactSettings(contact);
-    if (Math.random() * 100 >= clampProb(cs.musicInviteProb)) return;
-    /* 正在听歌的时候不会邀请 */
+    /* 正在听歌 / 没有能播的歌 / 已有待回应邀请：都不消耗这次投掷 */
     if (App.musicPlaying && App.musicPlaying()) return;
     const pool = musicInvitePool();
     if (!pool.length) return;
-    if (!App.taDisturbHit('music')) return;
+    const hasPending = (App.state.chats[contactId] || []).some(function (m) {
+      return m.type === 'musicInvite' && (m.status || 'pending') === 'pending';
+    });
+    if (hasPending) return;
+    const settings = (App.state && App.state.settings) || {};
+    const cd = settings.taMusicInviteCooldownMin == null
+      ? 30
+      : Math.max(0, Math.min(1440, Number(settings.taMusicInviteCooldownMin) || 0));
+    /* 冷却结束才投一次；中不中都重新计冷却 */
+    if (!App.taRollTick('music', cd, clampProb(cs.musicInviteProb))) return;
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
       if (App.musicPlaying && App.musicPlaying()) return;
@@ -2024,6 +2032,8 @@ window.__SHIYI_B_chat='20261121-contract6';
         status: 'pending',
         ts: Date.now(),
       });
+      /* 邀请已经呈现，冷却从这一刻重新计时 */
+      App.taRollMark('music');
       App.save();
       if (App.chatOpen(contactId)) {
         App.renderChat();

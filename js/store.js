@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261121-contract6';
+window.__SHIYI_B_store='20261121-contract8';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -386,55 +386,32 @@ window.__SHIYI_B_store='20261121-contract6';
     }, 200);
   };
 
-  /* 主动打扰：5 件事各算各的次数，谁也不占谁的。
-     每一类单独计数、单独封顶，发满当天只有这一类安静，第二天零点各自重置。
-     填 0 就是这一类彻底不主动冒出来。默认合计 12 次，跟以前共用一个总闸时一样，
-     但不会再出现某一件事把次数全吃掉、别的事一次都轮不到。 */
-  const DISTURB_FIELDS = {
-    msg:    { setting: 'taDisturbMsgLimit',    fallback: 3, label: '主动发消息' },
-    pat:    { setting: 'taDisturbPatLimit',    fallback: 3, label: '拍一拍' },
-    music:  { setting: 'taDisturbMusicLimit',  fallback: 2, label: '邀请一起听歌' },
-    survey: { setting: 'taDisturbSurveyLimit', fallback: 2, label: '发问卷' },
-    mail:   { setting: 'taDisturbMailLimit',   fallback: 2, label: '写信' }
-  };
-  App.TA_DISTURB_FIELDS = DISTURB_FIELDS;
-
-  function dayStampNow() {
-    const d = new Date();
-    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-  }
-
-  App.taDisturbLimit = function (key) {
-    const cfg = DISTURB_FIELDS[key];
-    if (!cfg) return 0;
+  /* 主动投放：冷却结束才投一次骰子，中不中都重新计冷却。
+     内容真正呈现后，各模块再调 taRollMark 把冷却起点挪到呈现时刻。
+     主动发消息是唯一例外：按「我不发消息的空闲」每 N 分钟投一次，在 chat.js 里单独实现。
+     旧的「主动打扰每日次数」已整体删掉。 */
+  App.taRollTick = function (key, cooldownMin, prob) {
     const st = App.state;
-    const raw = Math.round(Number(st && st.settings && st.settings[cfg.setting]));
-    return Number.isFinite(raw) ? Math.max(0, Math.min(999, raw)) : cfg.fallback;
-  };
-
-  App.taDisturbUsed = function (key) {
-    const st = App.state;
-    const q = st && st.taDisturb;
-    if (!q || q.day !== dayStampNow()) return 0;
-    return Number(q[key]) || 0;
-  };
-
-  App.taDisturbHit = function (key) {
-    const st = App.state;
-    if (!st || !DISTURB_FIELDS[key]) return false;
-    const limit = App.taDisturbLimit(key);
-    if (limit <= 0) return false;
-    const day = dayStampNow();
-    const q = st.taDisturb || (st.taDisturb = { day: day });
-    if (q.day !== day) {
-      q.day = day;
-      Object.keys(DISTURB_FIELDS).forEach(function (k) { q[k] = 0; });
-      delete q.count;
-    }
-    if ((Number(q[key]) || 0) >= limit) return false;
-    q[key] = (Number(q[key]) || 0) + 1;
+    if (!st) return false;
+    const now = Date.now();
+    const cd = Math.max(0, Math.min(1440, Number(cooldownMin) || 0)) * 60000;
+    const roll = st.taRoll || (st.taRoll = {});
+    const last = Number(roll[key]) || 0;
+    /* 冷却还没走完：这次检查什么都不做，也不消耗投掷机会 */
+    if (last && now - last < cd) return false;
+    /* 冷却结束 → 投一次；中不中都把这一刻记成新的冷却起点 */
+    roll[key] = now;
     App.save();
-    return true;
+    const p = Math.max(0, Math.min(100, Number(prob) || 0));
+    return Math.random() * 100 < p;
+  };
+
+  App.taRollMark = function (key) {
+    const st = App.state;
+    if (!st) return;
+    const roll = st.taRoll || (st.taRoll = {});
+    roll[key] = Date.now();
+    App.save();
   };
 
   App.flushSave = function () {
@@ -1287,15 +1264,16 @@ window.__SHIYI_B_store='20261121-contract6';
     if (s.settings.taMarketFavProb == null) s.settings.taMarketFavProb = 4;
     if (s.settings.taMarketBuyForMeProb == null) s.settings.taMarketBuyForMeProb = 4;
     if (s.settings.taMarketDailyLimit == null) s.settings.taMarketDailyLimit = 8;
-    /* 主动打扰：由「一个共用次数」拆成 5 类各自独立的次数。
-       老存档若把总闸关成 0，就沿用为全关；否则给每一类各自的默认值 */
-    const legacyDisturb = Number(s.settings.taDailyDisturbLimit);
-    const disturbAllOff = s.settings.taDailyDisturbLimit != null && legacyDisturb === 0;
-    Object.keys(App.TA_DISTURB_FIELDS).forEach(function (k) {
-      const f = App.TA_DISTURB_FIELDS[k];
-      if (s.settings[f.setting] == null) s.settings[f.setting] = disturbAllOff ? 0 : f.fallback;
+    /* 主动打扰的每日次数已整体改成「冷却结束投一次骰子」，旧字段作废。
+       老存档里填 0 关掉过的，沿用为概率 0，别突然复活。 */
+    if (s.settings.taDisturbMusicLimit != null && Number(s.settings.taDisturbMusicLimit) === 0) s.settings.musicInviteProb = 0;
+    if (s.settings.taDisturbSurveyLimit != null && Number(s.settings.taDisturbSurveyLimit) === 0) s.settings.taSurveyProb = 0;
+    if (s.settings.taDisturbMailLimit != null && Number(s.settings.taDisturbMailLimit) === 0) s.settings.taMailProb = 0;
+    ['taDailyDisturbLimit', 'taDisturbMsgLimit', 'taDisturbPatLimit',
+     'taDisturbMusicLimit', 'taDisturbSurveyLimit', 'taDisturbMailLimit'].forEach(function (k) {
+      delete s.settings[k];
     });
-    delete s.settings.taDailyDisturbLimit;
+    if (s.settings.taMusicInviteCooldownMin == null) s.settings.taMusicInviteCooldownMin = 30;
     if (s.settings.taDailyAllowance == null) s.settings.taDailyAllowance = 30;
     /* 集市互动恢复为 5 个各自独立的概率，清掉中间版本合并出来的单一概率字段；
        间隔改为按「每天几条」自动平均，旧的手动间隔字段不再使用 */

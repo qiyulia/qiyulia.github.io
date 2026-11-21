@@ -21,7 +21,7 @@
      ③ 从 bfcache 恢复的旧页面也强制重载。
    sessionStorage 保证只自愈一次，不会死循环。 */
 (function () {
-  var EXPECT = '20261121-contract6';
+  var EXPECT = '20261121-contract8';
   window.__SHIYI_BUILD = EXPECT;
   var KEY = 'shiyi.selfheal.' + EXPECT;
   function once() {
@@ -99,10 +99,10 @@
 </script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%235b8fc9'/%3E%3Ctext x='32' y='42' font-size='22' font-family='KaiTi,%20STKaiti,%20serif' font-weight='500' text-anchor='middle' fill='%23f5faff'%3E拾忆%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=20261121-contract6">
-<link rel="stylesheet" href="css/steps.css?v=20261121-contract6">
-<link rel="stylesheet" href="css/clock.css?v=20261121-contract6">
-<link rel="stylesheet" href="css/contract.css?v=20261121-contract6">
+<link rel="stylesheet" href="css/style.css?v=20261121-contract8">
+<link rel="stylesheet" href="css/steps.css?v=20261121-contract8">
+<link rel="stylesheet" href="css/clock.css?v=20261121-contract8">
+<link rel="stylesheet" href="css/contract.css?v=20261121-contract8">
 </head>
 <body>
 <div class="stage">
@@ -1330,8 +1330,7 @@
           <button type="button" class="chat-settings-tab is-on" role="tab" id="chat-tab-reply" aria-selected="true" aria-controls="reply-settings-panel" data-chat-settings-page="0">回复</button>
           <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-music" aria-selected="false" aria-controls="music-settings-panel" data-chat-settings-page="1" tabindex="-1">音乐互动</button>
           <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-moments" aria-selected="false" aria-controls="moments-settings-panel" data-chat-settings-page="2" tabindex="-1">朋友圈互动</button>
-          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-disturb" aria-selected="false" aria-controls="disturb-settings-panel" data-chat-settings-page="3" tabindex="-1">主动打扰</button>
-          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-data" aria-selected="false" aria-controls="data-settings-panel" data-chat-settings-page="4" tabindex="-1">数据</button>
+          <button type="button" class="chat-settings-tab" role="tab" id="chat-tab-data" aria-selected="false" aria-controls="data-settings-panel" data-chat-settings-page="3" tabindex="-1">数据</button>
         </div>
         <div class="chat-settings-pager" id="chat-settings-pager">
           <section class="chat-settings-page reply-settings-page" id="reply-settings-panel" role="tabpanel" aria-labelledby="chat-tab-reply" aria-label="回复设置">
@@ -1345,20 +1344,21 @@
                 <label class="field"><span>回复最快（秒）</span><input autocomplete="off" id="set-typing-min" type="number" min="0" max="300" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
                 <label class="field"><span>回复最慢（秒）</span><input autocomplete="off" id="set-typing-max" type="number" min="0" max="300" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
               </div>
-              <label class="field"><span>TA 主动发消息（%）</span>
+              <label class="field"><span>投放命中率（%）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-prob" data-step="-1">−</button>
                   <input autocomplete="off" id="set-ta-msg-prob" type="number" min="0" max="100" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-prob" data-step="1">+</button>
                 </span>
               </label>
-              <label class="field"><span>空闲多久后主动发消息（分钟）</span>
+              <label class="field"><span>每隔 N 分钟投一次（分钟）</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-gap" data-step="-1">−</button>
                   <input autocomplete="off" id="set-ta-msg-gap" type="number" min="1" max="120" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-gap" data-step="1">+</button>
                 </span>
               </label>
+              <p class="field-hint">你没发消息的空闲里，每隔上面填的 N 分钟投一次骰子；投中才开口，没中就等下一轮，不设每日上限。</p>
               <label class="field"><span>每次主动发消息 · 最少条数</span>
                 <span class="prob-input">
                   <button type="button" class="step-btn" data-step-for="set-ta-msg-min" data-step="-1">−</button>
@@ -1604,6 +1604,8 @@
                   <button type="button" class="step-btn" data-step-for="set-music-invite" data-step="1">+</button>
                 </span>
               </label>
+              <label class="field"><span>邀请冷却时间（分钟）</span><input autocomplete="off" id="set-music-invite-cooldown" type="number" min="0" max="1440" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
+              <p class="field-hint">邀请出现后开始计冷却；冷却结束投一次骰子，投中才发，没中就再等一轮。概率填 0 就彻底关掉。</p>
               <p class="panel-note">每个概率都是独立的，填 1 就是 1%，填 100 就是 100%，没命中的百分数 TA 就什么也不做。<br>每首歌只判一次：先 50/50 死选「切歌」或「暂停」，再用上面选中的那个概率投一次；不管命没命中，这首歌都不再判切歌/暂停，换到下一首才重新判。收藏每首歌都判，已被 TA 收藏的歌要等它下一次播放才有概率取消收藏。判定暂停后，TA 会在 1~10 秒内按「TA 暂停后重新播放」的概率摇一次：命中才重新播放，没命中就不播，无论结果都只摇这一次。<br>以上只在本机随机模拟，且只在音乐播放、页面可见时发生；邀请一起听只在你没有听歌的时候出现。</p>
             </div>
           </section>
@@ -1661,22 +1663,7 @@
             </div>
           </section>
 
-          <section class="chat-settings-page" id="disturb-settings-panel" role="tabpanel" aria-labelledby="chat-tab-disturb" aria-label="主动打扰设置" hidden>
-            <div class="panel">
-              <h3 class="settings-subtitle">主动打扰</h3>
-              <p class="panel-note">下面 5 件事<b>各算各的次数</b>，谁也不占谁的：填几就是这一类一天最多几次，发满当天只有这一类安静，第二天零点各自恢复；填 <b>0</b> 就是这一类彻底不让 TA 自己冒出来。这里只管「每天几次」，各类的触发概率和冷却还在原来的设置里。朋友圈和集市各有自己的上限，不占这里的次数。</p>
-              <label class="field"><span>主动发消息 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-msg" type="number" min="0" max="999" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
-              <p class="field-hint" id="disturb-used-msg">今天已用 0 次。</p>
-              <label class="field"><span>拍一拍 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-pat" type="number" min="0" max="999" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
-              <p class="field-hint" id="disturb-used-pat">今天已用 0 次。</p>
-              <label class="field"><span>邀请一起听歌 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-music" type="number" min="0" max="999" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
-              <p class="field-hint" id="disturb-used-music">今天已用 0 次。</p>
-              <label class="field"><span>发问卷 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-survey" type="number" min="0" max="999" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
-              <p class="field-hint" id="disturb-used-survey">今天已用 0 次。</p>
-              <label class="field"><span>写信 · 每天最多（次）</span><input autocomplete="off" id="set-disturb-mail" type="number" min="0" max="999" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
-              <p class="field-hint" id="disturb-used-mail">今天已用 0 次。</p>
-            </div>
-          </section>
+          
 
           <section class="chat-settings-page" id="data-settings-panel" role="tabpanel" aria-labelledby="chat-tab-data" aria-label="聊天数据设置" hidden>
             <div class="panel">
@@ -2077,7 +2064,7 @@
             <label class="field"><span>信里字卡最少</span><input autocomplete="off" id="set-mail-card-min" type="number" min="0" max="15" step="1" inputmode="numeric" placeholder="1" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
             <label class="field"><span>最多</span><input autocomplete="off" id="set-mail-card-max" type="number" min="0" max="15" step="1" inputmode="numeric" placeholder="3" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
           </div>
-          <p class="field-hint">冷却时间内 TA 不会再主动寄信；TA 写信时会从字卡库随机取这么多条拼成一封，设成 0 就是不带字卡。</p>
+          <p class="field-hint">信寄到后开始计冷却；冷却结束投一次骰子，投中才寄，没中就再等一轮（概率填 0 就是彻底关掉）。TA 写信时会从字卡库随机取这么多条拼成一封，设成 0 就是不带字卡。</p>
         </div>
 
         <div class="panel">
@@ -2114,9 +2101,9 @@
         <div class="panel">
           <h3>问卷</h3>
           <label class="field"><span>TA 主动发问卷（%）</span><input autocomplete="off" id="set-ta-survey-prob" inputmode="numeric" maxlength="3" placeholder="10" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
-          <p class="field-hint">即使你不发问卷，TA 也会按这个概率主动给你发一份，点开卡片就能直接作答。</p>
+          <p class="field-hint">冷却结束后投一次骰子，按这个概率决定发不发；没中就再等一轮，填 0 就是彻底关掉。</p>
           <label class="field"><span>发问卷冷却时间（分钟）</span><input autocomplete="off" id="set-ta-survey-cooldown" inputmode="numeric" maxlength="4" placeholder="30" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
-          <p class="field-hint">冷却时间内 TA 不会再发新的问卷；上一份还没答完时也会先等着。</p>
+          <p class="field-hint">问卷出现后开始计冷却；上一份还没答完时先等着，不消耗投掷机会。点开卡片就能直接作答。</p>
         </div>
 
         <div class="panel">
@@ -2414,13 +2401,13 @@
             <button type="button" class="usage-tab" role="tab" data-usage-group="08" aria-selected="false"><span>08</span>数据与版本</button>
           </div>
           <section class="usage-group" data-usage-group="01"><div class="usage-group-head"><span class="usage-no">01</span><div><h3>每天自动发生</h3><p>不用点，到点、按日期或按小时自己来</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="主页问候语 按当前小时切换：5 点前「夜深了」，5–11「早上好」，11–14「中午好」，14–18「下午好」，18–23「晚上好」，23 点后回到「夜深了」。"><strong>主页问候语</strong><span>按当前小时切换：5 点前「夜深了」，5–11「早上好」，11–14「中午好」，14–18「下午好」，18–23「晚上好」，23 点后回到「夜深了」。</span></div><div class="usage-row" data-usage-text="今日字卡 每天从字卡库「聊天」分类里已启用的卡中，按当天日期取一张显示在主页；库里没卡就提示去添几张。"><strong>今日字卡</strong><span>每天从字卡库「聊天」分类里已启用的卡中，按当天日期取一张显示在主页；库里没卡就提示去添几张。</span></div><div class="usage-row" data-usage-text="在一起天数 在「设置 → 资料 → 纪念日」填了起始日期后，主页每天自动累计。"><strong>在一起天数</strong><span>在「设置 → 资料 → 纪念日」填了起始日期后，主页每天自动累计。</span></div><div class="usage-row" data-usage-text="纪念日 / 生日 在「在一起」里写纪念日、在联系人资料里写生日；快到日子时主页会提示还差几天，当天直接祝快乐。"><strong>纪念日 / 生日</strong><span>在「在一起」里写纪念日、在联系人资料里写生日；快到日子时主页会提示还差几天，当天直接祝快乐。</span></div><div class="usage-row" data-usage-text="节日主题 到节日自动给主页换配色，不用手动开。"><strong>节日主题</strong><span>到节日自动给主页换配色，不用手动开。</span></div><div class="usage-row" data-usage-text="闹钟 「时钟 → 闹钟」里设定时间并打开开关；页面保持打开时每秒检测一次，时间对上就弹全屏毛玻璃、随机抽一张字卡，并播放选好的音色（可选「静音」只弹窗）。"><strong>闹钟</strong><span>「时钟 → 闹钟」里设定时间并打开开关；页面保持打开时每秒检测一次，时间对上就弹全屏毛玻璃、随机抽一张字卡，并播放选好的音色（可选「静音」只弹窗）。</span></div><div class="usage-row" data-usage-text="专注计时 「时钟 → 专注计时」选 25 / 15 / 5 分钟开始倒计时，走完同样弹窗抽字卡。"><strong>专注计时</strong><span>「时钟 → 专注计时」选 25 / 15 / 5 分钟开始倒计时，走完同样弹窗抽字卡。</span></div><div class="usage-row" data-usage-text="世界时间 进入「时钟 → 世界时间」会生成一个带零头的随机时差（比如慢 4 小时 19 分），点「重新拨动时差」可换一个。"><strong>世界时间</strong><span>进入「时钟 → 世界时间」会生成一个带零头的随机时差（比如慢 4 小时 19 分），点「重新拨动时差」可换一个。</span></div></div></section>
-          <section class="usage-group" data-usage-group="02" hidden><div class="usage-group-head"><span class="usage-no">02</span><div><h3>TA 主动找你</h3><p>都在设置里调概率、冷却和每日次数；填 0 就是彻底关掉</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="主动发消息 每分钟检查一次：聊天要安静够「发消息间隔」分钟 → 过概率 → 没超当日次数，才开口，一次随机发 1～最多几条。"><strong>主动发消息</strong><span>每分钟检查一次：聊天要安静够「发消息间隔」分钟 → 过概率 → 没超当日次数，才开口，一次随机发 1～最多几条。</span></div><div class="usage-row" data-usage-text="拍一拍 每分钟按「拍一拍回复」概率检查；你在联系人设置里调的是 TA 回拍你的概率。"><strong>拍一拍</strong><span>每分钟按「拍一拍回复」概率检查；你在联系人设置里调的是 TA 回拍你的概率。</span></div><div class="usage-row" data-usage-text="邀请一起听歌 每分钟按概率检查，命中后 TA 发来一起听歌的邀请。"><strong>邀请一起听歌</strong><span>每分钟按概率检查，命中后 TA 发来一起听歌的邀请。</span></div><div class="usage-row" data-usage-text="主动写信 每 90 秒检查一次；距上一封 TA 的信要过冷却（默认 30 分钟）、过概率（默认 12%），信里会随机带几张字卡。"><strong>主动写信</strong><span>每 90 秒检查一次；距上一封 TA 的信要过冷却（默认 30 分钟）、过概率（默认 12%），信里会随机带几张字卡。</span></div><div class="usage-row" data-usage-text="主动发问卷 每分钟检查，按「TA 主动发问卷」概率 + 冷却时间，点开卡片就能直接作答。"><strong>主动发问卷</strong><span>每分钟检查，按「TA 主动发问卷」概率 + 冷却时间，点开卡片就能直接作答。</span></div><div class="usage-row" data-usage-text="发朋友圈 / 点赞评论 TA 按每日条数上限和冷却间隔发动态；你发了动态后，TA 再按点赞、评论概率来互动。"><strong>发朋友圈 / 点赞评论</strong><span>TA 按每日条数上限和冷却间隔发动态；你发了动态后，TA 再按点赞、评论概率来互动。</span></div><div class="usage-row" data-usage-text="逛集市 每 60 秒检查一次，按概率触发，受「每日主动集市次数」限制。"><strong>逛集市</strong><span>每 60 秒检查一次，按概率触发，受「每日主动集市次数」限制。</span></div><div class="usage-row" data-usage-text="换头像 / 改名字 按各自概率与冷却时间触发；新头像来自「头像工具」的头像池，新名字来自「名字」分类，池子空了就不会换。"><strong>换头像 / 改名字</strong><span>按各自概率与冷却时间触发；新头像来自「头像工具」的头像池，新名字来自「名字」分类，池子空了就不会换。</span></div><div class="usage-row" data-usage-text="引用 / 语音 / 表情包 / 撤回 / 收藏 / 已读不回 你发消息之后，TA 按各自概率决定要不要做这些，概率都在「聊天设置」里。"><strong>引用 / 语音 / 表情包 / 撤回 / 收藏 / 已读不回</strong><span>你发消息之后，TA 按各自概率决定要不要做这些，概率都在「聊天设置」里。</span></div><div class="usage-row" data-usage-text="字卡征询 你发完消息后，TA 有概率问「这句能不能收进字卡库的聊天分类」，同意才会加。"><strong>字卡征询</strong><span>你发完消息后，TA 有概率问「这句能不能收进字卡库的聊天分类」，同意才会加。</span></div><div class="usage-row" data-usage-text="每日上限 主动消息 3、拍一拍 3、听歌 2、问卷 2、写信 2，五类各自计数、零点各自重置；填 0 那一类当天不再冒出来。"><strong>每日上限</strong><span>主动消息 3、拍一拍 3、听歌 2、问卷 2、写信 2，五类各自计数、零点各自重置；填 0 那一类当天不再冒出来。</span></div></div></section>
+          <section class="usage-group" data-usage-group="02" hidden><div class="usage-group-head"><span class="usage-no">02</span><div><h3>TA 主动找你</h3><p>都是「冷却结束投一次骰子」；概率和冷却自己调，概率填 0 就彻底关掉</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="主动发消息 你没发消息的空闲里，每隔「投放间隔」分钟投一次骰子；投中才开口（按命中率），没中就等下一轮，一次随机发几条，不设每日上限。"><strong>主动发消息</strong><span>你没发消息的空闲里，每隔「投放间隔」分钟投一次骰子；投中才开口（按命中率），没中就等下一轮，一次随机发几条，不设每日上限。</span></div><div class="usage-row" data-usage-text="拍一拍 TA 每次要发字卡时按「发字卡变拍一拍（%）」掷骰子，命中就以拍一拍形态发出、没命中只发字卡；不单独主动冒出来，也不限每日次数。"><strong>拍一拍</strong><span>TA 每次要发字卡时按「发字卡变拍一拍（%）」掷骰子，命中就以拍一拍形态发出、没命中只发字卡；不单独主动冒出来，也不限每日次数。</span></div><div class="usage-row" data-usage-text="邀请一起听歌 邀请出现后开始计冷却；冷却结束按「TA 邀请一起听音乐（%）」投一次，投中才发，没中就再等一轮。冷却在聊天设置 → 音乐互动里调。"><strong>邀请一起听歌</strong><span>邀请出现后开始计冷却；冷却结束按「TA 邀请一起听音乐（%）」投一次，投中才发，没中就再等一轮。冷却在聊天设置 → 音乐互动里调。</span></div><div class="usage-row" data-usage-text="主动写信 信寄到后开始计冷却；冷却结束按「TA 主动写信（%）」投一次，中不中都重新冷却。概率和冷却在设置 → 后台 → 信里调。"><strong>主动写信</strong><span>信寄到后开始计冷却；冷却结束按「TA 主动写信（%）」投一次，中不中都重新冷却。概率和冷却在设置 → 后台 → 信里调。</span></div><div class="usage-row" data-usage-text="主动发问卷 问卷出现后开始计冷却；冷却结束按「TA 主动发问卷（%）」投一次，没中就再等一轮。概率和冷却在设置 → 后台 → 问卷里调。"><strong>主动发问卷</strong><span>问卷出现后开始计冷却；冷却结束按「TA 主动发问卷（%）」投一次，没中就再等一轮。概率和冷却在设置 → 后台 → 问卷里调。</span></div><div class="usage-row" data-usage-text="发朋友圈 / 点赞评论 TA 按每日条数上限和冷却间隔发动态；你发了动态后，TA 再按点赞、评论概率来互动。"><strong>发朋友圈 / 点赞评论</strong><span>TA 按每日条数上限和冷却间隔发动态；你发了动态后，TA 再按点赞、评论概率来互动。</span></div><div class="usage-row" data-usage-text="逛集市 每 60 秒检查一次，按概率触发，受「每日主动集市次数」限制。"><strong>逛集市</strong><span>每 60 秒检查一次，按概率触发，受「每日主动集市次数」限制。</span></div><div class="usage-row" data-usage-text="换头像 / 改名字 按各自概率与冷却时间触发；新头像来自「头像工具」的头像池，新名字来自「名字」分类，池子空了就不会换。"><strong>换头像 / 改名字</strong><span>按各自概率与冷却时间触发；新头像来自「头像工具」的头像池，新名字来自「名字」分类，池子空了就不会换。</span></div><div class="usage-row" data-usage-text="引用 / 语音 / 表情包 / 撤回 / 收藏 / 已读不回 你发消息之后，TA 按各自概率决定要不要做这些，概率都在「聊天设置」里。"><strong>引用 / 语音 / 表情包 / 撤回 / 收藏 / 已读不回</strong><span>你发消息之后，TA 按各自概率决定要不要做这些，概率都在「聊天设置」里。</span></div><div class="usage-row" data-usage-text="字卡征询 你发完消息后，TA 有概率问「这句能不能收进字卡库的聊天分类」，同意才会加。"><strong>字卡征询</strong><span>你发完消息后，TA 有概率问「这句能不能收进字卡库的聊天分类」，同意才会加。</span></div><div class="usage-row" data-usage-text="冷却与投放 听歌 / 问卷 / 写信都是「内容出现 → 计冷却 → 结束投一次 → 中不中都重新冷却」；主动发消息例外，按你不发消息的空闲每 N 分钟投一次。都不再限每日次数。"><strong>冷却与投放</strong><span>听歌 / 问卷 / 写信都是「内容出现 → 计冷却 → 结束投一次 → 中不中都重新冷却」；主动发消息例外，按你不发消息的空闲每 N 分钟投一次。都不再限每日次数。</span></div></div></section>
           <section class="usage-group" data-usage-group="03" hidden><div class="usage-group-head"><span class="usage-no">03</span><div><h3>聊天里点一下才触发</h3><p>这些都得你亲手点</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="拍一拍 TA 点聊天页 TA 的头像（消息旁那个）。"><strong>拍一拍 TA</strong><span>点聊天页 TA 的头像（消息旁那个）。</span></div><div class="usage-row" data-usage-text="改 TA 名字 / 换 TA 头像 点顶部名字直接改名；点顶部头像从相册换图。"><strong>改 TA 名字 / 换 TA 头像</strong><span>点顶部名字直接改名；点顶部头像从相册换图。</span></div><div class="usage-row" data-usage-text="消息操作菜单 点或长按消息气泡，出来引用、撤回、收藏、删除等。"><strong>消息操作菜单</strong><span>点或长按消息气泡，出来引用、撤回、收藏、删除等。</span></div><div class="usage-row" data-usage-text="发图片 / 语音 / 表情包 输入框旁的「+」里选；表情包也能直接粘贴截图。"><strong>发图片 / 语音 / 表情包</strong><span>输入框旁的「+」里选；表情包也能直接粘贴截图。</span></div><div class="usage-row" data-usage-text="红包 / 问卷 / 占卜 / TA 的位置 第二页「更多应用」里点对应工具；红包发出后 TA 按概率领取或退回。"><strong>红包 / 问卷 / 占卜 / TA 的位置</strong><span>第二页「更多应用」里点对应工具；红包发出后 TA 按概率领取或退回。</span></div><div class="usage-row" data-usage-text="双人小游戏 扫雷、跳一跳、羊了个羊、五子棋、你画我猜、默契问答、听歌猜名，都是你一下 TA 一下轮流来。"><strong>双人小游戏</strong><span>扫雷、跳一跳、羊了个羊、五子棋、你画我猜、默契问答、听歌猜名，都是你一下 TA 一下轮流来。</span></div><div class="usage-row" data-usage-text="语音通话 点通话按钮发起；TA 按概率挂断，挂断后有冷却，不是每次都接。"><strong>语音通话</strong><span>点通话按钮发起；TA 按概率挂断，挂断后有冷却，不是每次都接。</span></div><div class="usage-row" data-usage-text="引用回复 TA 引用时大多引用你发的消息，很少引用 TA 自己的。"><strong>引用回复</strong><span>TA 引用时大多引用你发的消息，很少引用 TA 自己的。</span></div></div></section>
           <section class="usage-group" data-usage-group="04" hidden><div class="usage-group-head"><span class="usage-no">04</span><div><h3>第二页应用与工具</h3><p>主页滑到第二页，点图标进入</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="常用应用 回忆相框、在一起、经期、群聊、朋友圈、音乐、集市、信、笔记、地图、心情、收藏、步数、时钟、婚帖。"><strong>常用应用</strong><span>回忆相框、在一起、经期、群聊、朋友圈、音乐、集市、信、笔记、地图、心情、收藏、步数、时钟、婚帖。</span></div><div class="usage-row" data-usage-text="更多应用 红包、问卷、占卜（塔罗牌）、头像与名字、助眠、TA 的位置，以及几个双人小游戏。"><strong>更多应用</strong><span>红包、问卷、占卜（塔罗牌）、头像与名字、助眠、TA 的位置，以及几个双人小游戏。</span></div><div class="usage-row" data-usage-text="扫雷入口 默认收在更多应用里，需要时在工具里找；不用可以不管。"><strong>扫雷入口</strong><span>默认收在更多应用里，需要时在工具里找；不用可以不管。</span></div><div class="usage-row" data-usage-text="资料 / 美化 / 后台 / 数据 / 关于 / 用法 都在「设置」顶部的分类里，点标签切换。"><strong>资料 / 美化 / 后台 / 数据 / 关于 / 用法</strong><span>都在「设置」顶部的分类里，点标签切换。</span></div></div></section>
           <section class="usage-group" data-usage-group="05" hidden><div class="usage-group-head"><span class="usage-no">05</span><div><h3>怎么把内容加进去</h3><p>库里有东西，上面那些功能才有得抽</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="字卡 「字卡库」新建，可写触发词；TA 说话时按内容和触发词、分类匹配。批量导入可以一次填多条。"><strong>字卡</strong><span>「字卡库」新建，可写触发词；TA 说话时按内容和触发词、分类匹配。批量导入可以一次填多条。</span></div><div class="usage-row" data-usage-text="语音卡 字卡库「语音」分类导入一段 mp3，并写下它说的话；聊天里点语音会播这段。"><strong>语音卡</strong><span>字卡库「语音」分类导入一段 mp3，并写下它说的话；聊天里点语音会播这段。</span></div><div class="usage-row" data-usage-text="表情包 表情包页「从本地相册添加」，或直接粘贴截图。"><strong>表情包</strong><span>表情包页「从本地相册添加」，或直接粘贴截图。</span></div><div class="usage-row" data-usage-text="头像池 / 名字池 「头像与名字」工具里分别导入图片、保存名字；TA 换头像、改名字时从这里挑。"><strong>头像池 / 名字池</strong><span>「头像与名字」工具里分别导入图片、保存名字；TA 换头像、改名字时从这里挑。</span></div><div class="usage-row" data-usage-text="音乐 「音乐」里导入网易云链接或本地音频后才有播放列表；听歌猜名的曲库也来自这里。"><strong>音乐</strong><span>「音乐」里导入网易云链接或本地音频后才有播放列表；听歌猜名的曲库也来自这里。</span></div><div class="usage-row" data-usage-text="契约书背景 婚帖签完后，「上传图片」或直接粘贴截图，只换卡片内部背景。"><strong>契约书背景</strong><span>婚帖签完后，「上传图片」或直接粘贴截图，只换卡片内部背景。</span></div></div></section>
           <section class="usage-group" data-usage-group="06" hidden><div class="usage-group-head"><span class="usage-no">06</span><div><h3>同心币与奖励</h3><p>钱从哪来、怎么花</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="步数换币 100 步 = 1 同心币，单日上限 30000 步、目标 8000 步；每天只能兑换一次，不足 100 步换不了。"><strong>步数换币</strong><span>100 步 = 1 同心币，单日上限 30000 步、目标 8000 步；每天只能兑换一次，不足 100 步换不了。</span></div><div class="usage-row" data-usage-text="婚帖登记 签下契约一次性 +520 同心币，并在聊天里发一条系统消息；只发一次，重开页面不会重复给。"><strong>婚帖登记</strong><span>签下契约一次性 +520 同心币，并在聊天里发一条系统消息；只发一次，重开页面不会重复给。</span></div><div class="usage-row" data-usage-text="集市 用同心币买东西送 TA，TA 会按概率回应。"><strong>集市</strong><span>用同心币买东西送 TA，TA 会按概率回应。</span></div><div class="usage-row" data-usage-text="红包 发红包扣同心币，TA 领取或按概率退回。"><strong>红包</strong><span>发红包扣同心币，TA 领取或按概率退回。</span></div></div></section>
           <section class="usage-group" data-usage-group="07" hidden><div class="usage-group-head"><span class="usage-no">07</span><div><h3>时钟 · 婚帖 · 塔罗</h3><p>三个新应用的完整走法</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="婚帖 第二页「婚帖」→ 先选契约对象、换双方头像（按联系人各存各的）→ 前往登记 → 确认框 → 心跳动画 → 生成契约书。日期默认今天、可改任意日期；签完才放开换背景、换誓词、保存为图片。"><strong>婚帖</strong><span>第二页「婚帖」→ 先选契约对象、换双方头像（按联系人各存各的）→ 前往登记 → 确认框 → 心跳动画 → 生成契约书。日期默认今天、可改任意日期；签完才放开换背景、换誓词、保存为图片。</span></div><div class="usage-row" data-usage-text="塔罗占卜 第二页「占卜」→ 写下想问的事（可不写）→ 选 1 / 3 / 5 张 → 摊开牌堆 → 点选牌 → 翻牌 → 下方自动出现每张牌的正逆位牌意 → 发给 TA，TA 过几秒回一段字卡。历史发出的牌阵消息也照常显示。"><strong>塔罗占卜</strong><span>第二页「占卜」→ 写下想问的事（可不写）→ 选 1 / 3 / 5 张 → 摊开牌堆 → 点选牌 → 翻牌 → 下方自动出现每张牌的正逆位牌意 → 发给 TA，TA 过几秒回一段字卡。历史发出的牌阵消息也照常显示。</span></div><div class="usage-row" data-usage-text="闹钟到点 必须页面保持打开；锁屏或切后台久了，浏览器会冻结定时器，不保证准点响。"><strong>闹钟到点</strong><span>必须页面保持打开；锁屏或切后台久了，浏览器会冻结定时器，不保证准点响。</span></div><div class="usage-row" data-usage-text="纯前端 这站没有服务端，所有定时检测都在你手机上跑。"><strong>纯前端</strong><span>这站没有服务端，所有定时检测都在你手机上跑。</span></div></div></section>
-          <section class="usage-group" data-usage-group="08" hidden><div class="usage-group-head"><span class="usage-no">08</span><div><h3>数据与版本</h3><p>换设备、看更新</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="备份导出 「设置 → 数据」，勾选要带的分类导出；导入时只覆盖勾选的分类，没勾的不动。"><strong>备份导出</strong><span>「设置 → 数据」，勾选要带的分类导出；导入时只覆盖勾选的分类，没勾的不动。</span></div><div class="usage-row" data-usage-text="图片存放 上传的头像、表情包、契约背景都存在 IndexedDB，主存档只留短引用，导出时才还原。"><strong>图片存放</strong><span>上传的头像、表情包、契约背景都存在 IndexedDB，主存档只留短引用，导出时才还原。</span></div><div class="usage-row" data-usage-text="看版本号 控制台输 __SHIYI_BUILD，能看当前页面跑到哪一版。"><strong>看版本号</strong><span>控制台输 __SHIYI_BUILD，能看当前页面跑到哪一版。</span></div><div class="usage-row" data-usage-text="更新后 每次改完请彻底关掉页面重开（不是刷新）；加到主屏幕过的话删掉图标重开最稳，否则可能拿到旧缓存。"><strong>更新后</strong><span>每次改完请彻底关掉页面重开（不是刷新）；加到主屏幕过的话删掉图标重开最稳，否则可能拿到旧缓存。</span></div><div class="usage-row" data-usage-text="想关掉某类主动打扰 「设置 → 后台」里把对应每日次数填 0，或把概率、冷却调成 0。"><strong>想关掉某类主动打扰</strong><span>「设置 → 后台」里把对应每日次数填 0，或把概率、冷却调成 0。</span></div></div></section>
+          <section class="usage-group" data-usage-group="08" hidden><div class="usage-group-head"><span class="usage-no">08</span><div><h3>数据与版本</h3><p>换设备、看更新</p></div></div><div class="usage-rows"><div class="usage-row" data-usage-text="备份导出 「设置 → 数据」，勾选要带的分类导出；导入时只覆盖勾选的分类，没勾的不动。"><strong>备份导出</strong><span>「设置 → 数据」，勾选要带的分类导出；导入时只覆盖勾选的分类，没勾的不动。</span></div><div class="usage-row" data-usage-text="图片存放 上传的头像、表情包、契约背景都存在 IndexedDB，主存档只留短引用，导出时才还原。"><strong>图片存放</strong><span>上传的头像、表情包、契约背景都存在 IndexedDB，主存档只留短引用，导出时才还原。</span></div><div class="usage-row" data-usage-text="看版本号 控制台输 __SHIYI_BUILD，能看当前页面跑到哪一版。"><strong>看版本号</strong><span>控制台输 __SHIYI_BUILD，能看当前页面跑到哪一版。</span></div><div class="usage-row" data-usage-text="更新后 每次改完请彻底关掉页面重开（不是刷新）；加到主屏幕过的话删掉图标重开最稳，否则可能拿到旧缓存。"><strong>更新后</strong><span>每次改完请彻底关掉页面重开（不是刷新）；加到主屏幕过的话删掉图标重开最稳，否则可能拿到旧缓存。</span></div><div class="usage-row" data-usage-text="想关掉某类主动投放 听歌把「TA 邀请一起听音乐」填 0，问卷把「TA 主动发问卷」填 0，写信把「TA 主动写信」填 0；主动发消息把「投放命中率」填 0，拍一拍把「发字卡变拍一拍」填 0。"><strong>想关掉某类主动投放</strong><span>听歌把「TA 邀请一起听音乐」填 0，问卷把「TA 主动发问卷」填 0，写信把「TA 主动写信」填 0；主动发消息把「投放命中率」填 0，拍一拍把「发字卡变拍一拍」填 0。</span></div></div></section>
           <p class="usage-none" id="usage-none" hidden>没找到，换个词试试。</p>
         </div>
 
@@ -3129,13 +3116,14 @@
         <label class="field"><span>回复最快（秒）</span><input autocomplete="off" id="ct-typing-min" type="number" min="0" max="300" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
         <label class="field"><span>回复最慢（秒）</span><input autocomplete="off" id="ct-typing-max" type="number" min="0" max="300" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"></label>
       </div>
-      <label class="field"><span>拍我（%）</span>
+      <label class="field"><span>发字卡变拍一拍（%）</span>
         <span class="prob-input">
           <button type="button" class="step-btn" data-step-for="ct-pat-back" data-step="-1">−</button>
           <input autocomplete="off" id="ct-pat-back" type="number" min="0" max="100" step="1" inputmode="numeric" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
           <button type="button" class="step-btn" data-step-for="ct-pat-back" data-step="1">+</button>
         </span>
       </label>
+        <p class="field-hint">TA 每次要发字卡时掷一次骰子：填 10 就是 10% 的概率以「拍一拍」形态发出，没命中只发字卡。不限次数，也不单独主动冒出来；填 0 彻底关掉。</p>
       <label class="field"><span>主动发表情包（%）</span>
         <span class="prob-input">
           <button type="button" class="step-btn" data-step-for="ct-sticker" data-step="-1">−</button>
@@ -3389,25 +3377,25 @@
   </div>
 </dialog>
 
-<script src="js/vendor/html2canvas.min.js?v=20261121-contract6"></script>
-<script src="js/seed.js?v=20261121-contract6"></script>
-<script src="js/store.js?v=20261121-contract6"></script>
-<script src="js/desktop.js?v=20261121-contract6"></script>
-<script src="js/chat.js?v=20261121-contract6"></script>
-<script src="js/cards.js?v=20261121-contract6"></script>
-<script src="js/settings.js?v=20261121-contract6"></script>
-<script src="js/moments.js?v=20261121-contract6"></script>
-<script src="js/calendar.js?v=20261121-contract6"></script>
-<script src="js/music.js?v=20261121-contract6"></script>
-<script src="js/market.js?v=20261121-contract6"></script>
-<script src="js/mail.js?v=20261121-contract6"></script>
-<script src="js/extras.js?v=20261121-contract6"></script>
-<script src="js/companion.js?v=20261121-contract6"></script>
-<script src="js/memoir.js?v=20261121-contract6"></script>
-<script src="js/group.js?v=20261121-contract6"></script>
-<script src="js/steps.js?v=20261121-contract6"></script>
-<script src="js/clock.js?v=20261121-contract6"></script>
-<script src="js/contract.js?v=20261121-contract6"></script>
-<script src="js/app.js?v=20261121-contract6"></script>
+<script src="js/vendor/html2canvas.min.js?v=20261121-contract8"></script>
+<script src="js/seed.js?v=20261121-contract8"></script>
+<script src="js/store.js?v=20261121-contract8"></script>
+<script src="js/desktop.js?v=20261121-contract8"></script>
+<script src="js/chat.js?v=20261121-contract8"></script>
+<script src="js/cards.js?v=20261121-contract8"></script>
+<script src="js/settings.js?v=20261121-contract8"></script>
+<script src="js/moments.js?v=20261121-contract8"></script>
+<script src="js/calendar.js?v=20261121-contract8"></script>
+<script src="js/music.js?v=20261121-contract8"></script>
+<script src="js/market.js?v=20261121-contract8"></script>
+<script src="js/mail.js?v=20261121-contract8"></script>
+<script src="js/extras.js?v=20261121-contract8"></script>
+<script src="js/companion.js?v=20261121-contract8"></script>
+<script src="js/memoir.js?v=20261121-contract8"></script>
+<script src="js/group.js?v=20261121-contract8"></script>
+<script src="js/steps.js?v=20261121-contract8"></script>
+<script src="js/clock.js?v=20261121-contract8"></script>
+<script src="js/contract.js?v=20261121-contract8"></script>
+<script src="js/app.js?v=20261121-contract8"></script>
 </body>
 </html>

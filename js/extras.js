@@ -485,14 +485,6 @@
       : Math.max(0, Math.min(100, Number(settings.taSurveyProb) || 0));
   }
 
-  function taSurveyCooldownMs() {
-    const settings = App.state.settings || {};
-    const min = settings.taSurveyCooldownMin == null
-      ? 30
-      : Math.max(0, Math.min(1440, Number(settings.taSurveyCooldownMin) || 0));
-    return min * 60000;
-  }
-
   function sendTaSurvey(contactId, delayMs) {
     setTimeout(function () {
       if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
@@ -508,6 +500,8 @@
           scope: 'all',
         });
       }
+      /* 问卷已经呈现，冷却从这一刻重新计时 */
+      App.taRollMark('survey');
       deliverMessage(contactId, {
         id: App.uid('m'),
         role: 'ta',
@@ -527,18 +521,17 @@
     const st = App.state;
     if (!st || !st.contacts.length) return;
     const settings = st.settings || {};
-    const last = Number(settings.taSurveyLastAt) || 0;
-    if (last && Date.now() - last < taSurveyCooldownMs()) return;
     const contactId = st.contacts.some(function (c) { return c.id === st.currentContactId; })
       ? st.currentContactId
       : st.contacts[0].id;
     const chat = st.chats[contactId] || [];
-    /* 上一份问卷还没答，就先不再发新的 */
+    /* 上一份问卷还没答：先等着，也不消耗这次投掷 */
     if (chat.some(function (m) { return m.type === 'survey' && m.role === 'ta' && !m.answered; })) return;
-    if (Math.random() * 100 >= taSurveyProbability()) return;
-    if (!App.taDisturbHit('survey')) return;
-    settings.taSurveyLastAt = Date.now();
-    App.save();
+    const cooldownMin = settings.taSurveyCooldownMin == null
+      ? 30
+      : Math.max(0, Math.min(1440, Number(settings.taSurveyCooldownMin) || 0));
+    /* 冷却结束才投一次；中不中都重新计冷却 */
+    if (!App.taRollTick('survey', cooldownMin, taSurveyProbability())) return;
     sendTaSurvey(contactId, 1500 + Math.random() * 3000);
   }
 
