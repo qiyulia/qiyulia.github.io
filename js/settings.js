@@ -827,11 +827,18 @@
     });
     const momentCooldown = el('#set-ta-moment-cooldown');
     if (momentCooldown) {
+      /* 清空输入框想重打时，别在停顿 800ms 后把 0 填回去 */
       momentCooldown.addEventListener('change', function () {
+        if (String(momentCooldown.value).trim() === '') return;
         const v = Math.max(0, Math.min(1440, Math.round(Number(momentCooldown.value) || 0)));
         momentCooldown.value = v;
         setMomentLimit('taMomentCooldownMin', v);
         markDirty();
+      });
+      momentCooldown.addEventListener('blur', function () {
+        if (String(momentCooldown.value).trim() === '') {
+          momentCooldown.value = momentLimit('taMomentCooldownMin', 10);
+        }
       });
     }
 
