@@ -2127,6 +2127,32 @@
     if (App.syncAppHeight) App.syncAppHeight();
   }
 
+  /* 问卷：输入法弹起后，把当前焦点字段滚进表单可视区。
+     只手动滚 .tool-sheet-body，不用 scrollIntoView，免得带动整页跳动。 */
+  function keepSurveyFieldVisible() {
+    const t = document.activeElement;
+    if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    const layer = t.closest('#survey-dialog, #survey-answer-dialog');
+    if (!layer || layer.hidden) return;
+    const body = layer.querySelector('.tool-sheet-body');
+    if (!body) return;
+    const br = body.getBoundingClientRect();
+    const tr = t.getBoundingClientRect();
+    if (tr.bottom > br.bottom - 6) body.scrollTop += tr.bottom - br.bottom + 12;
+    else if (tr.top < br.top + 6) body.scrollTop -= br.top - tr.top + 12;
+  }
+
+  document.addEventListener('focusin', function () {
+    requestAnimationFrame(keepSurveyFieldVisible);
+    setTimeout(keepSurveyFieldVisible, 260);
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function () {
+      requestAnimationFrame(keepSurveyFieldVisible);
+      setTimeout(keepSurveyFieldVisible, 220);
+    });
+  }
+
   App.hideToolPanels = hideAllToolPanels;
   App.resumePendingSurveys = resumePendingSurveys;
 

@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261121-contract4';
+window.__SHIYI_B_app='20261121-contract6';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -143,13 +143,45 @@ window.__SHIYI_B_app='20261121-contract4';
   let expandTimer = 0;
 
   /* 问卷浮层打开时，键盘弹出不改外壳高度：弹窗按原尺寸停在原位置 */
+  const SURVEY_LAYER_IDS = ['survey-dialog', 'survey-answer-dialog'];
   function surveyOverlayOpen() {
-    const ids = ['survey-dialog', 'survey-answer-dialog'];
-    for (let i = 0; i < ids.length; i++) {
-      const node = document.getElementById(ids[i]);
+    for (let i = 0; i < SURVEY_LAYER_IDS.length; i++) {
+      const node = document.getElementById(SURVEY_LAYER_IDS[i]);
       if (node && !node.hidden) return true;
     }
     return false;
+  }
+
+  /* 输入法弹起时，把问卷浮层整块上移：卡片底边贴住键盘顶边，
+     卡片高度同时收进「键盘上方可用高度」里，内部表单继续自己滚。 */
+  function applySurveyKeyboard() {
+    const root = document.documentElement;
+    const vv = window.visualViewport;
+    const open = surveyOverlayOpen();
+    if (!vv || !open) {
+      SURVEY_LAYER_IDS.forEach(function (id) {
+        const node = document.getElementById(id);
+        if (node) node.classList.remove('is-kb-up');
+      });
+      root.style.removeProperty('--kb-gap');
+      root.style.removeProperty('--kb-avail');
+      return;
+    }
+    const full = Math.max(Math.round(window.innerHeight || 0), lastAppHeight || 0);
+    const top = Math.max(0, Math.round(vv.height + vv.offsetTop));
+    const gap = Math.max(0, full - top);
+    const up = gap > 24;
+    SURVEY_LAYER_IDS.forEach(function (id) {
+      const node = document.getElementById(id);
+      if (node) node.classList.toggle('is-kb-up', up);
+    });
+    if (up) {
+      root.style.setProperty('--kb-gap', gap + 'px');
+      root.style.setProperty('--kb-avail', Math.max(120, Math.round(vv.height)) + 'px');
+    } else {
+      root.style.removeProperty('--kb-gap');
+      root.style.removeProperty('--kb-avail');
+    }
   }
 
   function applyAppHeight() {
@@ -157,7 +189,9 @@ window.__SHIYI_B_app='20261121-contract4';
     const viewport = window.visualViewport;
     const height = Math.round((viewport ? viewport.height : window.innerHeight) || 0);
     if (!height) return;
-    if (surveyOverlayOpen()) {
+    const surveyOpen = surveyOverlayOpen();
+    applySurveyKeyboard();
+    if (surveyOpen) {
       if (viewport && viewport.offsetTop > 0) {
         window.scrollTo(0, 0);
         document.documentElement.scrollTop = 0;

@@ -261,6 +261,63 @@
     tabs.forEach(function (tab) {
       tab.addEventListener('click', function () { show(tab.dataset.settingsPage); });
     });
+
+    /* 用法：编号分类横向切换；搜索时跨全部分类筛条目。纯前端，不碰存档 */
+    const usageSearch = document.querySelector('#usage-search');
+    if (usageSearch) {
+      const tabsBox = document.querySelector('#usage-tabs');
+      const tabBtns = tabsBox ? Array.prototype.slice.call(tabsBox.querySelectorAll('[data-usage-group]')) : [];
+      const groups = Array.prototype.slice.call(document.querySelectorAll('.usage-group'));
+      const rows = Array.prototype.slice.call(document.querySelectorAll('.usage-row'));
+      const count = document.querySelector('#usage-count');
+      const none = document.querySelector('#usage-none');
+      let currentGroup = '01';
+
+      function applyUsage() {
+        const q = usageSearch.value.trim().toLowerCase();
+        let shown = 0;
+        rows.forEach(function (row) {
+          const hit = !q || (row.dataset.usageText || '').toLowerCase().indexOf(q) !== -1;
+          row.hidden = !hit;
+          if (hit) shown += 1;
+        });
+        if (q) {
+          /* 搜索：所有命中的分类一起摊开，不受当前选中的编号限制 */
+          groups.forEach(function (g) { g.hidden = !g.querySelector('.usage-row:not([hidden])'); });
+          tabBtns.forEach(function (b) {
+            b.classList.remove('is-on');
+            b.setAttribute('aria-selected', 'false');
+          });
+          if (count) count.textContent = '找到 ' + shown + ' 条 · 跨全部分类';
+        } else {
+          groups.forEach(function (g) { g.hidden = g.dataset.usageGroup !== currentGroup; });
+          tabBtns.forEach(function (b) {
+            const on = b.dataset.usageGroup === currentGroup;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-selected', String(on));
+          });
+          if (count) count.textContent = '共 ' + rows.length + ' 条 · 当前 ' + currentGroup;
+        }
+        if (none) none.hidden = shown > 0;
+      }
+
+      tabBtns.forEach(function (b) {
+        b.addEventListener('click', function () {
+          currentGroup = b.dataset.usageGroup;
+          usageSearch.value = '';
+          applyUsage();
+          /* 只横滑分类条，不带动整页滚动 */
+          if (tabsBox) {
+            const left = b.offsetLeft - tabsBox.clientWidth / 2 + b.clientWidth / 2;
+            try { tabsBox.scrollTo({ left: left, behavior: 'smooth' }); }
+            catch (e) { tabsBox.scrollLeft = left; }
+          }
+        });
+      });
+      usageSearch.addEventListener('input', applyUsage);
+      applyUsage();
+    }
+
     show('profile');
   }
 

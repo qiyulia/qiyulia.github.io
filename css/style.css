@@ -6879,3 +6879,98 @@ dialog#mw-view[open] { display: flex; flex-direction: column; gap: 10px; padding
 }
 .bubble-divine.has-meanings .divine-chat-cards { flex-direction: column; gap: 7px; }
 .bubble-divine.has-meanings .divine-chat-card { align-items: flex-start; width: 100%; min-width: 0; box-sizing: border-box; }
+
+
+/* ============ 设置 · 使用方式 ============ */
+.settings-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.settings-tab { flex: 1 0 auto; min-width: 52px; }
+.usage-intro p { margin: 6px 0 0; font-size: 12px; line-height: 1.75; color: var(--muted); }
+.usage-search { display: block; margin-top: 12px; }
+.usage-search input { width: 100%; }
+.usage-count { margin: 8px 0 0 !important; font-size: 11px; color: var(--muted); }
+.usage-none { margin: 4px 2px; font-size: 12px; color: var(--muted); text-align: center; }
+.usage-none[hidden], .usage-row[hidden], .usage-group[hidden] { display: none; }
+
+.usage-group {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  background: rgba(255, 255, 255, .6);
+  box-shadow: 0 6px 20px rgba(60, 95, 140, .1);
+}
+.usage-group-head { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 12px; }
+.usage-no {
+  flex: none;
+  min-width: 30px; height: 30px;
+  border-radius: 10px;
+  display: grid; place-items: center;
+  background: var(--accent, #6d9ac9); color: #fff;
+  font-size: 12px; font-weight: 700; letter-spacing: .5px;
+}
+.usage-group-head h3 { margin: 1px 0 3px; font-size: 14px; font-weight: 700; color: #2b4a6b; }
+.usage-group-head p { margin: 0; font-size: 10.5px; line-height: 1.6; color: #7e94ab; }
+.usage-rows { display: flex; flex-direction: column; gap: 9px; }
+.usage-row {
+  padding: 10px 11px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(120, 155, 195, .2);
+}
+.usage-row strong { display: block; margin-bottom: 4px; font-size: 12.5px; font-weight: 700; color: #365778; }
+.usage-row span { display: block; font-size: 11.5px; line-height: 1.8; color: #5c6f86; word-break: break-word; }
+
+
+/* ============ 设置 · 使用方式：编号分类横向排 ============ */
+.usage-tabs {
+  display: flex;
+  gap: 7px;
+  flex: 0 0 auto;
+  overflow-x: auto;
+  padding: 2px 2px 9px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.usage-tabs::-webkit-scrollbar { display: none; }
+.usage-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 155, 195, .3);
+  background: rgba(255, 255, 255, .72);
+  color: #5c748f;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.usage-tab span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  opacity: .72;
+}
+.usage-tab.is-on {
+  background: var(--accent, #6d9ac9);
+  border-color: transparent;
+  color: var(--accent-ink, #fff);
+  box-shadow: 0 4px 12px rgba(109, 154, 201, .28);
+}
+.usage-tab.is-on span { opacity: .9; }
+.usage-tab:active { transform: scale(.97); }
+.usage-page .usage-group { flex: 0 0 auto; }
+
+
+/* ============ 问卷：跟随输入法弹起 ============ */
+/* 外壳高度在问卷打开时是冻结的，这里只动问卷卡片本身，
+   让「问卷最底端」恰好落在「输入法最顶端」。 */
+.tool-overlay.is-kb-up .tool-overlay-card {
+  height: min(calc(var(--app-height, 100vh) * .52), calc(var(--kb-avail, 100vh) - 12px));
+  max-height: min(calc(var(--app-height, 100vh) * .52), calc(var(--kb-avail, 100vh) - 12px));
+  margin-bottom: max(calc(76px + var(--safe-bottom)), calc(var(--kb-gap, 0px) + 8px));
+  transition: height .18s ease, max-height .18s ease, margin-bottom .18s ease;
+}
+.tool-overlay.is-kb-up .tool-overlay-backdrop { backdrop-filter: blur(2px); }
