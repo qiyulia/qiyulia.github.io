@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261121-contract11';
+window.__SHIYI_B_app='20261121-contract13';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -224,6 +224,13 @@ window.__SHIYI_B_app='20261121-contract11';
   syncAppHeight();
   App.syncAppHeight = syncAppHeight;
   window.addEventListener('resize', syncAppHeight);
+  /* Safari 切到别的 App 再回来、工具栏收起/展开、转屏时不一定发 resize，
+     补这几个时机重算，避免 --app-height 停在旧值让底栏落到工具栏下面。 */
+  window.addEventListener('pageshow', syncAppHeight);
+  window.addEventListener('orientationchange', syncAppHeight);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncAppHeight();
+  });
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', syncAppHeight);
     window.visualViewport.addEventListener('scroll', syncAppHeight);

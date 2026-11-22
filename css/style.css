@@ -17,6 +17,11 @@ html, body {
   text-size-adjust: 100%;
   /* manipulation = 允许平移、禁止双击缩放，替代原来有害的全局 touchend 拦截 */
   touch-action: manipulation;
+  /* 页面自己是固定高度的「应用壳」，整页不许被 Safari 橡皮筋推着滚。
+     否则底部输入栏会被推到浏览器工具栏下面，看起来和浏览器重合。
+     内部滚动一律交给 .page-body / 聊天列表，不受影响。 */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -170,11 +175,15 @@ html.is-keyboard-animating .stage { transition: height .18s ease-out; }
   }
 }
 
-/* 强制撑满屏幕：去掉手机外壳宽度、圆角和阴影 */
+/* 强制撑满屏幕：去掉手机外壳宽度、圆角和阴影。
+   高度必须跟 .stage 用同一个 --app-height（JS 按 visualViewport 实时算，
+   已扣掉 Safari 底部工具栏）。写死 100dvh 在 iOS 上会含工具栏，
+   .app 比 .stage 高出一截，底部输入栏就伸进浏览器工具栏里重合了。 */
 .app.is-force-fullscreen {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
+  height: var(--app-height, 100dvh);
   max-width: none;
   border-radius: 0;
   box-shadow: none;

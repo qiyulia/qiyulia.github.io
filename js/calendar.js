@@ -34,6 +34,14 @@
     return App.state.calendar;
   }
 
+  /* 每种类型只记「最近一次连记 5 天」的撤销批次。
+     added 只存这次真正从无到有的日子：一键取消时只删这些，
+     之前已有的记录（哪怕正好落在这 5 天里）一律保留。 */
+  function undoStore() {
+    if (!App.state.calendarUndo || typeof App.state.calendarUndo !== 'object') App.state.calendarUndo = {};
+    return App.state.calendarUndo;
+  }
+
   function closeCyclePanel() {
     const panel = el('#cal-cycle-dialog');
     if (panel.open) panel.close();
@@ -161,6 +169,48 @@
       '：点「记录」从这天起连记 5 天；点「取消」只关掉这一天。';
   }
 
+  function renderUndoBar() {
+    const u = undoStore();
+    const bar = el('#cal-undo-bar');
+    const note = el('#cal-undo-note');
+    const show = function (node, batch, label) {
+      if (!batch || !batch.added || !batch.added.length || !batch.days || !batch.days.length) {
+        node.hidden = true;
+        return false;
+      }
+      node.textContent = '一键取消本次' + label + ' · ' + fmtRange(batch.start, batch.days[batch.days.length - 1]);
+      node.hidden = false;
+      return true;
+    };
+    const a = show(el('#cal-undo-period'), u.period, '经期');
+    const b = show(el('#cal-undo-ovulation'), u.ovulation, '排卵期');
+    bar.hidden = !(a || b);
+    if (note) note.textContent = '一键取消只清掉最近一次新建时新加的那几天，更早的记录、已单独关掉的日子都不受影响。';
+  }
+
+  function undoBatch(type) {
+    const u = undoStore();
+    const batch = u[type];
+    if (!batch || !batch.added || !batch.added.length) return;
+    const cal = calendar();
+    let removed = 0;
+    batch.added.forEach(function (key) {
+      const d = cal[key];
+      if (!d || !d[type]) return;
+      delete d[type];
+      if (!d.todo && !d.period && !d.ovulation) delete cal[key];
+      else cal[key] = d;
+      removed++;
+    });
+    delete u[type];
+    App.save();
+    closeCyclePanel();
+    render();
+    if (App.renderDesktop) App.renderDesktop();
+    App.toast('已取消本次新建的' + (type === 'period' ? '经期' : '排卵期') +
+      ' ' + removed + ' 天，原有记录保留');
+  }
+
   function render() {
     closeCyclePanel();
     const year = cursor.getFullYear();
@@ -171,6 +221,7 @@
     el('#cal-selected-title').textContent = '已选 ' + selected.replace(/-/g, '.');
     el('#cal-todo').value = (cal[selected] && cal[selected].todo) || '';
     renderMarkState();
+    renderUndoBar();
 
     const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
     const total = new Date(year, month + 1, 0).getDate();
@@ -213,14 +264,20 @@
       return;
     }
 
-    /* 未记录：沿用原来的「从这天起连续 5 天」 */
+    /* 未记录：沿用原来的「从这天起连续 5 天」。
+       同时存一份撤销批次，只记这次真正新加的日子，供一键取消使用。 */
     const days = rangeDays(selected, CYCLE_DAYS);
+    const added = [];
     days.forEach(function (key) {
       const d = cal[key] || {};
+      if (!d[type]) added.push(key);
       d[type] = true;
       if (!d.todo && !d.period && !d.ovulation) delete cal[key];
       else cal[key] = d;
     });
+    if (added.length) {
+      undoStore()[type] = { start: selected, days: days.slice(), added: added, at: Date.now() };
+    }
     App.save();
     closeCyclePanel();
     render();
@@ -252,6 +309,8 @@
 
     el('#cal-mark-period').addEventListener('click', function () { toggleRange('period'); });
     el('#cal-mark-ovulation').addEventListener('click', function () { toggleRange('ovulation'); });
+    el('#cal-undo-period').addEventListener('click', function () { undoBatch('period'); });
+    el('#cal-undo-ovulation').addEventListener('click', function () { undoBatch('ovulation'); });
     el('#cal-cycle-dialog [data-close]').addEventListener('click', closeCyclePanel);
     el('#cal-cycle-dialog').addEventListener('cancel', function (e) {
       e.preventDefault();
