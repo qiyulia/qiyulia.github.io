@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261121-contract20';
+window.__SHIYI_B_app='20261121-contract22';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -20,7 +20,71 @@ window.__SHIYI_B_app='20261121-contract20';
     if (e.ctrlKey) e.preventDefault();
   }, { passive: false });
 
+  /* ---------- 视图级稳态回收 ----------
+     点进哪个功能就渲染 / 加载哪个；离开时先把改动落盘，再撤掉这个视图里
+     渲染出来的长列表和图片节点（真正占内存、会拖慢点击的部分）。
+     模块数据仍留在内存里：TA 主动发消息、朋友圈、市场、闹钟这些后台判定
+     随时要读字卡等数据，卸掉就会抽不到内容。所以再次进入只是重新渲染，
+     不再全量重读本地库，后台也不受影响。
+
+     聊天界面（含群聊聊天）正在显示的那一屏一律不动；含输入框 / 静态骨架 /
+     浮层的页面也不清容器，避免把正在填的内容或静态控件弄丢。 */
+  var KEEP_ALIVE_VIEWS = {
+    chat: 1, 'group-chat': 1, desktop: 1, settings: 1, 'chat-settings': 1,
+    steps: 1, location: 1, contract: 1
+  };
+  /* contacts / music 不回收：这两个列表被聊天收消息、音乐播放进度等全局逻辑
+     频繁重渲（切回桌面时 renderDesktop 也会顺手刷一次），清了会被立刻填回。
+     group-settings 也不回收：没选中群时它会立刻重定向回群列表，不是一个能
+     稳定停留的视图，清它的容器反而会出现「清了没清到」的不一致。
+     其余长列表都是各视图独占的。 */
+  var RECYCLE_BOXES = {
+    favorites:     ['#fav-list'],
+    moments:       ['#moment-list'],
+    calendar:      ['#cal-grid'],
+    anniversary:   ['#anniv-list'],
+    notes:         ['#reminder-list'],
+    groups:        ['#groups-list'],
+    cards:         ['#card-list'],
+    clock:         ['#clock-alarm-list'],
+    market:        ['#market-list'],
+    mail:          ['#mail-list'],
+    memorywall:    ['#mw-timeline'],
+    mood:          ['#mood-calendar', '#mood-report']
+  };
+
+  App.recycleView = function (view) {
+    if (!view || KEEP_ALIVE_VIEWS[view]) return 0;
+    const boxes = RECYCLE_BOXES[view];
+    if (!boxes || !boxes.length) return 0;
+    const scope = document.getElementById('view-' + view);
+    if (!scope) return 0;
+    let cleared = 0;
+    boxes.forEach(function (sel) {
+      let box;
+      try { box = scope.querySelector(sel); } catch (e) { return; }
+      if (!box || !box.childElementCount) return;
+      /* 先摘掉图片引用，浏览器会立刻回收解码后的位图；
+         不 revoke objectURL —— 别的视图可能还在用同一个 ref。 */
+      box.querySelectorAll('img').forEach(function (img) {
+        try {
+          img.removeAttribute('src');
+          img.removeAttribute('srcset');
+        } catch (e) {}
+      });
+      box.innerHTML = '';
+      cleared += 1;
+    });
+    return cleared;
+  };
+
   App.go = function (view, skipDataLoad) {
+    /* 离开上一个视图：改动先落盘，再撤掉它渲染出来的 DOM */
+    const leaving = app.dataset.view;
+    if (leaving && leaving !== view) {
+      try { if (App.flushSave) App.flushSave(); } catch (e) {}
+      try { App.recycleView(leaving); } catch (e) {}
+    }
     /* 点击哪个模块就先读哪个；读完后只在仍停留该页时重渲一次 */
     if (!skipDataLoad && App.loadViewData) {
       const pendingData = App.loadViewData(view);

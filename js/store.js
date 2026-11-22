@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261121-contract20';
+window.__SHIYI_B_store='20261121-contract22';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -453,24 +453,56 @@ window.__SHIYI_B_store='20261121-contract20';
         if (!db.objectStoreNames.contains('images')) db.createObjectStore('images', { keyPath: 'id' });
       };
       request.onsuccess = function () { resolve(request.result); };
-      request.onerror = function () { reject(request.error || new Error('本地媒体库打开失败')); };
+      /* 失败后把缓存清掉，让下一次操作能重新开库重试；否则这个 rejected Promise
+         会被一直复用，表情包、图片、语音全都会「突然发不出去」。 */
+      request.onerror = function () {
+        mediaDbPromise = null;
+        reject(request.error || new Error('本地媒体库打开失败'));
+      };
       /* 被其它连接挡住（版本升级 / 旧连接未关）时不能一直挂起；
-         reject 后读取流程会回退到 localStorage / 种子数据，界面至少能跑起来。 */
-      request.onblocked = function () { reject(new Error('本地媒体库打开被阻塞')); };
+         reject 后读取流程会回退到旧数据，界面至少能跑起来。 */
+      request.onblocked = function () {
+        mediaDbPromise = null;
+        reject(new Error('本地媒体库打开被阻塞'));
+      };
     });
     return mediaDbPromise;
   };
 
   function withMediaStore(name, mode, operation) {
-    return App.openMediaDB().then(function (db) {
+    /* 连「打开本地库」本身也可能挂起（切后台被冻结 / 旧连接卡住）：
+       外层再兜一层，否则超时计时器根本没机会启动，面板会一直转圈。 */
+    const opening = Promise.race([
+      App.openMediaDB(),
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error('打开本地媒体库超时')); }, 5000);
+      })
+    ]);
+    return opening.then(function (db) {
       return new Promise(function (resolve, reject) {
-        const tx = db.transaction(name, mode);
+        let settled = false;
+        /* 事务可能既不 complete 也不报错（连接被挡 / 切后台被冻结），
+           没有超时就会永久挂起：面板一直转圈、点发送也没任何反应。 */
+        const timer = setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          reject(new Error('本地媒体存储超时'));
+        }, 4000);
+        function finish(fn) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          fn();
+        }
+        let tx;
+        try { tx = db.transaction(name, mode); }
+        catch (err) { finish(function () { reject(err); }); return; }
         const request = operation(tx.objectStore(name));
         let result;
         if (request) request.onsuccess = function () { result = request.result; };
-        tx.oncomplete = function () { resolve(result); };
-        tx.onerror = function () { reject(tx.error || new Error('本地媒体存储失败')); };
-        tx.onabort = function () { reject(tx.error || new Error('本地媒体存储已取消')); };
+        tx.oncomplete = function () { finish(function () { resolve(result); }); };
+        tx.onerror = function () { finish(function () { reject(tx.error || new Error('本地媒体存储失败')); }); };
+        tx.onabort = function () { finish(function () { reject(tx.error || new Error('本地媒体存储已取消')); }); };
       });
     });
   }
@@ -485,16 +517,33 @@ window.__SHIYI_B_store='20261121-contract20';
   let stickerCachePromise = null;
 
   function readAllStickers() {
-    if (!window.indexedDB) return Promise.resolve([]);
+    if (!window.indexedDB) return Promise.resolve(null);
     return withMediaStore(STICKER_STORE, 'readonly', function (store) {
       return store.getAll();
-    }).catch(function () { return []; });
+    }).then(function (rows) { return rows || []; })
+      /* null = 这次没读成功，绝不能当成「库里是空的」 */
+      .catch(function () { return null; });
   }
 
   /* 加载所有表情包到内存缓存；同时把旧版本残留在 App.state 里的搬到 IDB 并清空 */
   App.loadStickers = function () {
     if (stickerCachePromise) return stickerCachePromise;
     stickerCachePromise = readAllStickers().then(function (all) {
+      if (all === null) {
+        /* 读取失败/超时：绝不能把缓存写成空数组，否则几百张表情会「凭空消失」，
+           面板一片空，看起来就是表情包发不出去。保留旧数据并给一条可重试的提示。 */
+        App.stickerLoadError = true;
+        const legacy = App.state.stickers || {};
+        if (!Array.isArray(App.stickerCache.public)) App.stickerCache.public = Array.isArray(legacy.public) ? legacy.public.slice() : [];
+        if (!Array.isArray(App.stickerCache.mine)) App.stickerCache.mine = Array.isArray(legacy.mine) ? legacy.mine.slice() : [];
+        (App.state.contacts || []).forEach(function (c) {
+          if (!Array.isArray(App.stickerCache.contacts[c.id])) {
+            App.stickerCache.contacts[c.id] = Array.isArray(c.stickers) ? c.stickers.slice() : [];
+          }
+        });
+        return; /* 不迁移、不 App.save()，避免把空数据写回去 */
+      }
+      App.stickerLoadError = false;
       const map = {};
       (all || []).forEach(function (rec) { if (rec && rec.key) map[rec.key] = Array.isArray(rec.value) ? rec.value : []; });
       App.stickerCache.public = map['public'] || [];
@@ -558,6 +607,13 @@ window.__SHIYI_B_store='20261121-contract20';
   };
 
   App.stickerReady = function () { return App.loadStickers(); };
+
+  /* 面板上「重新读取」用：丢掉缓存的失败结果，允许重新连一次本地媒体库 */
+  App.resetStickers = function () {
+    stickerCachePromise = null;
+    App.stickerCache = { public: null, mine: null, contacts: {} };
+    App.stickerLoadError = false;
+  };
 
   function dataUrlToBlob(dataUrl) {
     const parts = String(dataUrl).split(',');

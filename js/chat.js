@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract20';
+window.__SHIYI_B_chat='20261121-contract22';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -2281,7 +2281,14 @@ window.__SHIYI_B_chat='20261121-contract20';
   }
 
   function stickerCacheReady() {
-    return !!(App.stickerCache && (App.stickerCache.public !== null || App.stickerCache.mine !== null));
+    return !!(App.stickerCache &&
+      Array.isArray(App.stickerCache.public) && Array.isArray(App.stickerCache.mine));
+  }
+
+  /* 读失败时给一条能自己恢复的提示，别让面板永远停在「正在加载」 */
+  function stickerLoadErrorHtml(msg) {
+    return '<p class="sticker-empty">' + App.esc(msg) + '，表情包暂时没显示出来（原有表情不会丢）。</p>' +
+      '<button type="button" class="btn ghost sticker-retry" data-sticker-retry>点这里重新读取</button>';
   }
 
   /* 表情网格分页渲染：一次只画一页，上滑再加载下一批。
@@ -2352,15 +2359,33 @@ window.__SHIYI_B_chat='20261121-contract20';
 
     const grid = el('#sticker-grid');
     if (!grid) return;
-    /* 表情包还没从 IndexedDB 加载完：先显示加载中，加载完自动重渲（reset 回第一页） */
+    /* 表情包还没从 IndexedDB 加载完：先显示加载中，加载完自动重渲（reset 回第一页）。
+       加超时兜底：本地库被挡 / 切后台冻结时，事务可能永不结束，
+       以前这里 .catch 什么都不做，面板就永远停在「正在加载」，看着像彻底点不动。 */
     if (!stickerCacheReady()) {
       grid.innerHTML = '<p class="sticker-empty">正在加载表情包…</p>';
-      if (App.stickerReady) App.stickerReady().then(function () {
-        /* 缓存这时才有值，重新选一次落点，别停在空的「公共」上 */
-        if (App.stickerTab === 'public') App.stickerTab = defaultStickerTab();
-        updateSideButtons();
-        renderStickerPanel(true);
-      }).catch(function () {});
+      let settled = false;
+      let timer = null;
+      function finish(fn) {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        fn();
+      }
+      timer = setTimeout(function () {
+        finish(function () { grid.innerHTML = stickerLoadErrorHtml('读取超时'); });
+      }, 3000);
+      Promise.resolve(App.stickerReady ? App.stickerReady() : null)
+        .then(function () {
+          finish(function () {
+            if (App.stickerTab === 'public') App.stickerTab = defaultStickerTab();
+            updateSideButtons();
+            renderStickerPanel(true);
+          });
+        })
+        .catch(function () {
+          finish(function () { grid.innerHTML = stickerLoadErrorHtml('读取失败'); });
+        });
       return;
     }
 
@@ -2375,6 +2400,14 @@ window.__SHIYI_B_chat='20261121-contract20';
       : '<p class="sticker-empty">还没有表情包，点下方按钮从本地相册添加。</p>';
     stickerShown[key] = shown;
     setStickerMoreHint(grid, shown < stickers.length);
+    if (App.stickerLoadError) {
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'btn ghost sticker-retry';
+      retry.setAttribute('data-sticker-retry', '');
+      retry.textContent = '表情包没完全读出来，点这里重试';
+      grid.insertBefore(retry, grid.firstChild);
+    }
     bindStickerScroll();
     /* 切分类 / 打开面板回第一页时，把滚动归零，否则残留的 scrollTop 会触发
        scroll 事件又加载一页，导致新分类一上来就显示在第二页 */
@@ -2436,7 +2469,11 @@ window.__SHIYI_B_chat='20261121-contract20';
     const c = App.stickerCache || {};
     const pub = Array.isArray(c.public) ? c.public.length : 0;
     const mine = Array.isArray(c.mine) ? c.mine.length : 0;
-    return (!pub && mine) ? 'me' : 'public';
+    if (!pub && mine) return 'me';
+    const contact = currentContact();
+    const ta = contact && c.contacts && Array.isArray(c.contacts[contact.id]) ? c.contacts[contact.id].length : 0;
+    if (!pub && !mine && ta) return 'ta';
+    return 'public';
   }
 
   App.openStickerPanel = function (keepTab) {
@@ -3095,6 +3132,12 @@ window.__SHIYI_B_chat='20261121-contract20';
         });
         closePatPicker();
         if (card) App.sendPat(card);
+        return;
+      }
+
+      if (e.target.closest('[data-sticker-retry]')) {
+        if (App.resetStickers) App.resetStickers();
+        renderStickerPanel(true);
         return;
       }
 
