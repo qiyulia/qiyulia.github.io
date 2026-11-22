@@ -986,7 +986,7 @@
           ts: 0,
           title: (p.icon ? p.icon + ' ' : '') + p.name,
           who: who.join('、') + '收藏了',
-          from: '集市 · ' + p.price + ' 同心币',
+          from: '市场 · ' + p.price + ' 同心币',
         });
       });
     }
@@ -1048,7 +1048,7 @@
     }
 
     if (!items.length) {
-      list.innerHTML = '<div class="empty-state"><p>这一类还没有收藏。</p><p class="panel-note">聊天里长按消息、朋友圈点 ☆、信箱和集市里都能收藏。</p></div>';
+      list.innerHTML = '<div class="empty-state"><p>这一类还没有收藏。</p><p class="panel-note">聊天里长按消息、朋友圈点 ☆、信箱和市场里都能收藏。</p></div>';
       return;
     }
     list.innerHTML = items.map(function (item) {

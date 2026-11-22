@@ -87,7 +87,7 @@
     { key: 'mail', label: '信箱', fields: ['mail'] },
     { key: 'calendar', label: '日历', fields: ['calendar'] },
     { key: 'music', label: '音乐列表', fields: ['music'] },
-    { key: 'market', label: '集市与钱包', fields: ['wallet', 'market'] },
+    { key: 'market', label: '购物与钱包', fields: ['wallet', 'market'] },
     { key: 'clock', label: '时钟与闹钟', fields: ['clock'] },
     { key: 'contract', label: '婚帖契约', fields: ['contract'] },
   ];
@@ -327,7 +327,7 @@
     const raw = Math.round(Number(App.state.settings && App.state.settings.taMarketDailyLimit));
     const cap = Number.isFinite(raw) ? Math.max(0, Math.min(999, raw)) : 8;
     if (cap <= 0) {
-      hint.textContent = '当前：已关闭，TA 不会主动发集市消息。';
+      hint.textContent = '当前：已关闭，TA 不会主动发市场消息。';
       return;
     }
     const mins = Math.max(1, Math.round(1440 / cap));
@@ -734,8 +734,8 @@
     const clearMarketBtn = el('#btn-clear-market-cards');
     if (clearMarketBtn) {
       clearMarketBtn.addEventListener('click', function () {
-        App.confirmDialog('把已结束 / 过期的集市卡片（含集市订单）从聊天里清掉？还没处理的礼物和心愿会保留。',
-          { title: '清理集市卡片', okText: '清理' }).then(function (ok) {
+        App.confirmDialog('把已结束 / 过期的市场卡片（含市场订单）从聊天里清掉？还没处理的礼物和心愿会保留。',
+          { title: '清理市场卡片', okText: '清理' }).then(function (ok) {
           if (!ok) return;
           let removed = 0;
           const chats = App.state.chats || {};
@@ -753,7 +753,7 @@
             }
           });
           App.save();
-          App.toast(removed ? '已清理 ' + removed + ' 张集市卡片' : '没有需要清理的集市卡片');
+          App.toast(removed ? '已清理 ' + removed + ' 张市场卡片' : '没有需要清理的市场卡片');
           if (App.chatContactId && App.chatOpen && App.chatOpen(App.chatContactId) && App.renderChat) App.renderChat();
         });
       });

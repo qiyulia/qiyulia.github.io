@@ -2981,7 +2981,7 @@ dialog.more-sheet::backdrop {
 .msg .bubble.bubble-wish { background: linear-gradient(150deg, #8fb8e0, #6d94c4); box-shadow: 0 8px 20px rgba(70, 110, 160, .24); }
 .bubble-wish .packet-actions button { color: #3c6591; }
 .msg .bubble.bubble-market { background: linear-gradient(150deg, #9dc3a8, #74a184); box-shadow: 0 8px 20px rgba(80, 130, 100, .22); }
-/* 集市订单只是回执：一行小字，不再占掉半屏 */
+/* 市场订单只是回执：一行小字，不再占掉半屏 */
 .msg .bubble.bubble-market.is-compact {
   display: flex;
   align-items: center;
@@ -3011,7 +3011,7 @@ dialog.more-sheet::backdrop {
 }
 .msg .bubble.bubble-market.is-compact .market-compact-price { flex: none; opacity: .75; }
 
-/* ============ 集市 ============ */
+/* ============ 购物 ============ */
 .market-body { gap: 12px; }
 .market-balances { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .market-balance {

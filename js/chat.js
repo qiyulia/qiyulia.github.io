@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract17';
+window.__SHIYI_B_chat='20261121-contract19';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -441,7 +441,7 @@ window.__SHIYI_B_chat='20261121-contract17';
       '</div>';
   }
 
-  /* 待处理的集市卡片放满 24 小时就过期，不再一直挂着「收下 / 买给他」 */
+  /* 待处理的市场卡片放满 24 小时就过期，不再一直挂着「收下 / 买给他」 */
   const MARKET_CARD_TTL = 24 * 60 * 60 * 1000;
   function marketCardExpired(m) {
     return m.status === 'pending' && Date.now() - (Number(m.ts) || 0) > MARKET_CARD_TTL;
@@ -473,7 +473,7 @@ window.__SHIYI_B_chat='20261121-contract17';
       : (m.status === 'rejected' ? '已被拒绝' : (m.status === 'declined' ? '已拒绝' : (m.status === 'accepted' ? '已接受' : '已买下')));
     return '<div class="bubble bubble-gift bubble-wish' + (pending && !expired ? '' : ' is-done') + (m.status === 'rejected' || m.status === 'declined' ? ' is-returned' : '') + '">' +
       '<div class="packet-head"><span class="packet-tag">心愿</span><em>' + statusText + '</em></div>' +
-      '<p class="gift-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</p>' +
+      '<p class="gift-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '市场好物') + '</p>' +
       '<p class="packet-note">' + Number(m.price || 0) + ' 同心币' + (pending && !expired && !mine ? ' · 想要这个' : '') + '</p>' +
       (pending && !expired && !mine
         ? '<div class="packet-actions">' +
@@ -484,11 +484,11 @@ window.__SHIYI_B_chat='20261121-contract17';
       '</div>';
   }
 
-  /* 集市订单只是「买了什么」的回执，压成一行，别占掉半屏 */
+  /* 市场订单只是「买了什么」的回执，压成一行，别占掉半屏 */
   function marketBuyHtml(m) {
     return '<div class="bubble bubble-gift bubble-market is-compact">' +
-      '<span class="market-compact-tag">集市订单</span>' +
-      '<span class="market-compact-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '集市好物') + '</span>' +
+      '<span class="market-compact-tag">市场订单</span>' +
+      '<span class="market-compact-title">' + App.esc(m.icon || '🛍️') + ' ' + App.esc(m.productName || '市场好物') + '</span>' +
       '<span class="market-compact-price">' + Number(m.price || 0) + ' 同心币</span>' +
       '</div>';
   }
@@ -1279,7 +1279,7 @@ window.__SHIYI_B_chat='20261121-contract17';
       return false;
     }
     if (wallet[role] < amount) {
-      App.toast('同心币不够，去集市领点补贴吧');
+      App.toast('同心币不够，去市场领点补贴吧');
       return false;
     }
     wallet[role] -= amount;

@@ -1,4 +1,4 @@
-/* 集市：同心币钱包、次元银行补贴与商品互动 */
+/* 购物：同心币钱包、次元银行补贴与商品互动 */
 (function () {
   const App = window.App;
   const el = function (sel) { return document.querySelector(sel); };
@@ -64,7 +64,7 @@
     return true;
   }
 
-  /* 许愿卡：想要集市里的某件商品，等对方买下来 */
+  /* 许愿卡：想要市场里的某件商品，等对方买下来 */
   function postWish(product, side) {
     const contact = currentContact();
     if (!contact) {
@@ -161,7 +161,7 @@
     { key: 'buyForMe', probKey: 'taMarketBuyForMeProb', fallback: 4 },
   ];
 
-  /* TA 在集市里的自发行为：每个动作按自己的概率单独判定，一次最多只发一条 */
+  /* TA 在市场里的自发行为：每个动作按自己的概率单独判定，一次最多只发一条 */
   function taMarketTick() {
     if (!Array.isArray(App.state.market.products) || !products().length) return;
     /* 页面在后台时不判定，免得切回来的那一刻被塞一条 */
@@ -173,7 +173,7 @@
        间隔由 1440 ÷ 条数 算出来，条数填 0 就是彻底不发 */
     const market = App.state.market;
     const stamp = dayStamp();
-    /* 每天给 TA 发一笔零花钱，钱花光后集市不会突然变哑 */
+    /* 每天给 TA 发一笔零花钱，钱花光后市场不会突然变哑 */
     if (market.taAllowanceDay !== stamp) {
       market.taAllowanceDay = stamp;
       const raw = Math.round(Number(App.state.settings.taDailyAllowance));
@@ -377,7 +377,7 @@
     const shown = App.marketCat === '全部' ? items : (groups[App.marketCat] || []);
     list.innerHTML = shown.length
       ? shown.map(itemHtml).join('')
-      : '<p class="market-empty">' + (items.length ? '这个分类还没有商品。' : '集市还是空的，上架一件商品吧。') + '</p>';
+      : '<p class="market-empty">' + (items.length ? '这个分类还没有商品。' : '市场还是空的，上架一件商品吧。') + '</p>';
   };
 
   function findProduct(id) {

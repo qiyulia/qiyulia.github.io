@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261121-contract17';
+window.__SHIYI_B_store='20261121-contract19';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -1284,7 +1284,7 @@ window.__SHIYI_B_store='20261121-contract17';
     });
     if (s.settings.taMusicInviteCooldownMin == null) s.settings.taMusicInviteCooldownMin = 30;
     if (s.settings.taDailyAllowance == null) s.settings.taDailyAllowance = 30;
-    /* 集市互动恢复为 5 个各自独立的概率，清掉中间版本合并出来的单一概率字段；
+    /* 购物互动恢复为 5 个各自独立的概率，清掉中间版本合并出来的单一概率字段；
        间隔改为按「每天几条」自动平均，旧的手动间隔字段不再使用 */
     delete s.settings.taMarketProb;
     delete s.settings.taMarketGapMin;
@@ -1385,7 +1385,7 @@ window.__SHIYI_B_store='20261121-contract17';
       p.fav = p.fav && typeof p.fav === 'object' ? p.fav : { me: false, ta: false };
       return p;
     });
-    /* 集市上架新商品：老存档只补一次，之后用户自己下架不会再被补回来 */
+    /* 市场上架新商品：老存档只补一次，之后用户自己下架不会再被补回来 */
     if ((Number(s.settings.marketSeedVersion) || 1) < 3) {
       const haveIds = {};
       s.market.products.forEach(function (p) { haveIds[p.id] = true; });
