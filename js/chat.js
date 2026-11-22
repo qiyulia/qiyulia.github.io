@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract19';
+window.__SHIYI_B_chat='20261121-contract20';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
