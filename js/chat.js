@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract14';
+window.__SHIYI_B_chat='20261121-contract15';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -2276,7 +2276,12 @@ window.__SHIYI_B_chat='20261121-contract14';
     /* 表情包还没从 IndexedDB 加载完：先显示加载中，加载完自动重渲（reset 回第一页） */
     if (!stickerCacheReady()) {
       grid.innerHTML = '<p class="sticker-empty">正在加载表情包…</p>';
-      if (App.stickerReady) App.stickerReady().then(function () { renderStickerPanel(true); }).catch(function () {});
+      if (App.stickerReady) App.stickerReady().then(function () {
+        /* 缓存这时才有值，重新选一次落点，别停在空的「公共」上 */
+        if (App.stickerTab === 'public') App.stickerTab = defaultStickerTab();
+        updateSideButtons();
+        renderStickerPanel(true);
+      }).catch(function () {});
       return;
     }
 
@@ -2345,13 +2350,24 @@ window.__SHIYI_B_chat='20261121-contract14';
     if (panel) panel.hidden = true;
   }
 
+  /* 打开面板落在哪个分类：公共库被清空后还硬停在「公共」，
+     面板就是一片「还没有表情包」，会让人以为表情包发不出去。
+     公共没东西、我这边有，就直接落在「我」。 */
+  function defaultStickerTab() {
+    const c = App.stickerCache || {};
+    const pub = Array.isArray(c.public) ? c.public.length : 0;
+    const mine = Array.isArray(c.mine) ? c.mine.length : 0;
+    return (!pub && mine) ? 'me' : 'public';
+  }
+
   App.openStickerPanel = function (keepTab) {
     const panel = el('#sticker-panel');
     if (!panel) return;
     panel.hidden = false;
     if (!keepTab) {
-      /* 正常打开都从「公共」开始，只有恢复选图时保留原分类 */
-      App.stickerTab = 'public';
+      /* 正常打开落在有表情的分类；只有恢复选图时保留原分类 */
+      App.stickerTab = defaultStickerTab();
+      updateSideButtons();
     }
     renderStickerPanel(!keepTab);
   };
@@ -2361,8 +2377,8 @@ window.__SHIYI_B_chat='20261121-contract14';
     const opening = panel.hidden;
     panel.hidden = !panel.hidden;
     if (opening) {
-      /* 每次打开表情包面板都从「公共」分类开始 */
-      App.stickerTab = 'public';
+      App.stickerTab = defaultStickerTab();
+      updateSideButtons();
       renderStickerPanel(true);
     }
   }

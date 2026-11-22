@@ -637,9 +637,14 @@
     App.toast('答案已提交');
   }
 
-  /* 页面被关掉或切走时，已回答时间仍然按发送时刻计算 */
-  function resumePendingSurveys() {
-    Object.keys(App.state.chats || {}).forEach(function (contactId) {
+  /* 页面被关掉或切走时，已回答时间仍然按发送时刻计算。
+     带 onlyContactId 时只扫那一份聊天：聊天是按需读回的，
+     没点进的联系人不该为了补问卷被整份读进内存。
+     scheduleSurveyAnswers 自带定时器去重，重复调用不会答两次。 */
+  function resumePendingSurveys(onlyContactId) {
+    const ids = onlyContactId ? [onlyContactId] : Object.keys(App.state.chats || {});
+    ids.forEach(function (contactId) {
+      if (!App.isChatLoaded || !App.isChatLoaded(contactId)) return;
       (App.state.chats[contactId] || []).forEach(function (m) {
         if (m.type !== 'survey' || m.role !== 'me' || m.answered || m.resent) return;
         if (!m.answerDueAt) return;
@@ -2908,16 +2913,29 @@
     }
     const answerSubmit = el('#survey-answer-submit');
     if (answerSubmit) answerSubmit.addEventListener('click', submitSurveyAnswer);
-    resumePendingSurveys();
-    /* 聊天正文是懒加载、一份份读回内存的：启动时那一次可能还没读到。
-       每读回一份就补排一次待答问卷（定时器本身就防重复），
-       这样刷新页面后刚重发的问卷也会照常等 TA 来填。 */
+
+    /* 聊天按需加载：启动时绝不为补问卷把所有联系人整份读回内存。
+       ① 只认「刚发送的那一个」：从每个联系人最后一条消息的摘要里找
+          最新那份还没答、没撤回、没重发的问卷，只把那一份聊天读回来续上。
+       ② 滑到 / 点进哪个联系人，loadChat 读回后由 onChatLoaded 补排那一份，
+          没滑到的一份都不读。历史里其它待答问卷等真正点进去再续。 */
+    App.onChatLoaded = function (contactId) {
+      resumePendingSurveys(contactId);
+    };
     if (App.loadChat) {
-      (App.state.contacts || []).forEach(function (c) {
-        Promise.resolve(App.loadChat(c.id, false)).then(function () {
-          resumePendingSurveys();
-        }).catch(function () {});
+      const meta = App.chatSummaries || {};
+      let fresh = null;
+      Object.keys(meta).forEach(function (id) {
+        const last = meta[id] && meta[id].last;
+        if (!last || last.type !== 'survey' || last.role !== 'me') return;
+        if (last.answered || last.resent || last.recalled || !last.answerDueAt) return;
+        if (!fresh || (last.ts || 0) > (fresh.last.ts || 0)) fresh = { id: id, last: last };
       });
+      if (fresh) {
+        Promise.resolve(App.loadChat(fresh.id, false))
+          .then(function () { resumePendingSurveys(fresh.id); })
+          .catch(function () {});
+      }
     }
 
     /* 占卜：问题 / 张数、翻牌、重新开始、发送 */

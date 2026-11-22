@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261121-contract14';
+window.__SHIYI_B_store='20261121-contract15';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -1622,6 +1622,11 @@ window.__SHIYI_B_store='20261121-contract14';
       else chatSignatures[id] = chatSignature(id);
       if (merged.length) App.chatSummaries[id] = { last: merged[merged.length - 1] };
       if (withVoices) preloadChatVoices(merged);
+      /* 这份聊天刚读回内存：通知一次，让它里面还没答的问卷补排定时器。
+         只在真正读回时发，没点进的联系人永远不会触发。 */
+      if (App.onChatLoaded) {
+        try { App.onChatLoaded(id); } catch (e) {}
+      }
       return merged;
     }).catch(function () {
       delete chatPromises[id];
@@ -1716,16 +1721,16 @@ window.__SHIYI_B_store='20261121-contract14';
     return Promise.all(jobs);
   };
 
-  /* 用户不操作时，空闲逐个补齐；任何点击都会让对应模块插队先读 */
+  /* 用户不操作时，空闲逐个补齐「模块」；聊天记录不在这里预读。
+     聊天只在你点进 / 滑到那个联系人时才读（loadChat），没点进的一份都不进内存，
+     否则几百条 × 多个联系人会把内存占满、刷新后整站发消息都延迟。
+     收藏页、备份导出需要全量时会显式调 loadAllChats()，不受影响。 */
   let lazyBackgroundStarted = false;
   App.lazyLoadRemaining = function () {
     if (!lazyEnabled || lazyBackgroundStarted) return;
     lazyBackgroundStarted = true;
     const queue = Object.keys(LAZY_MODULES).map(function (name) {
       return function () { return App.loadModule(name); };
-    });
-    (App.state.contacts || []).forEach(function (c) {
-      queue.push(function () { return App.loadChat(c.id, false); });
     });
     function next() {
       if (!queue.length || document.hidden) {
