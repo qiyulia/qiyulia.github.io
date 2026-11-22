@@ -641,12 +641,56 @@
   function resumePendingSurveys() {
     Object.keys(App.state.chats || {}).forEach(function (contactId) {
       (App.state.chats[contactId] || []).forEach(function (m) {
-        if (m.type !== 'survey' || m.role !== 'me' || m.answered) return;
+        if (m.type !== 'survey' || m.role !== 'me' || m.answered || m.resent) return;
         if (!m.answerDueAt) return;
         scheduleSurveyAnswers(contactId, m.id, (m.answerDueAt - Date.now()) / 1000);
       });
     });
   }
+
+  /* 聊天里点开「我发出的问卷」→ 菜单「重新发送」：
+     把同一份题目再发一条，让 TA 重新填一遍，旧答案留在历史里。
+     若原来那份还在等回答，先撤掉它的定时器，避免同一份问卷答两次。 */
+  App.resendSurvey = function (contactId, original) {
+    if (!original || original.type !== 'survey' || original.role !== 'me' || original.recalled) return false;
+    const chat = App.state.chats[contactId];
+    if (!chat || chat.indexOf(original) === -1) return false;
+    if (surveyTimers[original.id]) {
+      clearTimeout(surveyTimers[original.id]);
+      delete surveyTimers[original.id];
+      original.answered = true;
+      original.resent = true;
+      delete original.answerDueAt;
+    }
+    const delay = Math.max(1, Math.min(120, Number(original.answerDelay) || 4));
+    const message = {
+      id: App.uid('m'),
+      role: 'me',
+      type: 'survey',
+      text: original.text || '发来一份小问卷',
+      questions: (original.questions || []).map(function (q) {
+        return {
+          text: q.text,
+          mode: q.mode,
+          options: (q.options || []).slice(),
+          scope: q.scope || 'all',
+        };
+      }),
+      answerDelay: delay,
+      answerDueAt: Date.now() + delay * 1000,
+      answered: false,
+      resentFrom: original.id,
+      ts: Date.now(),
+    };
+    deliverMessage(contactId, message);
+    setTimeout(function () {
+      const box = document.getElementById('chat-scroll');
+      if (box) box.scrollTop = box.scrollHeight;
+    }, 60);
+    App.toast('问卷已重新发送，等 TA 重新填');
+    scheduleSurveyAnswers(contactId, message.id, delay);
+    return true;
+  };
 
   function sendSurvey() {
     const contactId = reminderContactId();
@@ -2865,6 +2909,16 @@
     const answerSubmit = el('#survey-answer-submit');
     if (answerSubmit) answerSubmit.addEventListener('click', submitSurveyAnswer);
     resumePendingSurveys();
+    /* 聊天正文是懒加载、一份份读回内存的：启动时那一次可能还没读到。
+       每读回一份就补排一次待答问卷（定时器本身就防重复），
+       这样刷新页面后刚重发的问卷也会照常等 TA 来填。 */
+    if (App.loadChat) {
+      (App.state.contacts || []).forEach(function (c) {
+        Promise.resolve(App.loadChat(c.id, false)).then(function () {
+          resumePendingSurveys();
+        }).catch(function () {});
+      });
+    }
 
     /* 占卜：问题 / 张数、翻牌、重新开始、发送 */
     const divineQuestion = el('#divine-question');

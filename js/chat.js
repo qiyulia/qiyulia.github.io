@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract13';
+window.__SHIYI_B_chat='20261121-contract14';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -594,7 +594,7 @@ window.__SHIYI_B_chat='20261121-contract13';
   function surveyCardHtml(m, contact) {
     const mine = m.role === 'me';
     const name = contact ? contact.name : 'TA';
-    const status = m.answered ? '已回答' : (mine ? '等 TA 回答' : '等你回答');
+    const status = m.resent ? '已重发' : (m.answered ? '已回答' : (mine ? '等 TA 回答' : '等你回答'));
     const questions = (m.questions || []).map(function (q, index) {
       const options = (q.options && q.options.length)
         ? '<span class="survey-card-options">' + q.options.map(function (opt) { return App.esc(opt); }).join(' / ') + '</span>'
@@ -955,6 +955,11 @@ window.__SHIYI_B_chat='20261121-contract13';
     menu.querySelector('[data-msg-action="recall"]').hidden = !mine;
     const saveSticker = menu.querySelector('[data-msg-action="sticker"]');
     if (saveSticker) saveSticker.hidden = message.type !== 'image' || !!message.recalled;
+    /* 「重新发送」只出现在我自己发出、且没撤回的问卷上，别的消息一律不显示 */
+    const resendSurvey = menu.querySelector('[data-msg-action="resendSurvey"]');
+    if (resendSurvey) {
+      resendSurvey.hidden = !(message.type === 'survey' && message.role === 'me' && !message.recalled);
+    }
     menu.querySelector('[data-msg-action="favorite"]').textContent = message.favMine ? '取消收藏' : '收藏';
     menu.hidden = false;
     positionMsgActions(row);
@@ -1015,6 +1020,12 @@ window.__SHIYI_B_chat='20261121-contract13';
       App.renderChat();
       App.renderContacts();
       App.toast('已撤回消息');
+      return;
+    }
+
+    if (action === 'resendSurvey') {
+      if (message.type !== 'survey' || message.role !== 'me' || message.recalled) return;
+      if (App.resendSurvey) App.resendSurvey(App.chatContactId, message);
       return;
     }
 
