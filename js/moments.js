@@ -276,12 +276,12 @@
 
     const gapMin = Math.max(0, Number(cs.taMomentGapMin) || 0) * 60000;
     const gapMax = Math.max(gapMin, (Number(cs.taMomentGapMax) || 0) * 60000);
-    /* 冷却时间：同一个联系人两次朋友圈之间至少要隔这么久 */
-    const cooldown = Math.max(gapMin, (Number(cs.taMomentCooldownMin) || 0) * 60000);
+    /* 最短间隔同时就是冷却：两次朋友圈之间至少隔这么久；
+       到最长间隔还没发就保底发一条。独立的「冷却时间」已删掉，不再重合。 */
     const last = own.length ? own.reduce(function (a, b) { return a.ts > b.ts ? a : b; }) : null;
     const elapsed = last ? now - last.ts : gapMin;
 
-    if (last && elapsed < cooldown) return false;
+    if (last && elapsed < gapMin) return false;
     const mustPost = !!last && elapsed >= gapMax;
     if (!mustPost && Math.random() * 100 >= Math.max(0, Math.min(100, Number(cs.taMomentProb) || 0))) return false;
 

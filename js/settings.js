@@ -3,7 +3,7 @@
   const App = window.App;
   const el = function (sel) { return document.querySelector(sel); };
 
-  /* TA 主动发朋友圈这一组的节奏（概率、每日上限、最短/最长间隔、冷却、字卡数）
+  /* TA 主动发朋友圈这一组的节奏（概率、每日上限、最短/最长间隔、字卡数）
      只属于当前打开设置的这个联系人：存进 contact.settings，
      改他的不会连带改到别的联系人。运行时 moments.js 也是按联系人的这份设置走的。 */
   function momentContact() {
@@ -361,7 +361,6 @@
     el('#set-max').value = st.settings.replyMax;
     el('#set-typing-min').value = Math.round(Number(st.settings.replyDelayMinSec) || 0);
     el('#set-typing-max').value = Math.round(Number(st.settings.replyDelayMaxSec) || 0);
-    el('#set-ta-msg-prob').value = st.settings.taMsgProb == null ? 8 : st.settings.taMsgProb;
     el('#set-ta-msg-gap').value = st.settings.taMsgGapMin == null ? 1 : st.settings.taMsgGapMin;
     el('#set-ta-msg-min').value = st.settings.taMsgMin == null ? 1 : st.settings.taMsgMin;
     el('#set-ta-msg-max').value = st.settings.taMsgMax == null ? 3 : st.settings.taMsgMax;
@@ -383,7 +382,6 @@
     el('#set-ta-moment-gap-max').value = momentLimit('taMomentGapMax', 60);
     el('#set-ta-moment-card-min').value = momentLimit('taMomentCardMin', 1);
     el('#set-ta-moment-card-max').value = momentLimit('taMomentCardMax', 3);
-    el('#set-ta-moment-cooldown').value = momentLimit('taMomentCooldownMin', 10);
     el('#set-pat-back').value = st.settings.taPatProb == null ? 10 : st.settings.taPatProb;
     el('#set-ta-sticker').value = st.settings.taStickerProb == null ? 30 : st.settings.taStickerProb;
     el('#set-ta-sticker-combo').value = st.settings.taStickerComboProb == null ? 25 : st.settings.taStickerComboProb;
@@ -857,23 +855,6 @@
         markDirty();
       });
     });
-    const momentCooldown = el('#set-ta-moment-cooldown');
-    if (momentCooldown) {
-      /* 清空输入框想重打时，别在停顿 800ms 后把 0 填回去 */
-      momentCooldown.addEventListener('change', function () {
-        if (String(momentCooldown.value).trim() === '') return;
-        const v = Math.max(0, Math.min(1440, Math.round(Number(momentCooldown.value) || 0)));
-        momentCooldown.value = v;
-        setMomentLimit('taMomentCooldownMin', v);
-        markDirty();
-      });
-      momentCooldown.addEventListener('blur', function () {
-        if (String(momentCooldown.value).trim() === '') {
-          momentCooldown.value = momentLimit('taMomentCooldownMin', 10);
-        }
-      });
-    }
-
     el('#btn-edit-partner').addEventListener('click', function () {
       const partner = App.state.contacts.find(function (c) { return c.id === App.state.currentContactId; });
       if (partner && App.openContactDialog) App.openContactDialog(partner);
@@ -920,11 +901,6 @@
         e.target.value = v;
       }
       App.state.settings.replyDelayMaxSec = v;
-      markDirty();
-    });
-
-    App.bindStepper('#set-ta-msg-prob', function (v) {
-      App.state.settings.taMsgProb = v;
       markDirty();
     });
 

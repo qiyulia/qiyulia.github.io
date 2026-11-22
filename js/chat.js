@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract15';
+window.__SHIYI_B_chat='20261121-contract17';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -1378,7 +1378,7 @@ window.__SHIYI_B_chat='20261121-contract15';
       cancelNoReply(App.chatContactId);
       /* 提到了其他联系人的名字：优先触发 TA 的吃醋回复，打断普通抽卡 */
       if (!maybeJealousy(App.chatContactId, text)) {
-        scheduleReply(App.chatContactId, text);
+        registerBurstText(App.chatContactId, message, text);
         maybeTaSticker(App.chatContactId);
         maybeOfferCard(App.chatContactId, text);
       }
@@ -1417,7 +1417,7 @@ window.__SHIYI_B_chat='20261121-contract15';
       if (role === 'me') {
         cancelNoReply(App.chatContactId);
         if (!maybeJealousy(App.chatContactId, text)) {
-          scheduleReply(App.chatContactId, text);
+          registerBurstText(App.chatContactId, message, text);
           maybeOfferCard(App.chatContactId, text);
         }
         if (App.maybeHangupOnWords) App.maybeHangupOnWords(App.chatContactId, text);
@@ -1635,7 +1635,8 @@ window.__SHIYI_B_chat='20261121-contract15';
     if (now - since < idle) return;
     /* 投过了：中不中都记下时间，等下一个 N 分钟再投 */
     lastMsgRollAt = now;
-    const prob = Math.max(0, Math.min(100, Number(cs.taMsgProb) || 0));
+    /* 命中率写死 50%：不进设置、不可调、老存档里的旧值也不生效 */
+    const prob = 50;
     if (Math.random() * 100 >= prob) return;
 
     /* 这一次主动发几条：在最少～最多之间随机 */
@@ -1729,7 +1730,72 @@ window.__SHIYI_B_chat='20261121-contract15';
     }
   }
 
-  async function scheduleReply(contactId, userText) {
+  /* ---------- 连发合并 ----------
+     10 秒内我连发 3 条及以上「文字」，且 TA 的字卡还没发出来时，把这几条并成一轮：
+     只按其中随机一条来抽字卡，每条等概率；已读不回那条照样算进条数，
+     但不会被挑来当输入。TA 的文字 / 表情包会打断这一串，拍一拍之类不打断。
+     一轮发几条字卡仍按「每句话最少 / 最多」的设置来。 */
+  const BURST_WINDOW_MS = 10000;
+  const burstStates = {};
+
+  function burstState(contactId) {
+    if (!burstStates[contactId]) {
+      /* 只读一眼当前已读回的长度：绝不在这里创建 chats[id]，
+         懒加载就是靠 chats[id] 是否存在来区分「还没读回」的 */
+      const cur = App.state.chats[contactId];
+      burstStates[contactId] = {
+        items: [], tasks: [],
+        taCursor: Array.isArray(cur) ? cur.length : 0,
+      };
+    }
+    return burstStates[contactId];
+  }
+
+  /* 只有 TA 的文字、表情包算打断；语音、拍一拍、红包、问卷等不算 */
+  function isTaTextOrSticker(m) {
+    if (!m || m.role === 'me' || m.recalled) return false;
+    return m.type === 'text' || (m.type === 'image' && !!m.sticker) || !!m.stickerSrc;
+  }
+
+  function registerBurstText(contactId, message, text) {
+    const st = burstState(contactId);
+    /* 纯只读：连发登记不写 chats，懒加载不受影响 */
+    const chat = App.state.chats[contactId] || [];
+    const now = Date.now();
+
+    /* 上次登记之后 TA 又发了文字 / 表情包 → 这一串被打断，重新数 */
+    let interrupted = false;
+    for (let i = st.taCursor; i < chat.length; i++) {
+      if (isTaTextOrSticker(chat[i])) { interrupted = true; break; }
+    }
+    if (interrupted) {
+      st.items = [];
+      st.tasks = [];
+    }
+    st.taCursor = chat.length;
+
+    /* 只保留 10 秒窗口里的文字，过期的自己滑出去 */
+    st.items = st.items.filter(function (it) { return now - it.ts <= BURST_WINDOW_MS; });
+    st.items.push({ msg: message, text: text, ts: now });
+
+    const task = { cancelled: false, forceReply: false, pickItems: null };
+    st.tasks.push(task);
+
+    if (st.items.length >= 3) {
+      /* 之前排好队的字卡回复全部作废，只留最后这一轮；
+         已读不回的照旧记在串里，但挑输入时跳过它 */
+      for (let i = 0; i < st.tasks.length - 1; i++) st.tasks[i].cancelled = true;
+      st.tasks = [task];
+      /* 存消息引用而不是固定文本：已读不回是异步判定的，抽卡那一刻再排除，
+         保证「算进条数、但绝不拿来当回复依据」在真实时序下也成立 */
+      task.pickItems = st.items.slice();
+      task.forceReply = true;
+    }
+    scheduleReply(contactId, text, task);
+  }
+
+  async function scheduleReply(contactId, userText, burstTask) {
+    const opts = burstTask || null;
     const st = App.state;
     const contact = st.contacts.find(function (c) { return c.id === contactId; });
     const cs = App.contactSettings(contact);
@@ -1737,10 +1803,20 @@ window.__SHIYI_B_chat='20261121-contract15';
     const max = Math.max(min, Math.min(5, Number(cs.replyMax) || 0));
     const count = min + Math.floor(Math.random() * (max - min + 1));
     if (count <= 0) return;
+    if (opts && opts.cancelled) return;
+    /* 连发合并：抽卡这一刻从整串里随机挑一条，已读不回的按规则排除；
+       整串都是已读不回时照样回一轮，但输入留空，不按任何一条 */
+    let replyText = userText;
+    if (opts && opts.pickItems && opts.pickItems.length) {
+      const pool = opts.pickItems.filter(function (it) { return !it.msg.noReply; });
+      replyText = pool.length
+        ? pool[Math.floor(Math.random() * pool.length)].text
+        : '';
+    }
 
     /* 按概率已读不回：不接话，把我刚发的那条消息标成「已读不回」 */
     const ignoreProb = Math.max(0, Math.min(100, Number(cs.taIgnoreProb) || 0));
-    if (Math.random() * 100 < ignoreProb) {
+    if (!(opts && opts.forceReply) && Math.random() * 100 < ignoreProb) {
       const chat = App.state.chats[contactId] || [];
       let target = null;
       for (let i = chat.length - 1; i >= 0; i--) {
@@ -1767,10 +1843,10 @@ window.__SHIYI_B_chat='20261121-contract15';
     const voiceProb = Math.max(0, Math.min(100, Number(cs.taVoiceProb) || 0));
     const wantVoice = Math.random() * 100 < voiceProb;
     const cats = wantVoice ? ['聊天', '语音'] : ['聊天'];
-    let cards = App.pickCards(userText, count, contactId, cats);
+    let cards = App.pickCards(replyText, count, contactId, cats);
     /* 只有语音卡时，仍然让它回一句，避免 TA 完全不说话 */
     if (!cards.length && !wantVoice) {
-      cards = App.pickCards(userText, count, contactId, ['聊天', '语音']);
+      cards = App.pickCards(replyText, count, contactId, ['聊天', '语音']);
     }
     if (wantVoice && !cards.some(function (c) { return c.category === '语音' && c.audio; })) {
       const voicePool = App.visibleCards(contactId).filter(function (c) {
@@ -1802,6 +1878,7 @@ window.__SHIYI_B_chat='20261121-contract15';
     }
 
     for (let i = 0; i < cards.length; i++) {
+      if (opts && opts.cancelled) return;
       let group = [cards[i]];
       if (mergeTake >= 2 && i === 0) {
         group = cards.slice(0, mergeTake);
@@ -1826,6 +1903,8 @@ window.__SHIYI_B_chat='20261121-contract15';
 
       setTyping(contactId, false);
       if (!stillThere()) return;
+      /* 这一串还没发出来就被后面连发的消息并掉了：这一轮不发了 */
+      if (opts && opts.cancelled) return;
 
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
       const message = {

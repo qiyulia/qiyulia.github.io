@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261121-contract15';
+window.__SHIYI_B_store='20261121-contract17';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -1242,7 +1242,16 @@ window.__SHIYI_B_store='20261121-contract15';
     if (s.settings.avatarMeProb == null) s.settings.avatarMeProb = 25;
     if (s.settings.nameSelfProb == null) s.settings.nameSelfProb = 20;
     if (s.settings.nameMeProb == null) s.settings.nameMeProb = 10;
-    if (s.settings.taMsgProb == null) s.settings.taMsgProb = 8;
+    /* 主动发消息命中率写死 50%：老存档里可调的概率字段不再生效，顺手清掉。
+       朋友圈冷却与最短间隔重合，单独的冷却字段也一并清掉。 */
+    delete s.settings.taMsgProb;
+    delete s.settings.taMomentCooldownMin;
+    (s.contacts || []).forEach(function (c) {
+      if (c && c.settings) {
+        delete c.settings.taMsgProb;
+        delete c.settings.taMomentCooldownMin;
+      }
+    });
     if (s.settings.taMsgGapMin == null) s.settings.taMsgGapMin = 1;
     if (s.settings.taMsgMin == null) s.settings.taMsgMin = 1;
     if (s.settings.taMsgMax == null) s.settings.taMsgMax = 3;
@@ -1836,7 +1845,6 @@ window.__SHIYI_B_store='20261121-contract15';
       typingMin: pick('typingMin', 0.1),
       replyDelayMinSec: pick('replyDelayMinSec', 6),
       replyDelayMaxSec: pick('replyDelayMaxSec', 20),
-      taMsgProb: pick('taMsgProb', 8),
       taMsgGapMin: pick('taMsgGapMin', 1),
       taMsgMin: pick('taMsgMin', 1),
       taMsgMax: pick('taMsgMax', 3),
@@ -1856,7 +1864,6 @@ window.__SHIYI_B_store='20261121-contract15';
       taMomentDailyMax: pick('taMomentDailyMax', 3),
       taMomentGapMin: pick('taMomentGapMin', 10),
       taMomentGapMax: pick('taMomentGapMax', 60),
-      taMomentCooldownMin: pick('taMomentCooldownMin', 10),
       taMomentCardMin: pick('taMomentCardMin', 1),
       taMomentCardMax: pick('taMomentCardMax', 3),
       taPatProb: pick('taPatProb', 10),
