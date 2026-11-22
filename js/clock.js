@@ -139,6 +139,7 @@
 
   function setTone(kind) {
     var a = audio();
+    a.removeAttribute('data-clock-silent');
     if (kind === 'mute') {
       /* 静音：立刻停掉正在响的声音，并卸载音频源，保证之后一点声音都不出 */
       stopRing();
@@ -154,7 +155,11 @@
     /* 静音：只弹窗，不加载音频、不调用 play() */
     if (data().tone === 'mute') { stopRing(); return; }
     var a = audio();
-    if (!a.src) a.src = wavUrl(data().tone);
+    /* 解锁时挂的是静音源，正式响铃必须换回铃声，否则到点会没声音 */
+    if (!a.src || a.getAttribute('data-clock-silent') === '1') {
+      a.removeAttribute('data-clock-silent');
+      a.src = wavUrl(data().tone);
+    }
     a.currentTime = 0;
     var p = a.play();
     if (p && p.catch) p.catch(function () {
@@ -169,15 +174,56 @@
     try { ringAudio.pause(); ringAudio.currentTime = 0; } catch (e) {}
   }
 
-  /* 首次真实手势里解锁一次音频，让后续 setInterval 触发的 play() 有机会出声 */
+  /* 极短全零静音 WAV：只用来在真实手势里取得播放授权，保证一点声音都不出。
+     不再用 6 秒铃声去「解锁后立刻暂停」——play() 一旦开始就会漏出一声，
+     移动端 promise 回调更慢，loop=true 甚至可能一直响。 */
+  var SILENT_UNLOCK = null;
+  function silentUnlockWav() {
+    if (SILENT_UNLOCK) return SILENT_UNLOCK;
+    var rate = 8000, n = 800;                 /* 0.1 秒，采样全为 0 */
+    var bytes = new Uint8Array(44 + n * 2);
+    var dv = new DataView(bytes.buffer);
+    function str(off, t) { for (var k = 0; k < t.length; k++) dv.setUint8(off + k, t.charCodeAt(k)); }
+    str(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); str(8, 'WAVE');
+    str(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+    dv.setUint16(22, 1, true); dv.setUint32(24, rate, true);
+    dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+    str(36, 'data'); dv.setUint32(40, n * 2, true);
+    var bin = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    SILENT_UNLOCK = 'data:audio/wav;base64,' + btoa(bin);
+    return SILENT_UNLOCK;
+  }
+
+  /* 没有任何会响铃的事：刷新后连音频都不碰，也不消耗这次手势。
+     保留监听，等以后开了闹钟 / 跑了专注，第一次点击再解锁。 */
+  function needsRing() {
+    var d = data();
+    if (d.tone === 'mute') return false;
+    if (ringing || snooze) return true;
+    if (focus && focus.running) return true;
+    return (d.alarms || []).some(function (a) { return a && a.enabled; });
+  }
+
+  var audioUnlocked = false;
   function unlockAudio() {
-    var a = audio();
-    /* 静音状态下也静默解锁一次，之后切回有声音的音色才不会被动播放策略拦住 */
-    var unlockTone = data().tone === 'mute' ? 'chime' : data().tone;
-    if (!a.src) a.src = wavUrl(unlockTone);
-    var p = a.play();
-    if (p && p.then) p.then(function () { a.pause(); a.currentTime = 0; }).catch(function () {});
+    if (audioUnlocked || !needsRing()) return;
+    audioUnlocked = true;
     document.removeEventListener('pointerdown', unlockAudio, true);
+    var a = audio();
+    var prevVol = a.volume;
+    a.setAttribute('data-clock-silent', '1');
+    a.src = silentUnlockWav();
+    a.volume = 0;                            /* 双保险：音量为 0，绝不出声 */
+    var p = null;
+    try { p = a.play(); } catch (e) {}
+    /* 同步把音量还回去：静音源采样全零，不会因此出声；
+       也不把恢复放进 promise 回调，避免回调没跑导致以后铃声全哑掉 */
+    a.volume = prevVol;
+    var done = function () { try { a.pause(); a.currentTime = 0; } catch (e) {} };
+    if (p && p.then) p.then(done).catch(done); else done();
   }
 
   /* ---------- 字卡文案 ---------- */

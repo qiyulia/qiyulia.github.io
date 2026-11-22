@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract8';
+window.__SHIYI_B_chat='20261121-contract11';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -1479,32 +1479,50 @@ window.__SHIYI_B_chat='20261121-contract8';
     App.updateBadges();
   };
 
-  /* 拍一拍不再单独主动冒出来：TA 每次要发字卡时掷一次骰子，
-     命中就把这一条以「拍一拍」形态发出，没命中照常发字卡。
-     概率在联系人设置「发字卡变拍一拍（%）」里自己填，默认 10。
-     主动发消息、回复我、回应我的拍一拍，走的是同一个骰子。 */
-  function rollTaPat(contact) {
-    const cs = App.contactSettings(contact);
-    const prob = Math.max(0, Math.min(100, Number(cs.taPatProb) || 0));
-    if (Math.random() * 100 >= prob) return null;
-    const card = App.pickPatCard();
-    const raw = card ? card.text : '拍了拍{name}';
-    const action = raw.indexOf('{name}') !== -1
-      ? raw.split('{name}').join('你')
-      : raw;
-    return { text: contact.name + action, cardId: card ? card.id : undefined };
-  }
+  /* TA 拍一拍：完全独立，不绑发字卡、不绑我先开口，也不绑回复。
+     冷却写死 5 分钟，不放进设置、不可调：冷却结束投一次骰子，
+     命中就在那个时刻拍一下，没命中就只重新计冷却等下一轮。
+     概率沿用「TA 拍我（%）」全局默认 + 联系人单独覆盖，填 0 彻底关掉。
+     按联系人各记各的，刷新后依然生效。 */
+  const TA_PAT_COOLDOWN_MIN = 5;
 
-  function patMessage(contact, pat) {
-    return {
-      id: App.uid('m'),
-      role: 'ta',
-      type: 'pat',
-      text: pat.text,
-      ts: Date.now(),
-      cardId: pat.cardId,
-    };
+  function maybeTaPat() {
+    const st = App.state;
+    if (!st || !Array.isArray(st.contacts) || !st.contacts.length) return;
+    st.contacts.forEach(function (contact) {
+      if (!contact || !contact.id) return;
+      const cs = App.contactSettings(contact);
+      const prob = Math.max(0, Math.min(100, Number(cs.taPatProb) || 0));
+      if (prob <= 0) return;                 /* 关掉了就连冷却都不必记 */
+      const key = 'pat:' + contact.id;
+      /* 冷却没走完什么都不做；到点投一次，中不中都重新计冷却 */
+      if (!App.taRollTick(key, TA_PAT_COOLDOWN_MIN, prob)) return;
+      const card = App.pickPatCard();
+      const raw = card ? card.text : '拍了拍{name}';
+      const action = raw.indexOf('{name}') !== -1 ? raw.split('{name}').join('你') : raw;
+      /* 拍出来了：冷却从这一刻重新起算 */
+      App.taRollMark(key);
+      const chat = st.chats[contact.id] || (st.chats[contact.id] = []);
+      const message = {
+        id: App.uid('m'),
+        role: 'ta',
+        type: 'pat',
+        text: contact.name + action,
+        ts: Date.now(),
+        cardId: card ? card.id : undefined,
+      };
+      if (App.chatOpen(contact.id)) message.read = true;
+      chat.push(message);
+      App.save();
+      if (App.chatOpen(contact.id)) App.renderChat();
+      else {
+        App.unread[contact.id] = (App.unread[contact.id] || 0) + 1;
+        App.updateBadges();
+        App.renderContacts();
+      }
+    });
   }
+  App.maybeTaPat = maybeTaPat;
 
   /* TA 按概率主动发一张表情包（从 TA 的表情库随机抽） */
   function maybeTaSticker(contactId) {
@@ -1567,8 +1585,7 @@ window.__SHIYI_B_chat='20261121-contract8';
     const isVoice = card.category === '语音' && card.audio;
 
     const chat = st.chats[contactId] || (st.chats[contactId] = []);
-    const pat = rollTaPat(contact);
-    const message = pat ? patMessage(contact, pat) : {
+    const message = {
       id: App.uid('m'),
       role: 'ta',
       type: isVoice ? 'audio' : 'text',
@@ -1576,10 +1593,8 @@ window.__SHIYI_B_chat='20261121-contract8';
       ts: Date.now(),
       cardId: card.id,
     };
-    if (!pat) {
-      if (isVoice) message.src = card.audio;
-      if (card.category === '情绪') message.emotion = App.emotionLabel(card);
-    }
+    if (isVoice) message.src = card.audio;
+    if (card.category === '情绪') message.emotion = App.emotionLabel(card);
     if (App.chatOpen(contactId)) message.read = true;
     chat.push(message);
     App.save();
@@ -1626,6 +1641,7 @@ window.__SHIYI_B_chat='20261121-contract8';
   setInterval(function () {
     maybeTaStartsChat();
     if (App.maybeTaSurvey) App.maybeTaSurvey();
+    if (App.maybeTaPat) App.maybeTaPat();
     if (document.hidden || callState) return;
     const st = App.state;
     if (!st || !st.contacts.length) return;
@@ -1801,8 +1817,7 @@ window.__SHIYI_B_chat='20261121-contract8';
       if (!stillThere()) return;
 
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
-      const pat = rollTaPat(contact);
-      const message = pat ? patMessage(contact, pat) : {
+      const message = {
         id: App.uid('m'),
         role: 'ta',
         type: group.length === 1 && card.category === '语音' ? 'audio' : 'text',
@@ -1810,21 +1825,19 @@ window.__SHIYI_B_chat='20261121-contract8';
         ts: Date.now(),
         cardId: card.id,
       };
-      if (!pat) {
-        if (group.length > 1) message.cardIds = group.map(function (c) { return c.id; });
-        if (group.length === 1 && card.category === '语音') message.src = card.audio;
-        if (message.type !== 'audio' && Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
-      }
+      if (group.length > 1) message.cardIds = group.map(function (c) { return c.id; });
+      if (group.length === 1 && card.category === '语音') message.src = card.audio;
+      if (message.type !== 'audio' && Math.random() * 100 < emotionProb) message.emotion = pickReplyEmotion(card);
 
       const quoteProb = Math.max(0, Math.min(100, Number(cs.taQuoteProb) || 0));
-      if (!pat && chat.length && Math.random() * 100 < quoteProb) {
+      if (chat.length && Math.random() * 100 < quoteProb) {
         const quote = taQuoteFromPool(chat, contact);
         if (quote) message.quote = quote;
       }
 
       /* TA 也会把文字和表情包一起发：表情包在上，文字在下；概率在聊天设置 → 回复里调
          引用消息时只打字就不配表情包，保持纯文字 */
-      if (!pat && message.type === 'text' && group.length === 1 && !message.quote) {
+      if (message.type === 'text' && group.length === 1 && !message.quote) {
         const stickerProb = Math.max(0, Math.min(100, Number(cs.taStickerComboProb) || 0));
         /* 表情包已外置到 IndexedDB，从内存缓存取 */
         const cachedSt = App.stickerCache || {};
@@ -1840,7 +1853,7 @@ window.__SHIYI_B_chat='20261121-contract8';
 
       chat.push(message);
       App.save();
-      if (!pat) scheduleTaMessageExtras(contactId, contact, message, cs);
+      scheduleTaMessageExtras(contactId, contact, message, cs);
 
       if (App.chatOpen(contactId)) {
         App.renderChat();

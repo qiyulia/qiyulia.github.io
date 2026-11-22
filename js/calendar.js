@@ -147,15 +147,18 @@
 
   function renderMarkState() {
     const cal = calendar();
-    const days = rangeDays(selected, CYCLE_DAYS);
-    const periodMarked = days.every(function (key) { return cal[key] && cal[key].period; });
-    const ovulationMarked = days.every(function (key) { return cal[key] && cal[key].ovulation; });
+    /* 只看选中的这一天：有记录就变成「取消」，按钮染上经期粉 / 排卵期蓝。
+       不再要求连续 5 天全部标记，这样提前结束时能单独关掉其中某一天。 */
+    const d = cal[selected] || {};
+    const periodMarked = !!d.period;
+    const ovulationMarked = !!d.ovulation;
     el('#cal-mark-period').textContent = periodMarked ? '取消经期' : '记录经期';
     el('#cal-mark-ovulation').textContent = ovulationMarked ? '取消排卵期' : '记录排卵期';
     el('#cal-mark-period').classList.toggle('is-marked', periodMarked);
     el('#cal-mark-ovulation').classList.toggle('is-marked', ovulationMarked);
     el('#cal-cycle-title').textContent = fromKey(selected).getMonth() + 1 + '月' + fromKey(selected).getDate() + '日';
-    el('#cal-cycle-range').textContent = '从 ' + selected.replace(/-/g, '.') + ' 开始，连续记录或取消 5 天。';
+    el('#cal-cycle-range').textContent = '选中 ' + selected.replace(/-/g, '.') +
+      '：点「记录」从这天起连记 5 天；点「取消」只关掉这一天。';
   }
 
   function render() {
@@ -192,11 +195,29 @@
 
   function toggleRange(type) {
     const cal = calendar();
+    const label = type === 'period' ? '经期' : '排卵期';
+    const current = cal[selected] || {};
+
+    if (current[type]) {
+      /* 提前结束：只关掉选中的这一天，前后几天保持原样，也不往后补。
+         按钮已经变成「取消」，不用先添加新记录才能关。 */
+      const d = cal[selected] || {};
+      delete d[type];
+      if (!d.todo && !d.period && !d.ovulation) delete cal[selected];
+      else cal[selected] = d;
+      App.save();
+      closeCyclePanel();
+      render();
+      if (App.renderDesktop) App.renderDesktop();
+      App.toast('已取消 ' + selected.replace(/-/g, '.') + ' 的' + label);
+      return;
+    }
+
+    /* 未记录：沿用原来的「从这天起连续 5 天」 */
     const days = rangeDays(selected, CYCLE_DAYS);
-    const shouldMark = !days.every(function (key) { return cal[key] && cal[key][type]; });
     days.forEach(function (key) {
       const d = cal[key] || {};
-      d[type] = shouldMark;
+      d[type] = true;
       if (!d.todo && !d.period && !d.ovulation) delete cal[key];
       else cal[key] = d;
     });
@@ -204,7 +225,7 @@
     closeCyclePanel();
     render();
     if (App.renderDesktop) App.renderDesktop();
-    App.toast((type === 'period' ? '经期' : '排卵期') + (shouldMark ? '已记录连续 5 天' : '已取消连续 5 天'));
+    App.toast(label + '已记录连续 5 天');
   }
 
   App.renderCalendar = function () {
