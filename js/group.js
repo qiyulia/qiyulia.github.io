@@ -654,16 +654,28 @@
     const list = grpStickerList();
     const memberId = grpStickerMemberId();
     const member = memberId ? contactById(memberId) : null;
-    grid.innerHTML = list.length
-      ? list.map(function (src, i) {
-          return '<div class="sticker-cell">' +
-            '<button type="button" class="sticker-item" data-grp-send-sticker="' + i + '" aria-label="发送表情包">' +
-              '<img loading="lazy" decoding="async" src="' + App.esc(src) + '" alt="表情包">' +
-            '</button></div>';
-        }).join('')
-      : '<p class="sticker-empty">' + (member
-          ? App.esc(member.name) + ' 还没有表情包，去和 TA 的聊天里添加。'
-          : '这一类还没有表情包，去聊天界面的表情里添加。') + '</p>';
+    const emptyText = member
+      ? App.esc(member.name) + ' 还没有表情包，去和 TA 的聊天里添加。'
+      : '这一类还没有表情包，去聊天界面的表情里添加。';
+    if (App.mountStickerGrid) {
+      grid.scrollTop = 0;
+      App.mountStickerGrid(grid, list, {
+        cellHtml: function (src, i) {
+          return '<button type="button" class="sticker-item" data-grp-send-sticker="' + i +
+            '" aria-label="发送表情包"><img loading="lazy" decoding="async" src="' +
+            App.esc(src) + '" alt="表情包"></button>';
+        },
+        emptyHtml: '<p class="sticker-empty">' + emptyText + '</p>'
+      });
+    } else {
+      grid.innerHTML = list.length
+        ? list.map(function (src, i) {
+            return '<div class="sticker-cell"><button type="button" class="sticker-item" data-grp-send-sticker="' +
+              i + '" aria-label="发送表情包"><img loading="lazy" decoding="async" src="' +
+              App.esc(src) + '" alt="表情包"></button></div>';
+          }).join('')
+        : '<p class="sticker-empty">' + emptyText + '</p>';
+    }
     const emoji = el('#grp-emoji-grid');
     if (emoji && !emoji.dataset.ready) {
       emoji.innerHTML = GRP_EMOJIS.map(function (s) {

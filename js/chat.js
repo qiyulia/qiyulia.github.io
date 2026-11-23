@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract23';
+window.__SHIYI_B_chat='20261121-contract24';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -2316,52 +2316,105 @@ window.__SHIYI_B_chat='20261121-contract23';
       '<button type="button" class="btn ghost sticker-retry" data-sticker-retry>点这里重新读取</button>';
   }
 
-  /* 表情网格分页渲染：一次只画一页，上滑再加载下一批。
-     几百张表情时避免一次性拼接/解析大量 base64 节点把主线程锁死，
-     这样打开面板后导入按钮立刻就能点。 */
-  const STICKER_PAGE = 24;
-  const stickerShown = { public: 0, mine: 0, ta: 0 };
-  let stickerScrollBound = false;
+  /* ---------- 表情包窗口化渲染（虚拟列表） ----------
+     打开面板只画前 4 行（16 个），滚到哪才画到哪，滚出视口的格子直接撤掉。
+     撤的只是屏幕上的节点：表情数据一份在 App.stickerCache、一份在 IndexedDB，
+     两处都不动，切分类 / 删除 / 刷新 / 关掉重开都不会丢。 */
+  const STICKER_FIRST_BATCH = 16;   /* 首屏 4 行 × 4 列，也是导入的批次大小 */
+  const STICKER_COLS = 4;
+  const STICKER_GAP = 8;
+  const stickerGridState = new WeakMap();
 
-  function stickerCellHtml(src, index) {
-    return '<div class="sticker-cell">' +
-      '<button type="button" class="sticker-item" data-send-sticker="' + index + '" aria-label="发送表情包">' +
-        '<img loading="lazy" decoding="async" src="' + App.esc(src) + '" alt="表情包">' +
-      '</button>' +
-      '<button type="button" class="sticker-delete" data-del-sticker="' + index + '" aria-label="删除表情包">×</button>' +
-    '</div>';
+  function stickerCellInner(src, index) {
+    return '<button type="button" class="sticker-item" data-send-sticker="' + index + '" aria-label="发送表情包">' +
+      '<img loading="lazy" decoding="async" src="' + App.esc(src) + '" alt="表情包">' +
+    '</button>' +
+    '<button type="button" class="sticker-delete" data-del-sticker="' + index + '" aria-label="删除表情包">×</button>';
   }
 
-  function setStickerMoreHint(grid, show) {
-    const old = grid.querySelector('[data-sticker-more]');
-    if (old) old.remove();
-    if (show) grid.insertAdjacentHTML('beforeend', '<div class="sticker-more-hint" data-sticker-more>上滑加载更多</div>');
-  }
-
-  function expandStickerPage() {
-    const stickers = stickerList();
-    const key = stickerKey();
-    const shown = stickerShown[key] || 0;
-    if (shown >= stickers.length) return;
-    const next = Math.min(shown + STICKER_PAGE, stickers.length);
-    const grid = el('#sticker-grid');
+  /* 聊天面板和群聊面板共用：给任意 .sticker-grid 挂窗口化渲染 */
+  App.mountStickerGrid = function (grid, list, opts) {
     if (!grid) return;
-    const frag = document.createElement('div');
-    frag.innerHTML = stickers.slice(shown, next).map(function (src, i) {
-      return stickerCellHtml(src, shown + i);
-    }).join('');
-    while (frag.firstChild) grid.appendChild(frag.firstChild);
-    stickerShown[key] = next;
-    setStickerMoreHint(grid, next < stickers.length);
-  }
+    const o = opts || {};
+    const items = Array.isArray(list) ? list : [];
+    const cols = o.cols || STICKER_COLS;
+    const gap = o.gap || STICKER_GAP;
+    const cellHtml = o.cellHtml || function () { return ''; };
+    const emptyHtml = o.emptyHtml || '<p class="sticker-empty">还没有表情包</p>';
 
-  function bindStickerScroll() {
-    if (stickerScrollBound) return;
-    const grid = el('#sticker-grid');
-    if (!grid) return;
-    stickerScrollBound = true;
-    grid.addEventListener('scroll', function () {
-      if (grid.scrollHeight - (grid.scrollTop + grid.clientHeight) < 60) expandStickerPage();
+    let st = stickerGridState.get(grid);
+    if (!st) {
+      st = { bound: false, raf: 0, render: null };
+      stickerGridState.set(grid, st);
+    }
+    grid.dataset.virtual = '1';
+
+    /* 网格改成「撑高画布 + 绝对定位格子」；max-height / overflow 仍由原 CSS 管 */
+    grid.style.display = 'block';
+    grid.style.position = 'relative';
+    let canvas = grid.querySelector(':scope > .sticker-canvas');
+    if (!canvas) {
+      canvas = document.createElement('div');
+      canvas.className = 'sticker-canvas';
+      canvas.style.position = 'relative';
+      canvas.style.width = '100%';
+      grid.appendChild(canvas);
+    }
+
+    function metrics() {
+      const width = grid.clientWidth || 320;
+      const cell = Math.max(40, Math.floor((width - gap * (cols - 1)) / cols));
+      return { cell: cell, rowH: cell + gap, rows: Math.ceil(items.length / cols) };
+    }
+
+    function render() {
+      const m = metrics();
+      canvas.style.height = Math.max(0, m.rows * m.rowH - gap) + 'px';
+      if (!items.length) { canvas.innerHTML = emptyHtml; return; }
+      const top = grid.scrollTop || 0;
+      const viewH = grid.clientHeight || 240;
+      /* 首屏固定只画前 4 行；之后按滚动位置算可视区，上下各留 1 行缓冲 */
+      let firstRow = Math.max(0, Math.floor(top / m.rowH) - 1);
+      let lastRow = Math.ceil((top + viewH) / m.rowH) + 1;
+      if (top === 0) {
+        firstRow = 0;
+        lastRow = Math.ceil(STICKER_FIRST_BATCH / cols);   /* 首屏严格只画 4 行 16 个 */
+      }
+      lastRow = Math.min(m.rows, lastRow);
+      const start = firstRow * cols;
+      const end = Math.min(items.length, lastRow * cols);
+      const html = [];
+      for (let i = start; i < end; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        html.push('<div class="sticker-cell" style="position:absolute;left:' + (col * (m.cell + gap)) +
+          'px;top:' + (row * m.rowH) + 'px;width:' + m.cell + 'px;height:' + m.cell + 'px">' +
+          cellHtml(items[i], i) + '</div>');
+      }
+      canvas.innerHTML = html.join('');
+    }
+    st.render = render;
+    render();
+    /* 面板从 hidden 变可见时 clientWidth 才准，下一帧补算一次 */
+    requestAnimationFrame(render);
+
+    if (!st.bound) {
+      st.bound = true;
+      grid.addEventListener('scroll', function () {
+        if (st.raf) return;
+        st.raf = requestAnimationFrame(function () { st.raf = 0; render(); });
+      });
+    }
+  };
+
+  /* 全局只绑一次：横竖屏切换后重算每个表情网格 */
+  if (!window.__stickerResizeBound) {
+    window.__stickerResizeBound = true;
+    window.addEventListener('resize', function () {
+      document.querySelectorAll('.sticker-grid[data-virtual="1"]').forEach(function (g) {
+        const s = stickerGridState.get(g);
+        if (s && s.render) s.render();
+      });
     });
   }
 
@@ -2377,6 +2430,16 @@ window.__SHIYI_B_chat='20261121-contract23';
         ? '公共表情包 · 以「' + (sendRole() === 'ta' ? taName : '我') + '」身份发送'
         : '当前：' + (App.stickerTab === 'ta' ? taName : '我') + '的表情包';
     }
+  }
+
+
+  function renderStickerWindow() {
+    const grid = el('#sticker-grid');
+    if (!grid || !stickerCacheReady()) return;
+    App.mountStickerGrid(grid, stickerList(), {
+      cellHtml: stickerCellInner,
+      emptyHtml: '<p class="sticker-empty">还没有表情包，点下方按钮从本地相册添加。</p>'
+    });
   }
 
   function renderStickerPanel(reset) {
@@ -2414,28 +2477,19 @@ window.__SHIYI_B_chat='20261121-contract23';
       return;
     }
 
-    const stickers = stickerList();
-    const key = stickerKey();
-    if (reset) stickerShown[key] = 0;
-    let shown = stickerShown[key] || 0;
-    if (!shown) shown = Math.min(STICKER_PAGE, stickers.length);
-    else if (shown > stickers.length) shown = stickers.length; /* 删除后收缩，别跳回第一页 */
-    grid.innerHTML = stickers.length
-      ? stickers.slice(0, shown).map(function (src, i) { return stickerCellHtml(src, i); }).join('')
-      : '<p class="sticker-empty">还没有表情包，点下方按钮从本地相册添加。</p>';
-    stickerShown[key] = shown;
-    setStickerMoreHint(grid, shown < stickers.length);
-    if (App.stickerLoadError) {
+    if (reset) grid.scrollTop = 0;
+    renderStickerWindow();
+    /* 重试按钮放在面板里、网格之外：不占画布高度，窗口定位才不会偏 */
+    const panel = el('#sticker-panel');
+    document.querySelectorAll('#sticker-panel [data-sticker-retry]').forEach(function (n) { n.remove(); });
+    if (App.stickerLoadError && panel) {
       const retry = document.createElement('button');
       retry.type = 'button';
       retry.className = 'btn ghost sticker-retry';
       retry.setAttribute('data-sticker-retry', '');
       retry.textContent = '表情包没完全读出来，点这里重试';
-      grid.insertBefore(retry, grid.firstChild);
+      panel.insertBefore(retry, grid);
     }
-    bindStickerScroll();
-    /* 切分类 / 打开面板回第一页时，把滚动归零，否则残留的 scrollTop 会触发
-       scroll 事件又加载一页，导致新分类一上来就显示在第二页 */
     if (reset) grid.scrollTop = 0;
   }
 
@@ -2565,44 +2619,65 @@ window.__SHIYI_B_chat='20261121-contract23';
   }
 
   async function addStickers(files) {
-    const images = Array.from(files || []).slice(0, 12);
+    /* 一次选多少张都行，不再截断；系统 16 张一批自动导完，不用你重复选、也不用刷新 */
+    const images = Array.from(files || []);
     if (!images.length) return;
     /* 表情包外置在 IndexedDB，先确保缓存加载好，push 才会落到正确的数组 */
     if (App.stickerReady) await App.stickerReady();
 
-    setStickerStatus('正在压缩图片…');
-    App.toast('正在处理图片…');
     const list = stickerList();
+    const storeKey = stickerStoreKey();
+    const importedSide = stickerKey();
+    const seen = new Set(list);
     let added = 0;
     let failed = 0;
+    const total = images.length;
 
-    for (let i = 0; i < images.length; i++) {
+    setStickerStatus('正在导入 0/' + total + '…');
+    App.toast('正在处理图片…');
+
+    /* 串行落盘：每 64 张存一次，最后必存一次。
+       传 skipCache=true，别让异步写入把内存缓存换成新数组，
+       否则循环里持有的 list 引用会和界面读到的数组分家。 */
+    let saveChain = Promise.resolve();
+    function queueSave() {
+      if (!storeKey) return;
+      saveChain = saveChain.then(function () {
+        return App.saveStickerSet(storeKey, list, true);
+      });
+    }
+
+    for (let i = 0; i < total; i++) {
       try {
         const src = await compressImage(images[i]);
-        if (!list.includes(src)) {
-          list.push(src);
-          added++;
-        }
+        if (!seen.has(src)) { seen.add(src); list.push(src); added++; }
       } catch (e) {
         failed++;
       }
+
+      /* 每 16 张：出进度、刷新可视窗口、让出一次主线程，几百张也不会连成一段长阻塞 */
+      const batchEnd = (i + 1) % STICKER_FIRST_BATCH === 0 || i === total - 1;
+      if (batchEnd) {
+        setStickerStatus('正在导入 ' + (i + 1) + '/' + total + '…');
+        if (stickerKey() === importedSide) renderStickerWindow();
+        await new Promise(function (r) { setTimeout(r, 0); });
+      }
+      if ((i + 1) % 64 === 0) queueSave();
     }
+    queueSave();
+    await saveChain;   /* 最后一定等落盘完成，这次加的不会丢 */
 
     if (!added) {
-      setStickerStatus(failed ? '这张图片无法读取，换一张试试' : '没有添加新表情', true);
+      setStickerStatus(failed ? '这些图片无法读取，换一张试试' : '没有添加新表情', true);
       App.toast(failed ? '图片处理失败' : '没有添加新表情');
       return;
     }
-    /* 表情包存独立 IDB，不再进主 state，避免每次 save 序列化大对象把主线程卡死 */
-    const storeKey = stickerStoreKey();
-    if (storeKey) App.saveStickerSet(storeKey, list);
-    /* 展开到末尾，让刚添加的表情立即可见，再滚到底 */
-    const key = stickerKey();
-    stickerShown[key] = list.length;
-    renderStickerPanel(false);
+    /* 停在开头：后面的表情滚到才渲染，不用重新导入、也不用刷新 */
     const grid = el('#sticker-grid');
-    if (grid) grid.scrollTop = grid.scrollHeight;
-    setStickerStatus('已添加 ' + added + ' 张表情包');
+    if (grid) grid.scrollTop = 0;
+    renderStickerWindow();
+    setStickerStatus('已添加 ' + added + ' 张表情包' +
+      (failed ? '，' + failed + ' 张读取失败' : '') + '，往下滚查看');
     App.toast('已添加 ' + added + ' 张表情包');
   }
 

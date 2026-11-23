@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261121-contract23';
+window.__SHIYI_B_app='20261121-contract24';
 /* 入口与路由 */
 (function () {
   const App = window.App;
