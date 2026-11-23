@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract24';
+window.__SHIYI_B_chat='20261121-contract25';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -1497,6 +1497,32 @@ window.__SHIYI_B_chat='20261121-contract24';
      按联系人各记各的，刷新后依然生效。 */
   const TA_PAT_COOLDOWN_MIN = 5;
 
+  /* 真正把一条拍一拍落进聊天：独立投放和「主动发消息」都走这里，格式完全一致 */
+  function emitTaPat(contact) {
+    const st = App.state;
+    const card = App.pickPatCard();
+    const raw = card ? card.text : '拍了拍{name}';
+    const action = raw.indexOf('{name}') !== -1 ? raw.split('{name}').join('你') : raw;
+    const chat = st.chats[contact.id] || (st.chats[contact.id] = []);
+    const message = {
+      id: App.uid('m'),
+      role: 'ta',
+      type: 'pat',
+      text: contact.name + action,
+      ts: Date.now(),
+      cardId: card ? card.id : undefined,
+    };
+    if (App.chatOpen(contact.id)) message.read = true;
+    chat.push(message);
+    App.save();
+    if (App.chatOpen(contact.id)) App.renderChat();
+    else {
+      App.unread[contact.id] = (App.unread[contact.id] || 0) + 1;
+      App.updateBadges();
+      App.renderContacts();
+    }
+  }
+
   function maybeTaPat() {
     const st = App.state;
     if (!st || !Array.isArray(st.contacts) || !st.contacts.length) return;
@@ -1508,29 +1534,9 @@ window.__SHIYI_B_chat='20261121-contract24';
       const key = 'pat:' + contact.id;
       /* 冷却没走完什么都不做；到点投一次，中不中都重新计冷却 */
       if (!App.taRollTick(key, TA_PAT_COOLDOWN_MIN, prob)) return;
-      const card = App.pickPatCard();
-      const raw = card ? card.text : '拍了拍{name}';
-      const action = raw.indexOf('{name}') !== -1 ? raw.split('{name}').join('你') : raw;
       /* 拍出来了：冷却从这一刻重新起算 */
       App.taRollMark(key);
-      const chat = st.chats[contact.id] || (st.chats[contact.id] = []);
-      const message = {
-        id: App.uid('m'),
-        role: 'ta',
-        type: 'pat',
-        text: contact.name + action,
-        ts: Date.now(),
-        cardId: card ? card.id : undefined,
-      };
-      if (App.chatOpen(contact.id)) message.read = true;
-      chat.push(message);
-      App.save();
-      if (App.chatOpen(contact.id)) App.renderChat();
-      else {
-        App.unread[contact.id] = (App.unread[contact.id] || 0) + 1;
-        App.updateBadges();
-        App.renderContacts();
-      }
+      emitTaPat(contact);
     });
   }
   App.maybeTaPat = maybeTaPat;
@@ -1617,6 +1623,48 @@ window.__SHIYI_B_chat='20261121-contract24';
     }
   }
 
+  /* 主动发消息这一轮：TA 的表情包池（TA 自己的 + 公共），没有就返回空数组 */
+  function taStartStickerPool(contactId) {
+    const cached = App.stickerCache || {};
+    const own = (cached.contacts && cached.contacts[contactId]) || [];
+    return (Array.isArray(own) ? own : []).concat(Array.isArray(cached.public) ? cached.public : []);
+  }
+
+  /* 命中「表情包」这一支：纯表情包，或表情包 + 一句字卡文字（表情包在上、文字在下） */
+  function sendTaStartSticker(contactId, withText) {
+    const contact = App.state.contacts.find(function (c) { return c.id === contactId; });
+    if (!contact) return;
+    const pool = taStartStickerPool(contactId);
+    if (!pool.length) return;
+    const src = pool[Math.floor(Math.random() * pool.length)];
+    let text = '';
+    if (withText) {
+      const cards = App.visibleCards(contactId).filter(function (c) {
+        return c.enabled !== false && c.text && c.category === '聊天';
+      });
+      /* 字卡池空就退化成纯表情包，不发一条空白文字 */
+      if (cards.length) text = cards[Math.floor(Math.random() * cards.length)].text;
+    }
+    setTimeout(function () {
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      App.imageRef(src).then(function (ref) {
+        const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
+        const message = text
+          ? { id: App.uid('m'), role: 'ta', type: 'text', text: text, stickerSrc: ref, ts: Date.now() }
+          : { id: App.uid('m'), role: 'ta', type: 'image', src: ref, sticker: true, ts: Date.now() };
+        if (App.chatOpen(contactId)) message.read = true;
+        chat.push(message);
+        App.save();
+        if (App.chatOpen(contactId)) App.renderChat();
+        else {
+          App.unread[contactId] = (App.unread[contactId] || 0) + 1;
+          App.updateBadges();
+          App.renderContacts();
+        }
+      }).catch(function () {});
+    }, 1200 + Math.random() * 1800);
+  }
+
   function maybeTaStartsChat() {
     if (document.hidden || callState) return;
     const st = App.state;
@@ -1635,11 +1683,35 @@ window.__SHIYI_B_chat='20261121-contract24';
     if (now - since < idle) return;
     /* 投过了：中不中都记下时间，等下一个 N 分钟再投 */
     lastMsgRollAt = now;
-    /* 命中率写死 50%：不进设置、不可调、老存档里的旧值也不生效 */
+
+    /* 第一层：命中率写死 50%，按原样 —— 不进设置、不可调、老存档旧值不生效。
+       没中这一轮什么都不发，等下一轮；命中了才开始分类型。 */
     const prob = 50;
     if (Math.random() * 100 >= prob) return;
 
-    /* 这一次主动发几条：在最少～最多之间随机 */
+    /* 第二层：这一轮以什么形式主动找你（全部写死，不进设置）
+       有表情包：70% 文字 / 20% 表情包或表情包加文字 / 10% 拍一拍
+       没表情包：表情包那 20% 拆掉 → 80% 文字 / 20% 拍一拍 */
+    const hasSticker = taStartStickerPool(contact.id).length > 0;
+    const roll = Math.random() * 100;
+    const kind = hasSticker
+      ? (roll < 70 ? 'text' : (roll < 90 ? 'sticker' : 'pat'))
+      : (roll < 80 ? 'text' : 'pat');
+
+    if (kind === 'pat') {
+      /* 这一轮表现为拍一拍：不走独立拍一拍的 5 分钟冷却和概率，两套各算各的 */
+      emitTaPat(contact);
+      return;
+    }
+    if (kind === 'sticker') {
+      /* 先各 50% 选「纯表情包 / 表情包加文字」，再按写死的 20% 投到底发不发出来 */
+      const withText = Math.random() * 100 < 50;
+      if (Math.random() * 100 >= 20) return;
+      sendTaStartSticker(contact.id, withText);
+      return;
+    }
+
+    /* 文字这一支：一次随机发几条，按最少～最多 */
     const min = Math.max(1, Math.min(10, Math.round(Number(cs.taMsgMin) || 1)));
     const max = Math.max(min, Math.min(10, Math.round(Number(cs.taMsgMax) || min)));
     const count = min + Math.floor(Math.random() * (max - min + 1));
@@ -1648,6 +1720,8 @@ window.__SHIYI_B_chat='20261121-contract24';
       setTimeout(function () { sendTaStartMessage(contact.id); }, delay);
     }
   }
+
+  App.maybeTaStartsChat = maybeTaStartsChat;
 
   /* 每分钟按概率检查一次，让 TA 也会主动找我说话 */
   setInterval(function () {
@@ -2347,11 +2421,33 @@ window.__SHIYI_B_chat='20261121-contract24';
       st = { bound: false, raf: 0, render: null };
       stickerGridState.set(grid, st);
     }
+    /* 不超过首屏 4 行（16 张）时根本不会滚动：普通网格一次画完，
+       不建虚拟画布、也不留加载占位，面板最干净 */
+    if (items.length <= STICKER_FIRST_BATCH) {
+      delete grid.dataset.virtual;
+      grid.style.display = '';
+      grid.style.position = '';
+      const oldCanvas = grid.querySelector(':scope > .sticker-canvas');
+      if (oldCanvas) oldCanvas.remove();
+      st.render = null;
+      grid.scrollTop = 0;
+      grid.innerHTML = items.length
+        ? items.map(function (src, i) {
+            return '<div class="sticker-cell">' + cellHtml(src, i) + '</div>';
+          }).join('')
+        : emptyHtml;
+      return;
+    }
     grid.dataset.virtual = '1';
 
     /* 网格改成「撑高画布 + 绝对定位格子」；max-height / overflow 仍由原 CSS 管 */
     grid.style.display = 'block';
     grid.style.position = 'relative';
+    /* 上一次是「≤16 张」的普通网格时，清掉残留的直接子格子：
+       否则它们和虚拟画布叠在一起，会把滚动高度撑到异常大 */
+    Array.prototype.slice.call(grid.children).forEach(function (node) {
+      if (node.classList && node.classList.contains('sticker-cell')) node.remove();
+    });
     let canvas = grid.querySelector(':scope > .sticker-canvas');
     if (!canvas) {
       canvas = document.createElement('div');
@@ -2381,6 +2477,8 @@ window.__SHIYI_B_chat='20261121-contract24';
         lastRow = Math.ceil(STICKER_FIRST_BATCH / cols);   /* 首屏严格只画 4 行 16 个 */
       }
       lastRow = Math.min(m.rows, lastRow);
+      /* 滚动位置被异常撑高时，保证窗口仍落在有效行数里，不会算出空区间把画布清空 */
+      firstRow = Math.min(firstRow, Math.max(0, lastRow - 1));
       const start = firstRow * cols;
       const end = Math.min(items.length, lastRow * cols);
       const html = [];
@@ -2402,7 +2500,7 @@ window.__SHIYI_B_chat='20261121-contract24';
       st.bound = true;
       grid.addEventListener('scroll', function () {
         if (st.raf) return;
-        st.raf = requestAnimationFrame(function () { st.raf = 0; render(); });
+        st.raf = requestAnimationFrame(function () { st.raf = 0; if (st.render) st.render(); });
       });
     }
   };
@@ -2444,6 +2542,7 @@ window.__SHIYI_B_chat='20261121-contract24';
 
   function renderStickerPanel(reset) {
     setStickerStatus('');
+    document.querySelectorAll('#sticker-panel [data-sticker-retry]').forEach(function (n) { n.remove(); });
 
     const grid = el('#sticker-grid');
     if (!grid) return;
@@ -2451,7 +2550,13 @@ window.__SHIYI_B_chat='20261121-contract24';
        加超时兜底：本地库被挡 / 切后台冻结时，事务可能永不结束，
        以前这里 .catch 什么都不做，面板就永远停在「正在加载」，看着像彻底点不动。 */
     if (!stickerCacheReady()) {
-      grid.innerHTML = '<p class="sticker-empty">正在加载表情包…</p>';
+      /* 加载提示只放面板底部的状态行，不再塞进网格里：
+         以前它和已经渲出来的表情会叠在一起，看着像卡住了 */
+      grid.innerHTML = '';
+      grid.style.display = '';
+      grid.style.position = '';
+      delete grid.dataset.virtual;
+      setStickerStatus('正在加载表情包…');
       let settled = false;
       let timer = null;
       function finish(fn) {
@@ -2460,9 +2565,22 @@ window.__SHIYI_B_chat='20261121-contract24';
         if (timer) clearTimeout(timer);
         fn();
       }
-      timer = setTimeout(function () {
-        finish(function () { grid.innerHTML = stickerLoadErrorHtml('读取超时'); });
-      }, 3000);
+      function loadFail(msg) {
+        finish(function () {
+          setStickerStatus(msg + '，表情包暂时没显示出来（原有表情不会丢）。', true);
+          const box = el('#sticker-status');
+          if (box && !document.querySelector('#sticker-panel [data-sticker-load-retry]')) {
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'btn ghost sticker-retry';
+            retry.setAttribute('data-sticker-retry', '');
+            retry.setAttribute('data-sticker-load-retry', '');
+            retry.textContent = '点这里重新读取';
+            box.insertAdjacentElement('afterend', retry);
+          }
+        });
+      }
+      timer = setTimeout(function () { loadFail('读取超时'); }, 3000);
       Promise.resolve(App.stickerReady ? App.stickerReady() : null)
         .then(function () {
           finish(function () {
@@ -2471,24 +2589,22 @@ window.__SHIYI_B_chat='20261121-contract24';
             renderStickerPanel(true);
           });
         })
-        .catch(function () {
-          finish(function () { grid.innerHTML = stickerLoadErrorHtml('读取失败'); });
-        });
+        .catch(function () { loadFail('读取失败'); });
       return;
     }
 
     if (reset) grid.scrollTop = 0;
     renderStickerWindow();
-    /* 重试按钮放在面板里、网格之外：不占画布高度，窗口定位才不会偏 */
+    /* 读失败的重试也放底部：不占画布高度，窗口定位才不会偏 */
     const panel = el('#sticker-panel');
-    document.querySelectorAll('#sticker-panel [data-sticker-retry]').forEach(function (n) { n.remove(); });
-    if (App.stickerLoadError && panel) {
+    const statusBox = el('#sticker-status');
+    if (App.stickerLoadError && panel && statusBox) {
       const retry = document.createElement('button');
       retry.type = 'button';
       retry.className = 'btn ghost sticker-retry';
       retry.setAttribute('data-sticker-retry', '');
       retry.textContent = '表情包没完全读出来，点这里重试';
-      panel.insertBefore(retry, grid);
+      statusBox.insertAdjacentElement('afterend', retry);
     }
     if (reset) grid.scrollTop = 0;
   }

@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261121-contract24';
+window.__SHIYI_B_store='20261121-contract25';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
