@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract22';
+window.__SHIYI_B_chat='20261121-contract23';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -1972,12 +1972,34 @@ window.__SHIYI_B_chat='20261121-contract22';
     return 1 + Math.floor(Math.random() * 1000000);
   }
 
+  /* TA 主动发红包的冷却：发出后 2 分钟内连概率都不投，2 分钟到了才重新投。
+     写死 2 分钟，不放设置；按每个联系人各自计（概率本身也是按联系人配的）。
+     没命中不进入冷却，不会出现「没发红包却白等两分钟」。 */
+  const TA_PACKET_COOLDOWN_MS = 2 * 60 * 1000;
+
+  function taPacketOnCooldown(contact) {
+    const last = Number(contact && contact.taPacketLastAt) || 0;
+    return last > 0 && Date.now() - last < TA_PACKET_COOLDOWN_MS;
+  }
+
   /* TA 偶尔主动发一个红包给我 */
   function maybeTaPacket(contactId, contact, cs) {
     if (!contact) return;
+    /* 冷却期内直接不投骰子，冷却结束后下一轮回复自然恢复投放 */
+    if (taPacketOnCooldown(contact)) return;
     if (Math.random() * 100 >= clampProb(cs.taRedpacketProb)) return;
+
+    /* 投中即预占：红包要过 2.6~5.8 秒才真正出现，这段窗口里若又来一轮回复，
+       不能再中一次，否则会连着发两个红包。真正发出时再把起点挪到那一刻。 */
+    contact.taPacketLastAt = Date.now();
+    App.save();
     setTimeout(function () {
-      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) return;
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) {
+        /* 联系人被删了、红包没发成：撤掉预占，别白等两分钟 */
+        contact.taPacketLastAt = 0;
+        App.save();
+        return;
+      }
       const notes = ['拿去花', '请你喝奶茶', '今天也辛苦啦', '一点小心意', '买点好吃的'];
       const chat = App.state.chats[contactId] || (App.state.chats[contactId] = []);
       chat.push({
@@ -1989,6 +2011,8 @@ window.__SHIYI_B_chat='20261121-contract22';
         status: 'pending',
         ts: Date.now(),
       });
+      /* 冷却从红包真正发出来这一刻开始算 */
+      contact.taPacketLastAt = Date.now();
       App.save();
       if (App.chatOpen(contactId)) {
         App.renderChat();
@@ -1999,6 +2023,7 @@ window.__SHIYI_B_chat='20261121-contract22';
       }
     }, 2600 + Math.random() * 3200);
   }
+  App.maybeTaPacket = maybeTaPacket;
 
   /* ---------- 修罗场：在聊天里提到别的联系人，TA 会吃醋 ---------- */
   function maybeJealousy(contactId, text) {
