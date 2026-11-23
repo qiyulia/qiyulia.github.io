@@ -19,6 +19,7 @@
   const LIST_CHUNK = 80;
 
   App.renderCards = function () {
+    if (App.viewActive && !App.viewActive('cards')) return;
     const filter = App.cardFilter;
     const cards = App.visibleCards();
     const cats = ['全部'].concat(App.CATEGORIES);

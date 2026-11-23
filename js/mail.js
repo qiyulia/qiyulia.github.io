@@ -373,7 +373,8 @@
   }
 
   App.renderMail = function () {
-    showList();
+    /* 徽标是全局的，后台收信也要更新；列表只在信箱页打开时才重建 */
+    if (!App.viewActive || App.viewActive('mail')) showList();
     App.updateMailBadge();
   };
 

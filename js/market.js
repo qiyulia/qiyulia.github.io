@@ -346,6 +346,7 @@
   }
 
   App.renderMarket = function () {
+    if (App.viewActive && !App.viewActive('market')) return;
     if (!App.state.market || !el('#market-list')) return;
     el('#market-balance-me').textContent = App.state.wallet.me;
     el('#market-balance-ta').textContent = App.state.wallet.ta;

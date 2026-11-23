@@ -1024,6 +1024,7 @@
   }
 
   App.renderFavorites = function () {
+    if (App.viewActive && !App.viewActive('favorites')) return;
     const list = el('#fav-list');
     if (!list) return;
     document.querySelectorAll('[data-fav-cat]').forEach(function (btn) {

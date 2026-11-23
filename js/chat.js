@@ -1,4 +1,4 @@
-window.__SHIYI_B_chat='20261121-contract25';
+window.__SHIYI_B_chat='20261121-contract26';
 /* 聊天与字卡触发回复 */
 (function () {
   const App = window.App;
@@ -1852,7 +1852,7 @@ window.__SHIYI_B_chat='20261121-contract25';
     st.items = st.items.filter(function (it) { return now - it.ts <= BURST_WINDOW_MS; });
     st.items.push({ msg: message, text: text, ts: now });
 
-    const task = { cancelled: false, forceReply: false, pickItems: null };
+    const task = { cancelled: false, forceReply: false, pickItems: null, done: false };
     st.tasks.push(task);
 
     if (st.items.length >= 3) {
@@ -1865,7 +1865,20 @@ window.__SHIYI_B_chat='20261121-contract25';
       task.pickItems = st.items.slice();
       task.forceReply = true;
     }
-    scheduleReply(contactId, text, task);
+    /* 这一轮回复跑完就把记账摘掉：以前 tasks 只增不减，长期每轮只发 1~2 条
+       会攒下一串空对象；纯内存记账，不碰 chats、不影响懒加载 */
+    Promise.resolve(scheduleReply(contactId, text, task)).catch(function () {}).then(function () {
+      task.done = true;
+      const cur = burstStates[contactId];
+      if (!cur) return;
+      if (!App.state.contacts.some(function (c) { return c.id === contactId; })) {
+        delete burstStates[contactId];
+        return;
+      }
+      cur.tasks = cur.tasks.filter(function (t) { return !t.done && !t.cancelled; });
+      cur.items = cur.items.filter(function (it) { return Date.now() - it.ts <= BURST_WINDOW_MS; });
+      if (!cur.tasks.length && !cur.items.length) delete burstStates[contactId];
+    });
   }
 
   async function scheduleReply(contactId, userText, burstTask) {
@@ -2430,6 +2443,7 @@ window.__SHIYI_B_chat='20261121-contract25';
       const oldCanvas = grid.querySelector(':scope > .sticker-canvas');
       if (oldCanvas) oldCanvas.remove();
       st.render = null;
+      st.lastKey = null;
       grid.scrollTop = 0;
       grid.innerHTML = items.length
         ? items.map(function (src, i) {
@@ -2481,6 +2495,10 @@ window.__SHIYI_B_chat='20261121-contract25';
       firstRow = Math.min(firstRow, Math.max(0, lastRow - 1));
       const start = firstRow * cols;
       const end = Math.min(items.length, lastRow * cols);
+      /* 滚动一小段但可视窗口没跨行时，不重建 DOM，减少滚动抖动 */
+      const key = start + ':' + end + ':' + m.cell + ':' + items.length;
+      if (st.lastKey === key) return;
+      st.lastKey = key;
       const html = [];
       for (let i = start; i < end; i++) {
         const row = Math.floor(i / cols);
@@ -2492,6 +2510,7 @@ window.__SHIYI_B_chat='20261121-contract25';
       canvas.innerHTML = html.join('');
     }
     st.render = render;
+    st.lastKey = null;   /* 数据可能变了，本次强制重画一次 */
     render();
     /* 面板从 hidden 变可见时 clientWidth 才准，下一帧补算一次 */
     requestAnimationFrame(render);

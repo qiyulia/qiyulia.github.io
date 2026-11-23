@@ -98,6 +98,7 @@
   }
 
   App.renderMoments = function () {
+    if (App.viewActive && !App.viewActive('moments')) return;
     if (!Array.isArray(App.state.moments)) App.state.moments = [];
     const profile = App.state.profile;
     const ta = taContact();

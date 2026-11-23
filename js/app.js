@@ -1,4 +1,4 @@
-window.__SHIYI_B_app='20261121-contract25';
+window.__SHIYI_B_app='20261121-contract26';
 /* 入口与路由 */
 (function () {
   const App = window.App;
@@ -51,6 +51,15 @@ window.__SHIYI_B_app='20261121-contract25';
     mail:          ['#mail-list'],
     memorywall:    ['#mw-timeline'],
     mood:          ['#mood-calendar', '#mood-report']
+  };
+
+  /* 后台判定（TA 买东西、收藏变化、发朋友圈…）也会调列表渲染。
+     视图没打开时只更新数据、不重建 DOM：否则稳态回收刚清掉的几百个节点
+     会被立刻填回来，用户停在桌面也白占内存。进入视图时 App.go 会重渲。 */
+  App.viewActive = function (name) {
+    if (App.__forceRenderAll) return true;
+    const app = document.getElementById('app');
+    return !!(app && app.dataset.view === name);
   };
 
   App.recycleView = function (view) {
@@ -409,13 +418,19 @@ window.__SHIYI_B_app='20261121-contract25';
     watchChats();
   };
   App.renderAll = function () {
-    App.renderDesktop();
-    App.renderContacts();
-    App.renderMoments();
-    if (App.chatContactId) App.renderChat();
-    App.renderCards();
-    App.renderSettings();
-    if (App.renderMusic) App.renderMusic();
+    /* 导入备份后的全量刷新：临时放行视图守卫，所有列表照常重画一次 */
+    App.__forceRenderAll = true;
+    try {
+      App.renderDesktop();
+      App.renderContacts();
+      App.renderMoments();
+      if (App.chatContactId) App.renderChat();
+      App.renderCards();
+      App.renderSettings();
+      if (App.renderMusic) App.renderMusic();
+    } finally {
+      App.__forceRenderAll = false;
+    }
   };
 
   document.addEventListener('click', function (e) {

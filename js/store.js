@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261121-contract25';
+window.__SHIYI_B_store='20261121-contract26';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -1298,16 +1298,6 @@ window.__SHIYI_B_store='20261121-contract25';
     if (s.settings.avatarMeProb == null) s.settings.avatarMeProb = 25;
     if (s.settings.nameSelfProb == null) s.settings.nameSelfProb = 20;
     if (s.settings.nameMeProb == null) s.settings.nameMeProb = 10;
-    /* 主动发消息命中率写死 50%：老存档里可调的概率字段不再生效，顺手清掉。
-       朋友圈冷却与最短间隔重合，单独的冷却字段也一并清掉。 */
-    delete s.settings.taMsgProb;
-    delete s.settings.taMomentCooldownMin;
-    (s.contacts || []).forEach(function (c) {
-      if (c && c.settings) {
-        delete c.settings.taMsgProb;
-        delete c.settings.taMomentCooldownMin;
-      }
-    });
     if (s.settings.taMsgGapMin == null) s.settings.taMsgGapMin = 1;
     if (s.settings.taMsgMin == null) s.settings.taMsgMin = 1;
     if (s.settings.taMsgMax == null) s.settings.taMsgMax = 3;
@@ -1527,6 +1517,19 @@ window.__SHIYI_B_store='20261121-contract25';
 
     /* 设置镜像比本地库更新时（例如刚改完就刷新，异步写入没赶上），用镜像补齐 */
     const snapshotUsed = applySettingsSnapshot(s);
+
+    /* 主动发消息命中率写死 50%：老存档里可调的概率字段不再生效，顺手清掉。
+       朋友圈冷却与最短间隔重合，单独的冷却字段也一并清掉。
+       必须在 applySettingsSnapshot 之后：镜像里可能还带着这些旧键，
+       清理跑在前面会被 Object.assign 又盖回来，老存档的旧值就清不掉。 */
+    delete s.settings.taMsgProb;
+    delete s.settings.taMomentCooldownMin;
+    (s.contacts || []).forEach(function (c) {
+      if (c && c.settings) {
+        delete c.settings.taMsgProb;
+        delete c.settings.taMomentCooldownMin;
+      }
+    });
 
     /* ---- 启动自愈：清掉会让渲染中断、刷新后卡开屏的残缺记录 ----
        ① 空 src 的图片/语音消息；② 指向已不存在音频 blob 的 voice: 引用；
