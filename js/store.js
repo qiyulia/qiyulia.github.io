@@ -1,4 +1,4 @@
-window.__SHIYI_B_store='20261121-contract26';
+window.__SHIYI_B_store='20261121-contract27';
 /* 状态存储与通用工具 */
 (function () {
   const App = (window.App = window.App || {});
@@ -179,8 +179,68 @@ window.__SHIYI_B_store='20261121-contract26';
     });
   }
 
+  /* 和上面一样，但把写入时间一起带回来，用来和同步镜像比新旧 */
+  function getJsonRecordMeta(key) {
+    return withMediaStore('kv', 'readonly', function (store) {
+      return store.get(key);
+    }).then(function (record) {
+      if (!record || typeof record.data !== 'string') return { data: null, savedAt: 0 };
+      try {
+        return { data: JSON.parse(record.data), savedAt: Number(record.savedAt) || 0 };
+      } catch (e) { return { data: null, savedAt: 0 }; }
+    }).catch(function () { return { data: null, savedAt: 0 }; });
+  }
+
   const lazySignatures = {};
   const chatSignatures = {};
+
+  /* ---------- 分模块数据的「同步落盘镜像」 ----------
+      字卡、朋友圈、信箱这些是各自一条 IndexedDB 记录，App.save() 有 200ms
+      防抖，真正写入又是一串异步事务。用户点完「保存」顺手刷新 / 切后台时，
+      事务很可能还没提交就被浏览器中断 —— 表现就是「刚加的字卡刷新没了」。
+      这里在每次 App.save() / flushSave() 同步写一份 localStorage 镜像：
+      只有「签名已变、还没确认落盘」的模块才写，每个模块各自记时间。
+      下次启动读模块时，镜像比 IDB 记录新就以镜像为准，并立刻补写 IDB。
+      localStorage 是同步的，刷新打断不了它。 */
+  const PENDING_KEY = 'xuyu.pending.v1';
+
+  function readPendingMirror() {
+    try {
+      const raw = localStorage.getItem(PENDING_KEY);
+      const d = raw ? JSON.parse(raw) : null;
+      return d && d.modules && typeof d.modules === 'object' ? d : null;
+    } catch (e) { return null; }
+  }
+
+  function writePendingMirror() {
+    if (!lazyEnabled || !App.state) return;
+    try {
+      const snap = readPendingMirror() || { modules: {} };
+      let dirty = false;
+      const now = Date.now();
+      Object.keys(LAZY_MODULES).forEach(function (name) {
+        /* 没加载的模块绝不能写：那时内存里是空壳，写进去会覆盖真实存档 */
+        if (!lazyLoaded[name]) return;
+        /* 签名没变 = 已确认落盘，不用再占位 */
+        if (lazySignatures[name] === moduleSignature(name)) return;
+        snap.modules[name] = { savedAt: now, data: modulePayload(name, App.state) };
+        dirty = true;
+      });
+      if (dirty) localStorage.setItem(PENDING_KEY, JSON.stringify(snap));
+    } catch (e) {}
+  }
+
+  /* 模块已经成功写进 IDB：把镜像里这一条撤掉，别让它比 IDB 还新 */
+  function prunePendingModule(name) {
+    try {
+      const snap = readPendingMirror();
+      if (!snap || !snap.modules[name]) return;
+      delete snap.modules[name];
+      if (Object.keys(snap.modules).length) localStorage.setItem(PENDING_KEY, JSON.stringify(snap));
+      else localStorage.removeItem(PENDING_KEY);
+    } catch (e) {}
+  }
+
   function listSignature(list) {
     if (!Array.isArray(list)) return 'x';
     const first = list[0];
@@ -271,6 +331,7 @@ window.__SHIYI_B_store='20261121-contract26';
           if (!moduleIsActive(name) && lazySignatures[name] === signature) return;
           return putJsonRecord('lazy:' + name, modulePayload(name, App.state)).then(function () {
             lazySignatures[name] = signature;
+            prunePendingModule(name);
           });
         });
       });
@@ -379,6 +440,8 @@ window.__SHIYI_B_store='20261121-contract26';
 
   /* 合并短时间内的多次保存，避免每次点击都同步序列化整份数据造成卡顿 */
   App.save = function () {
+    /* 先同步留一份镜像：后面 200ms 防抖 + 异步 IDB 事务可能被刷新打断 */
+    writePendingMirror();
     if (saveTimer) return;
     saveTimer = setTimeout(function () {
       saveTimer = 0;
@@ -415,6 +478,8 @@ window.__SHIYI_B_store='20261121-contract26';
   };
 
   App.flushSave = function () {
+    /* 哪怕防抖已经触发、常规异步链还在跑，也要再同步留一次镜像 */
+    writePendingMirror();
     if (!saveTimer) return;
     clearTimeout(saveTimer);
     saveTimer = 0;
@@ -1643,13 +1708,22 @@ window.__SHIYI_B_store='20261121-contract26';
   App.loadModule = function (name) {
     if (!lazyEnabled || !LAZY_MODULES[name] || lazyLoaded[name]) return Promise.resolve(App.state);
     if (lazyPromises[name]) return lazyPromises[name];
-    lazyPromises[name] = getJsonRecord('lazy:' + name).then(function (data) {
+    lazyPromises[name] = getJsonRecordMeta('lazy:' + name).then(function (rec) {
+      /* 上次会话的 IDB 事务被刷新打断时，同步镜像里留着用户最后一次操作的
+         完整数据。按模块各自比时间：镜像更新就整体取代 IDB 旧记录
+         （整体取代而非按 id 合并，删掉的字卡才不会「复活」）。 */
+      const snap = readPendingMirror();
+      const m = snap && snap.modules && snap.modules[name];
+      const fromMirror = !!(m && Number(m.savedAt) > Number(rec.savedAt || 0));
+      const data = fromMirror ? m.data : rec.data;
+
       const hadPending = moduleHasPending(name);
       const merged = mergeModulePayload(name, data);
       LAZY_MODULES[name].forEach(function (field) { App.state[field] = merged[field]; });
       lazyLoaded[name] = true;
-      /* 纯读回的内容无需立刻重写；有合并新内容时保持脏标记，下次保存落盘 */
-      if (hadPending) delete lazySignatures[name];
+      /* 纯读回的内容无需立刻重写；镜像补回来的数据还没进 IDB，保持脏标记，
+         下一次 App.save() 就会把它正式写回本地库并撤掉镜像 */
+      if (hadPending || fromMirror) delete lazySignatures[name];
       else lazySignatures[name] = moduleSignature(name);
       refreshCurrentView();
       return App.state;
